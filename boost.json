@@ -15,10 +15,13 @@
     "nightwatch": false,
     "sail": false,
     "skills": [
+        "ai-sdk-development",
+        "cashier-stripe-development",
         "laravel-best-practices",
         "configuring-horizon",
         "passport-development",
         "pulse-development",
+        "socialite-development",
         "pest-testing",
         "tailwindcss-development"
     ]
