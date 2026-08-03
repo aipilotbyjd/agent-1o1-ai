@@ -18,6 +18,7 @@
         "laravel-best-practices",
         "configuring-horizon",
         "passport-development",
+        "pulse-development",
         "pest-testing",
         "tailwindcss-development"
     ]

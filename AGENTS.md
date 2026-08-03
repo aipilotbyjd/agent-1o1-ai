@@ -14,6 +14,8 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/horizon (HORIZON) - v5
 - laravel/passport (PASSPORT) - v13
 - laravel/prompts (PROMPTS) - v0
+- laravel/pulse (PULSE) - v1
+- livewire/livewire (LIVEWIRE) - v4
 - laravel/boost (BOOST) - v2
 - laravel/mcp (MCP) - v0
 - laravel/pail (PAIL) - v1
