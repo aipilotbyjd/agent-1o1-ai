@@ -14,6 +14,15 @@ docs {
 
   Internal V1 API (bearer/Passport auth) plus the Public V1 API (API-key auth).
 
+  ## Response envelope
+
+  Every Internal V1 response is wrapped: `{ success, statusCode, message, data }`
+  on success, `{ success, statusCode, message, errors? }` on failure (`errors`
+  present for 422 validation failures). Actual payloads always live under
+  `data` — e.g. login's tokens are at `data.tokens`, not top-level. Endpoints
+  that return no body (delete, logout, revoke) still respond `204 No Content`
+  with no envelope at all.
+
   ## Auth flow
 
   1. Run `auth/Register` or `auth/Login`. Their post-response script stores

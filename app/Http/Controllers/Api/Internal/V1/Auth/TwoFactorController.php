@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Internal\V1\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Auth\ConfirmTwoFactorRequest;
 use App\Http\Requests\Api\Internal\V1\Auth\DisableTwoFactorRequest;
+use App\Http\Responses\ApiResponse;
 use App\Services\Auth\TwoFactorAuthService;
 use Illuminate\Http\Request;
 
@@ -18,21 +19,27 @@ class TwoFactorController extends Controller
     {
         $result = $this->twoFactor->enable($request->user());
 
-        return response()->json($result);
+        return ApiResponse::success(
+            $result,
+            'Scan the QR code with your authenticator app, then confirm with a code to finish enabling two-factor authentication.',
+        );
     }
 
     public function confirm(ConfirmTwoFactorRequest $request)
     {
         $recoveryCodes = $this->twoFactor->confirm($request->user(), $request->validated('code'));
 
-        return response()->json(['recovery_codes' => $recoveryCodes]);
+        return ApiResponse::success(
+            ['recovery_codes' => $recoveryCodes],
+            'Two-factor authentication enabled. Store these recovery codes somewhere safe — they will not be shown again.',
+        );
     }
 
     public function disable(DisableTwoFactorRequest $request)
     {
         $this->twoFactor->disable($request->user());
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 
     /**
@@ -43,13 +50,16 @@ class TwoFactorController extends Controller
     {
         $remaining = count($this->twoFactor->recoveryCodes($request->user()));
 
-        return response()->json(['recovery_codes_remaining' => $remaining]);
+        return ApiResponse::success(['recovery_codes_remaining' => $remaining]);
     }
 
     public function regenerateRecoveryCodes(Request $request)
     {
         $recoveryCodes = $this->twoFactor->regenerateRecoveryCodes($request->user());
 
-        return response()->json(['recovery_codes' => $recoveryCodes]);
+        return ApiResponse::success(
+            ['recovery_codes' => $recoveryCodes],
+            'Recovery codes regenerated. Store these somewhere safe — they will not be shown again.',
+        );
     }
 }

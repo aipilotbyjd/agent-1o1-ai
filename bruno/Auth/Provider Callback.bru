@@ -21,7 +21,7 @@ params:query {
 
 script:post-response {
   if (res.status === 200) {
-    bru.setVar("accessToken", res.body.access_token);
+    bru.setVar("accessToken", res.body.data?.access_token);
   }
 }
 
@@ -29,4 +29,6 @@ docs {
   Completes the OAuth flow for `provider` using the `code` (and optional
   `state`) returned by the provider's redirect. Normally called by the
   browser, not directly — included for manual/CI verification.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user, access_token } }`.
 }

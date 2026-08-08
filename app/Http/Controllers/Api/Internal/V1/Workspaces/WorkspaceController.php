@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Workspaces\StoreWorkspaceRequest;
 use App\Http\Requests\Api\Internal\V1\Workspaces\UpdateWorkspaceRequest;
 use App\Http\Resources\Api\Internal\V1\Workspaces\WorkspaceResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Http\Request;
@@ -19,21 +20,21 @@ class WorkspaceController extends Controller
 
     public function index(Request $request)
     {
-        return response()->json(['workspaces' => WorkspaceResource::collection($request->user()->workspaces()->get())]);
+        return ApiResponse::success(['workspaces' => WorkspaceResource::collection($request->user()->workspaces()->get())]);
     }
 
     public function store(StoreWorkspaceRequest $request)
     {
         $workspace = $this->workspaces->create($request->user(), $request->validated());
 
-        return response()->json(['workspace' => WorkspaceResource::make($workspace)], 201);
+        return ApiResponse::created(['workspace' => WorkspaceResource::make($workspace)], 'Workspace created successfully.');
     }
 
     public function show(Workspace $workspace)
     {
         $this->requirePermission(Permission::WorkspaceView);
 
-        return response()->json(['workspace' => WorkspaceResource::make($workspace)]);
+        return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)]);
     }
 
     public function update(UpdateWorkspaceRequest $request, Workspace $workspace)
@@ -42,7 +43,7 @@ class WorkspaceController extends Controller
 
         $workspace = $this->workspaces->update($workspace, $request->validated());
 
-        return response()->json(['workspace' => WorkspaceResource::make($workspace)]);
+        return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)], 'Workspace updated successfully.');
     }
 
     public function destroy(Workspace $workspace)
@@ -51,6 +52,6 @@ class WorkspaceController extends Controller
 
         $this->workspaces->delete($workspace);
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 }

@@ -18,7 +18,7 @@ body:json {
 
 script:post-response {
   if (res.status === 200) {
-    const tokens = res.body.tokens ?? {};
+    const tokens = res.body.data?.tokens ?? {};
     bru.setVar("accessToken", tokens.access_token);
     bru.setVar("refreshToken", tokens.refresh_token);
   }
@@ -26,4 +26,6 @@ script:post-response {
 
 docs {
   Exchanges a refresh token for a new access/refresh token pair.
+
+  Response is wrapped: `{ success, statusCode, message, data: { tokens } }`.
 }

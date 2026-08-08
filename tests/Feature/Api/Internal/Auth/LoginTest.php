@@ -15,10 +15,12 @@ it('logs in with valid credentials and returns access + refresh tokens', functio
 
     $response->assertOk();
     $response->assertJsonStructure([
-        'user' => ['id', 'email'],
-        'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+        'data' => [
+            'user' => ['id', 'email'],
+            'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+        ],
     ]);
-    $response->assertJsonPath('user.email', 'jane@example.com');
+    $response->assertJsonPath('data.user.email', 'jane@example.com');
 });
 
 it('rejects an invalid password', function () {
@@ -42,12 +44,12 @@ it('lets a logged in user access a protected route and revokes the token on logo
     $tokens = $this->postJson('/api/v1/auth/login', [
         'email' => 'jane@example.com',
         'password' => 'Password1!',
-    ])->json('tokens');
+    ])->json('data.tokens');
 
     $this->withToken($tokens['access_token'])
         ->getJson('/api/v1/user')
         ->assertOk()
-        ->assertJsonPath('user.email', $user->email);
+        ->assertJsonPath('data.user.email', $user->email);
 
     $this->withToken($tokens['access_token'])
         ->postJson('/api/v1/auth/logout')

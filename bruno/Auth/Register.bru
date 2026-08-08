@@ -21,7 +21,7 @@ body:json {
 
 script:post-response {
   if (res.status === 201) {
-    const tokens = res.body.tokens ?? {};
+    const tokens = res.body.data?.tokens ?? {};
     bru.setVar("accessToken", tokens.access_token);
     bru.setVar("refreshToken", tokens.refresh_token);
   }
@@ -31,4 +31,6 @@ docs {
   Creates a new user account and returns the user plus an access/refresh
   token pair. Requires email uniqueness and a confirmed password meeting
   the app's password policy.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user, tokens } }`.
 }

@@ -12,8 +12,10 @@ it('registers a user, creates their workspace, and issues tokens', function () {
 
     $response->assertCreated();
     $response->assertJsonStructure([
-        'user' => ['id', 'name', 'email'],
-        'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+        'data' => [
+            'user' => ['id', 'name', 'email'],
+            'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+        ],
     ]);
 
     $user = User::query()->where('email', 'jane@example.com')->firstOrFail();

@@ -6,6 +6,7 @@ use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Auth\StoreApiKeyRequest;
 use App\Http\Resources\Api\Internal\V1\Auth\ApiKeyResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\Auth\ApiKey;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class ApiKeyController extends Controller
     {
         $this->requirePermission(Permission::ApiKeyView);
 
-        return response()->json(['api_keys' => ApiKeyResource::collection($workspace->apiKeys()->latest()->get())]);
+        return ApiResponse::success(['api_keys' => ApiKeyResource::collection($workspace->apiKeys()->latest()->get())]);
     }
 
     public function store(StoreApiKeyRequest $request, Workspace $workspace)
@@ -32,10 +33,10 @@ class ApiKeyController extends Controller
             'expires_at' => $request->validated('expires_at'),
         ]);
 
-        return response()->json([
+        return ApiResponse::created([
             'api_key' => ApiKeyResource::make($apiKey),
             'plain_text_key' => $plainTextKey,
-        ], 201);
+        ], 'API key created successfully.');
     }
 
     public function destroy(Request $request, Workspace $workspace, ApiKey $apiKey)
@@ -45,6 +46,6 @@ class ApiKeyController extends Controller
 
         $apiKey->delete();
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 }

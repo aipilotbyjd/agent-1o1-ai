@@ -9,6 +9,7 @@ use App\Http\Requests\Api\Internal\V1\Auth\RegisterRequest;
 use App\Http\Requests\Api\Internal\V1\Auth\VerifyTwoFactorRequest;
 use App\Http\Resources\Api\Internal\V1\Auth\TokenResource;
 use App\Http\Resources\Api\Internal\V1\User\UserResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
@@ -24,10 +25,10 @@ class AuthController extends Controller
     {
         $result = $this->auth->register($request->validated());
 
-        return response()->json([
+        return ApiResponse::created([
             'user' => UserResource::make($result['user']),
             'tokens' => $result['tokens'],
-        ], 201);
+        ], 'Registered successfully.');
     }
 
     public function login(LoginRequest $request)
@@ -35,13 +36,16 @@ class AuthController extends Controller
         $result = $this->auth->login($request->validated('email'), $request->validated('password'));
 
         if (isset($result['two_factor_challenge'])) {
-            return response()->json(['two_factor_challenge' => $result['two_factor_challenge']]);
+            return ApiResponse::success(
+                ['two_factor_challenge' => $result['two_factor_challenge']],
+                'Two-factor authentication code required.',
+            );
         }
 
-        return response()->json([
+        return ApiResponse::success([
             'user' => UserResource::make($result['user']),
             'tokens' => $result['tokens'],
-        ]);
+        ], 'Logged in successfully.');
     }
 
     public function verifyTwoFactor(VerifyTwoFactorRequest $request)
@@ -51,10 +55,10 @@ class AuthController extends Controller
             $request->validated('code'),
         );
 
-        return response()->json([
+        return ApiResponse::success([
             'user' => UserResource::make($result['user']),
             'tokens' => $result['tokens'],
-        ]);
+        ], 'Logged in successfully.');
     }
 
     public function refresh(Request $request)
@@ -63,21 +67,21 @@ class AuthController extends Controller
 
         $tokens = $this->auth->refresh($request->string('refresh_token')->toString());
 
-        return response()->json(['tokens' => $tokens]);
+        return ApiResponse::success(['tokens' => $tokens]);
     }
 
     public function logout(Request $request)
     {
         $this->auth->logout($request->user());
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 
     public function logoutAll(Request $request)
     {
         $this->auth->logoutAll($request->user());
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 
     public function forgotPassword(Request $request)
@@ -86,7 +90,7 @@ class AuthController extends Controller
 
         $this->auth->forgotPassword($request->string('email')->toString());
 
-        return response()->json(['message' => 'If that email exists, a reset link has been sent.']);
+        return ApiResponse::success(message: 'If that email exists, a reset link has been sent.');
     }
 
     public function resetPassword(Request $request)
@@ -99,7 +103,7 @@ class AuthController extends Controller
 
         $this->auth->resetPassword($request->only('token', 'email', 'password', 'password_confirmation'));
 
-        return response()->json(['message' => 'Password reset successfully.']);
+        return ApiResponse::success(message: 'Password reset successfully.');
     }
 
     public function changePassword(ChangePasswordRequest $request)
@@ -111,7 +115,7 @@ class AuthController extends Controller
             (bool) $request->boolean('revoke_other_sessions'),
         );
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 
     public function verifyEmail(Request $request, int $id)
@@ -130,19 +134,19 @@ class AuthController extends Controller
             $user->markEmailAsVerified();
         }
 
-        return response()->json(['message' => 'Email verified.']);
+        return ApiResponse::success(message: 'Email verified.');
     }
 
     public function resendVerification(Request $request)
     {
         $request->user()->sendEmailVerificationNotification();
 
-        return response()->json(['message' => 'Verification email sent.']);
+        return ApiResponse::success(message: 'Verification email sent.');
     }
 
     public function redirectToProvider(string $provider)
     {
-        return response()->json([
+        return ApiResponse::success([
             'url' => Socialite::driver($provider)->stateless()->redirect()->getTargetUrl(),
         ]);
     }
@@ -153,21 +157,21 @@ class AuthController extends Controller
 
         $result = $this->auth->handleSocialCallback($provider, $socialUser);
 
-        return response()->json([
+        return ApiResponse::success([
             'user' => UserResource::make($result['user']),
             'access_token' => $result['access_token'],
-        ]);
+        ], 'Logged in successfully.');
     }
 
     public function sessions(Request $request)
     {
-        return response()->json(['sessions' => TokenResource::collection($this->auth->sessions($request->user()))]);
+        return ApiResponse::success(['sessions' => TokenResource::collection($this->auth->sessions($request->user()))]);
     }
 
     public function revokeSession(Request $request, string $tokenId)
     {
         $this->auth->revokeSession($request->user(), $tokenId);
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 }

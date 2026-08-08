@@ -12,7 +12,7 @@ post {
 
 script:post-response {
   if (res.status === 200) {
-    bru.setVar("twoFactorSecret", res.body.secret);
+    bru.setVar("twoFactorSecret", res.body.data?.secret);
   }
 }
 
@@ -21,4 +21,6 @@ docs {
   authenticated user. Scan `otpauth_url` with an authenticator app, then
   call `2FA - Confirm` with a generated code to finish enabling.
   Re-running this replaces any unconfirmed secret.
+
+  Response is wrapped: `{ success, statusCode, message, data: { secret, otpauth_url } }`.
 }

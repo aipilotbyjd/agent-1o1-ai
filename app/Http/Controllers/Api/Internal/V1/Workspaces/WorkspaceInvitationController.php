@@ -7,6 +7,7 @@ use App\Enums\Workspaces\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Workspaces\InviteMemberRequest;
 use App\Http\Resources\Api\Internal\V1\Workspaces\WorkspaceInvitationResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceInvitation;
 use App\Services\Workspaces\WorkspaceInvitationService;
@@ -22,7 +23,7 @@ class WorkspaceInvitationController extends Controller
     {
         $this->requirePermission(Permission::InvitationView);
 
-        return response()->json(['invitations' => WorkspaceInvitationResource::collection($workspace->invitations()->whereNull('accepted_at')->get())]);
+        return ApiResponse::success(['invitations' => WorkspaceInvitationResource::collection($workspace->invitations()->whereNull('accepted_at')->get())]);
     }
 
     public function store(InviteMemberRequest $request, Workspace $workspace)
@@ -36,7 +37,7 @@ class WorkspaceInvitationController extends Controller
             $request->user(),
         );
 
-        return response()->json(['invitation' => WorkspaceInvitationResource::make($invitation)], 201);
+        return ApiResponse::created(['invitation' => WorkspaceInvitationResource::make($invitation)], 'Invitation sent successfully.');
     }
 
     public function destroy(Workspace $workspace, WorkspaceInvitation $invitation)
@@ -46,13 +47,13 @@ class WorkspaceInvitationController extends Controller
 
         $this->invitations->revoke($invitation);
 
-        return response()->noContent();
+        return ApiResponse::noContent();
     }
 
     public function accept(Request $request, WorkspaceInvitation $invitation)
     {
         $this->invitations->accept($invitation, $request->user());
 
-        return response()->json(['message' => 'Invitation accepted.']);
+        return ApiResponse::success(message: 'Invitation accepted.');
     }
 }

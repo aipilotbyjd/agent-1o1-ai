@@ -14,16 +14,16 @@ it('enables and confirms two-factor, returning recovery codes', function () {
     $enable = $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/enable')
         ->assertOk()
-        ->assertJsonStructure(['secret', 'otpauth_url'])
-        ->json();
+        ->assertJsonStructure(['data' => ['secret', 'otpauth_url']])
+        ->json('data');
 
     $code = currentOtpFor($enable['secret']);
 
     $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/confirm', ['code' => $code])
         ->assertOk()
-        ->assertJsonStructure(['recovery_codes'])
-        ->assertJsonCount(8, 'recovery_codes');
+        ->assertJsonStructure(['data' => ['recovery_codes']])
+        ->assertJsonCount(8, 'data.recovery_codes');
 
     expect($user->fresh()->hasTwoFactorEnabled())->toBeTrue();
 });
@@ -46,7 +46,7 @@ it('returns a two-factor challenge on login instead of tokens, then completes it
 
     $enable = $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/enable')
-        ->json();
+        ->json('data');
 
     $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/confirm', ['code' => currentOtpFor($enable['secret'])]);
@@ -55,22 +55,24 @@ it('returns a two-factor challenge on login instead of tokens, then completes it
         'email' => 'jane@example.com',
         'password' => 'Password1!',
     ])->assertOk()
-        ->assertJsonStructure(['two_factor_challenge'])
-        ->json();
+        ->assertJsonStructure(['data' => ['two_factor_challenge']])
+        ->json('data');
 
     $verify = $this->postJson('/api/v1/auth/2fa/verify', [
         'challenge_token' => $login['two_factor_challenge'],
         'code' => currentOtpFor($enable['secret']),
     ])->assertOk()
         ->assertJsonStructure([
-            'user' => ['id', 'email'],
-            'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+            'data' => [
+                'user' => ['id', 'email'],
+                'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+            ],
         ]);
 
-    $this->withToken($verify->json('tokens.access_token'))
+    $this->withToken($verify->json('data.tokens.access_token'))
         ->getJson('/api/v1/user')
         ->assertOk()
-        ->assertJsonPath('user.email', $user->email);
+        ->assertJsonPath('data.user.email', $user->email);
 });
 
 it('rejects an invalid two-factor verification code', function () {
@@ -81,7 +83,7 @@ it('rejects an invalid two-factor verification code', function () {
 
     $enable = $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/enable')
-        ->json();
+        ->json('data');
 
     $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/confirm', ['code' => currentOtpFor($enable['secret'])]);
@@ -89,7 +91,7 @@ it('rejects an invalid two-factor verification code', function () {
     $login = $this->postJson('/api/v1/auth/login', [
         'email' => 'jane@example.com',
         'password' => 'Password1!',
-    ])->json();
+    ])->json('data');
 
     $this->postJson('/api/v1/auth/2fa/verify', [
         'challenge_token' => $login['two_factor_challenge'],
@@ -105,7 +107,7 @@ it('disables two-factor and login goes straight to tokens again', function () {
 
     $enable = $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/enable')
-        ->json();
+        ->json('data');
 
     $this->actingAs($user, 'api')
         ->postJson('/api/v1/auth/2fa/confirm', ['code' => currentOtpFor($enable['secret'])]);
@@ -117,5 +119,5 @@ it('disables two-factor and login goes straight to tokens again', function () {
     $this->postJson('/api/v1/auth/login', [
         'email' => 'jane@example.com',
         'password' => 'Password1!',
-    ])->assertOk()->assertJsonStructure(['user', 'tokens']);
+    ])->assertOk()->assertJsonStructure(['data' => ['user', 'tokens']]);
 });

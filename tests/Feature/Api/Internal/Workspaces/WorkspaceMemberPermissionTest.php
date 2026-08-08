@@ -9,7 +9,7 @@ function loginTokens(string $email, string $password): array
     return test()->postJson('/api/v1/auth/login', [
         'email' => $email,
         'password' => $password,
-    ])->json('tokens');
+    ])->json('data.tokens');
 }
 
 it('lets a viewer read the workspace but not update it', function () {

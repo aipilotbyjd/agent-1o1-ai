@@ -19,7 +19,7 @@ body:json {
 
 script:post-response {
   if (res.status === 200) {
-    const tokens = res.body.tokens ?? {};
+    const tokens = res.body.data?.tokens ?? {};
     bru.setVar("accessToken", tokens.access_token);
     bru.setVar("refreshToken", tokens.refresh_token);
   }
@@ -31,4 +31,6 @@ docs {
   one-time recovery codes. The challenge token is single-use and
   expires after 5 minutes. On success, stores `accessToken`/
   `refreshToken` just like a normal login.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user, tokens } }`.
 }

@@ -24,8 +24,9 @@ body:json {
 
 script:post-response {
   if (res.status === 201) {
-    bru.setVar("apiKey", res.body.plain_text_key);
-    const apiKeyRecord = res.body.api_key ?? {};
+    const data = res.body.data ?? {};
+    bru.setVar("apiKey", data.plain_text_key);
+    const apiKeyRecord = data.api_key ?? {};
     if (apiKeyRecord.id) {
       bru.setVar("apiKeyId", apiKeyRecord.id);
     }
@@ -38,4 +39,6 @@ docs {
   `agents:invoke`, `runs:read`, `connectors:manage`. The plain-text key
   is only returned once, in this response, and is stored in the `apiKey`
   collection variable for use by the Public V1 requests.
+
+  Response is wrapped: `{ success, statusCode, message, data: { api_key, plain_text_key } }`.
 }
