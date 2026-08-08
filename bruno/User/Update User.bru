@@ -1,0 +1,21 @@
+meta {
+  name: Update User
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/v1/user
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Jane D. Updated"
+  }
+}
+
+docs {
+  Updates the authenticated user's profile. All fields are optional.
+}

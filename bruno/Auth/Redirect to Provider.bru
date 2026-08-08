@@ -1,0 +1,20 @@
+meta {
+  name: Redirect to Provider
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/auth/social/:provider/redirect
+  body: none
+  auth: none
+}
+
+params:path {
+  provider: google
+}
+
+docs {
+  Returns the OAuth redirect URL for the given social provider.
+  `provider` must be `google` or `github`.
+}

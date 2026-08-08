@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Passport\Client;
 use Tests\TestCase;
 
 /*
@@ -15,7 +16,17 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
- // ->use(RefreshDatabase::class)
+    ->use(RefreshDatabase::class)
+    ->beforeEach(function () {
+        Client::query()->create([
+            'id' => config('passport.password_client_id'),
+            'name' => 'Testing Password Grant Client',
+            'secret' => config('passport.password_client_secret'),
+            'redirect_uris' => [],
+            'grant_types' => ['password', 'refresh_token'],
+            'revoked' => false,
+        ]);
+    })
     ->in('Feature');
 
 /*

@@ -45,4 +45,19 @@ return [
 
     'connection' => env('PASSPORT_CONNECTION'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Password Grant Client
+    |--------------------------------------------------------------------------
+    |
+    | The OAuth client AuthService uses to perform the internal password-grant
+    | token exchange for Internal API login/refresh. Created via:
+    | php artisan passport:client --password
+    |
+    */
+
+    'password_client_id' => env('PASSPORT_PASSWORD_CLIENT_ID'),
+
+    'password_client_secret' => env('PASSPORT_PASSWORD_CLIENT_SECRET'),
+
 ];

@@ -1,0 +1,28 @@
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+}
+
+docs {
+  # agent-1o1-ai API
+
+  Internal V1 API (bearer/Passport auth) plus the Public V1 API (API-key auth).
+
+  ## Auth flow
+
+  1. Run `auth/Register` or `auth/Login`. Their post-response script stores
+     `accessToken` and `refreshToken` as collection variables.
+  2. Every other Internal V1 request inherits collection-level bearer auth
+     and automatically uses `{{accessToken}}`.
+  3. Requests under `workspaces/{workspace}/...` also need a `workspaceId`
+     variable set (see the `local` environment) — set it after creating or
+     listing a workspace.
+  4. Public V1 requests (`public/...`) use a workspace API key instead —
+     set `{{apiKey}}` from `workspaces/api-keys/Create Api Key`.
+}

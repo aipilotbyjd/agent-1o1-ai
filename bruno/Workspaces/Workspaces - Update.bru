@@ -1,0 +1,25 @@
+meta {
+  name: Workspaces - Update
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/v1/workspaces/:workspace
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:json {
+  {
+    "name": "Acme Inc (renamed)"
+  }
+}
+
+docs {
+  Updates a workspace. Requires the `workspace.update` permission.
+}

@@ -1,0 +1,29 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/refresh
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "refresh_token": "{{refreshToken}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const tokens = res.body.tokens ?? {};
+    bru.setVar("accessToken", tokens.access_token);
+    bru.setVar("refreshToken", tokens.refresh_token);
+  }
+}
+
+docs {
+  Exchanges a refresh token for a new access/refresh token pair.
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Resend Verification
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/resend-verification
+  body: none
+  auth: inherit
+}
+
+docs {
+  Resends the email verification notification to the authenticated user.
+}

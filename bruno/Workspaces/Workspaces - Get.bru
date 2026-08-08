@@ -1,0 +1,20 @@
+meta {
+  name: Workspaces - Get
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Shows a single workspace. Requires the `workspace.view` permission for
+  the caller's role in that workspace.
+}

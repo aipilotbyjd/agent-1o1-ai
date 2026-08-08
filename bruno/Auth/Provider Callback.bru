@@ -1,0 +1,32 @@
+meta {
+  name: Provider Callback
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/auth/social/:provider/callback?code={{socialCode}}&state={{socialState}}
+  body: none
+  auth: none
+}
+
+params:path {
+  provider: google
+}
+
+params:query {
+  code: {{socialCode}}
+  state: {{socialState}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("accessToken", res.body.access_token);
+  }
+}
+
+docs {
+  Completes the OAuth flow for `provider` using the `code` (and optional
+  `state`) returned by the provider's redirect. Normally called by the
+  browser, not directly — included for manual/CI verification.
+}

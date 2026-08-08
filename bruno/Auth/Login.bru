@@ -1,0 +1,41 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "jane.doe@example.com",
+    "password": "Password123!"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    if (res.body.two_factor_challenge) {
+      bru.setVar("challengeToken", res.body.two_factor_challenge);
+    } else {
+      const tokens = res.body.tokens ?? {};
+      bru.setVar("accessToken", tokens.access_token);
+      bru.setVar("refreshToken", tokens.refresh_token);
+    }
+  }
+}
+
+docs {
+  Exchanges email/password for the user plus an access/refresh token
+  pair. Rate limited by the `auth` throttle. Stores `accessToken` and
+  `refreshToken` as collection variables for use by subsequent requests.
+
+  If the account has two-factor authentication enabled, this instead
+  returns `{ "two_factor_challenge": "<token>" }` (no tokens yet) and
+  stores it as `challengeToken` — run `2FA - Verify` next to complete
+  login.
+}

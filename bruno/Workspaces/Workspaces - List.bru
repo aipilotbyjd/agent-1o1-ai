@@ -1,0 +1,15 @@
+meta {
+  name: Workspaces - List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces
+  body: none
+  auth: inherit
+}
+
+docs {
+  Lists workspaces the authenticated user belongs to.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Workspaces - Accept Invitation
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/invitations/:invitation/accept
+  body: none
+  auth: inherit
+}
+
+params:path {
+  invitation: 1
+}
+
+docs {
+  Accepts a workspace invitation as the authenticated user. This is a
+  Laravel signed URL — the `signature` (and `expires`) query parameters
+  must be copied from the invitation email link exactly.
+}

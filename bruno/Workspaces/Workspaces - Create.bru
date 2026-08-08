@@ -1,0 +1,31 @@
+meta {
+  name: Workspaces - Create
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Acme Inc"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const workspace = res.body.workspace ?? res.body;
+    if (workspace && workspace.id) {
+      bru.setVar("workspaceId", workspace.id);
+    }
+  }
+}
+
+docs {
+  Creates a workspace owned by the authenticated user and stores its ID
+  in the `workspaceId` collection variable for use by other requests.
+}
