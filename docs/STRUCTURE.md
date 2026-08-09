@@ -21,19 +21,20 @@ app/
       CreditTransaction.php
       UsagePeriod.php
       ProcessedWebhookEvent.php
+    Runs/
+      Run.php
+      NodeRun.php
     Workflows/
       Workflow.php
       WorkflowVersion.php
       WorkflowNode.php
       WorkflowEdge.php
-      WorkflowRun.php
-      NodeRun.php
       Trigger.php
     Nodes/
       NodeCategory.php
       CustomNode.php
     Agents/
-      AgentModel.php
+      Agent.php
       AgentSession.php
       AgentMessage.php
       Skill.php
@@ -140,7 +141,7 @@ app/
     PortType.php
     NodeCategory.php
     TriggerType.php
-    WorkflowRunStatus.php
+    RunStatus.php
     NodeRunStatus.php
     Queue.php
 
@@ -165,9 +166,9 @@ app/
       RefreshOAuthTokenJob.php
 
   Events/
-    Workflows/
-      WorkflowRunCompleted.php
-      WorkflowRunFailed.php
+    Runs/
+      RunCompleted.php
+      RunFailed.php
     Agents/
       AgentSessionMessageSent.php
   Listeners/
@@ -258,8 +259,9 @@ app/
           Workflows/
             WorkflowController.php
             WorkflowVersionController.php
-            WorkflowRunController.php
             WorkflowBuilderController.php
+          Runs/
+            RunController.php
           Triggers/
             TriggerController.php
           Nodes/
@@ -299,7 +301,7 @@ app/
         WorkspaceResource.php
         SubscriptionResource.php
         WorkflowResource.php
-        WorkflowRunResource.php
+        RunResource.php
         AgentResource.php
     Middleware/
       EnsureWorkspaceScope.php
@@ -347,12 +349,12 @@ database/
     ..._create_workflow_versions_table.php
     ..._create_workflow_nodes_table.php
     ..._create_workflow_edges_table.php
-    ..._create_workflow_runs_table.php
+    ..._create_runs_table.php
     ..._create_node_runs_table.php
     ..._create_triggers_table.php
     ..._create_node_categories_table.php
     ..._create_custom_nodes_table.php
-    ..._create_agent_models_table.php
+    ..._create_agents_table.php
     ..._create_agent_sessions_table.php
     ..._create_agent_messages_table.php
     ..._create_skills_table.php
@@ -362,7 +364,7 @@ database/
   factories/
     WorkspaceFactory.php
     WorkflowFactory.php
-    AgentModelFactory.php
+    AgentFactory.php
     ApiKeyFactory.php
   seeders/
     DatabaseSeeder.php
@@ -385,6 +387,7 @@ routes/
       billing.php
       workflows.php
       workflow_builder.php
+      runs.php
       triggers.php
       nodes.php
       agents.php
@@ -433,7 +436,7 @@ Two separate route surfaces, one shared logic layer:
 - **`Policies/`** are shared, not duplicated per surface — authorization is a property of the actor+resource, not the transport. Both surfaces call the same `Gate::authorize()`; only how the actor was resolved (session user vs. API key → workspace) differs upstream.
 - **`Mcp/Tools/*`** call `Actions/` directly, not the Public HTTP API — avoids a redundant network hop and auth re-translation, since the MCP server runs in-process.
 - **`Models/Auth/ApiKey.php`** is managed from the Internal side (`Http/Controllers/Api/Internal/V1/Auth/ApiKeyController`) — users create/revoke their own public API keys from the app UI.
-- **Side effects decoupled via `Events/`+`Listeners/`**: e.g. `WorkflowRunCompleted` triggers credit deduction and failure notifications without `StartWorkflowRunAction` (or the jobs it kicks off) needing to know about every consumer.
+- **Side effects decoupled via `Events/`+`Listeners/`**: e.g. `RunCompleted` triggers credit deduction and failure notifications without `StartWorkflowRunAction` (or the jobs it kicks off) needing to know about every consumer — the same event fires whether the `runs` row's `runnable_type` is a `Workflow` or an `AgentSession`.
 - **Domain exceptions mapped once**: `InsufficientCreditsException` → 402, `WorkflowValidationException` → 422, `ApiKeyInvalidException` → 401, mapped centrally in `bootstrap/app.php`'s `->withExceptions()` — both surfaces get consistent error shapes without each controller catching/formatting individually.
 
 ### Routes as folders, not flat files
@@ -545,7 +548,7 @@ Every queue name is a typed `Queue` enum case (`Enums/Queue.php`), never a raw s
 | `Contracts` | Interfaces shared across the app (`NodeContract`, `ConnectorContract`) |
 | `Enums` | Typed enums (roles, permissions, port types, statuses) instead of magic strings |
 | `Jobs` | Queued execution units for the workflow engine |
-| `Events` / `Listeners` | Decoupled side effects (credit deduction, notifications) off of domain events like `WorkflowRunCompleted` |
+| `Events` / `Listeners` | Decoupled side effects (credit deduction, notifications) off of domain events like `RunCompleted` |
 | `Exceptions` | Domain exceptions mapped centrally to HTTP status codes in `bootstrap/app.php` |
 | `Services` | Stateless orchestration/business logic (registries, runners, type checking, credit metering) that `Actions/` calls into |
 | `Http` | Controllers/Requests/Resources/Middleware — the API surface, split into `Api/Public/V1` and `Api/Internal` |

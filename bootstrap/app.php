@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         api: [
             __DIR__.'/../routes/api/internal/index.php',
             __DIR__.'/../routes/api/public/index.php',
+            __DIR__.'/../routes/webhooks.php',
         ],
         commands: __DIR__.'/../routes/console.php',
         channels: __DIR__.'/../routes/channels.php',

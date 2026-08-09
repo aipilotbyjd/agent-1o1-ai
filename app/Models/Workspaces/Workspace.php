@@ -3,6 +3,7 @@
 namespace App\Models\Workspaces;
 
 use App\Models\Auth\ApiKey;
+use App\Models\Triggers\Trigger;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -42,5 +43,10 @@ class Workspace extends Model
     public function apiKeys(): HasMany
     {
         return $this->hasMany(ApiKey::class);
+    }
+
+    public function triggers(): HasMany
+    {
+        return $this->hasMany(Trigger::class);
     }
 }

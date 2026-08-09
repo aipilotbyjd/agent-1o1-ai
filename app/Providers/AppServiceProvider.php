@@ -3,13 +3,20 @@
 namespace App\Providers;
 
 use App\Authorization\WorkspaceContext;
+use App\Contracts\Triggers\RunStarter;
+use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Workspaces\Permission;
+use App\Models\Agents\Agent;
 use App\Models\User;
+use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\WorkspaceMember;
 use App\Observers\WorkspaceMemberObserver;
+use App\Services\Triggers\NullRunStarter;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -24,7 +31,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // TODO(workflows/agents): swap for a RunStarter backed by
+        // StartWorkflowRunAction/AgentRunner once either exists — see
+        // App\Services\Triggers\NullRunStarter's docblock.
+        $this->app->bind(RunStarter::class, NullRunStarter::class);
     }
 
     /**
@@ -38,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureGate();
         $this->configureObservers();
+        $this->configureMorphMap();
     }
 
     private function configurePassport(): void
@@ -81,6 +92,12 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(60)->by($key?->id ?? $request->ip());
         });
+
+        // Keyed by token rather than IP: one noisy provider must not rate-limit
+        // every other trigger sharing its egress IPs.
+        RateLimiter::for('trigger-hooks', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('triggers.hook_rate_limit_per_minute'),
+        )->by($request->route('token') ?? $request->ip()));
     }
 
     private function configureGate(): void
@@ -103,5 +120,20 @@ class AppServiceProvider extends ServiceProvider
     private function configureObservers(): void
     {
         WorkspaceMember::observe(WorkspaceMemberObserver::class);
+    }
+
+    /**
+     * Short aliases for `triggers.target_type` instead of a fully-qualified class
+     * name. `Workflow`/`Agent` don't exist yet (docs/WORKFLOWS_PLAN.md,
+     * docs/AGENTS_PLAN.md are still plans) — referencing them via `::class` is
+     * safe regardless, since it resolves to a string at compile time without
+     * loading the class.
+     */
+    private function configureMorphMap(): void
+    {
+        Relation::enforceMorphMap([
+            TriggerTargetType::Workflow->value => Workflow::class,
+            TriggerTargetType::Agent->value => Agent::class,
+        ]);
     }
 }

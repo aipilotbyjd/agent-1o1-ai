@@ -98,6 +98,10 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        // Webhook-fired, latency-sensitive — alert fast if it backs up.
+        'redis:triggers-event' => 10,
+        // Bulk/periodic — tolerates more lag before it's worth paging anyone.
+        'redis:triggers-poll' => 120,
     ],
 
     /*
@@ -210,6 +214,37 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+
+        // FireTriggerEvent — split from polling so a burst of bulk/periodic
+        // polls can never delay a webhook-fired event queued behind it.
+        'supervisor-triggers-event' => [
+            'connection' => 'redis',
+            'queue' => ['triggers-event'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 120,
+            'nice' => 0,
+        ],
+
+        // PollTrigger — bulk/periodic, tolerates more lag than the event queue.
+        'supervisor-triggers-poll' => [
+            'connection' => 'redis',
+            'queue' => ['triggers-poll'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 60,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -219,11 +254,27 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-triggers-event' => [
+                'maxProcesses' => 5,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+            'supervisor-triggers-poll' => [
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-triggers-event' => [
+                'maxProcesses' => 2,
+            ],
+            'supervisor-triggers-poll' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],
