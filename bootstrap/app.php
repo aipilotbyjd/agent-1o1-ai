@@ -1,5 +1,7 @@
 <?php
 
+use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\WorkflowValidationException;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Responses\ApiResponse;
@@ -53,6 +55,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthorizationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::forbidden($e->getMessage());
+            }
+        });
+
+        $exceptions->render(function (WorkflowValidationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::validationError($e->errors(), $e->getMessage());
+            }
+        });
+
+        $exceptions->render(function (InsufficientCreditsException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 402);
             }
         });
 

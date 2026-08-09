@@ -102,6 +102,10 @@ return [
         'redis:triggers-event' => 10,
         // Bulk/periodic — tolerates more lag before it's worth paging anyone.
         'redis:triggers-poll' => 120,
+        // Traversal work — quick, but a backlog here stalls every run behind it.
+        'redis:workflows-dispatch' => 30,
+        // Node execution — the actual work; can legitimately take longer per job.
+        'redis:workflows-execute' => 60,
     ],
 
     /*
@@ -245,6 +249,38 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+
+        // DispatchNextNodesJob — pure traversal (no external calls), isolated
+        // from ExecuteNodeJob so a burst of node completions can't starve
+        // the work that figures out what runs next, or vice versa.
+        'supervisor-workflows-dispatch' => [
+            'connection' => 'redis',
+            'queue' => ['workflows-dispatch'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 30,
+            'nice' => 0,
+        ],
+
+        // ExecuteNodeJob — the actual node work (HTTP calls, AI prompts, ...).
+        'supervisor-workflows-execute' => [
+            'connection' => 'redis',
+            'queue' => ['workflows-execute'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 120,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -264,6 +300,16 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-workflows-dispatch' => [
+                'maxProcesses' => 5,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+            'supervisor-workflows-execute' => [
+                'maxProcesses' => 10,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
@@ -275,6 +321,12 @@ return [
             ],
             'supervisor-triggers-poll' => [
                 'maxProcesses' => 1,
+            ],
+            'supervisor-workflows-dispatch' => [
+                'maxProcesses' => 2,
+            ],
+            'supervisor-workflows-execute' => [
+                'maxProcesses' => 3,
             ],
         ],
     ],
