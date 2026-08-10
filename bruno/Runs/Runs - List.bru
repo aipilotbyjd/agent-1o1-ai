@@ -1,0 +1,22 @@
+meta {
+  name: Runs - List
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/runs
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Lists the workspace's runs, newest first. Requires the `run.view`
+  permission.
+
+  Paginated at 25 per page.
+}

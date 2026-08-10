@@ -1,0 +1,22 @@
+meta {
+  name: Workflows - List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/workflows
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Lists the workspace's workflows, newest first. Requires the
+  `workflow.view` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { workflows } }`.
+}

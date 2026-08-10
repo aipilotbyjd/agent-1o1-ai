@@ -1,0 +1,43 @@
+meta {
+  name: Builder Sessions - Promote
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/workflow-builder-sessions/:session/promote
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  session: {{builderSessionId}}
+}
+
+body:json {
+  {
+    "name": "Lead intake"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const workflow = res.body.data?.workflow;
+    if (workflow && workflow.id) {
+      bru.setVar("workflowId", workflow.id);
+    }
+  }
+}
+
+docs {
+  Publishes the session's draft graph to a real, workspace-visible
+  workflow and stores its ID as `workflowId`. Requires the
+  `workflow-builder.use` permission.
+
+  Creates a new workflow unless the session was started from — or has
+  already been promoted to — one, in which case that workflow is
+  updated. `name` is optional.
+
+  Response is wrapped: `{ success, statusCode, message, data: { workflow } }`.
+}

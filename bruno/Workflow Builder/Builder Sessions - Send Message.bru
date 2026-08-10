@@ -1,0 +1,34 @@
+meta {
+  name: Builder Sessions - Send Message
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/workflow-builder-sessions/:session/messages
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  session: {{builderSessionId}}
+}
+
+body:json {
+  {
+    "message": "Add an HTTP request node that posts the lead to our CRM."
+  }
+}
+
+docs {
+  Sends a message to the workflow builder agent and returns its reply.
+  The agent edits the session's `draft_graph` through its tools, so a
+  single message can change the graph. Requires the
+  `workflow-builder.use` permission.
+
+  Synchronous — the response waits on the model, so expect this to be
+  slower than the other requests in this collection.
+
+  Response is wrapped: `{ success, statusCode, message, data: { message } }`.
+}

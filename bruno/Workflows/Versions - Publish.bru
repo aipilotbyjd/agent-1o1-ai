@@ -1,0 +1,42 @@
+meta {
+  name: Versions - Publish
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/workflows/:workflow/versions
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  workflow: {{workflowId}}
+}
+
+body:json {
+  {
+    "notes": "First publish."
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const version = res.body.data?.version;
+    if (version && version.id) {
+      bru.setVar("versionId", version.id);
+    }
+  }
+}
+
+docs {
+  Validates the current draft graph and, if it passes, snapshots it as a
+  new immutable version. Requires the `workflow.publish` permission.
+  Stores the new version's ID as `versionId`.
+
+  A draft that fails graph validation comes back as `422` with the
+  failures under `errors`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { version, workflow } }`.
+}

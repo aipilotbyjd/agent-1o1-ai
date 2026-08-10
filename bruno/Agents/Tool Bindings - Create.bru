@@ -1,0 +1,47 @@
+meta {
+  name: Tool Bindings - Create
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/tool-bindings
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+}
+
+body:json {
+  {
+    "node_type": "http.request",
+    "config": {
+      "method": "GET"
+    },
+    "exposed_fields": ["url"]
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const binding = res.body.data?.tool_binding;
+    if (binding && binding.id) {
+      bru.setVar("toolBindingId", binding.id);
+    }
+  }
+}
+
+docs {
+  Exposes a workflow node to the agent as a callable tool. Requires the
+  `agent.manage` permission. Stores the binding ID as `toolBindingId`.
+
+  - `node_type` — must be registered in the node registry; an unknown
+    type answers `422`.
+  - `config` — values pinned by you, hidden from the model.
+  - `exposed_fields` — config keys the model is allowed to fill in.
+
+  Response is wrapped: `{ success, statusCode, message, data: { tool_binding } }`.
+}
