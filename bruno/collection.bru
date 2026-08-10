@@ -34,4 +34,26 @@ docs {
      listing a workspace.
   4. Public V1 requests (`public/...`) use a workspace API key instead —
      set `{{apiKey}}` from `workspaces/api-keys/Create Api Key`.
+  5. The webhook endpoints under `Webhooks` use neither: the token in the
+     URL is the whole auth story. See that folder's requests.
+
+  ## Resource ID variables
+
+  Most folders' `Create` requests store the new record's ID in a collection
+  variable, so the rest of that folder works without hand-editing paths:
+  `workflowId`, `versionId`, `runId`, `triggerId`, `triggerToken`,
+  `builderSessionId`, `agentId`, `agentSessionId`, `toolBindingId`, and
+  `skillId`. Running a folder top to bottom fills them in as it goes.
+
+  Two have no `Create` to populate them and must be set by hand from a
+  response body: `approvalId` (from a run parked on an approval node) and
+  `waitToken` (from the callback URL a Wait node hands out).
+
+  ## Suggested order
+
+  `Auth` → `Workspaces` (create one, then an API key) → `Workflows` →
+  `Workflow Builder` (draft a graph) → `Workflows/Versions - Publish` →
+  `Runs`. `Agents`, `Skills`, and `Triggers` are independent of that
+  chain apart from needing `workspaceId` — though attaching a workflow
+  tool or pointing a trigger at a workflow needs `workflowId` too.
 }

@@ -1,0 +1,22 @@
+meta {
+  name: Builder Sessions - List
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/workflow-builder-sessions
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Lists the workspace's chat-based builder sessions, newest first.
+  Requires the `workflow-builder.use` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { sessions } }`.
+}

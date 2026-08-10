@@ -1,0 +1,22 @@
+meta {
+  name: Workflows - Delete
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/workspaces/:workspace/workflows/:workflow
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  workflow: {{workflowId}}
+}
+
+docs {
+  Deletes a workflow. Requires the `workflow.manage` permission.
+
+  Responds `204 No Content` with no envelope.
+}

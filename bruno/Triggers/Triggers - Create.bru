@@ -1,0 +1,55 @@
+meta {
+  name: Triggers - Create
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/triggers
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:json {
+  {
+    "target_type": "workflow",
+    "target_id": {{workflowId}},
+    "type": "webhook",
+    "preset_id": null,
+    "config": {},
+    "is_active": true
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const trigger = res.body.data?.trigger;
+    if (trigger) {
+      bru.setVar("triggerId", trigger.id);
+      if (trigger.token) {
+        bru.setVar("triggerToken", trigger.token);
+      }
+    }
+  }
+}
+
+docs {
+  Creates a trigger pointing at a workflow or an agent. Requires the
+  `trigger.manage` permission.
+
+  - `target_type` — `workflow` or `agent`.
+  - `target_id` — the ID of that workflow/agent.
+  - `type` — `webhook`, `schedule`, `polling`, or `manual`.
+  - `preset_id` — optional `trigger_presets` row to base the trigger on.
+  - `credential_id` — only meaningful for `polling` triggers.
+  - `signing_secret` — only meaningful for `webhook` triggers.
+
+  Only `webhook` triggers get a public URL token; this request stores it
+  as `triggerToken` (and the ID as `triggerId`) for the `Webhooks` folder.
+
+  Response is wrapped: `{ success, statusCode, message, data: { trigger } }`.
+}

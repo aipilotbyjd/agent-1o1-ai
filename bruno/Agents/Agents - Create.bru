@@ -1,0 +1,47 @@
+meta {
+  name: Agents - Create
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:json {
+  {
+    "name": "Support triage",
+    "description": "Triages inbound support tickets.",
+    "instructions": "You triage inbound support tickets. Classify each one and suggest a next action.",
+    "provider": "anthropic",
+    "model": "claude-sonnet-5",
+    "temperature": 0.2,
+    "settings": {}
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const agent = res.body.data?.agent;
+    if (agent && agent.id) {
+      bru.setVar("agentId", agent.id);
+    }
+  }
+}
+
+docs {
+  Creates an agent. Requires the `agent.manage` permission. Stores the
+  new ID in the `agentId` collection variable.
+
+  `name` and `instructions` are required; `slug` is derived from `name`
+  when omitted. `temperature` must be between 0 and 1. `provider` and
+  `model` fall back to the application defaults when omitted.
+
+  Response is wrapped: `{ success, statusCode, message, data: { agent } }`.
+}

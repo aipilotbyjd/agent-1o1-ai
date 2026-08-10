@@ -1,0 +1,30 @@
+meta {
+  name: Triggers - Update
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/v1/workspaces/:workspace/triggers/:trigger
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  trigger: {{triggerId}}
+}
+
+body:json {
+  {
+    "config": {},
+    "is_active": false
+  }
+}
+
+docs {
+  Updates a trigger's `config` and/or `is_active` flag — the only two
+  mutable fields. Requires the `trigger.manage` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { trigger } }`.
+}

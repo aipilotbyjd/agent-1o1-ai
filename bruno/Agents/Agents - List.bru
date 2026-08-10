@@ -1,0 +1,22 @@
+meta {
+  name: Agents - List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Lists the workspace's agents, newest first. Requires the `agent.view`
+  permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { agents } }`.
+}

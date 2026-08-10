@@ -1,0 +1,23 @@
+meta {
+  name: Agents - Delete
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+}
+
+docs {
+  Deletes an agent along with its sessions and tool bindings. Requires
+  the `agent.manage` permission.
+
+  Responds `204 No Content` with no envelope.
+}
