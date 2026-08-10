@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
+        $this->call(PlanSeeder::class);
         $this->call(TriggerPresetSeeder::class);
         $this->call(NodeCategorySeeder::class);
         $this->call(AppNodeCategorySeeder::class);

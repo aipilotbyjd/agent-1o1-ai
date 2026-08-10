@@ -21,11 +21,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Cashier\Billable;
 
 #[Fillable(['name', 'slug', 'avatar', 'owner_id'])]
 class Workspace extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Billable, HasFactory, SoftDeletes;
 
     public function owner(): BelongsTo
     {
@@ -106,17 +107,25 @@ class Workspace extends Model
 
     /**
      * Finds (or creates) the `UsagePeriod` covering right now — a plain
-     * calendar month until Stripe billing-cycle-aligned periods are wired
-     * (docs/PLAN.md Phase 7). `credits_limit` stays null (unlimited) until a
-     * plan tier sets one.
+     * calendar month until Stripe billing-cycle-aligned periods are wired.
+     * `credits_limit` is sized off the workspace's active plan (via its
+     * `default` subscription); workspaces with no subscription stay
+     * unlimited (`null`) rather than an implicit free tier.
      */
     public function currentUsagePeriod(): UsagePeriod
     {
         $startsAt = now()->startOfMonth();
+        $subscription = $this->subscription('default');
+        $plan = $subscription?->plan;
 
         return $this->usagePeriods()->firstOrCreate(
             ['starts_at' => $startsAt],
-            ['ends_at' => $startsAt->clone()->endOfMonth()->addSecond()],
+            [
+                'ends_at' => $startsAt->clone()->endOfMonth()->addSecond(),
+                'plan_id' => $plan?->id,
+                'subscription_id' => $subscription?->id,
+                'credits_limit' => $plan?->creditsMonthly(),
+            ],
         );
     }
 }

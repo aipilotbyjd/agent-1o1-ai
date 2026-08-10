@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Actions\Billing;
+
+use App\Models\Billing\Plan;
+use App\Models\Billing\UsagePeriod;
+use App\Models\Workspaces\Workspace;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Attaches a plan/subscription to the workspace's current usage period (or
+ * opens one, if none exists yet) — called when a subscription is created,
+ * so `UsagePeriod::credits_limit` reflects the plan the workspace just paid
+ * for. Updates the existing period in place rather than replacing it:
+ * `CreditTransaction` doesn't carry a `usage_period_id`, so recreating the
+ * row would silently reset `credits_used` for any usage already recorded
+ * this month before subscribing.
+ */
+class OpenUsagePeriodForSubscriptionAction
+{
+    public function execute(Workspace $workspace, ?Plan $plan, ?string $stripeSubscriptionId): UsagePeriod
+    {
+        return DB::transaction(function () use ($workspace, $plan, $stripeSubscriptionId): UsagePeriod {
+            $subscription = $stripeSubscriptionId !== null
+                ? $workspace->subscriptions()->where('stripe_id', $stripeSubscriptionId)->first()
+                : null;
+
+            $current = $workspace->usagePeriods()
+                ->where('starts_at', '<=', now())
+                ->where('ends_at', '>', now())
+                ->lockForUpdate()
+                ->first();
+
+            if ($current !== null) {
+                $current->update([
+                    'plan_id' => $plan?->id,
+                    'subscription_id' => $subscription?->id,
+                    'credits_limit' => $plan?->creditsMonthly(),
+                ]);
+
+                return $current;
+            }
+
+            $startsAt = now()->startOfMonth();
+
+            return $workspace->usagePeriods()->create([
+                'starts_at' => $startsAt,
+                'ends_at' => $startsAt->clone()->endOfMonth()->addSecond(),
+                'plan_id' => $plan?->id,
+                'subscription_id' => $subscription?->id,
+                'credits_limit' => $plan?->creditsMonthly(),
+            ]);
+        });
+    }
+}

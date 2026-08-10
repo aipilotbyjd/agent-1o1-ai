@@ -8,8 +8,10 @@ use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
+use App\Models\Billing\Subscription as BillingSubscription;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
+use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceMember;
 use App\Observers\WorkspaceMemberObserver;
 use App\Services\Triggers\NullRunStarter;
@@ -23,6 +25,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Cashier\Cashier;
 use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
@@ -36,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
         // StartWorkflowRunAction/AgentRunner once either exists — see
         // App\Services\Triggers\NullRunStarter's docblock.
         $this->app->bind(RunStarter::class, NullRunStarter::class);
+
+        // Must run in register(), not boot(): CashierServiceProvider's own
+        // boot() (which registers its default routes unless this flag is
+        // already set) runs before this provider's boot() does.
+        Cashier::ignoreRoutes();
     }
 
     /**
@@ -50,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureGate();
         $this->configureObservers();
         $this->configureMorphMap();
+        $this->configureCashier();
     }
 
     private function configurePassport(): void
@@ -143,5 +152,11 @@ class AppServiceProvider extends ServiceProvider
             // participant_type column stores this alias.
             'user' => User::class,
         ]);
+    }
+
+    private function configureCashier(): void
+    {
+        Cashier::useCustomerModel(Workspace::class);
+        Cashier::useSubscriptionModel(BillingSubscription::class);
     }
 }

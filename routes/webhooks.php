@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\WaitCallbackController;
 use App\Http\Controllers\Webhooks\WebhookController;
 use Illuminate\Support\Facades\Route;
@@ -17,3 +18,8 @@ Route::post('hooks/{token}', WebhookController::class)
 Route::post('hooks/wait/{token}', WaitCallbackController::class)
     ->middleware('throttle:trigger-hooks')
     ->name('hooks.wait-callback');
+
+// Cashier auto-registration is disabled (AppServiceProvider::configureCashier)
+// so this resolves to our own controller (idempotency guard + plan/usage-period
+// sync) instead of Cashier's default one.
+Route::post('stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('cashier.webhook');

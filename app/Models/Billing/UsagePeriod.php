@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `DeductCreditsAction` via `increment()`, never mass-assigned) — only the
  * window bounds and an optional limit are user/system-set at creation time.
  */
-#[Fillable(['workspace_id', 'starts_at', 'ends_at', 'credits_limit'])]
+#[Fillable(['workspace_id', 'plan_id', 'subscription_id', 'starts_at', 'ends_at', 'credits_limit'])]
 class UsagePeriod extends Model
 {
     /**
@@ -38,6 +38,22 @@ class UsagePeriod extends Model
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class);
+    }
+
+    /**
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * @return BelongsTo<Subscription, $this>
+     */
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class);
     }
 
     public function hasRemainingCredits(int $credits): bool
