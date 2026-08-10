@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources\Api\Internal\V1\User;
 
+use App\Http\Resources\Api\Internal\V1\Workspaces\WorkspaceResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @mixin User
@@ -21,6 +23,9 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'email_verified_at' => $this->email_verified_at,
+            'avatar' => $this->avatar ? Storage::disk('public')->url($this->avatar) : null,
+            'current_workspace_id' => $this->current_workspace_id,
+            'current_workspace' => WorkspaceResource::make($this->whenLoaded('currentWorkspace')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -19,7 +19,7 @@ class WorkspaceService
         return DB::transaction(function () use ($owner, $data) {
             $workspace = Workspace::query()->create([
                 'name' => $data['name'],
-                'slug' => $this->uniqueSlug($data['name']),
+                'slug' => $this->suggestSlug($data['name']),
                 'avatar' => $data['avatar'] ?? null,
                 'owner_id' => $owner->id,
             ]);
@@ -30,8 +30,19 @@ class WorkspaceService
                 'joined_at' => now(),
             ]);
 
+            $owner->update(['current_workspace_id' => $workspace->id]);
+
             return $workspace;
         });
+    }
+
+    public function switchTo(User $user, Workspace $workspace): void
+    {
+        if (! $workspace->members()->where('user_id', $user->id)->exists()) {
+            throw new AuthorizationException('You are not a member of this workspace.');
+        }
+
+        $user->update(['current_workspace_id' => $workspace->id]);
     }
 
     /**
@@ -91,7 +102,7 @@ class WorkspaceService
         $workspace->members()->where('user_id', $user->id)->delete();
     }
 
-    private function uniqueSlug(string $name): string
+    public function suggestSlug(string $name): string
     {
         $base = Str::slug($name);
         $slug = $base;

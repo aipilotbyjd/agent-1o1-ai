@@ -1,0 +1,25 @@
+meta {
+  name: Onboarding - Invite Team
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/onboarding/invite-team
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "emails": ["teammate@example.com"],
+    "role": "member",
+    "personal_note": "Join us on Agent1o1!"
+  }
+}
+
+docs {
+  Invites teammates to the user's current workspace and advances onboarding
+  to the `role_selection` step. Requires a workspace to already be set as
+  the user's current workspace.
+}

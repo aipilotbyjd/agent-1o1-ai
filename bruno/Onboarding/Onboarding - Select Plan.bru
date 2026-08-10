@@ -1,0 +1,23 @@
+meta {
+  name: Onboarding - Select Plan
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/v1/onboarding/plan
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "plan_slug": "free"
+  }
+}
+
+docs {
+  Selects a plan and advances onboarding to the `connect_apps` step. Only
+  the `free` slug is actionable here for v1 — paid plans go through Stripe
+  Checkout via `POST /workspaces/{workspace}/billing/subscription/checkout`.
+}

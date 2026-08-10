@@ -1,0 +1,22 @@
+meta {
+  name: Onboarding - Select Role
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/onboarding/role
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "job_role": "engineering"
+  }
+}
+
+docs {
+  Records the user's job role and advances onboarding to the
+  `choose_plan` step.
+}

@@ -45,6 +45,9 @@ Route::middleware('auth:api')->group(function () {
     Route::get('user', [UserController::class, 'show']);
     Route::patch('user', [UserController::class, 'update']);
     Route::delete('user', [UserController::class, 'destroy']);
+    Route::post('user/switch-workspace', [UserController::class, 'switchWorkspace']);
+    Route::post('user/avatar', [UserController::class, 'uploadAvatar']);
+    Route::delete('user/avatar', [UserController::class, 'deleteAvatar']);
 
     Route::get('workspaces/{workspace}/api-keys', [ApiKeyController::class, 'index'])->middleware('workspace.context');
     Route::post('workspaces/{workspace}/api-keys', [ApiKeyController::class, 'store'])->middleware('workspace.context');

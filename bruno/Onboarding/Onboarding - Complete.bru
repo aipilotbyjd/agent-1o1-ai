@@ -1,0 +1,15 @@
+meta {
+  name: Onboarding - Complete
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/onboarding/complete
+  body: none
+  auth: inherit
+}
+
+docs {
+  Marks onboarding as completed (`onboarding_completed_at`).
+}
