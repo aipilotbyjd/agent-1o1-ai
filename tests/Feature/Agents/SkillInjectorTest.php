@@ -38,3 +38,29 @@ it('appends attached skills and active knowledge, but skips inactive knowledge',
     expect($instructions)->not->toContain('Hidden');
     expect($instructions)->not->toContain('Should not appear.');
 });
+
+it('appends workspace-wide memories plus the given user\'s own, but not another user\'s', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['instructions' => 'Be helpful.']);
+
+    $agent->memories()->create(['key' => 'company_name', 'value' => 'Acme Inc']);
+    $agent->memories()->create(['key' => 'favorite_color', 'value' => 'blue', 'user_id' => $owner->id]);
+    $agent->memories()->create(['key' => 'favorite_color', 'value' => 'green', 'user_id' => $other->id]);
+
+    $instructions = app(SkillInjector::class)->instructionsFor($agent, $owner->id);
+
+    expect($instructions)->toContain('## Things you remember');
+    expect($instructions)->toContain('- company_name: Acme Inc');
+    expect($instructions)->toContain('- favorite_color: blue');
+    expect($instructions)->not->toContain('- favorite_color: green');
+});
+
+it('omits the memories section entirely when there are none in scope', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['instructions' => 'Be helpful.']);
+
+    expect(app(SkillInjector::class)->instructionsFor($agent, $owner->id))->toBe('Be helpful.');
+});

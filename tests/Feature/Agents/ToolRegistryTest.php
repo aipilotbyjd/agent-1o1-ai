@@ -1,6 +1,7 @@
 <?php
 
 use App\Ai\Tools\NodeTool;
+use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\WorkflowTool;
 use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
@@ -26,10 +27,11 @@ it('builds one NodeTool per attached node and one WorkflowTool per attached work
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
 
-    expect($tools)->toHaveCount(2);
+    expect($tools)->toHaveCount(3);
     expect($tools[0])->toBeInstanceOf(NodeTool::class);
     expect($tools[0]->name())->toBe('call_api');
     expect($tools[1])->toBeInstanceOf(WorkflowTool::class);
+    expect($tools[2])->toBeInstanceOf(RememberTool::class);
 });
 
 it('silently skips a binding whose node type is no longer registered', function () {
@@ -42,5 +44,6 @@ it('silently skips a binding whose node type is no longer registered', function 
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
 
-    expect($tools)->toBe([]);
+    expect($tools)->toHaveCount(1);
+    expect($tools[0])->toBeInstanceOf(RememberTool::class);
 });

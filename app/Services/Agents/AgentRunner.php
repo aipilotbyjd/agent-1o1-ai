@@ -50,7 +50,7 @@ class AgentRunner
         ]);
 
         try {
-            $instructions = $this->skillInjector->instructionsFor($agent);
+            $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
             $response = (new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run)))
                 ->prompt($message, provider: $agent->provider, model: $agent->model);
 
@@ -100,7 +100,7 @@ class AgentRunner
      */
     public function ask(AgentModel $agent, Run $run, string $prompt): array
     {
-        $instructions = $this->skillInjector->instructionsFor($agent);
+        $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
         $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run)))
             ->prompt($prompt, provider: $agent->provider, model: $agent->model);
 

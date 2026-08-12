@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\SearchKnowledgeTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\DocumentEmbedding;
@@ -14,12 +15,15 @@ it('auto-attaches SearchKnowledgeTool once the workspace has any embedded chunks
     $agent = Agent::factory()->forWorkspace($workspace)->create();
     $run = Run::factory()->create();
 
-    expect(app(ToolRegistry::class)->toolsFor($agent, $run))->toBe([]);
+    $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
+    expect($tools)->toHaveCount(1);
+    expect($tools[0])->toBeInstanceOf(RememberTool::class);
 
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 's', 'chunk_text' => 'x', 'embedding' => [1.0]]);
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
 
-    expect($tools)->toHaveCount(1);
+    expect($tools)->toHaveCount(2);
     expect($tools[0])->toBeInstanceOf(SearchKnowledgeTool::class);
+    expect($tools[1])->toBeInstanceOf(RememberTool::class);
 });
