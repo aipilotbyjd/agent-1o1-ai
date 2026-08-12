@@ -1,0 +1,34 @@
+meta {
+  name: Plans - List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/billing/plans
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const plans = res.body.data?.plans;
+    if (Array.isArray(plans) && plans.length > 0) {
+      bru.setVar("planId", plans[0].id);
+    }
+  }
+}
+
+docs {
+  Lists the active subscription plans for the workspace. Requires the
+  `billing.view` permission.
+
+  Stores the first plan's ID in the `planId` collection variable so
+  `Billing/Subscription - Checkout` works without hand-editing.
+
+  Response is wrapped: `{ success, statusCode, message, data: { plans } }`.
+}

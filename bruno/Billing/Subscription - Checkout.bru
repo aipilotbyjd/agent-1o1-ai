@@ -1,0 +1,35 @@
+meta {
+  name: Subscription - Checkout
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/billing/subscription/checkout
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:json {
+  {
+    "plan_id": {{planId}},
+    "interval": "monthly"
+  }
+}
+
+docs {
+  Starts a Stripe Checkout session for the given plan and billing interval
+  (`monthly` or `yearly`). Requires the `billing.manage` permission.
+
+  - No subscription yet: returns `data.checkout_url` to redirect the user
+    to Stripe Checkout (trial days are applied if the plan has any).
+  - Existing subscription: swaps its price in place and returns the updated
+    `data.subscription` instead of a checkout URL.
+  - Returns `422` if the plan has no Stripe price for that interval.
+
+  Response is wrapped: `{ success, statusCode, message, data }`.
+}

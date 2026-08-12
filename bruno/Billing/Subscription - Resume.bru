@@ -1,0 +1,22 @@
+meta {
+  name: Subscription - Resume
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/billing/subscription/resume
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Resumes a subscription that was previously canceled (before the end of
+  its billing period). Requires the `billing.manage` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { subscription } }`.
+}
