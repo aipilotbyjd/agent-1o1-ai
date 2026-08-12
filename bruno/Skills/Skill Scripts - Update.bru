@@ -1,0 +1,32 @@
+meta {
+  name: Skill Scripts - Update
+  type: http
+  seq: 12
+}
+
+patch {
+  url: {{baseUrl}}/v1/workspaces/:workspace/skills/:skill/scripts/:script
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  skill: {{skillId}}
+  script: {{skillScriptId}}
+}
+
+body:json {
+  {
+    "is_enabled": false
+  }
+}
+
+docs {
+  Updates a skill script. All fields are optional. Requires the
+  `agent-skill.manage` permission.
+
+  404s if `:script` does not belong to `:skill`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { script } }`.
+}
