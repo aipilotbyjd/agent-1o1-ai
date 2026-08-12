@@ -1,0 +1,23 @@
+meta {
+  name: Notification Preferences - Update
+  type: http
+  seq: 13
+}
+
+put {
+  url: {{baseUrl}}/v1/workspaces/:workspace/notification-preferences
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:json {
+  {
+    "event_key": "run.approval_requested",
+    "in_app": true,
+    "email": false
+  }
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Notification Channels - Update
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/v1/workspaces/:workspace/notification-channels/:notificationChannel
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  notificationChannel: {{notificationChannelId}}
+}
+
+body:json {
+  {
+    "is_active": false
+  }
+}

@@ -48,6 +48,9 @@ enum Permission: string
     case BillingView = 'billing.view';
     case BillingManage = 'billing.manage';
 
+    case NotificationChannelView = 'notification-channel.view';
+    case NotificationChannelManage = 'notification-channel.manage';
+
     /**
      * @return array<int, self>
      */
@@ -66,6 +69,7 @@ enum Permission: string
             self::TriggerView,
             self::ApiKeyView,
             self::BillingView,
+            self::NotificationChannelView,
         ];
     }
 
@@ -112,6 +116,7 @@ enum Permission: string
             self::ConnectorManage,
             self::ApiKeyManage,
             self::BillingManage,
+            self::NotificationChannelManage,
         ];
     }
 

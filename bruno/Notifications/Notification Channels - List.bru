@@ -1,0 +1,15 @@
+meta {
+  name: Notification Channels - List
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/notification-channels
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}

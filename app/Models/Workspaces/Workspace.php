@@ -9,6 +9,8 @@ use App\Models\Agents\Skill;
 use App\Models\Auth\ApiKey;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\UsagePeriod;
+use App\Models\Notifications\NotificationChannel;
+use App\Models\Notifications\NotificationPreference;
 use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
 use App\Models\User;
@@ -41,6 +43,16 @@ class Workspace extends Model
     public function invitations(): HasMany
     {
         return $this->hasMany(WorkspaceInvitation::class);
+    }
+
+    public function notificationChannels(): HasMany
+    {
+        return $this->hasMany(NotificationChannel::class);
+    }
+
+    public function notificationPreferences(): HasMany
+    {
+        return $this->hasMany(NotificationPreference::class);
     }
 
     public function users(): BelongsToMany

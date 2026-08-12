@@ -10,6 +10,9 @@ use App\Http\Resources\Api\Internal\V1\Workspaces\WorkspaceInvitationResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceInvitation;
+use App\Notifications\Workspace\MemberInvitedNotification;
+use App\Notifications\Workspace\MemberJoinedNotification;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Workspaces\WorkspaceInvitationService;
 use Illuminate\Http\Request;
 
@@ -17,6 +20,7 @@ class WorkspaceInvitationController extends Controller
 {
     public function __construct(
         private readonly WorkspaceInvitationService $invitations,
+        private readonly NotificationDispatcher $notifications,
     ) {}
 
     public function index(Workspace $workspace)
@@ -37,6 +41,11 @@ class WorkspaceInvitationController extends Controller
             $request->user(),
         );
 
+        $this->notifications->dispatch(
+            $this->notifications->ownersAndAdmins($workspace, $request->user()),
+            new MemberInvitedNotification($workspace, $invitation, $request->user()),
+        );
+
         return ApiResponse::created(['invitation' => WorkspaceInvitationResource::make($invitation)], 'Invitation sent successfully.');
     }
 
@@ -52,7 +61,13 @@ class WorkspaceInvitationController extends Controller
 
     public function accept(Request $request, WorkspaceInvitation $invitation)
     {
-        $this->invitations->accept($invitation, $request->user());
+        $member = $this->invitations->accept($invitation, $request->user());
+        $member->load('user');
+
+        $this->notifications->dispatch(
+            $this->notifications->ownersAndAdmins($invitation->workspace, $member->user),
+            new MemberJoinedNotification($invitation->workspace, $member),
+        );
 
         return ApiResponse::success(message: 'Invitation accepted.');
     }

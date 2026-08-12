@@ -6,6 +6,7 @@ use App\Enums\Workspaces\Role;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceInvitation;
+use App\Models\Workspaces\WorkspaceMember;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -30,7 +31,7 @@ class WorkspaceInvitationService
         ]);
     }
 
-    public function accept(WorkspaceInvitation $invitation, User $user): void
+    public function accept(WorkspaceInvitation $invitation, User $user): WorkspaceMember
     {
         if ($invitation->isAccepted()) {
             throw ValidationException::withMessages(['token' => 'This invitation has already been accepted.']);
@@ -52,8 +53,9 @@ class WorkspaceInvitationService
         if ($existing) {
             $existing->restore();
             $existing->update(['role' => $invitation->role, 'joined_at' => now()]);
+            $member = $existing;
         } else {
-            $invitation->workspace->members()->create([
+            $member = $invitation->workspace->members()->create([
                 'user_id' => $user->id,
                 'role' => $invitation->role,
                 'invited_by' => $invitation->invited_by,
@@ -62,6 +64,8 @@ class WorkspaceInvitationService
         }
 
         $invitation->update(['accepted_at' => now()]);
+
+        return $member;
     }
 
     public function revoke(WorkspaceInvitation $invitation): void

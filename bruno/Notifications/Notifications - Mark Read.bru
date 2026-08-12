@@ -1,0 +1,15 @@
+meta {
+  name: Notifications - Mark Read
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/notifications/:notification/read
+  body: none
+  auth: inherit
+}
+
+params:path {
+  notification: replace-with-notification-id
+}

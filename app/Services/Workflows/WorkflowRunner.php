@@ -10,6 +10,8 @@ use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\WorkflowApproval;
 use App\Nodes\FlowLogic\DelayNode;
+use App\Notifications\Workspace\RunApprovalRequestedNotification;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Workflows\Engine\LoopCoordinator;
 use App\Services\Workflows\Engine\StepFailureHandler;
 use App\Services\Workflows\Engine\SubWorkflowCoordinator;
@@ -36,6 +38,7 @@ class WorkflowRunner
         private readonly SubWorkflowCoordinator $subWorkflowCoordinator,
         private readonly LoopCoordinator $loopCoordinator,
         private readonly TemplateResolver $templateResolver,
+        private readonly NotificationDispatcher $notifications,
     ) {}
 
     public function executeStep(NodeRun $nodeRun): void
@@ -150,15 +153,16 @@ class WorkflowRunner
     {
         $nodeRun->forceFill(['status' => NodeRunStatus::AwaitingApproval, 'started_at' => now()])->save();
 
-        $nodeRun->approval()->create([
+        $approval = $nodeRun->approval()->create([
             'run_id' => $run->id,
             'node_run_id' => $nodeRun->id,
             'requested_at' => now(),
         ]);
 
-        // TODO: notify workspace owners/admins once Notifications exist —
-        // the old project's RunApprovalRequestedNotification, per
-        // docs/WORKFLOWS_PLAN.md.
+        $this->notifications->dispatch(
+            $this->notifications->ownersAndAdmins($run->workspace),
+            new RunApprovalRequestedNotification($run->workspace, $run, $nodeRun, $approval),
+        );
     }
 
     /**

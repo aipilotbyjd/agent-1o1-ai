@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Internal\V1\Notifications\NotificationChannelController;
+use App\Http\Controllers\Api\Internal\V1\Notifications\NotificationPreferenceController;
 use App\Http\Controllers\Api\Internal\V1\Workspaces\WorkspaceController;
 use App\Http\Controllers\Api\Internal\V1\Workspaces\WorkspaceInvitationController;
 use App\Http\Controllers\Api\Internal\V1\Workspaces\WorkspaceMemberController;
@@ -26,5 +28,14 @@ Route::middleware('auth:api')->prefix('workspaces')->group(function () {
         Route::get('invitations', [WorkspaceInvitationController::class, 'index']);
         Route::post('invitations', [WorkspaceInvitationController::class, 'store']);
         Route::delete('invitations/{invitation}', [WorkspaceInvitationController::class, 'destroy']);
+
+        Route::get('notification-channels', [NotificationChannelController::class, 'index']);
+        Route::post('notification-channels', [NotificationChannelController::class, 'store']);
+        Route::patch('notification-channels/{notificationChannel}', [NotificationChannelController::class, 'update']);
+        Route::delete('notification-channels/{notificationChannel}', [NotificationChannelController::class, 'destroy']);
+        Route::post('notification-channels/{notificationChannel}/test', [NotificationChannelController::class, 'test']);
+
+        Route::get('notification-preferences', [NotificationPreferenceController::class, 'index']);
+        Route::put('notification-preferences', [NotificationPreferenceController::class, 'upsert']);
     });
 });

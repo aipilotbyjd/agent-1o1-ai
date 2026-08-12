@@ -1,0 +1,35 @@
+meta {
+  name: Notification Channels - Create
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/notification-channels
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:json {
+  {
+    "type": "webhook",
+    "name": "Operations webhook",
+    "config": {
+      "url": "https://example.com/webhooks/notifications"
+    },
+    "is_active": true
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const channel = res.body.data?.channel ?? {};
+    if (channel.id) {
+      bru.setVar("notificationChannelId", channel.id);
+    }
+  }
+}
