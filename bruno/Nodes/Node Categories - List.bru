@@ -1,0 +1,19 @@
+meta {
+  name: Node Categories - List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/node-categories
+  body: none
+  auth: inherit
+}
+
+docs {
+  Lists node categories ordered by `sort_order`. Not workspace-scoped —
+  any authenticated user can read it. `category_id` on `Nodes - Create`
+  and `- Update` must reference one of these ids.
+
+  Response is wrapped: `{ success, statusCode, message, data: { categories } }`.
+}
