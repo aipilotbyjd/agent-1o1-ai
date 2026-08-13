@@ -25,15 +25,16 @@ class GmailListLabelsNode extends AbstractGmailNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token'],
+            'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
             ],
         ];
     }
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->get('/users/me/labels', $config);
+        return $this->get($run, '/users/me/labels', $config);
     }
 }

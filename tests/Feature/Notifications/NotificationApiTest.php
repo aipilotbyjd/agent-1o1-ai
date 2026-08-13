@@ -16,7 +16,7 @@ it('lists the notification event catalogue for an authenticated user', function 
     $this->getJson('/api/v1/notifications/events')
         ->assertOk()
         ->assertJsonPath('data.0.key', NotificationEvent::MemberInvited->value)
-        ->assertJsonCount(5, 'data');
+        ->assertJsonCount(6, 'data');
 });
 
 it('lists, marks read, and deletes only the authenticated users notifications', function () {

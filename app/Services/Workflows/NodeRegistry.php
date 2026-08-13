@@ -64,6 +64,31 @@ class NodeRegistry
         return $this->builtins;
     }
 
+    /**
+     * Every built-in node's catalog metadata — what the node picker (and
+     * `GET /workspaces/{workspace}/nodes`) renders alongside workspace
+     * `CustomNode` rows.
+     *
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}>
+     */
+    public function catalog(): array
+    {
+        return collect($this->builtins)
+            ->map(function (string $class, string $type): array {
+                $node = app($class);
+
+                return [
+                    'type' => $type,
+                    'category' => $node->category(),
+                    'name' => $node->name(),
+                    'description' => $node->description(),
+                    'config_schema' => $node->configSchema(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     private function customId(string $type): int
     {
         return (int) substr($type, strlen(self::CUSTOM_PREFIX));

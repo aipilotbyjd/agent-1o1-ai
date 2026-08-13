@@ -25,9 +25,10 @@ class GmailCreateDraftNode extends AbstractGmailNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'to', 'subject', 'body'],
+            'required' => ['to', 'subject', 'body'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'to' => ['type' => 'string'],
                 'subject' => ['type' => 'string'],
                 'body' => ['type' => 'string'],
@@ -43,7 +44,7 @@ class GmailCreateDraftNode extends AbstractGmailNode
             $config['body']
         );
 
-        return $this->post('/users/me/drafts', $config, [
+        return $this->post($run, '/users/me/drafts', $config, [
             'message' => ['raw' => strtr($raw, '+/', '-_')],
         ]);
     }

@@ -3,22 +3,22 @@
 namespace App\Nodes\Integrations\Slack;
 
 use App\Contracts\NodeContract;
+use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
  * Shared request/error-handling for the Slack node family
- * (docs/NODES_CATALOG.md's "Priority 1" list). `access_token` is a plain
- * bearer-token config field for now, not a `ConnectorCredential` — OAuth/
- * encrypted credential storage is docs/PLAN.md Phase 6, not yet built.
- * Until then, a workspace member sets a Slack bot token directly in the
- * node's config (or binds it via `AgentToolBinding.config` when the node is
- * attached to an Agent as a tool, keeping it hidden from the model exactly
- * like any other bound field — see docs/AGENTS_PLAN.md's tool-binding
- * security boundary).
+ * (docs/NODES_CATALOG.md's "Priority 1" list). Resolves the access token via
+ * `ResolvesConnectorCredential` — a workspace-scoped `ConnectorCredential`
+ * referenced by `config['credential_id']`, or a plain `access_token` config
+ * field for nodes configured before `ConnectorCredential` existed.
  */
 abstract class AbstractSlackNode implements NodeContract
 {
+    use ResolvesConnectorCredential;
+
     private const string BASE_URL = 'https://slack.com/api/';
 
     public function category(): string
@@ -28,17 +28,12 @@ abstract class AbstractSlackNode implements NodeContract
 
     /**
      * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    protected function requiredAccessToken(array $config): string
+    protected function get(Run $run, string $endpoint, array $config, array $params = []): array
     {
-        $token = $config['access_token'] ?? null;
-
-        if (! is_string($token) || $token === '') {
-            throw new RuntimeException('Slack access_token is required.');
-        }
-
-        return $token;
+        return $this->call($run, 'get', $endpoint, $config, $params);
     }
 
     /**
@@ -46,19 +41,9 @@ abstract class AbstractSlackNode implements NodeContract
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    protected function get(string $endpoint, array $config, array $params = []): array
+    protected function post(Run $run, string $endpoint, array $config, array $params = []): array
     {
-        return $this->call('get', $endpoint, $config, $params);
-    }
-
-    /**
-     * @param  array<string, mixed>  $config
-     * @param  array<string, mixed>  $params
-     * @return array<string, mixed>
-     */
-    protected function post(string $endpoint, array $config, array $params = []): array
-    {
-        return $this->call('post', $endpoint, $config, $params);
+        return $this->call($run, 'post', $endpoint, $config, $params);
     }
 
     /**
@@ -70,9 +55,9 @@ abstract class AbstractSlackNode implements NodeContract
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */
-    private function call(string $method, string $endpoint, array $config, array $params): array
+    private function call(Run $run, string $method, string $endpoint, array $config, array $params): array
     {
-        $token = $this->requiredAccessToken($config);
+        $token = $this->resolveAccessToken($run, $config);
 
         $request = Http::withToken($token);
         $response = $method === 'get'

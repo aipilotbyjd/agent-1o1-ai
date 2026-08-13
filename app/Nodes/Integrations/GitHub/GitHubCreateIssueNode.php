@@ -25,9 +25,10 @@ class GitHubCreateIssueNode extends AbstractGitHubNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'repo', 'title'],
+            'required' => ['repo', 'title'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'repo' => ['type' => 'string'],
                 'title' => ['type' => 'string'],
                 'body' => ['type' => 'string'],
@@ -39,7 +40,7 @@ class GitHubCreateIssueNode extends AbstractGitHubNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $data = $this->post("/repos/{$config['repo']}/issues", $config, [
+        $data = $this->post($run, "/repos/{$config['repo']}/issues", $config, [
             'title' => $config['title'],
             'body' => $config['body'] ?? '',
             'labels' => $config['labels'] ?? [],

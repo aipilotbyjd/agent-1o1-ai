@@ -25,9 +25,10 @@ class SlackInviteToChannelNode extends AbstractSlackNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'channel', 'users'],
+            'required' => ['channel', 'users'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'channel' => ['type' => 'string'],
                 // Comma-separated Slack user IDs, per Slack's own API shape.
                 'users' => ['type' => 'string'],
@@ -37,7 +38,7 @@ class SlackInviteToChannelNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->post('conversations.invite', $config, [
+        return $this->post($run, 'conversations.invite', $config, [
             'channel' => $config['channel'],
             'users' => $config['users'],
         ]);

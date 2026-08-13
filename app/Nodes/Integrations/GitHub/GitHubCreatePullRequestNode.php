@@ -25,9 +25,10 @@ class GitHubCreatePullRequestNode extends AbstractGitHubNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'repo', 'title', 'head', 'base'],
+            'required' => ['repo', 'title', 'head', 'base'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'repo' => ['type' => 'string'],
                 'title' => ['type' => 'string'],
                 'head' => ['type' => 'string'],
@@ -39,7 +40,7 @@ class GitHubCreatePullRequestNode extends AbstractGitHubNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $data = $this->post("/repos/{$config['repo']}/pulls", $config, [
+        $data = $this->post($run, "/repos/{$config['repo']}/pulls", $config, [
             'title' => $config['title'],
             'head' => $config['head'],
             'base' => $config['base'],

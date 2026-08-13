@@ -25,9 +25,10 @@ class SlackCreateChannelNode extends AbstractSlackNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'name'],
+            'required' => ['name'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'name' => ['type' => 'string'],
                 'is_private' => ['type' => 'boolean'],
             ],
@@ -36,7 +37,7 @@ class SlackCreateChannelNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->post('conversations.create', $config, array_filter([
+        return $this->post($run, 'conversations.create', $config, array_filter([
             'name' => $config['name'],
             'is_private' => $config['is_private'] ?? null,
         ], fn ($value) => $value !== null));

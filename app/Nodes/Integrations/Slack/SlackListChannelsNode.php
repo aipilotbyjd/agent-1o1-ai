@@ -25,9 +25,10 @@ class SlackListChannelsNode extends AbstractSlackNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token'],
+            'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'types' => ['type' => 'string'],
                 'limit' => ['type' => 'integer'],
                 'cursor' => ['type' => 'string'],
@@ -37,7 +38,7 @@ class SlackListChannelsNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->get('conversations.list', $config, array_filter([
+        return $this->get($run, 'conversations.list', $config, array_filter([
             'types' => $config['types'] ?? null,
             'limit' => $config['limit'] ?? null,
             'cursor' => $config['cursor'] ?? null,

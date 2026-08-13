@@ -25,9 +25,10 @@ class GmailSendEmailNode extends AbstractGmailNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'to', 'subject', 'body'],
+            'required' => ['to', 'subject', 'body'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'to' => ['type' => 'string'],
                 'subject' => ['type' => 'string'],
                 'body' => ['type' => 'string'],
@@ -47,7 +48,7 @@ class GmailSendEmailNode extends AbstractGmailNode
             $config['body']
         );
 
-        return $this->post('/users/me/messages/send', $config, [
+        return $this->post($run, '/users/me/messages/send', $config, [
             'raw' => strtr($raw, '+/', '-_'),
         ]);
     }

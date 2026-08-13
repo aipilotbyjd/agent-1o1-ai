@@ -25,9 +25,10 @@ class GitHubListCommitsNode extends AbstractGitHubNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'repo'],
+            'required' => ['repo'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'repo' => ['type' => 'string'],
                 'sha' => ['type' => 'string'],
                 'path' => ['type' => 'string'],
@@ -38,7 +39,7 @@ class GitHubListCommitsNode extends AbstractGitHubNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return ['commits' => $this->get("/repos/{$config['repo']}/commits", $config, [
+        return ['commits' => $this->get($run, "/repos/{$config['repo']}/commits", $config, [
             'sha' => $config['sha'] ?? null,
             'path' => $config['path'] ?? null,
             'per_page' => $config['per_page'] ?? 30,

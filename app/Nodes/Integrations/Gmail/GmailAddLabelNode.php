@@ -25,9 +25,10 @@ class GmailAddLabelNode extends AbstractGmailNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'message_id', 'label_ids'],
+            'required' => ['message_id', 'label_ids'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'message_id' => ['type' => 'string'],
                 'label_ids' => ['type' => 'array'],
             ],
@@ -36,7 +37,7 @@ class GmailAddLabelNode extends AbstractGmailNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->post("/users/me/messages/{$config['message_id']}/modify", $config, [
+        return $this->post($run, "/users/me/messages/{$config['message_id']}/modify", $config, [
             'addLabelIds' => (array) $config['label_ids'],
             'removeLabelIds' => [],
         ]);

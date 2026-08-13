@@ -25,9 +25,10 @@ class GmailListMessagesNode extends AbstractGmailNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token'],
+            'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'query' => ['type' => 'string'],
                 'max_results' => ['type' => 'integer'],
             ],
@@ -36,7 +37,7 @@ class GmailListMessagesNode extends AbstractGmailNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->get('/users/me/messages', $config, [
+        return $this->get($run, '/users/me/messages', $config, [
             'q' => $config['query'] ?? '',
             'maxResults' => $config['max_results'] ?? 10,
         ]);

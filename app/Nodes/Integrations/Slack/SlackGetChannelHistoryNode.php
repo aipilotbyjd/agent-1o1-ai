@@ -25,9 +25,10 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'channel'],
+            'required' => ['channel'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'channel' => ['type' => 'string'],
                 'limit' => ['type' => 'integer'],
                 'oldest' => ['type' => 'string'],
@@ -38,7 +39,7 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->get('conversations.history', $config, array_filter([
+        return $this->get($run, 'conversations.history', $config, array_filter([
             'channel' => $config['channel'],
             'limit' => $config['limit'] ?? null,
             'oldest' => $config['oldest'] ?? null,

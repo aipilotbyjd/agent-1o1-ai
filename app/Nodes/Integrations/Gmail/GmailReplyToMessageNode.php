@@ -25,9 +25,10 @@ class GmailReplyToMessageNode extends AbstractGmailNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'to', 'message_id', 'thread_id', 'body'],
+            'required' => ['to', 'message_id', 'thread_id', 'body'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'to' => ['type' => 'string'],
                 'message_id' => ['type' => 'string'],
                 'thread_id' => ['type' => 'string'],
@@ -50,7 +51,7 @@ class GmailReplyToMessageNode extends AbstractGmailNode
             $config['body']
         );
 
-        return $this->post('/users/me/messages/send', $config, [
+        return $this->post($run, '/users/me/messages/send', $config, [
             'raw' => strtr($raw, '+/', '-_'),
             'threadId' => $config['thread_id'],
         ]);

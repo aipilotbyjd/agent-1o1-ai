@@ -25,9 +25,10 @@ class GitHubCreateCommentNode extends AbstractGitHubNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'repo', 'issue_number', 'body'],
+            'required' => ['repo', 'issue_number', 'body'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'repo' => ['type' => 'string'],
                 'issue_number' => ['type' => 'integer'],
                 'body' => ['type' => 'string'],
@@ -37,7 +38,7 @@ class GitHubCreateCommentNode extends AbstractGitHubNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $data = $this->post("/repos/{$config['repo']}/issues/{$config['issue_number']}/comments", $config, [
+        $data = $this->post($run, "/repos/{$config['repo']}/issues/{$config['issue_number']}/comments", $config, [
             'body' => $config['body'],
         ]);
 

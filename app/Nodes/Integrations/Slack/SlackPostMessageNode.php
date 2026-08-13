@@ -25,9 +25,10 @@ class SlackPostMessageNode extends AbstractSlackNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'channel', 'text'],
+            'required' => ['channel', 'text'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'channel' => ['type' => 'string'],
                 'text' => ['type' => 'string'],
                 'thread_ts' => ['type' => 'string'],
@@ -37,7 +38,7 @@ class SlackPostMessageNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->post('chat.postMessage', $config, array_filter([
+        return $this->post($run, 'chat.postMessage', $config, array_filter([
             'channel' => $config['channel'],
             'text' => $config['text'],
             'thread_ts' => $config['thread_ts'] ?? null,

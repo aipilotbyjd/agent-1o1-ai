@@ -25,9 +25,10 @@ class SlackListUsersNode extends AbstractSlackNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token'],
+            'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'limit' => ['type' => 'integer'],
                 'cursor' => ['type' => 'string'],
             ],
@@ -36,7 +37,7 @@ class SlackListUsersNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->get('users.list', $config, array_filter([
+        return $this->get($run, 'users.list', $config, array_filter([
             'limit' => $config['limit'] ?? null,
             'cursor' => $config['cursor'] ?? null,
         ], fn ($value) => $value !== null));

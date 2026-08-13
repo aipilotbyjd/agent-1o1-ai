@@ -26,5 +26,6 @@ class DatabaseSeeder extends Seeder
         $this->call(TriggerPresetSeeder::class);
         $this->call(NodeCategorySeeder::class);
         $this->call(AppNodeCategorySeeder::class);
+        $this->call(ConnectorSeeder::class);
     }
 }

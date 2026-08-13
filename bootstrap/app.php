@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\ConnectorException;
 use App\Exceptions\InsufficientCreditsException;
 use App\Exceptions\WorkflowValidationException;
 use App\Http\Middleware\EnsureApiKeyIsValid;
@@ -67,6 +68,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (InsufficientCreditsException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 402);
+            }
+        });
+
+        $exceptions->render(function (ConnectorException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 422);
             }
         });
 

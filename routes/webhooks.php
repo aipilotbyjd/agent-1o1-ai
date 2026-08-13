@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Internal\V1\Connectors\OAuthConnectorController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\WaitCallbackController;
 use App\Http\Controllers\Webhooks\WebhookController;
@@ -18,6 +19,13 @@ Route::post('hooks/{token}', WebhookController::class)
 Route::post('hooks/wait/{token}', WaitCallbackController::class)
     ->middleware('throttle:trigger-hooks')
     ->name('hooks.wait-callback');
+
+// Public — the provider redirects the user's browser here after the OAuth
+// consent screen, so no session/API-key auth is available. Tenant-safety
+// comes from the unguessable `state` query param OAuthConnectorController
+// looks up, not from this route's auth.
+Route::get('oauth/connectors/callback', [OAuthConnectorController::class, 'callback'])
+    ->name('oauth.connectors.callback');
 
 // Cashier auto-registration is disabled (AppServiceProvider::configureCashier)
 // so this resolves to our own controller (idempotency guard + plan/usage-period

@@ -9,6 +9,8 @@ use App\Models\Agents\Skill;
 use App\Models\Auth\ApiKey;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\UsagePeriod;
+use App\Models\Connectors\ConnectorCredential;
+use App\Models\Nodes\CustomNode;
 use App\Models\Notifications\NotificationChannel;
 use App\Models\Notifications\NotificationPreference;
 use App\Models\Runs\Run;
@@ -100,6 +102,16 @@ class Workspace extends Model
     public function skills(): HasMany
     {
         return $this->hasMany(Skill::class);
+    }
+
+    public function customNodes(): HasMany
+    {
+        return $this->hasMany(CustomNode::class);
+    }
+
+    public function connectorCredentials(): HasMany
+    {
+        return $this->hasMany(ConnectorCredential::class);
     }
 
     public function documentEmbeddings(): HasMany

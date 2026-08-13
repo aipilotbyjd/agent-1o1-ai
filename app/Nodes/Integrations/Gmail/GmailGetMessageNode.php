@@ -25,9 +25,10 @@ class GmailGetMessageNode extends AbstractGmailNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'message_id'],
+            'required' => ['message_id'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'message_id' => ['type' => 'string'],
             ],
         ];
@@ -35,6 +36,6 @@ class GmailGetMessageNode extends AbstractGmailNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->get("/users/me/messages/{$config['message_id']}", $config);
+        return $this->get($run, "/users/me/messages/{$config['message_id']}", $config);
     }
 }

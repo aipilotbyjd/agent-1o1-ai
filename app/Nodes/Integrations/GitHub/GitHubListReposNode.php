@@ -25,9 +25,10 @@ class GitHubListReposNode extends AbstractGitHubNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token'],
+            'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'owner' => ['type' => 'string'],
                 'per_page' => ['type' => 'integer'],
             ],
@@ -38,6 +39,6 @@ class GitHubListReposNode extends AbstractGitHubNode
     {
         $endpoint = isset($config['owner']) ? "/orgs/{$config['owner']}/repos" : '/user/repos';
 
-        return ['repos' => $this->get($endpoint, $config, ['per_page' => $config['per_page'] ?? 30])];
+        return ['repos' => $this->get($run, $endpoint, $config, ['per_page' => $config['per_page'] ?? 30])];
     }
 }

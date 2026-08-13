@@ -17,6 +17,7 @@ enum NotificationEvent: string
     case MemberRemoved = 'workspace.member_removed';
     case MemberRoleChanged = 'workspace.member_role_changed';
     case RunApprovalRequested = 'run.approval_requested';
+    case ConnectorCredentialExpired = 'connector.credential_expired';
 
     public const DEFAULT_IN_APP = true;
 
@@ -30,6 +31,7 @@ enum NotificationEvent: string
             self::MemberRemoved => 'Member removed',
             self::MemberRoleChanged => 'Member role changed',
             self::RunApprovalRequested => 'Run approval requested',
+            self::ConnectorCredentialExpired => 'Connector credential expired',
         };
     }
 
@@ -41,6 +43,7 @@ enum NotificationEvent: string
             self::MemberRemoved => 'A member is removed from the workspace.',
             self::MemberRoleChanged => "A member's role in the workspace changes.",
             self::RunApprovalRequested => 'A workflow run pauses awaiting human approval.',
+            self::ConnectorCredentialExpired => 'A connector credential expires and could not be automatically refreshed.',
         };
     }
 

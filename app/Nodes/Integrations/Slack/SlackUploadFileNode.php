@@ -34,9 +34,10 @@ class SlackUploadFileNode extends AbstractSlackNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'channels', 'content'],
+            'required' => ['channels', 'content'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'channels' => ['type' => 'string'],
                 'content' => ['type' => 'string'],
                 'filename' => ['type' => 'string'],
@@ -48,7 +49,7 @@ class SlackUploadFileNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $token = $this->requiredAccessToken($config);
+        $token = $this->resolveAccessToken($run, $config);
 
         $response = Http::withToken($token)
             ->attach('file', $config['content'], $config['filename'] ?? 'upload.txt')

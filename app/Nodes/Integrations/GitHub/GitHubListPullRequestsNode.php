@@ -25,9 +25,10 @@ class GitHubListPullRequestsNode extends AbstractGitHubNode
     {
         return [
             'type' => 'object',
-            'required' => ['access_token', 'repo'],
+            'required' => ['repo'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
+                'credential_id' => ['type' => 'integer'],
                 'repo' => ['type' => 'string'],
                 'state' => ['type' => 'string'],
                 'per_page' => ['type' => 'integer'],
@@ -37,7 +38,7 @@ class GitHubListPullRequestsNode extends AbstractGitHubNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return ['pull_requests' => $this->get("/repos/{$config['repo']}/pulls", $config, [
+        return ['pull_requests' => $this->get($run, "/repos/{$config['repo']}/pulls", $config, [
             'state' => $config['state'] ?? 'open',
             'per_page' => $config['per_page'] ?? 30,
         ])];
