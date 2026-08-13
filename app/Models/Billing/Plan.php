@@ -3,6 +3,7 @@
 namespace App\Models\Billing;
 
 use App\Enums\Billing\BillingInterval;
+use App\Enums\Billing\Feature;
 use Database\Factories\Billing\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -40,9 +41,9 @@ class Plan extends Model
         return $this->credits_monthly;
     }
 
-    public function hasFeature(string $key): bool
+    public function hasFeature(Feature $feature): bool
     {
-        return (bool) ($this->features[$key] ?? false);
+        return (bool) ($this->features[$feature->value] ?? false);
     }
 
     public function stripePriceId(BillingInterval $interval): ?string

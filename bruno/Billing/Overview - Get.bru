@@ -1,0 +1,29 @@
+meta {
+  name: Overview - Get
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/billing
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Single aggregate read for a billing settings screen: the active
+  subscription (with its plan, or `null` if never subscribed) plus the
+  current usage period's credit balance. Requires the `billing.view`
+  permission.
+
+  Transaction history and credit-pack purchases live on their own paginated
+  endpoints (`Billing/Credits - List`, `Billing/Credit Packs - List Purchased`).
+
+  Response is wrapped:
+  `{ success, statusCode, message, data: { subscription, usage_period } }`.
+  `usage_period.credits_remaining` is `null` when the plan is unlimited.
+}

@@ -13,3 +13,4 @@ Artisan::command('inspire', function () {
 Schedule::command('triggers:run-due')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('triggers:retry-stuck')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 Schedule::job(new ExpireStaleWaitsJob)->everyMinute()->onOneServer();
+Schedule::command('billing:expire-trials')->hourly()->withoutOverlapping()->onOneServer();
