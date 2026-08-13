@@ -7,6 +7,7 @@ use App\Models\Agents\AgentSession;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Agents\Skill;
 use App\Models\Auth\ApiKey;
+use App\Models\Billing\CreditPack;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Connectors\ConnectorCredential;
@@ -17,6 +18,8 @@ use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Models\Workflows\Folder;
+use App\Models\Workflows\Tag;
 use App\Models\Workflows\Workflow;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -79,6 +82,16 @@ class Workspace extends Model
         return $this->hasMany(Workflow::class);
     }
 
+    public function folders(): HasMany
+    {
+        return $this->hasMany(Folder::class);
+    }
+
+    public function tags(): HasMany
+    {
+        return $this->hasMany(Tag::class);
+    }
+
     public function builderSessions(): HasMany
     {
         return $this->hasMany(WorkflowBuilderSession::class);
@@ -122,6 +135,11 @@ class Workspace extends Model
     public function creditTransactions(): HasMany
     {
         return $this->hasMany(CreditTransaction::class);
+    }
+
+    public function creditPacks(): HasMany
+    {
+        return $this->hasMany(CreditPack::class);
     }
 
     public function usagePeriods(): HasMany

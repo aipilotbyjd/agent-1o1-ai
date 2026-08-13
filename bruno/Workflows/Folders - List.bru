@@ -1,0 +1,23 @@
+meta {
+  name: Folders - List
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/folders
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+docs {
+  Lists the workspace's top-level folders, ordered by `position`, each with
+  its `children` nested one level deep and a `workflow_count`. Requires the
+  `workflow.view` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { folders } }`.
+}

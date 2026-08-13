@@ -1,0 +1,31 @@
+meta {
+  name: Folders - Update
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/v1/workspaces/:workspace/folders/:folder
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  folder: {{folderId}}
+}
+
+body:json {
+  {
+    "name": "Marketing (renamed)"
+  }
+}
+
+docs {
+  Updates a folder's `name`, `color`, `parent_id`, or `position`. All fields
+  are optional. Requires the `workflow.manage` permission.
+
+  404s if `:folder` doesn't belong to `:workspace`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { folder } }`.
+}

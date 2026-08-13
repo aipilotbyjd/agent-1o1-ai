@@ -29,6 +29,7 @@ class WorkflowResource extends JsonResource
             'is_published' => $this->isPublished(),
             'nodes' => WorkflowNodeResource::collection($this->whenLoaded('nodes')),
             'edges' => WorkflowEdgeResource::collection($this->whenLoaded('edges')),
+            'tags' => TagResource::collection($this->whenLoaded('tags')),
             'created_by' => $this->created_by,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
