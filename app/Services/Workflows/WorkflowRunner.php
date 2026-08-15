@@ -3,6 +3,7 @@
 namespace App\Services\Workflows;
 
 use App\Enums\NodeRunStatus;
+use App\Enums\Triggers\TriggerType;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Jobs\Workflows\DispatchNextNodesJob;
 use App\Models\Runs\NodeRun;
@@ -75,9 +76,9 @@ class WorkflowRunner
      * against the run's context once here, before any of `executeStep()`'s
      * branches see it — see `TemplateResolver`.
      *
-     * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
+     * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>, pinned_data?: array<string, mixed>|null}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
      * @param  array<string, mixed>  $context
-     * @return array{key: string, type: string, config: array<string, mixed>}
+     * @return array{key: string, type: string, config: array<string, mixed>, pinned_data?: array<string, mixed>|null}
      */
     private function resolvedNodeDefinition(array $graph, string $key, array $context): array
     {
@@ -97,6 +98,24 @@ class WorkflowRunner
     private function executeNodeContract(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph, array $context): void
     {
         $nodeRun->forceFill(['status' => NodeRunStatus::Running, 'started_at' => now()])->save();
+
+        // Pin data (see `WorkflowNode::pinned_data`) only short-circuits
+        // execution for manual test runs — production trigger types
+        // (webhook/schedule/polling) always execute for real, so a pin left
+        // on from testing can never silently affect a live automation.
+        $pinnedData = $nodeDefinition['pinned_data'] ?? null;
+
+        if ($pinnedData !== null && $run->trigger_type === TriggerType::Manual->value) {
+            $nodeRun->forceFill([
+                'status' => NodeRunStatus::Completed,
+                'output' => $pinnedData,
+                'finished_at' => now(),
+            ])->save();
+
+            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+
+            return;
+        }
 
         try {
             $node = $this->registry->resolve($nodeRun->type);

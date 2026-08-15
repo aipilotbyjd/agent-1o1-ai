@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Internal\V1\Workflows\FolderController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\TagController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowNodePinController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowVersionController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,9 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{workflow}/versions/{version}', [WorkflowVersionController::class, 'show'])->name('versions.show');
 
         Route::put('{workflow}/tags', [TagController::class, 'syncForWorkflow'])->name('tags.sync');
+
+        Route::post('{workflow}/nodes/{node}/pin', [WorkflowNodePinController::class, 'store'])->name('nodes.pin');
+        Route::delete('{workflow}/nodes/{node}/pin', [WorkflowNodePinController::class, 'destroy'])->name('nodes.unpin');
     });
 
 Route::middleware(['auth:api', 'workspace.context'])

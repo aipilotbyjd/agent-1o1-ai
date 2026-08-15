@@ -22,6 +22,9 @@ class WorkflowNodeResource extends JsonResource
             'type' => $this->type,
             'config' => $this->config,
             'position' => $this->position,
+            'pinned_data' => $this->pinned_data,
+            'pinned_at' => $this->pinned_at,
+            'pinned_by' => $this->pinned_by,
         ];
     }
 }

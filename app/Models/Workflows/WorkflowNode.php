@@ -2,12 +2,13 @@
 
 namespace App\Models\Workflows;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['workflow_id', 'key', 'type', 'config', 'position'])]
+#[Fillable(['workflow_id', 'key', 'type', 'config', 'position', 'pinned_data', 'pinned_at', 'pinned_by'])]
 class WorkflowNode extends Model
 {
     /**
@@ -18,12 +19,24 @@ class WorkflowNode extends Model
         return [
             'config' => 'array',
             'position' => 'array',
+            'pinned_data' => 'array',
+            'pinned_at' => 'datetime',
         ];
     }
 
     public function workflow(): BelongsTo
     {
         return $this->belongsTo(Workflow::class);
+    }
+
+    public function pinnedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pinned_by');
+    }
+
+    public function isPinned(): bool
+    {
+        return $this->pinned_data !== null;
     }
 
     public function outgoingEdges(): HasMany

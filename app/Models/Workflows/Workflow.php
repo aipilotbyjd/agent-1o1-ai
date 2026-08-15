@@ -129,17 +129,30 @@ class Workflow extends Model
         }
 
         DB::transaction(function () use ($nodes, $edges): void {
+            // Pin state lives on the node row, but every save deletes and
+            // recreates the rows wholesale (fresh IDs) — snapshot pinned
+            // data keyed by `key` first so it survives an ordinary canvas
+            // save. A node whose `type` changed loses its pin: the output
+            // shape it was pinned against may no longer apply.
+            $previousNodesByKey = $this->nodes()->get()->keyBy('key');
+
             $this->edges()->delete();
             $this->nodes()->delete();
 
             $nodeIdsByKey = [];
 
             foreach ($nodes as $node) {
+                $previous = $previousNodesByKey->get($node['key']);
+                $carryPin = $previous !== null && $previous->type === $node['type'];
+
                 $nodeIdsByKey[$node['key']] = $this->nodes()->create([
                     'key' => $node['key'],
                     'type' => $node['type'],
                     'config' => $node['config'] ?? [],
                     'position' => $node['position'] ?? null,
+                    'pinned_data' => $carryPin ? $previous->pinned_data : null,
+                    'pinned_at' => $carryPin ? $previous->pinned_at : null,
+                    'pinned_by' => $carryPin ? $previous->pinned_by : null,
                 ])->id;
             }
 
@@ -170,6 +183,7 @@ class Workflow extends Model
                 'key' => $node->key,
                 'type' => $node->type,
                 'config' => $node->config ?? [],
+                'pinned_data' => $node->pinned_data,
             ])
             ->all();
 
