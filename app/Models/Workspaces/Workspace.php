@@ -15,6 +15,9 @@ use App\Models\Nodes\CustomNode;
 use App\Models\Notifications\NotificationChannel;
 use App\Models\Notifications\NotificationPreference;
 use App\Models\Runs\Run;
+use App\Models\Templates\AgentTemplate;
+use App\Models\Templates\TemplateCollection;
+use App\Models\Templates\WorkflowTemplate;
 use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
@@ -145,6 +148,21 @@ class Workspace extends Model
     public function usagePeriods(): HasMany
     {
         return $this->hasMany(UsagePeriod::class);
+    }
+
+    public function workflowTemplates(): HasMany
+    {
+        return $this->hasMany(WorkflowTemplate::class);
+    }
+
+    public function agentTemplates(): HasMany
+    {
+        return $this->hasMany(AgentTemplate::class);
+    }
+
+    public function templateCollections(): HasMany
+    {
+        return $this->hasMany(TemplateCollection::class);
     }
 
     /**

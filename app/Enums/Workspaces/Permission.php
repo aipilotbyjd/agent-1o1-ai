@@ -33,6 +33,9 @@ enum Permission: string
     case ConnectorView = 'connector.view';
     case ConnectorManage = 'connector.manage';
 
+    case TemplateView = 'template.view';
+    case TemplateManage = 'template.manage';
+
     case ArtifactView = 'artifact.view';
     case ArtifactManage = 'artifact.manage';
 
@@ -70,6 +73,7 @@ enum Permission: string
             self::ApiKeyView,
             self::BillingView,
             self::NotificationChannelView,
+            self::TemplateView,
         ];
     }
 
@@ -100,6 +104,7 @@ enum Permission: string
             self::AgentSkillManage,
             self::ArtifactManage,
             self::TriggerManage,
+            self::TemplateManage,
         ];
     }
 

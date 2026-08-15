@@ -9,6 +9,8 @@ use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Billing\Subscription as BillingSubscription;
+use App\Models\Templates\AgentTemplate;
+use App\Models\Templates\WorkflowTemplate;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
@@ -139,6 +141,10 @@ class AppServiceProvider extends ServiceProvider
      * happen to overlap on `Workflow`, and both need every runnable/
      * targetable model registered once `enforceMorphMap()` is on, or any
      * relation touching an unregistered one throws).
+     *
+     * `workflow_template`/`agent_template` back `TemplateCollectionItem`'s
+     * `templatable` morph — the alias, not the FQCN, is what's stored in
+     * `template_collection_items.templatable_type`.
      */
     private function configureMorphMap(): void
     {
@@ -146,6 +152,8 @@ class AppServiceProvider extends ServiceProvider
             TriggerTargetType::Workflow->value => Workflow::class,
             TriggerTargetType::Agent->value => Agent::class,
             'agent_session' => AgentSession::class,
+            'workflow_template' => WorkflowTemplate::class,
+            'agent_template' => AgentTemplate::class,
             // Needed for Laravel\Ai\Concerns\RemembersConversations'
             // forUser()/HasConversations participant polymorphism
             // (WorkflowBuilderAgent) — the conversations table's
