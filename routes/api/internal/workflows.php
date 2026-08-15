@@ -16,6 +16,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{workflow}', [WorkflowController::class, 'show'])->name('show');
         Route::patch('{workflow}', [WorkflowController::class, 'update'])->name('update');
         Route::delete('{workflow}', [WorkflowController::class, 'destroy'])->name('destroy');
+        Route::post('{workflow}/duplicate', [WorkflowController::class, 'duplicate'])->name('duplicate');
 
         Route::get('{workflow}/versions', [WorkflowVersionController::class, 'index'])->name('versions.index');
         Route::post('{workflow}/versions', [WorkflowVersionController::class, 'store'])->name('versions.store');

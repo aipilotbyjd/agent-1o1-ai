@@ -9,6 +9,8 @@ use App\Http\Requests\Api\Internal\V1\Workflows\UpdateWorkflowRequest;
 use App\Http\Resources\Api\Internal\V1\Workflows\WorkflowResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Workflows\Workflow;
+use App\Models\Workflows\WorkflowEdge;
+use App\Models\Workflows\WorkflowNode;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Support\Str;
 
@@ -64,5 +66,59 @@ class WorkflowController extends Controller
         $workflow->delete();
 
         return ApiResponse::noContent();
+    }
+
+    /**
+     * Copy a workflow into a new draft in the same workspace — name suffixed
+     * with "(copy)", same folder, current graph carried over as-is (unlike
+     * `WorkflowTemplate::storeFromWorkflow()`, credentials don't need
+     * stripping here since the copy never leaves the source workspace).
+     */
+    public function duplicate(Workspace $workspace, Workflow $workflow)
+    {
+        $this->requirePermission(Permission::WorkflowManage);
+        $this->ensureBelongsToWorkspace($workspace, $workflow);
+
+        $name = "{$workflow->name} (copy)";
+
+        $duplicate = $workspace->workflows()->create([
+            'name' => $name,
+            'slug' => Str::slug($name).'-'.Str::random(6),
+            'folder_id' => $workflow->folder_id,
+            'description' => $workflow->description,
+            'created_by' => request()->user()->id,
+        ]);
+
+        $duplicate->replaceGraph($this->currentGraph($workflow));
+
+        return ApiResponse::created(['workflow' => WorkflowResource::make($duplicate->load(['nodes', 'edges']))], 'Workflow duplicated successfully.');
+    }
+
+    /**
+     * @return array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}
+     */
+    private function currentGraph(Workflow $workflow): array
+    {
+        $workflow->loadMissing(['nodes', 'edges']);
+
+        $nodeKeysById = $workflow->nodes->pluck('key', 'id');
+
+        return [
+            'nodes' => $workflow->nodes
+                ->map(fn (WorkflowNode $node): array => [
+                    'key' => $node->key,
+                    'type' => $node->type,
+                    'config' => $node->config ?? [],
+                    'position' => $node->position,
+                ])
+                ->all(),
+            'edges' => $workflow->edges
+                ->map(fn (WorkflowEdge $edge): array => [
+                    'from' => $nodeKeysById[$edge->from_node_id],
+                    'to' => $nodeKeysById[$edge->to_node_id],
+                    'condition' => $edge->condition,
+                ])
+                ->all(),
+        ];
     }
 }

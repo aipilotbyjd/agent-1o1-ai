@@ -2,6 +2,7 @@
 
 use App\Enums\Workspaces\Role;
 use App\Models\User;
+use App\Models\Workflows\Folder;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
@@ -123,6 +124,34 @@ it('rejects publishing a graph that fails GraphValidator', function () {
 
     $response->assertStatus(422);
     expect($response->json('errors'))->toBe(['The graph contains a cycle.']);
+});
+
+it('duplicates a workflow with its graph, same folder, and a new slug', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $folder = Folder::factory()->forWorkspace($workspace)->create();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create(['name' => 'Weekly Digest', 'folder_id' => $folder->id]);
+    $workflow->nodes()->create(['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]]);
+
+    Passport::actingAs($owner);
+
+    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/duplicate");
+
+    $response->assertCreated();
+    expect($response->json('data.workflow.name'))->toBe('Weekly Digest (copy)');
+    expect($response->json('data.workflow.folder_id'))->toBe($folder->id);
+    expect($response->json('data.workflow.slug'))->not->toBe($workflow->slug);
+    expect($response->json('data.workflow.nodes'))->toHaveCount(1);
+    expect(Workflow::count())->toBe(2);
+});
+
+it('404s duplicating a workflow that belongs to a different workspace', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    [$otherWorkspace] = ownerWorkspaceForWorkflow();
+    $foreign = Workflow::factory()->forWorkspace($otherWorkspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$foreign->id}/duplicate")->assertNotFound();
 });
 
 it('lets a viewer read workflows but not manage or publish them', function () {
