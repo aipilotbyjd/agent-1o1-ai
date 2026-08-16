@@ -36,6 +36,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.context' => EnsureWorkspaceScope::class,
             'api-key' => EnsureApiKeyIsValid::class,
         ]);
+
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
