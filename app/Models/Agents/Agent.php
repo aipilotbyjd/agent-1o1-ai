@@ -2,6 +2,7 @@
 
 namespace App\Models\Agents;
 
+use App\Models\Artifacts\Artifact;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
@@ -62,6 +63,11 @@ class Agent extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(AgentSession::class);
+    }
+
+    public function artifacts(): HasMany
+    {
+        return $this->hasMany(Artifact::class);
     }
 
     /**

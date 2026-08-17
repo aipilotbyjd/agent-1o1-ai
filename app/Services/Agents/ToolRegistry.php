@@ -3,11 +3,13 @@
 namespace App\Services\Agents;
 
 use App\Actions\Workflows\StartWorkflowRunAction;
+use App\Ai\Tools\ExportArtifactTool;
 use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\SearchKnowledgeTool;
 use App\Ai\Tools\WorkflowTool;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentToolBinding;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Runs\Run;
@@ -23,6 +25,10 @@ use App\Services\Workflows\NodeRegistry;
  * unconditionally so every agent can save durable facts. See
  * docs/AGENTS_PLAN.md's "Models & tool binding" and "Knowledge / RAG"
  * sections.
+ *
+ * `ExportArtifactTool` is only attached for a session-backed chat turn
+ * (`$run->runnable` is an `AgentSession`) — `ask()`'s embedded, session-less
+ * calls have nowhere to file an artifact under, so they skip it.
  */
 class ToolRegistry
 {
@@ -32,7 +38,7 @@ class ToolRegistry
     ) {}
 
     /**
-     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|RememberTool>
+     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|RememberTool|ExportArtifactTool>
      */
     public function toolsFor(Agent $agent, Run $run): array
     {
@@ -51,6 +57,16 @@ class ToolRegistry
 
         $memoryTools = [new RememberTool($agent, $run->triggered_by)];
 
-        return [...$nodeTools->values()->all(), ...$workflowTools->values()->all(), ...$knowledgeTools, ...$memoryTools];
+        $artifactTools = $run->runnable instanceof AgentSession
+            ? [new ExportArtifactTool($agent, $run->runnable, $run)]
+            : [];
+
+        return [
+            ...$nodeTools->values()->all(),
+            ...$workflowTools->values()->all(),
+            ...$knowledgeTools,
+            ...$memoryTools,
+            ...$artifactTools,
+        ];
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\Tools\ExportArtifactTool;
 use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\WorkflowTool;
@@ -44,6 +45,24 @@ it('silently skips a binding whose node type is no longer registered', function 
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
 
+    expect($tools)->toHaveCount(1);
+    expect($tools[0])->toBeInstanceOf(RememberTool::class);
+});
+
+it('attaches ExportArtifactTool only for a session-backed run', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
+    $sessionRun = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+
+    $tools = app(ToolRegistry::class)->toolsFor($agent, $sessionRun);
+    expect($tools)->toHaveCount(2);
+    expect($tools[0])->toBeInstanceOf(RememberTool::class);
+    expect($tools[1])->toBeInstanceOf(ExportArtifactTool::class);
+
+    $workflowRun = Run::factory()->forWorkspace($workspace)->create();
+    $tools = app(ToolRegistry::class)->toolsFor($agent, $workflowRun);
     expect($tools)->toHaveCount(1);
     expect($tools[0])->toBeInstanceOf(RememberTool::class);
 });
