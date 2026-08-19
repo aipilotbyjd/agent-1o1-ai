@@ -1,0 +1,32 @@
+meta {
+  name: Artifacts - List
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/artifacts?per_page=25
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+params:query {
+  per_page: 25
+  ~search: report
+  ~agent_id: {{agentId}}
+  ~mime_category: images
+}
+
+docs {
+  Lists the newest version of each artifact group. Requires `artifact.view`.
+
+  - `search` — matches on filename.
+  - `agent_id` — only artifacts filed under that agent.
+  - `mime_category` — one of `images`, `documents`, `spreadsheets`.
+
+  Paginated: `{ success, statusCode, message, data: [...], meta }`.
+}

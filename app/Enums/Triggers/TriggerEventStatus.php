@@ -20,7 +20,7 @@ enum TriggerEventStatus: string
     case Running = 'running';
 
     /**
-     * It started a run; workflow_run_id points at it.
+     * It started a run; run_id points at it.
      */
     case Fired = 'fired';
 

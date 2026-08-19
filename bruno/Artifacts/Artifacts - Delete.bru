@@ -1,0 +1,21 @@
+meta {
+  name: Artifacts - Delete
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/workspaces/:workspace/artifacts/:artifact
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  artifact: {{artifactId}}
+}
+
+docs {
+  Deletes every version in the artifact's group, files included. Requires
+  `artifact.manage`. Returns 204.
+}

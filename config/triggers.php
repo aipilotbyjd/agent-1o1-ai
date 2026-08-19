@@ -56,6 +56,14 @@ return [
     'fire_timeout_seconds' => (int) env('TRIGGERS_FIRE_TIMEOUT_SECONDS', 120),
     'fire_backoff_seconds' => [10, 30, 90, 300, 900],
 
+    // Agent-targeted events fire on the shared `ai-agent` queue instead: the
+    // job blocks on a model call, so it needs both that supervisor's
+    // concurrency ceiling (provider rate limits) and a timeout measured in
+    // minutes rather than the event queue's seconds. `queue.retry_after` must
+    // stay above this value or a still-running turn gets re-dispatched.
+    'agent_fire_queue' => env('TRIGGERS_AGENT_FIRE_QUEUE', 'ai-agent'),
+    'agent_fire_timeout_seconds' => (int) env('TRIGGERS_AGENT_FIRE_TIMEOUT_SECONDS', 320),
+
     /*
     |--------------------------------------------------------------------------
     | Stuck-event recovery (triggers:retry-stuck)

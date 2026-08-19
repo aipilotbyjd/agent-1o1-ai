@@ -1,0 +1,58 @@
+meta {
+  name: Knowledge - Create
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/knowledge
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+}
+
+body:json {
+  {
+    "title": "Refund policy",
+    "content": "Refunds are accepted within 30 days of delivery.",
+    "source_type": "text",
+    "source_url": null,
+    "is_active": true,
+    "sort_order": 0,
+    "metadata": null
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const knowledge = res.body.data?.knowledge;
+    if (knowledge && knowledge.id) {
+      bru.setVar("knowledgeId", knowledge.id);
+    }
+  }
+}
+
+docs {
+  Adds a knowledge entry to the agent. Requires the `agent.manage`
+  permission.
+
+  - `title` — required; shown as the section heading in the injected prompt.
+  - `content` — required, max 50,000 characters. The cap is about prompt
+    budget: every active entry is injected on every turn.
+  - `source_type` — `text` (default), `url`, or `file`.
+  - `source_url` — required when `source_type` is `url`.
+  - `is_active` — optional, defaults true. Inactive entries are kept but
+    never injected.
+  - `sort_order` — optional; controls the order entries appear in the prompt.
+
+  `tokens` is returned as a rough estimate of the entry's prompt cost. It is
+  informational only — billing uses the provider's reported usage.
+
+  Stores the created entry's ID as `knowledgeId`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { knowledge } }`.
+}

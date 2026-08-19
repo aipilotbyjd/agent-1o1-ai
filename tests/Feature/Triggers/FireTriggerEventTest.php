@@ -3,6 +3,7 @@
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Jobs\Triggers\FireTriggerEvent;
+use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use App\Models\User;
@@ -31,7 +32,7 @@ it('fires a workflow run and marks the event fired', function () {
     $event->refresh();
 
     expect($event->status)->toBe(TriggerEventStatus::Fired);
-    expect($event->workflow_run_id)->not->toBeNull();
+    expect($event->run_id)->not->toBeNull();
     expect($event->attempts)->toBe(1);
 });
 
@@ -44,11 +45,13 @@ it('claim is exclusive — a second claim on the same event returns false', func
 
 it('does not re-fire a terminal event on re-dispatch', function () {
     $event = makeQueuedEvent();
-    $event->markFired(999);
+    $run = Run::factory()->create();
+    $event->markFired($run->id);
 
     (new FireTriggerEvent($event->trigger, $event))->handle(app(TriggerService::class));
 
-    expect($event->fresh()->workflow_run_id)->toBe(999);
+    expect($event->fresh()->run_id)->toBe($run->id);
+    expect(Run::count())->toBe(1);
 });
 
 it('records a circuit-breaker failure only when the event actually reached the target', function () {

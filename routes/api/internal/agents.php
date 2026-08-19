@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSkillController;
@@ -34,6 +35,11 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{agent}/skills', [AgentSkillController::class, 'index'])->name('skills.index');
         Route::post('{agent}/skills/{skill}', [AgentSkillController::class, 'store'])->name('skills.store');
         Route::delete('{agent}/skills/{skill}', [AgentSkillController::class, 'destroy'])->name('skills.destroy');
+
+        Route::get('{agent}/knowledge', [AgentKnowledgeController::class, 'index'])->name('knowledge.index');
+        Route::post('{agent}/knowledge', [AgentKnowledgeController::class, 'store'])->name('knowledge.store');
+        Route::patch('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'update'])->name('knowledge.update');
+        Route::delete('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'destroy'])->name('knowledge.destroy');
 
         Route::get('{agent}/memories', [AgentMemoryController::class, 'index'])->name('memories.index');
         Route::post('{agent}/memories', [AgentMemoryController::class, 'store'])->name('memories.store');

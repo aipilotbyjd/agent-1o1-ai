@@ -12,6 +12,7 @@ Route::middleware(['auth:api', 'workspace.context'])
     ->as('artifacts.')
     ->group(function () {
         Route::get('/', [ArtifactController::class, 'index'])->name('index');
+        Route::post('/', [ArtifactController::class, 'store'])->name('store');
         Route::get('{artifact}', [ArtifactController::class, 'show'])->name('show');
         Route::delete('{artifact}', [ArtifactController::class, 'destroy'])->name('destroy');
         Route::get('{artifact}/download', [ArtifactController::class, 'download'])->name('download');

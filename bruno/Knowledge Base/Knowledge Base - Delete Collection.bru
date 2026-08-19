@@ -1,0 +1,24 @@
+meta {
+  name: Knowledge Base - Delete Collection
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/v1/workspaces/:workspace/knowledge-base/collections/:collection
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  collection: support
+}
+
+docs {
+  Deletes every chunk in a collection — the practical way to re-ingest a
+  source document: drop the collection, then ingest the new revision.
+  Requires `agent.manage`. 404s when the collection has no chunks.
+
+  Response is wrapped: `{ ..., data: { deleted_count } }`.
+}

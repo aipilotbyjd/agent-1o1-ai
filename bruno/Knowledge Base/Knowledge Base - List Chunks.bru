@@ -1,0 +1,31 @@
+meta {
+  name: Knowledge Base - List Chunks
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/knowledge-base?per_page=25
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+params:query {
+  per_page: 25
+  ~collection: support
+  ~source: handbook.md
+}
+
+docs {
+  Lists stored chunks, newest first. Requires `agent.view`.
+
+  The embedding vector itself is never returned — `dimensions` reports its
+  size instead, which is what you need when a chunk never ranks (a
+  dimension mismatch means it was embedded with a different model).
+
+  Paginated: `{ success, statusCode, message, data: [...], meta }`.
+}

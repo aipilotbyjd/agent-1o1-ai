@@ -4,6 +4,7 @@ namespace Database\Factories\Triggers;
 
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerType;
+use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -45,7 +46,7 @@ class TriggerEventFactory extends Factory
     {
         return $this->state(fn (): array => [
             'status' => TriggerEventStatus::Fired,
-            'workflow_run_id' => fake()->numberBetween(1, 1000),
+            'run_id' => fn () => Run::factory()->create()->id,
             'processed_at' => now(),
         ]);
     }

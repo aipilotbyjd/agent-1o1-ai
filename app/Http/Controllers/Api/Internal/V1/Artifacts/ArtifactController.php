@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Artifacts;
 
+use App\Actions\Artifacts\StoreArtifactAction;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Artifacts\UploadArtifactRequest;
 use App\Http\Resources\Api\Internal\V1\Artifacts\ArtifactResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\Agents\Agent;
 use App\Models\Artifacts\Artifact;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Http\Request;
@@ -50,6 +53,32 @@ class ArtifactController extends Controller
         return ApiResponse::paginated(ArtifactResource::collection($artifacts));
     }
 
+    public function store(UploadArtifactRequest $request, Workspace $workspace, StoreArtifactAction $storeArtifact)
+    {
+        $this->requirePermission(Permission::ArtifactManage);
+
+        $file = $request->file('file');
+        $agentId = $request->validated('agent_id');
+
+        $artifact = $storeArtifact->execute(
+            workspace: $workspace,
+            filename: $request->validated('filename') ?? $file->getClientOriginalName(),
+            // Guessed from the file's own bytes, not the client-supplied
+            // Content-Type header — the stored value is what `preview()`
+            // later serves the file as.
+            mimeType: $file->getMimeType() ?? 'application/octet-stream',
+            contents: $file,
+            agent: $agentId === null ? null : Agent::findOrFail($agentId),
+            createdBy: $request->user()->id,
+            groupId: $request->validated('group_id'),
+            metadata: $request->validated('metadata'),
+        );
+
+        return ApiResponse::created([
+            'artifact' => ArtifactResource::make($artifact->load(['agent', 'creator'])),
+        ], 'Artifact uploaded.');
+    }
+
     public function show(Workspace $workspace, Artifact $artifact)
     {
         $this->requirePermission(Permission::ArtifactView);
@@ -80,7 +109,9 @@ class ArtifactController extends Controller
         $this->requirePermission(Permission::ArtifactView);
         $this->ensureBelongsToWorkspace($workspace, $artifact);
 
-        return Storage::disk($artifact->disk)->download($artifact->path, $artifact->filename);
+        return Storage::disk($artifact->disk)->download($artifact->path, $artifact->filename, [
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function preview(Request $request, Artifact $artifact): StreamedResponse
@@ -90,6 +121,14 @@ class ArtifactController extends Controller
 
         return Storage::disk($artifact->disk)->response($artifact->path, $artifact->filename, [
             'Content-Type' => $artifact->mime_type,
+            // Artifacts are member- and model-supplied bytes served from this
+            // application's own origin: an uploaded `text/html` artifact would
+            // otherwise run as first-party script. The sandbox denies it
+            // everything (scripts, forms, same-origin access) while still
+            // rendering, and nosniff keeps the browser from re-deciding the
+            // type for itself.
+            'Content-Security-Policy' => 'sandbox',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 }

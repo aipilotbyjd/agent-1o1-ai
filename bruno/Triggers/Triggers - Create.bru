@@ -42,11 +42,19 @@ docs {
   `trigger.manage` permission.
 
   - `target_type` — `workflow` or `agent`.
-  - `target_id` — the ID of that workflow/agent.
+  - `target_id` — the ID of that workflow/agent. It must live in this same
+    workspace, or the request fails validation.
   - `type` — `webhook`, `schedule`, `polling`, or `manual`.
   - `preset_id` — optional `trigger_presets` row to base the trigger on.
   - `credential_id` — only meaningful for `polling` triggers.
   - `signing_secret` — only meaningful for `webhook` triggers.
+  - `config.message` — only meaningful for `agent` targets: the prompt the
+    agent is sent, templated against the delivery (`"Triage: {{ payload.title }}"`).
+    Without it the raw payload is passed as JSON.
+
+  A firing starts a real run: a workflow target must be published, and an
+  agent target gets a fresh session per event. Deliveries whose target isn't
+  runnable are recorded as `skipped` events instead.
 
   Only `webhook` triggers get a public URL token; this request stores it
   as `triggerToken` (and the ID as `triggerId`) for the `Webhooks` folder.

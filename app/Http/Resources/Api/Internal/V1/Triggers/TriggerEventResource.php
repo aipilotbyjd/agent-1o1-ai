@@ -21,7 +21,7 @@ class TriggerEventResource extends JsonResource
             'trigger_id' => $this->trigger_id,
             'source' => $this->source->value,
             'status' => $this->status->value,
-            'workflow_run_id' => $this->workflow_run_id,
+            'run_id' => $this->run_id,
             'payload' => $this->payload,
             'error' => $this->error,
             'delivery_id' => $this->delivery_id,

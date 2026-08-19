@@ -1,0 +1,27 @@
+meta {
+  name: Knowledge - List
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/knowledge
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+}
+
+docs {
+  Lists the agent's knowledge entries in `sort_order`. Requires the
+  `agent.view` permission.
+
+  These are the "always know this" entries: every active one is injected
+  verbatim into the agent's system prompt on every turn. For "look this up
+  when relevant", use the workspace Knowledge Base collection instead.
+
+  Response is wrapped: `{ success, statusCode, message, data: { knowledge } }`.
+}
