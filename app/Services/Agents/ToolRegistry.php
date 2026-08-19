@@ -2,6 +2,7 @@
 
 namespace App\Services\Agents;
 
+use App\Actions\Artifacts\StoreArtifactAction;
 use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Ai\Tools\ExportArtifactTool;
 use App\Ai\Tools\NodeTool;
@@ -35,6 +36,8 @@ class ToolRegistry
     public function __construct(
         private readonly NodeRegistry $nodes,
         private readonly StartWorkflowRunAction $startWorkflowRun,
+        private readonly StoreArtifactAction $storeArtifact,
+        private readonly KnowledgeBase $knowledgeBase,
     ) {}
 
     /**
@@ -52,13 +55,13 @@ class ToolRegistry
             ->map(fn ($workflow) => new WorkflowTool($workflow, $this->startWorkflowRun));
 
         $knowledgeTools = DocumentEmbedding::where('workspace_id', $agent->workspace_id)->exists()
-            ? [new SearchKnowledgeTool($agent->workspace)]
+            ? [new SearchKnowledgeTool($agent->workspace, knowledgeBase: $this->knowledgeBase)]
             : [];
 
         $memoryTools = [new RememberTool($agent, $run->triggered_by)];
 
         $artifactTools = $run->runnable instanceof AgentSession
-            ? [new ExportArtifactTool($agent, $run->runnable, $run)]
+            ? [new ExportArtifactTool($agent, $run->runnable, $run, $this->storeArtifact)]
             : [];
 
         return [

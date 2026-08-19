@@ -25,7 +25,9 @@ class ArtifactResource extends JsonResource
             'filename' => $this->filename,
             'mime_type' => $this->mime_type,
             'size' => $this->size,
-            'agent' => [
+            // Null for a member upload — only agent-exported artifacts have
+            // an agent behind them.
+            'agent' => $this->agent === null ? null : [
                 'id' => $this->agent->id,
                 'name' => $this->agent->name,
             ],

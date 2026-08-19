@@ -1,0 +1,20 @@
+meta {
+  name: Knowledge Base - Delete Chunk
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/workspaces/:workspace/knowledge-base/:chunk
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  chunk: {{knowledgeChunkId}}
+}
+
+docs {
+  Deletes one chunk. Requires `agent.manage`. Returns 204.
+}

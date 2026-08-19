@@ -1,0 +1,31 @@
+meta {
+  name: Knowledge - Update
+  type: http
+  seq: 25
+}
+
+patch {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/knowledge/:knowledge
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+  knowledge: {{knowledgeId}}
+}
+
+body:json {
+  {
+    "content": "Refunds are accepted within 45 days of delivery.",
+    "is_active": true
+  }
+}
+
+docs {
+  Updates a knowledge entry. Requires `agent.manage`. Sending `content`
+  re-estimates `tokens`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { knowledge } }`.
+}

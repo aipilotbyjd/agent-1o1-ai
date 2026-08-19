@@ -2,13 +2,11 @@
 
 namespace App\Ai\Tools;
 
+use App\Actions\Artifacts\StoreArtifactAction;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
-use App\Models\Artifacts\Artifact;
 use App\Models\Runs\Run;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -18,7 +16,9 @@ use Stringable;
  * HTML, etc.) as a downloadable, versioned `Artifact`. Re-exporting the same
  * filename within the same session creates a new version instead of
  * overwriting — see `Artifact::versions()`/`group_id`. Auto-attached to
- * every agent by `ToolRegistry`, same as `RememberTool`.
+ * every agent by `ToolRegistry`, same as `RememberTool`. Storage itself
+ * (versioning, path layout, filename safety) lives in `StoreArtifactAction`,
+ * shared with the Internal API's upload endpoint.
  */
 class ExportArtifactTool implements Tool
 {
@@ -26,6 +26,7 @@ class ExportArtifactTool implements Tool
         private readonly Agent $agent,
         private readonly AgentSession $session,
         private readonly Run $run,
+        private readonly StoreArtifactAction $storeArtifact,
     ) {}
 
     public function description(): Stringable|string
@@ -58,33 +59,16 @@ class ExportArtifactTool implements Tool
             return json_encode(['error' => 'content is not valid base64.']);
         }
 
-        $previous = Artifact::query()
-            ->where('workspace_id', $this->agent->workspace_id)
-            ->where('agent_session_id', $this->session->id)
-            ->where('filename', $filename)
-            ->orderByDesc('version')
-            ->first();
-
-        $groupId = $previous?->group_id ?? (string) Str::uuid();
-        $version = $previous ? $previous->version + 1 : 1;
-
-        $path = "artifacts/{$this->agent->workspace_id}/{$groupId}/v{$version}-{$filename}";
-        Storage::disk('local')->put($path, $decoded);
-
-        $artifact = Artifact::create([
-            'workspace_id' => $this->agent->workspace_id,
-            'agent_id' => $this->agent->id,
-            'agent_session_id' => $this->session->id,
-            'run_id' => $this->run->id,
-            'created_by' => $this->session->user_id,
-            'group_id' => $groupId,
-            'version' => $version,
-            'filename' => $filename,
-            'mime_type' => $mimeType,
-            'size' => strlen($decoded),
-            'disk' => 'local',
-            'path' => $path,
-        ]);
+        $artifact = $this->storeArtifact->execute(
+            workspace: $this->agent->workspace,
+            filename: $filename,
+            mimeType: $mimeType,
+            contents: $decoded,
+            agent: $this->agent,
+            session: $this->session,
+            run: $this->run,
+            createdBy: $this->session->user_id,
+        );
 
         return json_encode([
             'id' => $artifact->id,

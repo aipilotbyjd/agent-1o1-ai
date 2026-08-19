@@ -1,0 +1,54 @@
+meta {
+  name: Knowledge Base - Ingest
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/knowledge-base
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:json {
+  {
+    "text": "Refunds are accepted within 30 days of delivery.\n\nShipping takes 3-5 business days.",
+    "source": "handbook.md",
+    "collection": "support",
+    "metadata": null
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const chunk = res.body.data?.chunks?.[0];
+    if (chunk && chunk.id) {
+      bru.setVar("knowledgeChunkId", chunk.id);
+    }
+  }
+}
+
+docs {
+  Chunks the text, embeds each chunk, and stores it in the workspace
+  knowledge base. Requires the `agent.manage` permission.
+
+  - `text` — required, max 200,000 characters. Embedding happens inline, so
+    ingest a large corpus as several documents rather than one request.
+  - `source` — optional; a filename, URL, or ticket id. Returned with every
+    search hit so an answer can be traced back to where it came from.
+  - `collection` — optional, defaults to `default`. Collections are how you
+    keep unrelated corpora apart and re-ingest one without touching others.
+  - `metadata` — optional JSON object, copied onto every chunk.
+
+  Chunking targets ~1,000 characters, splitting on paragraph then sentence
+  boundaries and packing short paragraphs together.
+
+  Every agent in the workspace gains a `search_knowledge` tool as soon as
+  one chunk exists — nothing else needs attaching.
+
+  Response is wrapped: `{ ..., data: { chunks_count, chunks } }`.
+}

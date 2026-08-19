@@ -1,0 +1,27 @@
+meta {
+  name: Artifacts - Get
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/artifacts/:artifact
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  artifact: {{artifactId}}
+}
+
+docs {
+  Retrieves one artifact with its full version history. Requires
+  `artifact.view`.
+
+  `preview_url` is a 15-minute signed URL, present only for images and HTML.
+  Previews are served sandboxed (`Content-Security-Policy: sandbox`), so an
+  uploaded HTML artifact renders without running as first-party script.
+
+  Response is wrapped: `{ success, statusCode, message, data: { artifact } }`.
+}

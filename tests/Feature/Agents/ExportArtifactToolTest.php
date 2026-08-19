@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Artifacts\StoreArtifactAction;
 use App\Ai\Tools\ExportArtifactTool;
 use App\Models\Agents\Agent;
 use App\Models\Artifacts\Artifact;
@@ -16,7 +17,7 @@ it('creates a new artifact on first export', function () {
     $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
     $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
 
-    $tool = new ExportArtifactTool($agent, $session, $run);
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
     $result = json_decode($tool->handle(new Request([
         'filename' => 'report.txt',
         'mime_type' => 'text/plain',
@@ -39,7 +40,7 @@ it('creates a new version instead of overwriting on re-export', function () {
     $agent = Agent::factory()->forWorkspace($workspace)->create();
     $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
     $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
-    $tool = new ExportArtifactTool($agent, $session, $run);
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
 
     $tool->handle(new Request(['filename' => 'report.txt', 'mime_type' => 'text/plain', 'content' => 'v1']));
     $result = json_decode($tool->handle(new Request([
@@ -58,7 +59,7 @@ it('decodes base64 content', function () {
     $agent = Agent::factory()->forWorkspace($workspace)->create();
     $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
     $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
-    $tool = new ExportArtifactTool($agent, $session, $run);
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
 
     $tool->handle(new Request([
         'filename' => 'image.png',
@@ -78,7 +79,7 @@ it('returns an error when required fields are missing', function () {
     $agent = Agent::factory()->forWorkspace($workspace)->create();
     $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
     $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
-    $tool = new ExportArtifactTool($agent, $session, $run);
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
 
     $result = json_decode($tool->handle(new Request(['filename' => 'report.txt'])), true);
 
