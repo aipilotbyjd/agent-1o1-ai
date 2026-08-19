@@ -3,6 +3,7 @@
 namespace App\Jobs\Triggers;
 
 use App\Enums\Triggers\TriggerEventStatus;
+use App\Enums\Triggers\TriggerTargetType;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use App\Services\Triggers\TriggerService;
@@ -32,9 +33,15 @@ class FireTriggerEvent implements ShouldQueue
         public Trigger $trigger,
         public TriggerEvent $event,
     ) {
+        // An agent-targeted firing blocks for as long as the model takes, so
+        // it gets its own queue (with its own low `maxProcesses` ceiling, per
+        // docs/STRUCTURE.md) and a much longer timeout — a latency-sensitive
+        // webhook-fired workflow event must never sit behind an LLM call.
+        $isAgentTarget = $this->trigger->target_type === TriggerTargetType::Agent->value;
+
         $this->maxExceptions = (int) config('triggers.fire_max_exceptions');
-        $this->timeout = (int) config('triggers.fire_timeout_seconds');
-        $this->onQueue((string) config('triggers.fire_queue'));
+        $this->timeout = (int) config($isAgentTarget ? 'triggers.agent_fire_timeout_seconds' : 'triggers.fire_timeout_seconds');
+        $this->onQueue((string) config($isAgentTarget ? 'triggers.agent_fire_queue' : 'triggers.fire_queue'));
     }
 
     /**

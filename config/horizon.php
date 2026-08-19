@@ -281,6 +281,25 @@ return [
             'timeout' => 120,
             'nice' => 0,
         ],
+
+        // FireTriggerEvent for agent-targeted triggers — blocks on a model
+        // call, so it's isolated from every other queue and its maxProcesses
+        // doubles as a concurrency ceiling against provider rate limits
+        // (docs/STRUCTURE.md's "Queues & Horizon" table). `timeout` must stay
+        // at or above config('triggers.agent_fire_timeout_seconds').
+        'supervisor-ai-agent' => [
+            'connection' => 'redis',
+            'queue' => ['ai-agent'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 320,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -310,6 +329,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-ai-agent' => [
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
@@ -327,6 +351,9 @@ return [
             ],
             'supervisor-workflows-execute' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-ai-agent' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],

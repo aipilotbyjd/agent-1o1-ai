@@ -4,6 +4,7 @@ namespace App\Models\Triggers;
 
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerType;
+use App\Models\Runs\Run;
 use Database\Factories\Triggers\TriggerEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'trigger_id', 'source', 'status', 'workflow_run_id', 'payload', 'payload_snippet',
+    'trigger_id', 'source', 'status', 'run_id', 'payload', 'payload_snippet',
     'headers', 'error', 'delivery_id', 'attempts', 'duplicate_count', 'processed_at',
 ])]
 class TriggerEvent extends Model
@@ -47,6 +48,16 @@ class TriggerEvent extends Model
     public function trigger(): BelongsTo
     {
         return $this->belongsTo(Trigger::class);
+    }
+
+    /**
+     * The run this event started — a workflow run or an agent turn, depending
+     * on the trigger's target (`App\Services\Triggers\TargetRunStarter`).
+     * Null until the event reaches `fired`.
+     */
+    public function run(): BelongsTo
+    {
+        return $this->belongsTo(Run::class);
     }
 
     /**
@@ -90,11 +101,11 @@ class TriggerEvent extends Model
         $this->update(['status' => TriggerEventStatus::Queued]);
     }
 
-    public function markFired(int $workflowRunId): void
+    public function markFired(int $runId): void
     {
         $this->update([
             'status' => TriggerEventStatus::Fired,
-            'workflow_run_id' => $workflowRunId,
+            'run_id' => $runId,
             'processed_at' => now(),
         ]);
     }

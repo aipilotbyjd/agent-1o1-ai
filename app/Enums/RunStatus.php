@@ -16,4 +16,19 @@ enum RunStatus: string
     {
         return in_array($this, [self::Completed, self::Failed, self::Cancelled], true);
     }
+
+    /**
+     * Every non-terminal status — i.e. "this run is still in flight". Returned
+     * as cases (not values) since its only callers pass it straight into a
+     * query builder clause, which binds a BackedEnum by its value.
+     *
+     * @return array<int, self>
+     */
+    public static function inFlight(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $status): bool => ! $status->isTerminal(),
+        ));
+    }
 }

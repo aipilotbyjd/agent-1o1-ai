@@ -8,11 +8,10 @@ use App\Models\Triggers\Trigger;
  * The seam between the trigger system and whatever a trigger actually starts.
  *
  * `docs/TRIGGERS_PLAN.md`'s prerequisites table names this as
- * `StartWorkflowRunAction`/`AgentRunner` directly — this interface exists only
- * because those two don't ship until docs/WORKFLOWS_PLAN.md and
- * docs/AGENTS_PLAN.md are built. Once either lands, bind a real implementation
- * over `App\Services\Triggers\NullRunStarter` in a service provider; nothing
- * in `TriggerService`, `FireTriggerEvent`, or the HTTP/console layers changes.
+ * `StartWorkflowRunAction`/`AgentRunner` directly — this interface exists so
+ * neither `TriggerService` nor `FireTriggerEvent` has to know which of the two
+ * a given trigger points at. `App\Services\Triggers\TargetRunStarter` is the
+ * implementation bound in `AppServiceProvider::register()`.
  */
 interface RunStarter
 {

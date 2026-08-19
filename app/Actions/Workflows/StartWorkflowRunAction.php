@@ -15,9 +15,8 @@ use App\Models\Workflows\Workflow;
  * the live draft, so editing a workflow never changes what an in-flight run
  * executes (docs/WORKFLOWS_PLAN.md) — and dispatches the entry node(s).
  * Called from the Internal/Public API `RunController`s, `SubWorkflowCoordinator`/
- * `LoopCoordinator` (child runs, `$parentNode` set) and, once
- * docs/TRIGGERS_PLAN.md's `RunStarter` binding is swapped over, the trigger
- * pipeline (`App\Services\Triggers\NullRunStarter`'s TODO).
+ * `LoopCoordinator` (child runs, `$parentNode` set) and the trigger pipeline
+ * (`App\Services\Triggers\TargetRunStarter`, docs/TRIGGERS_PLAN.md).
  */
 class StartWorkflowRunAction
 {

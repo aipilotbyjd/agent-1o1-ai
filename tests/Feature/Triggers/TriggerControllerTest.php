@@ -5,6 +5,7 @@ use App\Enums\Workspaces\Role;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use App\Models\User;
+use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
 use Laravel\Passport\Passport;
@@ -22,11 +23,12 @@ function ownerWorkspace(): array
 
 it('creates a webhook trigger, issuing a token', function () {
     [$workspace, $owner] = ownerWorkspace();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
     Passport::actingAs($owner);
 
     $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/triggers", [
         'target_type' => 'workflow',
-        'target_id' => 1,
+        'target_id' => $workflow->id,
         'type' => 'webhook',
     ]);
 
@@ -36,11 +38,12 @@ it('creates a webhook trigger, issuing a token', function () {
 
 it('does not issue a token for a manual trigger', function () {
     [$workspace, $owner] = ownerWorkspace();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
     Passport::actingAs($owner);
 
     $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/triggers", [
         'target_type' => 'workflow',
-        'target_id' => 1,
+        'target_id' => $workflow->id,
         'type' => 'manual',
     ]);
 
@@ -126,4 +129,18 @@ it('lists a trigger\'s events newest first, paginated', function () {
     $response->assertOk();
     expect($response->json('data'))->toHaveCount(3);
     expect($response->json('meta.total'))->toBe(3);
+});
+
+it('rejects a trigger pointed at another workspace\'s workflow', function () {
+    [$workspace, $owner] = ownerWorkspace();
+    [$otherWorkspace] = ownerWorkspace();
+    $foreignWorkflow = Workflow::factory()->forWorkspace($otherWorkspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/triggers", [
+        'target_type' => 'workflow',
+        'target_id' => $foreignWorkflow->id,
+        'type' => 'webhook',
+    ])->assertJsonValidationErrors('target_id');
 });

@@ -16,7 +16,7 @@ use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceMember;
 use App\Observers\WorkspaceMemberObserver;
-use App\Services\Triggers\NullRunStarter;
+use App\Services\Triggers\TargetRunStarter;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -37,10 +37,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // TODO(workflows/agents): swap for a RunStarter backed by
-        // StartWorkflowRunAction/AgentRunner once either exists — see
-        // App\Services\Triggers\NullRunStarter's docblock.
-        $this->app->bind(RunStarter::class, NullRunStarter::class);
+        $this->app->bind(RunStarter::class, TargetRunStarter::class);
 
         // Must run in register(), not boot(): CashierServiceProvider's own
         // boot() (which registers its default routes unless this flag is

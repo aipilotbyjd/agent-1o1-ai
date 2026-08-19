@@ -32,13 +32,13 @@ class AgentRunner
         private readonly SkillInjector $skillInjector,
     ) {}
 
-    public function run(AgentSession $session, string $message): AgentMessage
+    public function run(AgentSession $session, string $message, string $triggerType = 'manual'): AgentMessage
     {
         $agent = $session->agent;
 
         $run = $session->runs()->create([
             'workspace_id' => $session->workspace_id,
-            'trigger_type' => 'manual',
+            'trigger_type' => $triggerType,
             'input' => ['message' => $message],
         ]);
 
