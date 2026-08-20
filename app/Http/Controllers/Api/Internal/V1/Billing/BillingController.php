@@ -16,16 +16,22 @@ class BillingController extends Controller
      * subscription (with its plan) and the current usage period's credit
      * balance. Transaction history and credit-pack purchases live on their
      * own endpoints since they paginate independently.
+     *
+     * `credits_available` is the number that actually gates a run: the
+     * period's remaining plan allowance plus the non-expiring `topup_credits`
+     * bought via credit packs. `null` means unlimited.
      */
     public function overview(Workspace $workspace)
     {
         $this->requirePermission(Permission::BillingView);
 
-        $subscription = $workspace->subscription('default')?->load('plan');
+        $subscription = $workspace->activeSubscription()?->load('plan');
 
         return ApiResponse::success([
             'subscription' => $subscription ? SubscriptionResource::make($subscription) : null,
             'usage_period' => UsagePeriodResource::make($workspace->currentUsagePeriod()),
+            'topup_credits' => $workspace->topup_credits,
+            'credits_available' => $workspace->availableCredits(),
         ]);
     }
 }

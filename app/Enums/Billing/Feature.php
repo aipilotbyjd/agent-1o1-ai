@@ -9,4 +9,8 @@ namespace App\Enums\Billing;
 enum Feature: string
 {
     case CreditPacks = 'credit_packs';
+    case GitSync = 'git_sync';
+    case WorkflowApprovals = 'workflow_approvals';
+    case CustomNodes = 'custom_nodes';
+    case PrioritySupport = 'priority_support';
 }
