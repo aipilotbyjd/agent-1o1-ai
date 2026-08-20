@@ -15,8 +15,12 @@ use Laravel\Cashier\Checkout;
  * top-up, priced straight from `config('billing.packs')` via Cashier's
  * `checkoutCharge()` — no pre-created Stripe Price object needed per pack.
  * The pack itself is recorded `Pending` and only flips to `Active` (crediting
- * the workspace) once `checkout.session.completed` arrives — see
- * `ActivateCreditPackAction`.
+ * the workspace's non-expiring `topup_credits` pool) once
+ * `checkout.session.completed` arrives — see `ActivateCreditPackAction`.
+ *
+ * Gated on `Workspace::currentPlan()` rather than the raw subscription, so a
+ * lapsed (canceled/`past_due`) subscription no longer keeps the feature
+ * unlocked.
  */
 class CheckoutCreditPackAction
 {
@@ -25,7 +29,7 @@ class CheckoutCreditPackAction
      */
     public function execute(Workspace $workspace, string $packKey, User $purchaser): array
     {
-        $plan = $workspace->subscription('default')?->plan;
+        $plan = $workspace->currentPlan();
 
         if (! $plan?->hasFeature(Feature::CreditPacks)) {
             throw new FeatureNotAvailableException(Feature::CreditPacks);

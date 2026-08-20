@@ -10,6 +10,8 @@ use App\Models\Artifacts\Artifact;
 use App\Models\Auth\ApiKey;
 use App\Models\Billing\CreditPack;
 use App\Models\Billing\CreditTransaction;
+use App\Models\Billing\Plan;
+use App\Models\Billing\Subscription;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Nodes\CustomNode;
@@ -38,6 +40,23 @@ use Laravel\Cashier\Billable;
 class Workspace extends Model
 {
     use Billable, HasFactory, SoftDeletes;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'topup_credits' => 0,
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'topup_credits' => 'integer',
+        ];
+    }
 
     public function owner(): BelongsTo
     {
@@ -172,17 +191,42 @@ class Workspace extends Model
     }
 
     /**
+     * The subscription whose plan currently entitles this workspace —
+     * `null` unless Cashier considers it `valid()` (active, on trial, or on
+     * its grace period). Cashier's `subscription()` returns the row whatever
+     * its status, so reading entitlements straight off it would keep a
+     * canceled or `past_due` workspace on its paid plan indefinitely.
+     */
+    public function activeSubscription(): ?Subscription
+    {
+        $subscription = $this->subscription('default');
+
+        return $subscription?->valid() ? $subscription : null;
+    }
+
+    /**
+     * The plan whose credits and limits apply right now: the active
+     * subscription's, or the configured default (Free) plan when there is
+     * no valid subscription. Every entitlement read goes through here so
+     * "unsubscribed" means the free tier, not an unmetered one.
+     */
+    public function currentPlan(): ?Plan
+    {
+        return $this->activeSubscription()?->plan ?? Plan::default();
+    }
+
+    /**
      * Finds (or creates) the `UsagePeriod` covering right now — a plain
      * calendar month until Stripe billing-cycle-aligned periods are wired.
-     * `credits_limit` is sized off the workspace's active plan (via its
-     * `default` subscription); workspaces with no subscription stay
-     * unlimited (`null`) rather than an implicit free tier.
+     * `credits_limit` is sized off `currentPlan()`, so an unsubscribed
+     * workspace lands on the Free plan's allowance instead of an unlimited
+     * one. Stays `null` (unlimited) only when no default plan is seeded.
      */
     public function currentUsagePeriod(): UsagePeriod
     {
         $startsAt = now()->startOfMonth();
-        $subscription = $this->subscription('default');
-        $plan = $subscription?->plan;
+        $subscription = $this->activeSubscription();
+        $plan = $this->currentPlan();
 
         return $this->usagePeriods()->firstOrCreate(
             ['starts_at' => $startsAt],
@@ -193,5 +237,20 @@ class Workspace extends Model
                 'credits_limit' => $plan?->creditsMonthly(),
             ],
         );
+    }
+
+    /**
+     * Plan allowance left this period plus the non-expiring `topup_credits`
+     * pool bought via credit packs. `null` means unlimited.
+     */
+    public function availableCredits(): ?int
+    {
+        $period = $this->currentUsagePeriod();
+
+        if ($period->credits_limit === null) {
+            return null;
+        }
+
+        return $period->remainingPlanCredits() + $this->topup_credits;
     }
 }

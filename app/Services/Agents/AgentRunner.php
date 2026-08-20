@@ -12,6 +12,7 @@ use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
+use App\Services\Billing\CreditGate;
 use Throwable;
 
 /**
@@ -30,11 +31,16 @@ class AgentRunner
     public function __construct(
         private readonly ToolRegistry $tools,
         private readonly SkillInjector $skillInjector,
+        private readonly CreditGate $creditGate,
     ) {}
 
     public function run(AgentSession $session, string $message, string $triggerType = 'manual'): AgentMessage
     {
         $agent = $session->agent;
+
+        // Before the turn's `Run` exists — a workspace out of credits is
+        // refused up front rather than after the model call is paid for.
+        $this->creditGate->assertCanStartRun($session->workspace);
 
         $run = $session->runs()->create([
             'workspace_id' => $session->workspace_id,

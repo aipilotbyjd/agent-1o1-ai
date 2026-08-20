@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Billing\ActivateCreditPackAction;
+use App\Actions\Billing\OpenUsagePeriodForSubscriptionAction;
 use App\Enums\Billing\CreditPackStatus;
 use App\Models\Billing\CreditPack;
 use App\Models\Billing\Plan;
@@ -76,7 +77,7 @@ it('lists purchased credit packs newest first', function () {
     expect($response->json('data.credit_packs'))->toHaveCount(2);
 });
 
-it('activates a pending pack and raises the current usage period limit', function () {
+it('activates a pending pack into the non-expiring top-up balance', function () {
     [$workspace] = ownerWorkspaceForCreditPack();
     $workspace->currentUsagePeriod()->update(['credits_limit' => 1000]);
 
@@ -85,27 +86,60 @@ it('activates a pending pack and raises the current usage period limit', functio
     app(ActivateCreditPackAction::class)->execute($pack);
 
     expect($pack->fresh()->status)->toBe(CreditPackStatus::Active);
-    expect($workspace->currentUsagePeriod()->fresh()->credits_limit)->toBe(1500);
+    expect($workspace->fresh()->topup_credits)->toBe(500);
+
+    // The period's plan allowance is untouched — pack credits are not part of it.
+    expect($workspace->currentUsagePeriod()->fresh()->credits_limit)->toBe(1000);
 });
 
-it('activating a pack is a no-op on an unlimited (null-limit) usage period', function () {
+it('credits a pack even when the usage period is unlimited', function () {
     [$workspace] = ownerWorkspaceForCreditPack();
+    $workspace->currentUsagePeriod()->update(['credits_limit' => null]);
+
     $pack = CreditPack::factory()->forWorkspace($workspace)->create(['credits_amount' => 500]);
 
     app(ActivateCreditPackAction::class)->execute($pack);
 
-    expect($pack->fresh()->status)->toBe(CreditPackStatus::Active);
-    expect($workspace->currentUsagePeriod()->fresh()->credits_limit)->toBeNull();
+    // Previously the increment was skipped entirely here, so the customer paid
+    // and received nothing.
+    expect($workspace->fresh()->topup_credits)->toBe(500);
 });
 
-it('activating an already-active pack does not double-credit the usage period', function () {
+it('activating an already-active pack does not double-credit the top-up balance', function () {
     [$workspace] = ownerWorkspaceForCreditPack();
-    $workspace->currentUsagePeriod()->update(['credits_limit' => 1000]);
     $pack = CreditPack::factory()->forWorkspace($workspace)->active()->create(['credits_amount' => 500]);
 
     app(ActivateCreditPackAction::class)->execute($pack);
 
+    expect($workspace->fresh()->topup_credits)->toBe(0);
+});
+
+it('keeps purchased credits when a subscription webhook resets the period limit', function () {
+    [$workspace] = ownerWorkspaceForCreditPack();
+    $plan = Plan::factory()->create(['credits_monthly' => 1000]);
+
+    app(ActivateCreditPackAction::class)->execute(
+        CreditPack::factory()->forWorkspace($workspace)->create(['credits_amount' => 500]),
+    );
+
+    // A redelivered customer.subscription.updated used to wipe pack credits by
+    // resetting credits_limit to the plan's monthly allowance.
+    app(OpenUsagePeriodForSubscriptionAction::class)->execute($workspace, $plan, null);
+
+    expect($workspace->fresh()->topup_credits)->toBe(500);
     expect($workspace->currentUsagePeriod()->fresh()->credits_limit)->toBe(1000);
+});
+
+it('keeps purchased credits when the usage period rolls over to the next month', function () {
+    [$workspace] = ownerWorkspaceForCreditPack();
+
+    app(ActivateCreditPackAction::class)->execute(
+        CreditPack::factory()->forWorkspace($workspace)->create(['credits_amount' => 500]),
+    );
+
+    $this->travel(1)->months();
+
+    expect($workspace->fresh()->topup_credits)->toBe(500);
 });
 
 it('activates a credit pack via the checkout.session.completed webhook', function () {
@@ -136,7 +170,7 @@ it('activates a credit pack via the checkout.session.completed webhook', functio
     $fresh = $pack->fresh();
     expect($fresh->status)->toBe(CreditPackStatus::Active);
     expect($fresh->stripe_payment_intent_id)->toBe('pi_test_1');
-    expect($workspace->currentUsagePeriod()->fresh()->credits_limit)->toBe(1250);
+    expect($workspace->fresh()->topup_credits)->toBe(250);
 });
 
 it('ignores checkout.session.completed sessions without credit_pack metadata', function () {

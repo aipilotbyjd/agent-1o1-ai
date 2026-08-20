@@ -22,7 +22,7 @@ class CreditPackController extends Controller
     {
         $this->requirePermission(Permission::BillingView);
 
-        $plan = $workspace->subscription('default')?->plan;
+        $plan = $workspace->currentPlan();
         $available = $plan?->hasFeature(Feature::CreditPacks) ?? false;
 
         $packs = collect(config('billing.packs', []))

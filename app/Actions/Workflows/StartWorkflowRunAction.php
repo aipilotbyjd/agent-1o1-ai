@@ -9,6 +9,7 @@ use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
+use App\Services\Billing\CreditGate;
 
 /**
  * Creates a `runs` row pinned to the workflow's `current_version_id` — never
@@ -17,9 +18,15 @@ use App\Models\Workflows\Workflow;
  * Called from the Internal/Public API `RunController`s, `SubWorkflowCoordinator`/
  * `LoopCoordinator` (child runs, `$parentNode` set) and the trigger pipeline
  * (`App\Services\Triggers\TargetRunStarter`, docs/TRIGGERS_PLAN.md).
+ *
+ * Top-level runs go through `CreditGate` first, so a workspace out of credits
+ * is refused before any node executes rather than after the LLM spend has
+ * already happened. Child runs (`$parentNode` set) are exempt — see below.
  */
 class StartWorkflowRunAction
 {
+    public function __construct(private readonly CreditGate $creditGate) {}
+
     /**
      * @param  array<string, mixed>  $input
      */
@@ -33,6 +40,13 @@ class StartWorkflowRunAction
     ): Run {
         if (! $workflow->isPublished()) {
             throw new WorkflowValidationException(['The workflow must be published before it can run.']);
+        }
+
+        // Only top-level runs are gated. A sub-workflow/loop child run is part
+        // of work the parent already passed the gate for, and refusing it
+        // mid-flight would strand the parent run rather than save any spend.
+        if ($parentNode === null) {
+            $this->creditGate->assertCanStartRun($workflow->workspace);
         }
 
         // `status`/`started_at` aren't in Run's #[Fillable] list (engine-

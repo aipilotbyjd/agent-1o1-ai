@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\Billing\Feature;
 use App\Models\Billing\Plan;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
+use Database\Seeders\PlanSeeder;
 
 function billingLoginTokens(string $email, string $password): array
 {
@@ -29,4 +31,32 @@ it('lists only active plans ordered by sort_order', function () {
     $slugs = collect($response->json('data.plans'))->pluck('slug');
 
     expect($slugs->all())->toBe(['first', 'second']);
+});
+
+it('unlocks credit packs on every seeded paid plan', function () {
+    Plan::query()->delete();
+    (new PlanSeeder)->run();
+
+    $paid = Plan::query()->where('price_monthly', '>', 0)->get();
+
+    expect($paid)->not->toBeEmpty();
+
+    // The feature key existed on the enum but on no seeded plan, so pack
+    // checkout threw FeatureNotAvailableException for every real customer.
+    $paid->each(fn (Plan $plan) => expect($plan->hasFeature(Feature::CreditPacks))->toBeTrue());
+});
+
+it('leaves credit packs locked on the free plan', function () {
+    Plan::query()->delete();
+    (new PlanSeeder)->run();
+
+    expect(Plan::query()->where('slug', 'free')->sole()->hasFeature(Feature::CreditPacks))->toBeFalse();
+});
+
+it('seeds a default plan that config(billing.default_plan) resolves', function () {
+    Plan::query()->delete();
+    (new PlanSeeder)->run();
+
+    expect(Plan::default())->not->toBeNull();
+    expect(Plan::default()->slug)->toBe(config('billing.default_plan'));
 });
