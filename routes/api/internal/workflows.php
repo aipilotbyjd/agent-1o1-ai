@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Internal\V1\Workflows\FolderController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\TagController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowInterfaceController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowNodePinController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowVersionController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,12 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{workflow}/versions', [WorkflowVersionController::class, 'index'])->name('versions.index');
         Route::post('{workflow}/versions', [WorkflowVersionController::class, 'store'])->name('versions.store');
         Route::get('{workflow}/versions/{version}', [WorkflowVersionController::class, 'show'])->name('versions.show');
+
+        // The workflow's input contract and the form-run that submits it —
+        // see WorkflowInterfaceController.
+        Route::get('{workflow}/interface', [WorkflowInterfaceController::class, 'show'])->name('interface.show');
+        Route::put('{workflow}/interface', [WorkflowInterfaceController::class, 'update'])->name('interface.update');
+        Route::post('{workflow}/interface/runs', [WorkflowInterfaceController::class, 'submit'])->name('interface.runs.store');
 
         Route::put('{workflow}/tags', [TagController::class, 'syncForWorkflow'])->name('tags.sync');
 

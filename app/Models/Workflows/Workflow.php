@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
-#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'created_by'])]
+#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'input_schema', 'created_by'])]
 class Workflow extends Model
 {
     /** @use HasFactory<WorkflowFactory> */
@@ -40,6 +40,7 @@ class Workflow extends Model
     {
         return [
             'has_unpublished_changes' => 'boolean',
+            'input_schema' => 'array',
         ];
     }
 

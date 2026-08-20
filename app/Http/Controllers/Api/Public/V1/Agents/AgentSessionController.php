@@ -11,14 +11,13 @@ use App\Http\Resources\Api\Public\V1\AgentSessionResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
-use App\Models\Workspaces\Workspace;
 use Illuminate\Http\Request;
 
 /**
- * Invoke-only — gated by the `agents:invoke` `ApiKeyAbility`. No agent CRUD
- * on the Public surface (no `AgentsRead`/`AgentsWrite` ability exists), per
- * docs/STRUCTURE.md's "Public vs. Internal API": external callers run
- * agents, they don't build them.
+ * Invoke-only — gated by the `agents:invoke` `ApiKeyAbility`. Read-only
+ * discovery lives alongside it in `AgentController`; there is deliberately no
+ * agent *authoring* on the Public surface, per docs/STRUCTURE.md's "Public
+ * vs. Internal API": external callers run agents, they don't build them.
  */
 class AgentSessionController extends Controller
 {
@@ -29,9 +28,7 @@ class AgentSessionController extends Controller
 
     public function store(Request $request, Agent $agent)
     {
-        /** @var Workspace $workspace */
-        $workspace = $request->attributes->get('workspace');
-        $this->ensureBelongsToWorkspace($workspace, $agent);
+        $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $agent);
 
         $session = $this->createSession->execute($agent);
 
@@ -40,9 +37,7 @@ class AgentSessionController extends Controller
 
     public function show(Request $request, Agent $agent, AgentSession $session)
     {
-        /** @var Workspace $workspace */
-        $workspace = $request->attributes->get('workspace');
-        $this->ensureBelongsToWorkspace($workspace, $agent);
+        $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
         return ApiResponse::success(['session' => AgentSessionResource::make($session->load('messages'))]);
@@ -50,9 +45,7 @@ class AgentSessionController extends Controller
 
     public function sendMessage(SendAgentMessageRequest $request, Agent $agent, AgentSession $session)
     {
-        /** @var Workspace $workspace */
-        $workspace = $request->attributes->get('workspace');
-        $this->ensureBelongsToWorkspace($workspace, $agent);
+        $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
         $reply = $this->sendMessage->execute($session, $request->validated('message'));
