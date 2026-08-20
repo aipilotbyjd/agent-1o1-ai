@@ -5,12 +5,14 @@ namespace App\Listeners\Workflows;
 use App\Actions\Billing\DeductCreditsAction;
 use App\Enums\Billing\CreditTransactionType;
 use App\Enums\NodeRunStatus;
+use App\Enums\Queue;
 use App\Events\Runs\RunCompleted;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use App\Services\Billing\CreditMeter;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 /**
  * Charges credits for a completed `Run` — one `CreditTransaction` per
@@ -20,9 +22,27 @@ use App\Services\Billing\CreditMeter;
  * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 8. Only fires on `RunCompleted`
  * — a `Run` that ends in `RunFailed` isn't charged for partial work yet,
  * left for a later pass.
+ *
+ * Queued, so a charge that fails can't fail the engine job that fired
+ * `RunCompleted` (`GraphAdvancer`) and send the whole run back through the
+ * queue. Charges are idempotent per node run, so the retries this listener
+ * does get can't double-bill.
+ *
+ * Bills with overdraft allowed: these node runs have already executed and
+ * cost real money, so the ledger records them even when they overrun the
+ * balance. `CreditGate` is what stops the *next* run.
  */
-class RecordRunCreditUsage
+class RecordRunCreditUsage implements ShouldQueue
 {
+    public string $queue = Queue::Billing->value;
+
+    public int $tries = 3;
+
+    /**
+     * @var array<int, int>
+     */
+    public array $backoff = [10, 60, 300];
+
     public function __construct(
         private readonly DeductCreditsAction $deductCredits,
         private readonly CreditMeter $meter,
@@ -56,6 +76,7 @@ class RecordRunCreditUsage
                 $nodeRun->id,
                 $this->meter->costForNodeRun($nodeRun),
                 "Node '{$nodeRun->key}' ({$nodeRun->type})",
+                allowOverdraft: true,
             );
         }
     }
@@ -75,6 +96,7 @@ class RecordRunCreditUsage
             $message->id,
             $this->meter->costForAgentMessage($message),
             'Agent turn',
+            allowOverdraft: true,
         );
     }
 }

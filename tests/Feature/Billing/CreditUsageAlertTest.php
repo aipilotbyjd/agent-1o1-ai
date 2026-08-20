@@ -7,6 +7,7 @@ use App\Exceptions\InsufficientCreditsException;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Admin\AdminAlertNotification;
+use App\Services\Billing\CreditGate;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Notification;
 
@@ -18,13 +19,19 @@ beforeEach(function () {
     config()->set('admin_alerts.throttle_seconds', 3600);
 });
 
-function workspaceWithCreditLimit(int $limit): Workspace
+function workspaceWithCreditLimit(?int $limit): Workspace
 {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $workspace->currentUsagePeriod()->update(['credits_limit' => $limit]);
 
     return $workspace;
+}
+
+function spendPlanAllowance(Workspace $workspace): void
+{
+    $period = $workspace->currentUsagePeriod();
+    $period->forceFill(['credits_used' => $period->credits_limit])->save();
 }
 
 it('alerts admins when a charge crosses the usage threshold', function () {
@@ -62,14 +69,23 @@ it('alerts only on the charge that crosses the threshold, not on later ones', fu
     Notification::fake();
 
     app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 85);
-    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 2, 5);
+    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 2, 5, allowOverdraft: true);
+
+    Notification::assertSentOnDemandTimes(AdminAlertNotification::class, 1);
+});
+
+it('does not re-alert when an already-charged source is billed again', function () {
+    $workspace = workspaceWithCreditLimit(100);
+    Notification::fake();
+
+    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 80);
+    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 80);
 
     Notification::assertSentOnDemandTimes(AdminAlertNotification::class, 1);
 });
 
 it('stays quiet for workspaces on an unlimited plan', function () {
-    $owner = User::factory()->create();
-    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workspace = workspaceWithCreditLimit(null);
     Notification::fake();
 
     app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 10_000);
@@ -77,13 +93,13 @@ it('stays quiet for workspaces on an unlimited plan', function () {
     Notification::assertNothingSent();
 });
 
-it('raises a critical alert when a workspace is blocked by its credit limit', function () {
+it('raises a critical alert when the gate refuses a workspace that is out of credits', function () {
     $workspace = workspaceWithCreditLimit(10);
-    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 8);
+    spendPlanAllowance($workspace);
 
     Notification::fake();
 
-    expect(fn () => app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 2, 5))
+    expect(fn () => app(CreditGate::class)->assertCanStartRun($workspace->fresh()))
         ->toThrow(InsufficientCreditsException::class);
 
     Notification::assertSentOnDemand(
@@ -93,36 +109,31 @@ it('raises a critical alert when a workspace is blocked by its credit limit', fu
                 && $notification->severity === AlertSeverity::Critical
                 && $notification->context === [
                     'workspace_id' => $workspace->id,
-                    'credits_needed' => 5,
-                    'credits_available' => 2,
+                    'credits_available' => 0,
                 ];
         },
     );
 });
 
-it('still rolls the rejected charge back when the alert is raised', function () {
+it('throttles the blocked-workspace alert across repeated refusals', function () {
     $workspace = workspaceWithCreditLimit(10);
-    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 8);
+    spendPlanAllowance($workspace);
 
     Notification::fake();
 
-    expect(fn () => app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 2, 5))
-        ->toThrow(InsufficientCreditsException::class);
-
-    expect($workspace->currentUsagePeriod()->credits_used)->toBe(8);
-    expect($workspace->creditTransactions()->count())->toBe(1);
-});
-
-it('throttles the blocked-workspace alert across repeated rejections', function () {
-    $workspace = workspaceWithCreditLimit(10);
-    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 8);
-
-    Notification::fake();
-
-    foreach ([2, 3, 4] as $sourceId) {
-        expect(fn () => app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, $sourceId, 5))
+    foreach (range(1, 3) as $ignored) {
+        expect(fn () => app(CreditGate::class)->assertCanStartRun($workspace->fresh()))
             ->toThrow(InsufficientCreditsException::class);
     }
 
     Notification::assertSentOnDemandTimes(AdminAlertNotification::class, 1);
+});
+
+it('stays quiet at the gate while the workspace can still afford to start', function () {
+    $workspace = workspaceWithCreditLimit(10);
+    Notification::fake();
+
+    app(CreditGate::class)->assertCanStartRun($workspace);
+
+    Notification::assertNothingSent();
 });

@@ -56,8 +56,18 @@ class UsagePeriod extends Model
         return $this->belongsTo(Subscription::class);
     }
 
-    public function hasRemainingCredits(int $credits): bool
+    /**
+     * How much of this period's plan allowance is left, ignoring any
+     * non-expiring top-up credits the workspace holds. `0` once the
+     * allowance is spent; meaningless (and not called) on an unlimited
+     * period, where `credits_limit` is `null`.
+     */
+    public function remainingPlanCredits(): int
     {
-        return $this->credits_limit === null || ($this->credits_used + $credits) <= $this->credits_limit;
+        if ($this->credits_limit === null) {
+            return 0;
+        }
+
+        return max(0, $this->credits_limit - $this->credits_used);
     }
 }

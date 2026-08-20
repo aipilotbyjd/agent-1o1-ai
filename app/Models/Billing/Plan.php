@@ -36,6 +36,23 @@ class Plan extends Model
         return $this->hasMany(Subscription::class);
     }
 
+    /**
+     * The plan an unsubscribed (or lapsed) workspace falls back to, per
+     * `config('billing.default_plan')`. Returns `null` when that slug isn't
+     * seeded or is inactive — callers treat that as "no plan", i.e. an
+     * unlimited allowance, so a half-seeded install fails open.
+     */
+    public static function default(): ?self
+    {
+        $slug = config('billing.default_plan');
+
+        if ($slug === null) {
+            return null;
+        }
+
+        return self::query()->where('slug', $slug)->where('is_active', true)->first();
+    }
+
     public function creditsMonthly(): int
     {
         return $this->credits_monthly;

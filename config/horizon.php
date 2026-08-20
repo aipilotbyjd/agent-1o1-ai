@@ -304,6 +304,25 @@ return [
             'timeout' => 320,
             'nice' => 0,
         ],
+        // RecordRunCreditUsage — money-adjacent, so it runs on its own
+        // supervisor with an elevated OS priority (`nice`) rather than queuing
+        // behind workflow load (docs/STRUCTURE.md's "Queues & Horizon" table).
+        // `tries` is left to the listener's own $tries/$backoff, which retry a
+        // failed charge without double-billing (charges are idempotent per
+        // node run).
+        'supervisor-billing' => [
+            'connection' => 'redis',
+            'queue' => ['billing-webhook'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 60,
+            'nice' => -5,
+        ],
     ],
 
     'environments' => [
@@ -338,6 +357,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-billing' => [
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
@@ -357,6 +381,9 @@ return [
                 'maxProcesses' => 3,
             ],
             'supervisor-ai-agent' => [
+                'maxProcesses' => 1,
+            ],
+            'supervisor-billing' => [
                 'maxProcesses' => 1,
             ],
         ],
