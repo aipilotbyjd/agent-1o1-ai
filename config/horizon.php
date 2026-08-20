@@ -205,9 +205,13 @@ return [
     */
 
     'defaults' => [
+        // Also drains `system-notification`: every notification in the app
+        // (`WorkspaceEventNotification` for tenants, `AdminAlertNotification`
+        // for operators) is queued there, and without a supervisor consuming
+        // it those jobs would sit unprocessed forever.
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['default'],
+            'queue' => ['default', 'system-notification'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,

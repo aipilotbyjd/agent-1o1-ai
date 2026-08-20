@@ -3,10 +3,12 @@
 namespace App\Actions\Billing;
 
 use App\Enums\Billing\CreditTransactionType;
+use App\Enums\Notifications\AlertSeverity;
 use App\Exceptions\InsufficientCreditsException;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Workspaces\Workspace;
+use App\Services\Notifications\AdminAlerts;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,9 +29,19 @@ use Illuminate\Support\Facades\DB;
  * listener runs on a queue and bills a run's node runs one at a time, so a
  * retry after a mid-loop failure would otherwise re-bill every node already
  * charged.
+ *
+ * Being the single metering seam also makes it the right place to raise the
+ * `usage.threshold_crossed` admin alert. It is raised *outside* the
+ * transaction — the period and workspace rows are locked inside it, and no
+ * notification work may run while those locks are held. The companion
+ * `usage.limit_exhausted` alert lives on `CreditGate` instead: charges here
+ * run in overdraft mode for work that already executed, so this is no longer
+ * where a workspace is actually refused.
  */
 class DeductCreditsAction
 {
+    public function __construct(private readonly AdminAlerts $adminAlerts) {}
+
     /**
      * @param  bool  $allowOverdraft  Record the charge even when it exceeds the
      *                                balance, instead of throwing. Callers
@@ -46,14 +58,21 @@ class DeductCreditsAction
         ?string $reason = null,
         bool $allowOverdraft = false,
     ): CreditTransaction {
-        return DB::transaction(function () use ($workspace, $sourceType, $sourceId, $credits, $reason, $allowOverdraft): CreditTransaction {
+        /** @var array{transaction: CreditTransaction, charged: bool, credits_before: int, credits_after: int, credits_limit: int|null} $result */
+        $result = DB::transaction(function () use ($workspace, $sourceType, $sourceId, $credits, $reason, $allowOverdraft): array {
             $existing = CreditTransaction::query()
                 ->where('source_type', $sourceType)
                 ->where('source_id', $sourceId)
                 ->first();
 
             if ($existing !== null) {
-                return $existing;
+                return [
+                    'transaction' => $existing,
+                    'charged' => false,
+                    'credits_before' => 0,
+                    'credits_after' => 0,
+                    'credits_limit' => null,
+                ];
             }
 
             $period = $workspace->currentUsagePeriod();
@@ -71,14 +90,33 @@ class DeductCreditsAction
                 'reason' => $reason,
             ]);
 
+            $creditsBefore = $lockedPeriod->credits_used;
+
             $lockedPeriod->increment('credits_used', $credits);
 
             if ($fromTopup > 0) {
                 $lockedWorkspace->decrement('topup_credits', $fromTopup);
             }
 
-            return $transaction;
+            return [
+                'transaction' => $transaction,
+                'charged' => true,
+                'credits_before' => $creditsBefore,
+                'credits_after' => $creditsBefore + $credits,
+                'credits_limit' => $lockedPeriod->credits_limit,
+            ];
         });
+
+        if ($result['charged']) {
+            $this->alertUsageThresholdCrossed(
+                $workspace,
+                $result['credits_before'],
+                $result['credits_after'],
+                $result['credits_limit'],
+            );
+        }
+
+        return $result['transaction'];
     }
 
     /**
@@ -115,5 +153,44 @@ class DeductCreditsAction
         }
 
         return $shortfall;
+    }
+
+    /**
+     * Only the charge that takes a workspace across the configured percentage
+     * of its plan allowance alerts — every later charge in the same period is
+     * already above the line and stays silent, independently of the throttle
+     * window. A repeat (idempotent) charge never reaches here, since it adds
+     * no usage.
+     */
+    private function alertUsageThresholdCrossed(
+        Workspace $workspace,
+        int $creditsBefore,
+        int $creditsAfter,
+        ?int $creditsLimit,
+    ): void {
+        if ($creditsLimit === null || $creditsLimit <= 0) {
+            return;
+        }
+
+        $percent = (int) config('admin_alerts.usage.threshold_percent');
+        $thresholdCredits = (int) ceil($creditsLimit * $percent / 100);
+
+        if ($creditsBefore >= $thresholdCredits || $creditsAfter < $thresholdCredits) {
+            return;
+        }
+
+        $this->adminAlerts->raise(
+            key: 'usage.threshold_crossed',
+            title: "{$workspace->name} crossed {$percent}% of its credit limit",
+            body: "{$creditsAfter} of {$creditsLimit} plan credits used in the current period.",
+            context: [
+                'workspace_id' => $workspace->id,
+                'credits_used' => $creditsAfter,
+                'credits_limit' => $creditsLimit,
+                'percent_used' => (int) floor($creditsAfter / $creditsLimit * 100),
+            ],
+            severity: AlertSeverity::Warning,
+            throttleKey: "usage.threshold_crossed:{$workspace->id}",
+        );
     }
 }
