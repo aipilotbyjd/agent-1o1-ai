@@ -148,7 +148,19 @@ class DryRunner
     {
         return array_values(array_filter(
             TemplatePaths::referencedIn($config),
-            fn (string $path) => data_get($context, $path) === null,
+            fn (string $path) => ! $this->addressesSecretStore($path) && data_get($context, $path) === null,
         ));
+    }
+
+    /**
+     * `{{ secrets.X }}` / `{{ vars.X }}` are resolved from the workspace's
+     * secret store at run time (`SecretResolver`), which a dry run has no
+     * business reading — the simulated context can't supply them, and
+     * warning that "nothing provides" them would be noise on every graph
+     * that uses one.
+     */
+    private function addressesSecretStore(string $path): bool
+    {
+        return str_starts_with($path, 'secrets.') || str_starts_with($path, 'vars.');
     }
 }

@@ -19,6 +19,7 @@ use App\Models\Nodes\CustomNode;
 use App\Models\Notifications\NotificationChannel;
 use App\Models\Notifications\NotificationPreference;
 use App\Models\Runs\Run;
+use App\Models\Secrets\Secret;
 use App\Models\Templates\AgentTemplate;
 use App\Models\Templates\TemplateCollection;
 use App\Models\Templates\WorkflowTemplate;
@@ -154,6 +155,11 @@ class Workspace extends Model
     public function connectorCredentials(): HasMany
     {
         return $this->hasMany(ConnectorCredential::class);
+    }
+
+    public function secrets(): HasMany
+    {
+        return $this->hasMany(Secret::class);
     }
 
     public function documentEmbeddings(): HasMany
