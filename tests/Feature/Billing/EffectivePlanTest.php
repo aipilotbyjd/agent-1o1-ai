@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Billing\Plan;
+use App\Models\Billing\PlanGrant;
 use App\Models\Billing\Subscription;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
@@ -118,3 +119,48 @@ it('counts top-up credits toward the available balance', function () {
 
     expect($workspace->availableCredits())->toBe(350);
 });
+
+it('entitles off a plan grant when no subscription exists', function () {
+    Plan::factory()->create(['slug' => 'free', 'credits_monthly' => 100]);
+    config(['billing.default_plan' => 'free']);
+    $pro = Plan::factory()->soldForLifetime()->create(['slug' => 'pro', 'credits_monthly' => 25000]);
+
+    $workspace = workspaceForPlanResolution();
+    PlanGrant::factory()->forWorkspace($workspace)->forPlan($pro)->active()->create();
+
+    expect($workspace->currentPlan()->id)->toBe($pro->id);
+});
+
+it('keeps entitling off a grant after the subscription lapses', function () {
+    Plan::factory()->create(['slug' => 'free', 'credits_monthly' => 100]);
+    config(['billing.default_plan' => 'free']);
+    $starter = Plan::factory()->soldForLifetime()->create(['slug' => 'starter', 'credits_monthly' => 5000]);
+    $pro = Plan::factory()->create(['slug' => 'pro', 'credits_monthly' => 25000]);
+
+    $workspace = workspaceForPlanResolution();
+    subscribeWorkspace($workspace, $pro, 'canceled', '2020-01-01 00:00:00');
+    PlanGrant::factory()->forWorkspace($workspace)->forPlan($starter)->active()->create();
+
+    // A lapsed subscription entitles nothing, but the grant was bought
+    // outright and survives it.
+    expect($workspace->activeSubscription())->toBeNull()
+        ->and($workspace->currentPlan()->id)->toBe($starter->id)
+        ->and($workspace->currentUsagePeriod()->credits_limit)->toBe(5000);
+});
+
+it('takes the more generous of a grant and a subscription', function (int $grantCredits, int $subCredits, int $expected) {
+    Plan::factory()->create(['slug' => 'free', 'credits_monthly' => 100]);
+    config(['billing.default_plan' => 'free']);
+    $granted = Plan::factory()->soldForLifetime()->create(['credits_monthly' => $grantCredits]);
+    $subscribed = Plan::factory()->create(['credits_monthly' => $subCredits]);
+
+    $workspace = workspaceForPlanResolution();
+    subscribeWorkspace($workspace, $subscribed, 'active');
+    PlanGrant::factory()->forWorkspace($workspace)->forPlan($granted)->active()->create();
+
+    expect($workspace->currentPlan()->credits_monthly)->toBe($expected);
+})->with([
+    'grant is richer' => [25000, 5000, 25000],
+    'subscription is richer' => [5000, 25000, 25000],
+    'equal' => [5000, 5000, 5000],
+]);

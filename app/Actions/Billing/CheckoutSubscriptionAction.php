@@ -14,9 +14,20 @@ class CheckoutSubscriptionAction
     /**
      * Returns a Stripe Checkout URL for a workspace with no subscription yet,
      * or swaps the existing subscription's price in place and returns null.
+     *
+     * Recurring intervals only. `Lifetime` is a one-off `mode=payment`
+     * purchase with no subscription behind it, so it goes through
+     * `CheckoutLifetimePlanAction` — guarded here rather than left to fail
+     * deeper in Cashier with an unrecurring price.
      */
     public function execute(Workspace $workspace, Plan $plan, BillingInterval $interval): ?string
     {
+        abort_if(
+            ! $interval->isRecurring(),
+            422,
+            "Interval [{$interval->value}] is not a recurring subscription.",
+        );
+
         $priceId = $plan->stripePriceId($interval);
 
         abort_if($priceId === null, 422, "Plan [{$plan->slug}] has no Stripe price configured for [{$interval->value}].");

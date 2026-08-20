@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\Internal\V1\Billing;
 
 use App\Actions\Billing\CancelSubscriptionAction;
+use App\Actions\Billing\CheckoutLifetimePlanAction;
 use App\Actions\Billing\CheckoutSubscriptionAction;
 use App\Actions\Billing\ResumeSubscriptionAction;
 use App\Enums\Billing\BillingInterval;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Billing\CheckoutSubscriptionRequest;
+use App\Http\Resources\Api\Internal\V1\Billing\PlanGrantResource;
 use App\Http\Resources\Api\Internal\V1\Billing\SubscriptionResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Billing\Plan;
@@ -26,12 +28,32 @@ class SubscriptionController extends Controller
         return ApiResponse::success(['subscription' => $subscription ? SubscriptionResource::make($subscription) : null]);
     }
 
-    public function checkout(CheckoutSubscriptionRequest $request, Workspace $workspace, CheckoutSubscriptionAction $checkout)
-    {
+    /**
+     * Starts checkout for any of the four billing intervals. The three
+     * recurring ones open (or swap) a Stripe subscription; `lifetime` is a
+     * one-off payment that entitles the workspace through a `PlanGrant`
+     * instead, so it takes a different action and returns that grant
+     * alongside the Checkout URL.
+     */
+    public function checkout(
+        CheckoutSubscriptionRequest $request,
+        Workspace $workspace,
+        CheckoutSubscriptionAction $checkout,
+        CheckoutLifetimePlanAction $lifetimeCheckout,
+    ) {
         $this->requirePermission(Permission::BillingManage);
 
         $plan = Plan::findOrFail($request->validated('plan_id'));
         $interval = BillingInterval::from($request->validated('interval'));
+
+        if (! $interval->isRecurring()) {
+            $result = $lifetimeCheckout->execute($workspace, $plan, $request->user());
+
+            return ApiResponse::success([
+                'plan_grant' => PlanGrantResource::make($result['grant']->load('plan')),
+                'checkout_url' => $result['checkout_url'],
+            ], 'Checkout session created.');
+        }
 
         $checkoutUrl = $checkout->execute($workspace, $plan, $interval);
 

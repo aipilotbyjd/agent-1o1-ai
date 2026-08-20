@@ -24,8 +24,13 @@ script:post-response {
 }
 
 docs {
-  Lists the active subscription plans for the workspace. Requires the
-  `billing.view` permission.
+  Lists the active plans for the workspace. Requires the `billing.view`
+  permission.
+
+  Each plan carries a price for all four billing windows
+  (`price_monthly`, `price_quarterly`, `price_yearly`, `price_lifetime`)
+  plus `available_intervals` — the subset actually sold, i.e. those with a
+  Stripe price configured. Offer only those; anything else 422s at checkout.
 
   Stores the first plan's ID in the `planId` collection variable so
   `Billing/Subscription - Checkout` works without hand-editing.

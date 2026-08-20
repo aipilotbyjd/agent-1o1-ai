@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'description', 'price_monthly', 'price_yearly', 'credits_monthly', 'limits', 'features', 'stripe_product_id', 'stripe_price_id_monthly', 'stripe_price_id_yearly', 'trial_days', 'is_active', 'sort_order'])]
+#[Fillable(['name', 'slug', 'description', 'price_monthly', 'price_quarterly', 'price_yearly', 'price_lifetime', 'credits_monthly', 'limits', 'features', 'stripe_product_id', 'stripe_price_id_monthly', 'stripe_price_id_quarterly', 'stripe_price_id_yearly', 'stripe_price_id_lifetime', 'trial_days', 'is_active', 'sort_order'])]
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
@@ -67,7 +67,40 @@ class Plan extends Model
     {
         return match ($interval) {
             BillingInterval::Monthly => $this->stripe_price_id_monthly,
+            BillingInterval::Quarterly => $this->stripe_price_id_quarterly,
             BillingInterval::Yearly => $this->stripe_price_id_yearly,
+            BillingInterval::Lifetime => $this->stripe_price_id_lifetime,
         };
+    }
+
+    public function priceFor(BillingInterval $interval): int
+    {
+        return match ($interval) {
+            BillingInterval::Monthly => $this->price_monthly,
+            BillingInterval::Quarterly => $this->price_quarterly,
+            BillingInterval::Yearly => $this->price_yearly,
+            BillingInterval::Lifetime => $this->price_lifetime,
+        };
+    }
+
+    /**
+     * The intervals this plan is actually sold on — those with a Stripe price
+     * configured. Lets the billing screen hide a quarterly or lifetime option
+     * the plan has no price for, instead of offering a checkout that would
+     * 422 on submit.
+     *
+     * @return list<BillingInterval>
+     */
+    public function availableIntervals(): array
+    {
+        return array_values(array_filter(
+            BillingInterval::cases(),
+            fn (BillingInterval $interval): bool => $this->stripePriceId($interval) !== null,
+        ));
+    }
+
+    public function isSoldOn(BillingInterval $interval): bool
+    {
+        return $this->stripePriceId($interval) !== null;
     }
 }

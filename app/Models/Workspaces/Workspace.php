@@ -11,6 +11,7 @@ use App\Models\Auth\ApiKey;
 use App\Models\Billing\CreditPack;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\Plan;
+use App\Models\Billing\PlanGrant;
 use App\Models\Billing\Subscription;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Connectors\ConnectorCredential;
@@ -170,6 +171,14 @@ class Workspace extends Model
         return $this->hasMany(CreditPack::class);
     }
 
+    /**
+     * @return HasMany<PlanGrant, $this>
+     */
+    public function planGrants(): HasMany
+    {
+        return $this->hasMany(PlanGrant::class);
+    }
+
     public function usagePeriods(): HasMany
     {
         return $this->hasMany(UsagePeriod::class);
@@ -205,14 +214,45 @@ class Workspace extends Model
     }
 
     /**
-     * The plan whose credits and limits apply right now: the active
-     * subscription's, or the configured default (Free) plan when there is
-     * no valid subscription. Every entitlement read goes through here so
-     * "unsubscribed" means the free tier, not an unmetered one.
+     * The plan whose credits and limits apply right now, resolved from two
+     * independent sources: an active `PlanGrant` (a lifetime purchase or a
+     * comp) and a valid Cashier subscription. When a workspace holds both,
+     * the *more generous* of the two applies — a lifetime Starter holder who
+     * later subscribes to Pro must not be silently downgraded to what they
+     * bought outright, and a Pro subscriber who buys a lifetime Starter must
+     * not lose their Pro allowance. Falls back to the configured default
+     * (Free) plan when neither entitles, so "unsubscribed" means the free
+     * tier and not an unmetered one.
      */
     public function currentPlan(): ?Plan
     {
-        return $this->activeSubscription()?->plan ?? Plan::default();
+        $candidates = collect([
+            $this->activePlanGrant()?->plan,
+            $this->activeSubscription()?->plan,
+        ])->filter();
+
+        if ($candidates->isEmpty()) {
+            return Plan::default();
+        }
+
+        return $candidates->sortByDesc(fn (Plan $plan): int => $plan->creditsMonthly())->first();
+    }
+
+    /**
+     * The workspace's non-subscription entitlement, if any — a lifetime
+     * purchase or a comped grant. The most recently granted one wins when a
+     * workspace holds several (e.g. it upgraded from a lifetime Starter to a
+     * lifetime Pro), since `currentPlan()` only weighs one grant against the
+     * subscription.
+     */
+    public function activePlanGrant(): ?PlanGrant
+    {
+        return $this->planGrants()
+            ->active()
+            ->with('plan')
+            ->orderByDesc('granted_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /**
