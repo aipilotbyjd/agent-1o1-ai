@@ -30,9 +30,11 @@ class CheckoutLifetimePlanAction
      */
     public function execute(Workspace $workspace, Plan $plan, User $purchaser): array
     {
-        $priceId = $plan->stripePriceId(BillingInterval::Lifetime);
+        $unavailable = $plan->unavailableReasonFor(BillingInterval::Lifetime);
 
-        abort_if($priceId === null, 422, "Plan [{$plan->slug}] is not sold as a lifetime purchase.");
+        abort_if($unavailable !== null, 422, $unavailable);
+
+        $priceId = $plan->stripePriceId(BillingInterval::Lifetime);
 
         abort_if(
             $workspace->planGrants()->active()->where('plan_id', $plan->id)->exists(),

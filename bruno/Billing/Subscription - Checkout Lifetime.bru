@@ -34,8 +34,9 @@ docs {
   resize the workspace's usage period. A refund or dispute on that charge
   revokes it again.
 
-  - `422` if the plan has no lifetime Stripe price (check
-    `available_intervals` from `Billing/Plans - List` first).
+  - `422` if lifetime is not on sale for this plan — inactive plan,
+    switched off per plan or estate-wide, or no Stripe price. The `message`
+    says which. Check `available_intervals` from `Billing/Plans - List`.
   - `422` if the workspace already holds an active grant for this plan.
 
   Response is wrapped:

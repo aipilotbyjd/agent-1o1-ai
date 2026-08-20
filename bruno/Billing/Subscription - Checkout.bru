@@ -40,8 +40,10 @@ docs {
   resulting entitlement from `GET /billing`'s `current_plan`, since no
   subscription exists to read a plan off.
 
-  - Returns `422` if the plan has no Stripe price for that interval — check
-    a plan's `available_intervals` before offering one.
+  - Returns `422` if the interval is not on sale for that plan — because
+    the plan is inactive, the interval is switched off (per plan or
+    estate-wide), or no Stripe price is set. The `message` says which.
+    Check `available_intervals` from `Billing/Plans - List` first.
   - Returns `422` on a lifetime purchase of a plan the workspace already
     holds an active grant for.
 

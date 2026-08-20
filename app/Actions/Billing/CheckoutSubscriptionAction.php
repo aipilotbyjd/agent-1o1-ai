@@ -28,9 +28,15 @@ class CheckoutSubscriptionAction
             "Interval [{$interval->value}] is not a recurring subscription.",
         );
 
-        $priceId = $plan->stripePriceId($interval);
+        // Covers an inactive plan, an interval withdrawn estate-wide, one this
+        // plan doesn't sell, and a missing Stripe price. Guarding here rather
+        // than only in the controller means a swap can't move an existing
+        // subscription onto a withdrawn interval either.
+        $unavailable = $plan->unavailableReasonFor($interval);
 
-        abort_if($priceId === null, 422, "Plan [{$plan->slug}] has no Stripe price configured for [{$interval->value}].");
+        abort_if($unavailable !== null, 422, $unavailable);
+
+        $priceId = $plan->stripePriceId($interval);
 
         $subscription = $workspace->subscription(self::SUBSCRIPTION_TYPE);
 

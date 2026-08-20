@@ -30,8 +30,11 @@ class PlanResource extends JsonResource
             'limits' => $this->limits,
             'features' => $this->features,
             'trial_days' => $this->trial_days,
-            // Only the intervals with a Stripe price configured, so the
-            // billing screen can't offer a checkout that would 422 on submit.
+            'is_active' => $this->is_active,
+            // The intervals actually on sale — a plan can have a price for one
+            // and still have it withdrawn. Render the buy options from this,
+            // not from whichever `price_*` fields are non-zero, or the screen
+            // will offer a checkout that 422s on submit.
             'available_intervals' => array_map(
                 fn (BillingInterval $interval): string => $interval->value,
                 $this->availableIntervals(),

@@ -20,6 +20,16 @@ enum BillingInterval: string
         return $this !== self::Lifetime;
     }
 
+    /**
+     * Whether this window is on sale estate-wide, per
+     * `config('billing.intervals')`. Unknown keys default to enabled so a
+     * newly added interval isn't silently unsellable until config catches up.
+     */
+    public function isEnabledGlobally(): bool
+    {
+        return (bool) config("billing.intervals.{$this->value}", true);
+    }
+
     public function label(): string
     {
         return match ($this) {

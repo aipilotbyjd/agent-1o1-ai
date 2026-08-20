@@ -36,6 +36,7 @@ class PlanFactory extends Factory
             'stripe_price_id_quarterly' => 'price_'.fake()->uuid(),
             'stripe_price_id_yearly' => 'price_'.fake()->uuid(),
             'stripe_price_id_lifetime' => null,
+            'enabled_intervals' => ['monthly', 'quarterly', 'yearly', 'lifetime'],
             'trial_days' => 0,
             'is_active' => true,
             'sort_order' => 0,
@@ -61,5 +62,16 @@ class PlanFactory extends Factory
         return $this->state(fn (): array => [
             'stripe_price_id_lifetime' => null,
         ]);
+    }
+
+    /**
+     * Priced on the interval but withdrawn from sale — the state that
+     * separates "switched off" from "never configured".
+     *
+     * @param  list<string>  $intervals
+     */
+    public function sellingOnly(array $intervals): static
+    {
+        return $this->state(fn (): array => ['enabled_intervals' => $intervals]);
     }
 }

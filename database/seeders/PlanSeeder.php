@@ -48,6 +48,7 @@ class PlanSeeder extends Seeder
                 'stripe_price_id_quarterly' => null,
                 'stripe_price_id_yearly' => null,
                 'stripe_price_id_lifetime' => null,
+                'enabled_intervals' => [],
                 'trial_days' => 0,
             ],
             [
@@ -66,6 +67,7 @@ class PlanSeeder extends Seeder
                 'stripe_price_id_quarterly' => env('STRIPE_PLAN_STARTER_QUARTERLY_PRICE_ID'),
                 'stripe_price_id_yearly' => env('STRIPE_PLAN_STARTER_YEARLY_PRICE_ID'),
                 'stripe_price_id_lifetime' => env('STRIPE_PLAN_STARTER_LIFETIME_PRICE_ID'),
+                'enabled_intervals' => ['monthly', 'quarterly', 'yearly', 'lifetime'],
                 'trial_days' => 14,
             ],
             [
@@ -84,6 +86,7 @@ class PlanSeeder extends Seeder
                 'stripe_price_id_quarterly' => env('STRIPE_PLAN_PRO_QUARTERLY_PRICE_ID'),
                 'stripe_price_id_yearly' => env('STRIPE_PLAN_PRO_YEARLY_PRICE_ID'),
                 'stripe_price_id_lifetime' => env('STRIPE_PLAN_PRO_LIFETIME_PRICE_ID'),
+                'enabled_intervals' => ['monthly', 'quarterly', 'yearly', 'lifetime'],
                 'trial_days' => 14,
             ],
         ];
