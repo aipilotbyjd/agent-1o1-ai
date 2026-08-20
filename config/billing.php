@@ -21,6 +21,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Billing Intervals
+    |--------------------------------------------------------------------------
+    |
+    | Estate-wide kill switch per billing window. Turning one off withdraws it
+    | from sale across every plan at once — use it to pull `lifetime` from the
+    | whole catalog without editing each plan's `enabled_intervals`.
+    |
+    | This only blocks *new* purchases. Workspaces already entitled by a
+    | subscription or a plan grant on a disabled interval keep what they paid
+    | for; see `Plan::isSoldOn()`.
+    |
+    */
+
+    'intervals' => [
+        'monthly' => (bool) env('BILLING_INTERVAL_MONTHLY_ENABLED', true),
+        'quarterly' => (bool) env('BILLING_INTERVAL_QUARTERLY_ENABLED', true),
+        'yearly' => (bool) env('BILLING_INTERVAL_YEARLY_ENABLED', true),
+        'lifetime' => (bool) env('BILLING_INTERVAL_LIFETIME_ENABLED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Credit Packs
     |--------------------------------------------------------------------------
     |
