@@ -13,6 +13,9 @@ use App\Models\Workflows\WorkflowApproval;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Notifications\Workspace\RunApprovalRequestedNotification;
 use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Secrets\ResolvedSecrets;
+use App\Services\Secrets\SecretRedactor;
+use App\Services\Secrets\SecretResolver;
 use App\Services\Workflows\Engine\LoopCoordinator;
 use App\Services\Workflows\Engine\StepFailureHandler;
 use App\Services\Workflows\Engine\SubWorkflowCoordinator;
@@ -40,6 +43,8 @@ class WorkflowRunner
         private readonly LoopCoordinator $loopCoordinator,
         private readonly TemplateResolver $templateResolver,
         private readonly NotificationDispatcher $notifications,
+        private readonly SecretResolver $secretResolver,
+        private readonly SecretRedactor $secretRedactor,
     ) {}
 
     public function executeStep(NodeRun $nodeRun): void
@@ -55,7 +60,12 @@ class WorkflowRunner
         $run = $nodeRun->run;
         $graph = $run->workflowVersion->graph;
         $context = $this->buildContext($run, $nodeRun);
-        $nodeDefinition = $this->resolvedNodeDefinition($graph, $nodeRun->key, $context);
+
+        // Workspace secrets are merged into the *templating* context only —
+        // never into the `$context` handed to `NodeContract::execute()`, so a
+        // node only ever sees the values its own config asked for by name.
+        $secrets = $this->secretsForNode($run, $graph, $nodeRun->key);
+        $nodeDefinition = $this->resolvedNodeDefinition($graph, $nodeRun->key, [...$context, ...$secrets->context()]);
 
         match ($nodeRun->type) {
             FlowControlNodeType::HumanApproval->value => $this->pauseForApproval($run, $nodeRun),
@@ -67,7 +77,7 @@ class WorkflowRunner
             // WorkflowRunner sees it, there's nothing left to do but settle
             // it immediately and let traversal continue.
             FlowControlNodeType::JoinPaths->value => $this->completeJoin($run, $nodeRun),
-            default => $this->executeNodeContract($run, $nodeRun, $nodeDefinition, $graph, $context),
+            default => $this->executeNodeContract($run, $nodeRun, $nodeDefinition, $graph, $context, $secrets),
         };
     }
 
@@ -91,11 +101,25 @@ class WorkflowRunner
     }
 
     /**
+     * The workspace secrets this node's raw (un-templated) config references,
+     * loaded per step so nothing else in the workspace is ever in memory —
+     * see `SecretResolver`.
+     *
+     * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
+     */
+    private function secretsForNode(Run $run, array $graph, string $key): ResolvedSecrets
+    {
+        $config = collect($graph['nodes'])->firstWhere('key', $key)['config'] ?? [];
+
+        return $this->secretResolver->forConfig($run->workspace_id, $config);
+    }
+
+    /**
      * @param  array{key: string, type: string, config: array<string, mixed>}  $nodeDefinition
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
      * @param  array<string, mixed>  $context
      */
-    private function executeNodeContract(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph, array $context): void
+    private function executeNodeContract(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph, array $context, ResolvedSecrets $secrets = new ResolvedSecrets): void
     {
         $nodeRun->forceFill(['status' => NodeRunStatus::Running, 'started_at' => now()])->save();
 
@@ -120,7 +144,14 @@ class WorkflowRunner
         try {
             $node = $this->registry->resolve($nodeRun->type);
 
-            $output = $node->execute($run, $nodeDefinition['config'] ?? [], $context);
+            // A node that echoes its own config back (an HTTP node returning
+            // the request it made, an API replying with the token it was
+            // called with) would otherwise write the plaintext secret into
+            // `node_runs`, readable by every run-viewer in the workspace.
+            $output = $this->secretRedactor->redact(
+                $node->execute($run, $nodeDefinition['config'] ?? [], $context),
+                $secrets->sensitiveValues(),
+            );
 
             $nodeRun->forceFill([
                 'status' => NodeRunStatus::Completed,
@@ -149,10 +180,10 @@ class WorkflowRunner
                 'node_key' => $nodeRun->key,
                 'node_type' => $nodeRun->type,
                 'attempt' => $nodeRun->attempt,
-                'exception' => $e->getMessage(),
+                'exception' => $this->secretRedactor->redactString($e->getMessage(), $secrets->sensitiveValues()),
             ]);
 
-            $this->failureHandler->handle($run, $nodeRun, $nodeDefinition, $graph, $e);
+            $this->failureHandler->handle($run, $nodeRun, $nodeDefinition, $graph, $e, $secrets->sensitiveValues());
         }
     }
 

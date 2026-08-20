@@ -10,6 +10,7 @@ use App\Jobs\Workflows\ExecuteNodeJob;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\Workflows\WorkflowEdge;
+use App\Services\Secrets\SecretRedactor;
 use App\Services\Workflows\StepOptions;
 use Throwable;
 
@@ -21,14 +22,17 @@ use Throwable;
  */
 class StepFailureHandler
 {
+    public function __construct(private readonly SecretRedactor $secretRedactor) {}
+
     /**
      * @param  array{key: string, type: string, config: array<string, mixed>}  $nodeDefinition
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
+     * @param  array<int, string>  $secretValues  plaintext of the secrets this step used, from `ResolvedSecrets::sensitiveValues()`
      */
-    public function handle(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph, Throwable $e): void
+    public function handle(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph, Throwable $e, array $secretValues = []): void
     {
         $options = StepOptions::fromNodeConfig($nodeDefinition['config'] ?? []);
-        $message = $this->redact($e->getMessage());
+        $message = $this->redact($e->getMessage(), $secretValues);
 
         if ($nodeRun->attempt < $options->maxAttempts) {
             $this->retry($nodeRun, $options, $message);
@@ -116,8 +120,19 @@ class StepFailureHandler
      * port (docs/WORKFLOWS_PLAN.md); revisit once real credentials
      * (docs/PLAN.md Phase 6) flow through node execution.
      */
-    private function redact(string $message): string
+    /**
+     * Two passes: the plaintext of the secrets this step actually resolved
+     * (exact, and the only thing that catches a secret that isn't key-shaped),
+     * then the key-shaped-string pattern, which still catches values the
+     * engine never stored — a token pasted into a config by hand, or one an
+     * upstream API handed back.
+     *
+     * @param  array<int, string>  $secretValues
+     */
+    private function redact(string $message, array $secretValues = []): string
     {
-        return preg_replace('/\b(?:sk|pk|rk)_[A-Za-z0-9_]{8,}\b/', '[redacted]', $message) ?? $message;
+        $message = $this->secretRedactor->redactString($message, $secretValues);
+
+        return preg_replace('/\b(?:sk|pk|rk)_[A-Za-z0-9_]{8,}\b/', SecretRedactor::PLACEHOLDER, $message) ?? $message;
     }
 }

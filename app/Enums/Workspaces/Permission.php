@@ -33,6 +33,9 @@ enum Permission: string
     case ConnectorView = 'connector.view';
     case ConnectorManage = 'connector.manage';
 
+    case SecretView = 'secret.view';
+    case SecretManage = 'secret.manage';
+
     case TemplateView = 'template.view';
     case TemplateManage = 'template.manage';
 
@@ -67,6 +70,7 @@ enum Permission: string
             self::NodeView,
             self::AgentView,
             self::ConnectorView,
+            self::SecretView,
             self::ArtifactView,
             self::RunView,
             self::TriggerView,
@@ -119,6 +123,7 @@ enum Permission: string
             self::MemberUpdateRole,
             self::MemberRemove,
             self::ConnectorManage,
+            self::SecretManage,
             self::ApiKeyManage,
             self::BillingManage,
             self::NotificationChannelManage,
