@@ -8,6 +8,7 @@ use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\SendAgentMessageRequest;
 use App\Http\Requests\Api\Internal\V1\Agents\StoreAgentSessionRequest;
+use App\Http\Requests\Api\Internal\V1\Agents\UpdateAgentSessionRequest;
 use App\Http\Resources\Api\Internal\V1\Agents\AgentMessageResource;
 use App\Http\Resources\Api\Internal\V1\Agents\AgentSessionResource;
 use App\Http\Responses\ApiResponse;
@@ -51,6 +52,48 @@ class AgentSessionController extends Controller
         return ApiResponse::success([
             'session' => AgentSessionResource::make($session->load('messages')),
         ]);
+    }
+
+    public function update(UpdateAgentSessionRequest $request, Workspace $workspace, Agent $agent, AgentSession $session)
+    {
+        $this->requirePermission(Permission::AgentChat);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+        abort_if($session->agent_id !== $agent->id, 404);
+
+        $session->update($request->validated());
+
+        return ApiResponse::success(['session' => AgentSessionResource::make($session)], 'Session updated successfully.');
+    }
+
+    public function destroy(Workspace $workspace, Agent $agent, AgentSession $session)
+    {
+        $this->requirePermission(Permission::AgentManage);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+        abort_if($session->agent_id !== $agent->id, 404);
+
+        $session->delete();
+
+        return ApiResponse::noContent();
+    }
+
+    /**
+     * Paginated transcript. `show()` eager-loads the whole conversation,
+     * which is fine for a fresh session and wrong for a long-running one —
+     * this is what a chat window pages backwards through.
+     */
+    public function messages(Workspace $workspace, Agent $agent, AgentSession $session)
+    {
+        $this->requirePermission(Permission::AgentView);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+        abort_if($session->agent_id !== $agent->id, 404);
+
+        $perPage = (int) request()->integer('per_page', 50);
+
+        return ApiResponse::paginated(
+            AgentMessageResource::collection(
+                $session->messages()->oldest('id')->paginate(min(max($perPage, 1), 200)),
+            ),
+        );
     }
 
     public function sendMessage(SendAgentMessageRequest $request, Workspace $workspace, Agent $agent, AgentSession $session)

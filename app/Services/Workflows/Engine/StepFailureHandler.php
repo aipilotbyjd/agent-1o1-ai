@@ -101,9 +101,15 @@ class StepFailureHandler
 
     private function failRun(Run $run, string $message): void
     {
-        $run->nodeRuns()
+        // Per model, not a bulk `update()` — see `WorkflowRunner::cancel()`
+        // for why (model events drive `NodeRunObserver`'s broadcast).
+        $abandoned = $run->nodeRuns()
             ->whereIn('status', [NodeRunStatus::Pending, NodeRunStatus::Running])
-            ->update(['status' => NodeRunStatus::Cancelled, 'finished_at' => now()]);
+            ->get();
+
+        foreach ($abandoned as $nodeRun) {
+            $nodeRun->forceFill(['status' => NodeRunStatus::Cancelled, 'finished_at' => now()])->save();
+        }
 
         $run->forceFill([
             'status' => RunStatus::Failed,

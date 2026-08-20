@@ -20,7 +20,12 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * docs/WORKFLOWS_PLAN.md's `runs` table note on why agent invocations and
  * workflow executions share one table rather than two.
  */
-#[Fillable(['workspace_id', 'agent_id', 'user_id', 'title'])]
+/*
+ * `status` is user-facing (a person archives their own conversation),
+ * unlike `Run.status`, which is engine-managed and deliberately left out of
+ * its own fillable list.
+ */
+#[Fillable(['workspace_id', 'agent_id', 'agent_version_id', 'user_id', 'title', 'status'])]
 class AgentSession extends Model
 {
     /** @use HasFactory<AgentSessionFactory> */
@@ -52,6 +57,44 @@ class AgentSession extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class);
+    }
+
+    /**
+     * The agent behavior this conversation started with — see the
+     * `agent_version_id` migration.
+     */
+    public function agentVersion(): BelongsTo
+    {
+        return $this->belongsTo(AgentVersion::class);
+    }
+
+    /**
+     * The agent as this conversation should see it: the live model with the
+     * pinned version's behavior applied over it, so an instruction edit
+     * mid-conversation can't change how the assistant answers the next turn.
+     *
+     * Returned **unsaved** — `forceFill()` without `save()` — so this is a
+     * read-time view, never a write back onto the agent. Relations (skills,
+     * knowledge, tool bindings) are deliberately left live; see
+     * `AgentVersioner`'s docblock for why an old snapshot doesn't get to
+     * decide which tools are attached today.
+     */
+    public function pinnedAgent(): Agent
+    {
+        $agent = $this->agent;
+        $snapshot = $this->agentVersion?->snapshot;
+
+        if ($snapshot === null) {
+            return $agent;
+        }
+
+        return $agent->forceFill([
+            'instructions' => $snapshot['instructions'] ?? $agent->instructions,
+            'provider' => $snapshot['provider'] ?? $agent->provider,
+            'model' => $snapshot['model'] ?? null,
+            'temperature' => $snapshot['temperature'] ?? null,
+            'settings' => $snapshot['settings'] ?? null,
+        ]);
     }
 
     public function user(): BelongsTo

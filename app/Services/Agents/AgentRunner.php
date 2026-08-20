@@ -13,6 +13,7 @@ use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Services\Billing\CreditGate;
+use Laravel\Ai\Responses\StreamedAgentResponse;
 use Throwable;
 
 /**
@@ -36,7 +37,53 @@ class AgentRunner
 
     public function run(AgentSession $session, string $message, string $triggerType = 'manual'): AgentMessage
     {
-        $agent = $session->agent;
+        $turn = $this->openTurn($session, $message, $triggerType);
+
+        try {
+            $response = $turn->agent->prompt($message, provider: $turn->provider, model: $turn->model);
+
+            return $this->completeTurn($turn, $response->text, $response->usage->toArray());
+        } catch (Throwable $e) {
+            $this->failTurn($turn->run, $e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * The same turn, delivered incrementally. The caller iterates the
+     * returned `StreamableAgentResponse` (an SSE controller does; see
+     * `AgentSessionStreamController`) and the turn is closed out by the
+     * `then()` callback registered here once the provider finishes.
+     *
+     * The caller owns failure: nothing runs until the stream is iterated, so
+     * an exception surfaces *there*, not here, and whoever iterates must call
+     * `failTurn()` — otherwise the turn's `Run` would sit in `running`
+     * forever.
+     */
+    public function stream(AgentSession $session, string $message, string $triggerType = 'manual'): StreamedTurn
+    {
+        $turn = $this->openTurn($session, $message, $triggerType);
+
+        $response = $turn->agent->stream($message, provider: $turn->provider, model: $turn->model);
+
+        $response->then(function (StreamedAgentResponse $streamed) use ($turn): void {
+            $this->completeTurn($turn, $streamed->text, $streamed->usage->toArray());
+        });
+
+        return new StreamedTurn($turn->run, $response);
+    }
+
+    /**
+     * Everything that happens before the provider is called: credit gate,
+     * the turn's own `Run`, the user's message, and the SDK agent built from
+     * the version this conversation is pinned to.
+     */
+    private function openTurn(AgentSession $session, string $message, string $triggerType): AgentTurn
+    {
+        // The version the conversation was started against, not whatever the
+        // agent looks like right now — see `AgentSession::pinnedAgent()`.
+        $agent = $session->pinnedAgent();
 
         // Before the turn's `Run` exists — a workspace out of credits is
         // refused up front rather than after the model call is paid for.
@@ -55,42 +102,63 @@ class AgentRunner
             'content' => $message,
         ]);
 
-        try {
-            $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
-            $response = (new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run)))
-                ->prompt($message, provider: $agent->provider, model: $agent->model);
+        $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
 
-            $assistantMessage = $session->messages()->create([
-                'role' => AgentMessageRole::Assistant,
-                'content' => $response->text,
-            ]);
-            $assistantMessage->forceFill(['usage' => $response->usage->toArray()])->save();
+        return new AgentTurn(
+            $session,
+            $run,
+            new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run)),
+            $agent->provider,
+            $agent->model,
+        );
+    }
 
-            $run->forceFill([
-                'status' => RunStatus::Completed,
-                // `message_id` lets `RecordRunCreditUsage` find the exact
-                // `AgentMessage` to charge for, without guessing at "the
-                // latest assistant message" for this session.
-                'output' => ['text' => $response->text, 'message_id' => $assistantMessage->id],
-                'finished_at' => now(),
-            ])->save();
+    /**
+     * @param  array<string, mixed>  $usage
+     */
+    private function completeTurn(AgentTurn $turn, string $text, array $usage): AgentMessage
+    {
+        $assistantMessage = $turn->session->messages()->create([
+            'role' => AgentMessageRole::Assistant,
+            'content' => $text,
+        ]);
+        $assistantMessage->forceFill(['usage' => $usage])->save();
 
-            $session->forceFill(['last_activity_at' => now()])->save();
+        $turn->run->forceFill([
+            'status' => RunStatus::Completed,
+            // `message_id` lets `RecordRunCreditUsage` find the exact
+            // `AgentMessage` to charge for, without guessing at "the
+            // latest assistant message" for this session.
+            'output' => ['text' => $text, 'message_id' => $assistantMessage->id],
+            'finished_at' => now(),
+        ])->save();
 
-            event(new RunCompleted($run));
+        $turn->session->forceFill(['last_activity_at' => now()])->save();
 
-            return $assistantMessage;
-        } catch (Throwable $e) {
-            $run->forceFill([
-                'status' => RunStatus::Failed,
-                'error' => $e->getMessage(),
-                'finished_at' => now(),
-            ])->save();
+        event(new RunCompleted($turn->run));
 
-            event(new RunFailed($run));
+        return $assistantMessage;
+    }
 
-            throw $e;
+    /**
+     * Marks a turn's `Run` failed. Public because a streamed turn fails in
+     * the caller's loop rather than inside this class — see `stream()`.
+     * Idempotent, so a caller that fails a turn the SDK already closed out
+     * can't overwrite a completed run.
+     */
+    public function failTurn(Run $run, Throwable $e): void
+    {
+        if ($run->fresh()?->status->isTerminal()) {
+            return;
         }
+
+        $run->forceFill([
+            'status' => RunStatus::Failed,
+            'error' => $e->getMessage(),
+            'finished_at' => now(),
+        ])->save();
+
+        event(new RunFailed($run));
     }
 
     /**

@@ -23,6 +23,7 @@ class RunResource extends JsonResource
             'runnable_id' => $this->runnable_id,
             'workflow_id' => $this->workflow_id,
             'workflow_version_id' => $this->workflow_version_id,
+            'retried_from_run_id' => $this->retried_from_run_id,
             'status' => $this->status->value,
             'trigger_type' => $this->trigger_type,
             'input' => $this->input,

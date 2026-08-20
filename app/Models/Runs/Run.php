@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 #[Fillable([
     'workspace_id', 'runnable_type', 'runnable_id', 'workflow_id', 'workflow_version_id',
-    'parent_run_id', 'parent_node_id', 'loop_index', 'environment_id', 'trigger_type',
+    'parent_run_id', 'retried_from_run_id', 'parent_node_id', 'loop_index', 'environment_id', 'trigger_type',
     'input', 'triggered_by',
 ])]
 class Run extends Model
@@ -81,6 +81,19 @@ class Run extends Model
     public function childRuns(): HasMany
     {
         return $this->hasMany(self::class, 'parent_run_id');
+    }
+
+    /**
+     * The run this one was retried from, if any — see `RetryRunAction`.
+     */
+    public function retriedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'retried_from_run_id');
+    }
+
+    public function retries(): HasMany
+    {
+        return $this->hasMany(self::class, 'retried_from_run_id');
     }
 
     public function parentNode(): BelongsTo

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
+use App\Actions\Agents\DuplicateAgentAction;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Agents\DuplicateAgentRequest;
 use App\Http\Requests\Api\Internal\V1\Agents\StoreAgentRequest;
 use App\Http\Requests\Api\Internal\V1\Agents\UpdateAgentRequest;
 use App\Http\Resources\Api\Internal\V1\Agents\AgentResource;
@@ -52,6 +54,20 @@ class AgentController extends Controller
         $agent->update($request->validated());
 
         return ApiResponse::success(['agent' => AgentResource::make($agent)], 'Agent updated successfully.');
+    }
+
+    /**
+     * Configuration only — see `DuplicateAgentAction` for what a copy does
+     * and doesn't carry over.
+     */
+    public function duplicate(DuplicateAgentRequest $request, Workspace $workspace, Agent $agent, DuplicateAgentAction $duplicate)
+    {
+        $this->requirePermission(Permission::AgentManage);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+
+        $copy = $duplicate->execute($agent, $request->user(), $request->validated('name'));
+
+        return ApiResponse::created(['agent' => AgentResource::make($copy)], 'Agent duplicated successfully.');
     }
 
     public function destroy(Workspace $workspace, Agent $agent)

@@ -3,8 +3,10 @@
 namespace App\Services\Workflows;
 
 use App\Enums\NodeRunStatus;
+use App\Enums\RunStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Enums\Workflows\FlowControlNodeType;
+use App\Events\Runs\RunCancelled;
 use App\Jobs\Workflows\DispatchNextNodesJob;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
@@ -20,6 +22,7 @@ use App\Services\Workflows\Engine\LoopCoordinator;
 use App\Services\Workflows\Engine\StepFailureHandler;
 use App\Services\Workflows\Engine\SubWorkflowCoordinator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -58,6 +61,15 @@ class WorkflowRunner
         }
 
         $run = $nodeRun->run;
+
+        // A job queued before the run was cancelled can still be picked up
+        // afterwards — `cancel()` settles every node row it can see, but not
+        // one a racing `DispatchNextNodesJob` created after it ran.
+        if ($run->status->isTerminal()) {
+            $nodeRun->forceFill(['status' => NodeRunStatus::Cancelled, 'finished_at' => now()])->save();
+
+            return;
+        }
         $graph = $run->workflowVersion->graph;
         $context = $this->buildContext($run, $nodeRun);
 
@@ -349,6 +361,68 @@ class WorkflowRunner
             FlowControlNodeType::Loop->value => $this->loopCoordinator->resume($childRun, $parentNodeRun),
             default => null,
         };
+    }
+
+    /**
+     * Stops a run on request: every non-terminal `NodeRun` is settled as
+     * `cancelled`, the run itself becomes `cancelled`, and the same is done
+     * recursively to any child run a `subflow`/`loop` node started — leaving
+     * a child running would burn credits for work whose parent will never
+     * read the result. Callers that want the *whole* tree stopped (the API
+     * does) should hand this the root run; `CancelRunAction` resolves it.
+     *
+     * Idempotent: cancelling an already-terminal run is a no-op returning
+     * the run untouched, so a double-clicked button can't fail loudly.
+     */
+    public function cancel(Run $run, ?User $cancelledBy = null): Run
+    {
+        $cancelled = DB::transaction(function () use ($run): ?Run {
+            $locked = Run::whereKey($run->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status->isTerminal()) {
+                return null;
+            }
+
+            // Saved one model at a time rather than as a bulk `update()`:
+            // a query-builder update fires no model events, and a watching
+            // canvas would never see these nodes go grey (`NodeRunObserver`).
+            // Bounded by the graph's node count, so the cost is trivial.
+            //
+            // `callback_token` is nulled alongside the status so a `Wait`
+            // node's public callback URL stops resolving the moment its run
+            // is cancelled, exactly as `resolveCallback()` does on use.
+            $inFlight = $locked->nodeRuns()
+                ->whereIn('status', [NodeRunStatus::Pending, NodeRunStatus::Running, NodeRunStatus::AwaitingApproval, NodeRunStatus::AwaitingCallback])
+                ->get();
+
+            foreach ($inFlight as $nodeRun) {
+                $nodeRun->forceFill([
+                    'status' => NodeRunStatus::Cancelled,
+                    'finished_at' => now(),
+                    'callback_token' => null,
+                ])->save();
+            }
+
+            $locked->forceFill([
+                'status' => RunStatus::Cancelled,
+                'error' => 'Run cancelled.',
+                'finished_at' => now(),
+            ])->save();
+
+            return $locked;
+        });
+
+        if ($cancelled === null) {
+            return $run->fresh();
+        }
+
+        foreach ($cancelled->childRuns()->whereIn('status', RunStatus::inFlight())->get() as $childRun) {
+            $this->cancel($childRun, $cancelledBy);
+        }
+
+        event(new RunCancelled($cancelled, $cancelledBy));
+
+        return $cancelled;
     }
 
     /**

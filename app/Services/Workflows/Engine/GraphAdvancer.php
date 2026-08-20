@@ -46,6 +46,10 @@ class GraphAdvancer
      */
     public function startEntries(Run $run, array $graph): void
     {
+        if ($run->status->isTerminal()) {
+            return;
+        }
+
         $this->createPendingAndDispatch($run, self::entryKeys($graph), $graph);
 
         $this->finishIfDone($run);
@@ -56,6 +60,13 @@ class GraphAdvancer
      */
     public function advance(Run $run, NodeRun $settledNode, array $graph, bool $continueOnError = false): void
     {
+        // A run cancelled while this traversal was queued must not sprout
+        // new work — `WorkflowRunner::cancel()` already settled everything
+        // it could see, and `executeStep()` catches whatever slips past.
+        if ($run->status->isTerminal()) {
+            return;
+        }
+
         $outgoing = array_values(array_filter($graph['edges'], fn (array $edge) => $edge['from'] === $settledNode->key));
 
         $matchedKeys = [];
