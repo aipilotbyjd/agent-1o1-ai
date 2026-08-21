@@ -7,14 +7,22 @@ use App\Contracts\Triggers\RunStarter;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentEvalRun;
+use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Billing\Subscription as BillingSubscription;
+use App\Models\Runs\NodeRun;
+use App\Models\Runs\Run;
 use App\Models\Templates\AgentTemplate;
 use App\Models\Templates\WorkflowTemplate;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceMember;
+use App\Observers\AgentMessageObserver;
+use App\Observers\AgentObserver;
+use App\Observers\NodeRunObserver;
+use App\Observers\RunObserver;
 use App\Observers\WorkspaceMemberObserver;
 use App\Services\Triggers\TargetRunStarter;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -129,6 +137,14 @@ class AppServiceProvider extends ServiceProvider
     private function configureObservers(): void
     {
         WorkspaceMember::observe(WorkspaceMemberObserver::class);
+
+        // Behavioral history for agents — see `AgentVersioner`.
+        Agent::observe(AgentObserver::class);
+
+        // Live run/chat streaming — see `App\Broadcasting\Channels`.
+        Run::observe(RunObserver::class);
+        NodeRun::observe(NodeRunObserver::class);
+        AgentMessage::observe(AgentMessageObserver::class);
     }
 
     /**
@@ -149,6 +165,7 @@ class AppServiceProvider extends ServiceProvider
             TriggerTargetType::Workflow->value => Workflow::class,
             TriggerTargetType::Agent->value => Agent::class,
             'agent_session' => AgentSession::class,
+            'agent_eval_run' => AgentEvalRun::class,
             'workflow_template' => WorkflowTemplate::class,
             'agent_template' => AgentTemplate::class,
             // Needed for Laravel\Ai\Concerns\RemembersConversations'

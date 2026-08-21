@@ -117,4 +117,12 @@ class Agent extends Model
     {
         return $this->hasMany(AgentMemory::class);
     }
+
+    /**
+     * Saved test suites graded against this agent — see `EvalRunner`.
+     */
+    public function evalSuites(): HasMany
+    {
+        return $this->hasMany(AgentEvalSuite::class);
+    }
 }

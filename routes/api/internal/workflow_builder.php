@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowBuilderController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowBuilderMessageController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowBuilderSessionController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowDiagnosticsController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowNodeTestController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:api', 'workspace.context'])->group(function () {
@@ -12,6 +14,14 @@ Route::middleware(['auth:api', 'workspace.context'])->group(function () {
         ->as('workflows.builder.')
         ->group(function () {
             Route::put('{workflow}/graph', [WorkflowBuilderController::class, 'replaceGraph'])->name('graph');
+
+            // Pre-flight checks over the same services the builder agent's
+            // own tools call — see WorkflowDiagnosticsController.
+            Route::post('{workflow}/validate', [WorkflowDiagnosticsController::class, 'validateGraph'])->name('validate');
+            Route::post('{workflow}/dry-run', [WorkflowDiagnosticsController::class, 'dryRun'])->name('dry-run');
+
+            // Executes one node for real — see NodeTester.
+            Route::post('{workflow}/nodes/{node}/test', [WorkflowNodeTestController::class, 'store'])->name('nodes.test');
         });
 
     // The chat-based builder — sessions own a draft_graph edited through

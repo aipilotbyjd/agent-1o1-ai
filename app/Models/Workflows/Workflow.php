@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
-#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'created_by'])]
+#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'input_schema', 'created_by'])]
 class Workflow extends Model
 {
     /** @use HasFactory<WorkflowFactory> */
@@ -40,6 +40,7 @@ class Workflow extends Model
     {
         return [
             'has_unpublished_changes' => 'boolean',
+            'input_schema' => 'array',
         ];
     }
 
@@ -169,6 +170,39 @@ class Workflow extends Model
     }
 
     /**
+     * The live draft as the same `{nodes, edges}` shape a `WorkflowVersion`
+     * snapshot uses — what `GraphValidator`, `DryRunner` and
+     * `publishVersion()` all consume, so the thing being validated is always
+     * the thing that would be published.
+     *
+     * @return array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>, pinned_data: array<string, mixed>|null}>, edges: array<int, array{from: string, to: string, condition: string|null}>}
+     */
+    public function draftGraph(): array
+    {
+        $nodes = $this->nodes()->get();
+
+        $nodeKeysById = $nodes->pluck('key', 'id');
+
+        return [
+            'nodes' => $nodes
+                ->map(fn (WorkflowNode $node): array => [
+                    'key' => $node->key,
+                    'type' => $node->type,
+                    'config' => $node->config ?? [],
+                    'pinned_data' => $node->pinned_data,
+                ])
+                ->all(),
+            'edges' => $this->edges()->get()
+                ->map(fn (WorkflowEdge $edge): array => [
+                    'from' => $nodeKeysById[$edge->from_node_id],
+                    'to' => $nodeKeysById[$edge->to_node_id],
+                    'condition' => $edge->condition,
+                ])
+                ->all(),
+        ];
+    }
+
+    /**
      * Snapshot the current draft graph as an immutable, publish-pinned
      * `WorkflowVersion` after running the full `GraphValidator` sequence —
      * see docs/WORKFLOWS_PLAN.md's `workflow_versions` section for why runs
@@ -178,24 +212,7 @@ class Workflow extends Model
      */
     public function publishVersion(?string $notes = null, ?User $publisher = null): WorkflowVersion
     {
-        $nodes = $this->nodes()->get()
-            ->map(fn (WorkflowNode $node): array => [
-                'key' => $node->key,
-                'type' => $node->type,
-                'config' => $node->config ?? [],
-                'pinned_data' => $node->pinned_data,
-            ])
-            ->all();
-
-        $nodeKeysById = $this->nodes()->get()->pluck('key', 'id');
-
-        $edges = $this->edges()->get()
-            ->map(fn (WorkflowEdge $edge): array => [
-                'from' => $nodeKeysById[$edge->from_node_id],
-                'to' => $nodeKeysById[$edge->to_node_id],
-                'condition' => $edge->condition,
-            ])
-            ->all();
+        ['nodes' => $nodes, 'edges' => $edges] = $this->draftGraph();
 
         $errors = app(GraphValidator::class)->validate($nodes, $edges);
 
