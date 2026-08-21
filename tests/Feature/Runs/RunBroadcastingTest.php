@@ -3,6 +3,7 @@
 use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Broadcasting\Channels;
 use App\Broadcasting\WorkspaceChannelGate;
+use App\Enums\RunStatus;
 use App\Enums\Workspaces\Permission;
 use App\Enums\Workspaces\Role;
 use App\Events\Runs\NodeRunStateChanged;
@@ -143,4 +144,27 @@ it('puts the broadcasting auth endpoint behind the api guard', function () {
         'channel_name' => 'private-workspaces.1.runs',
         'socket_id' => '1234.5678',
     ])->assertUnauthorized();
+});
+
+it('broadcasts the state a run was in when the transition happened', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph([
+        'nodes' => [['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]]],
+        'edges' => [],
+    ]);
+    $workflow->publishVersion(publisher: $owner);
+    $run = app(StartWorkflowRunAction::class)->execute($workflow->fresh());
+
+    // Built while the run was still running, delivered after it finished —
+    // the queued-broadcast case. The payload must describe the transition it
+    // was created for, not whatever the row says later.
+    $running = $run->fresh();
+    $running->forceFill(['status' => RunStatus::Running])->syncOriginal();
+    $event = new RunStateChanged($running);
+
+    $run->forceFill(['status' => RunStatus::Failed])->save();
+
+    expect($event->broadcastWith()['status'])->toBe('running');
 });

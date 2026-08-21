@@ -26,7 +26,32 @@ class RunStateChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public readonly Run $run) {}
+    /**
+     * The state at the moment the transition happened.
+     *
+     * Captured in the constructor rather than read in `broadcastWith()`:
+     * broadcasts are queued, `SerializesModels` re-fetches the model when the
+     * job runs, and a run that moved pending → running → completed in
+     * milliseconds would otherwise broadcast "completed" three times and
+     * never show the states in between.
+     *
+     * @var array<string, mixed>
+     */
+    private array $payload;
+
+    public function __construct(public readonly Run $run)
+    {
+        $this->payload = [
+            'id' => $run->id,
+            'workflow_id' => $run->workflow_id,
+            'runnable_type' => $run->runnable_type,
+            'runnable_id' => $run->runnable_id,
+            'status' => $run->status->value,
+            'error' => $run->error,
+            'started_at' => $run->started_at?->toIso8601String(),
+            'finished_at' => $run->finished_at?->toIso8601String(),
+        ];
+    }
 
     /**
      * @return array<int, PrivateChannel>
@@ -49,15 +74,6 @@ class RunStateChanged implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
-        return [
-            'id' => $this->run->id,
-            'workflow_id' => $this->run->workflow_id,
-            'runnable_type' => $this->run->runnable_type,
-            'runnable_id' => $this->run->runnable_id,
-            'status' => $this->run->status->value,
-            'error' => $this->run->error,
-            'started_at' => $this->run->started_at?->toIso8601String(),
-            'finished_at' => $this->run->finished_at?->toIso8601String(),
-        ];
+        return $this->payload;
     }
 }

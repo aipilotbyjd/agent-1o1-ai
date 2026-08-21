@@ -24,7 +24,30 @@ class NodeRunStateChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public readonly NodeRun $nodeRun) {}
+    /**
+     * Snapshotted at construction for the same reason as
+     * `RunStateChanged`: a queued broadcast re-fetches its model, and a node
+     * that went running → completed before the job ran would never be seen
+     * running.
+     *
+     * @var array<string, mixed>
+     */
+    private array $payload;
+
+    public function __construct(public readonly NodeRun $nodeRun)
+    {
+        $this->payload = [
+            'id' => $nodeRun->id,
+            'run_id' => $nodeRun->run_id,
+            'key' => $nodeRun->key,
+            'type' => $nodeRun->type,
+            'status' => $nodeRun->status->value,
+            'attempt' => $nodeRun->attempt,
+            'error' => $nodeRun->error,
+            'started_at' => $nodeRun->started_at?->toIso8601String(),
+            'finished_at' => $nodeRun->finished_at?->toIso8601String(),
+        ];
+    }
 
     /**
      * @return array<int, PrivateChannel>
@@ -44,16 +67,6 @@ class NodeRunStateChanged implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
-        return [
-            'id' => $this->nodeRun->id,
-            'run_id' => $this->nodeRun->run_id,
-            'key' => $this->nodeRun->key,
-            'type' => $this->nodeRun->type,
-            'status' => $this->nodeRun->status->value,
-            'attempt' => $this->nodeRun->attempt,
-            'error' => $this->nodeRun->error,
-            'started_at' => $this->nodeRun->started_at?->toIso8601String(),
-            'finished_at' => $this->nodeRun->finished_at?->toIso8601String(),
-        ];
+        return $this->payload;
     }
 }
