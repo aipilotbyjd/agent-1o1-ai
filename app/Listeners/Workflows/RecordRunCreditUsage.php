@@ -7,6 +7,7 @@ use App\Enums\Billing\CreditTransactionType;
 use App\Enums\NodeRunStatus;
 use App\Enums\Queue;
 use App\Events\Runs\RunCompleted;
+use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
@@ -17,8 +18,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 /**
  * Charges credits for a completed `Run` — one `CreditTransaction` per
  * completed/failed `NodeRun` for a Workflow run (a node routed through an
- * `error` edge still consumed real work), or one per turn (the assistant
- * reply) for an Agent session run. See
+ * `error` edge still consumed real work), one per turn (the assistant reply)
+ * for an Agent session run, or one per graded case for an eval run. See
  * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 8. Only fires on `RunCompleted`
  * — a `Run` that ends in `RunFailed` isn't charged for partial work yet,
  * left for a later pass.
@@ -60,6 +61,12 @@ class RecordRunCreditUsage implements ShouldQueue
 
         if ($run->runnable instanceof AgentSession) {
             $this->chargeForAgentTurn($run);
+
+            return;
+        }
+
+        if ($run->runnable instanceof AgentEvalRun) {
+            $this->chargeForEvalRun($run->runnable);
         }
     }
 
@@ -76,6 +83,26 @@ class RecordRunCreditUsage implements ShouldQueue
                 $nodeRun->id,
                 $this->meter->costForNodeRun($nodeRun),
                 "Node '{$nodeRun->key}' ({$nodeRun->type})",
+                allowOverdraft: true,
+            );
+        }
+    }
+
+    /**
+     * One charge per graded case. Cases that errored before the model
+     * answered carry no usage and are skipped — nothing was spent on them.
+     */
+    private function chargeForEvalRun(AgentEvalRun $evalRun): void
+    {
+        $results = $evalRun->results()->whereNotNull('usage')->get();
+
+        foreach ($results as $result) {
+            $this->deductCredits->execute(
+                $evalRun->workspace,
+                CreditTransactionType::EvalCase,
+                $result->id,
+                $this->meter->costForEvalCase($result),
+                'Eval case',
                 allowOverdraft: true,
             );
         }

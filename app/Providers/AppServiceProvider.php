@@ -7,6 +7,7 @@ use App\Contracts\Triggers\RunStarter;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Billing\Subscription as BillingSubscription;
@@ -164,6 +165,7 @@ class AppServiceProvider extends ServiceProvider
             TriggerTargetType::Workflow->value => Workflow::class,
             TriggerTargetType::Agent->value => Agent::class,
             'agent_session' => AgentSession::class,
+            'agent_eval_run' => AgentEvalRun::class,
             'workflow_template' => WorkflowTemplate::class,
             'agent_template' => AgentTemplate::class,
             // Needed for Laravel\Ai\Concerns\RemembersConversations'

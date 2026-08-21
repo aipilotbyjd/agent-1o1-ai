@@ -2,6 +2,7 @@
 
 namespace App\Services\Billing;
 
+use App\Models\Agents\AgentEvalCaseResult;
 use App\Models\Agents\AgentMessage;
 use App\Models\Runs\NodeRun;
 
@@ -33,6 +34,15 @@ class CreditMeter
     public function costForAgentMessage(AgentMessage $message): int
     {
         return self::BASE_CREDITS_PER_RUN + $this->tokenCost($message->usage);
+    }
+
+    /**
+     * One graded eval case. Priced identically to a production turn, because
+     * it is one — the same agent, the same model, the same tokens.
+     */
+    public function costForEvalCase(AgentEvalCaseResult $result): int
+    {
+        return self::BASE_CREDITS_PER_RUN + $this->tokenCost($result->usage);
     }
 
     /**

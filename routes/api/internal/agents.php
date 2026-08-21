@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalCaseController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalRunController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalSuiteController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
@@ -56,6 +59,23 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('{agent}/knowledge', [AgentKnowledgeController::class, 'store'])->name('knowledge.store');
         Route::patch('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'update'])->name('knowledge.update');
         Route::delete('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'destroy'])->name('knowledge.destroy');
+
+        // Evals: saved suites of cases graded against the agent — see
+        // Services\Agents\EvalRunner.
+        Route::get('{agent}/eval-suites', [AgentEvalSuiteController::class, 'index'])->name('eval-suites.index');
+        Route::post('{agent}/eval-suites', [AgentEvalSuiteController::class, 'store'])->name('eval-suites.store');
+        Route::get('{agent}/eval-suites/{suite}', [AgentEvalSuiteController::class, 'show'])->name('eval-suites.show');
+        Route::patch('{agent}/eval-suites/{suite}', [AgentEvalSuiteController::class, 'update'])->name('eval-suites.update');
+        Route::delete('{agent}/eval-suites/{suite}', [AgentEvalSuiteController::class, 'destroy'])->name('eval-suites.destroy');
+
+        Route::get('{agent}/eval-suites/{suite}/cases', [AgentEvalCaseController::class, 'index'])->name('eval-suites.cases.index');
+        Route::post('{agent}/eval-suites/{suite}/cases', [AgentEvalCaseController::class, 'store'])->name('eval-suites.cases.store');
+        Route::patch('{agent}/eval-suites/{suite}/cases/{case}', [AgentEvalCaseController::class, 'update'])->name('eval-suites.cases.update');
+        Route::delete('{agent}/eval-suites/{suite}/cases/{case}', [AgentEvalCaseController::class, 'destroy'])->name('eval-suites.cases.destroy');
+
+        Route::get('{agent}/eval-suites/{suite}/runs', [AgentEvalRunController::class, 'index'])->name('eval-suites.runs.index');
+        Route::post('{agent}/eval-suites/{suite}/runs', [AgentEvalRunController::class, 'store'])->name('eval-suites.runs.store');
+        Route::get('{agent}/eval-suites/{suite}/runs/{evalRun}', [AgentEvalRunController::class, 'show'])->name('eval-suites.runs.show');
 
         Route::get('{agent}/memories', [AgentMemoryController::class, 'index'])->name('memories.index');
         Route::post('{agent}/memories', [AgentMemoryController::class, 'store'])->name('memories.store');

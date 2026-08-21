@@ -135,3 +135,12 @@ it('authorizes agent session channels for members and refuses outsiders', functi
     expect($gate->agentSession($stranger, $workspace->id, $session->id))->toBeFalse();
     expect(Role::Viewer->has(Permission::AgentView))->toBeTrue();
 });
+
+it('puts the broadcasting auth endpoint behind the api guard', function () {
+    // Registered explicitly in bootstrap/app.php so it sits on the Passport
+    // guard rather than the session-based web guard this API never uses.
+    $this->postJson('/api/broadcasting/auth', [
+        'channel_name' => 'private-workspaces.1.runs',
+        'socket_id' => '1234.5678',
+    ])->assertUnauthorized();
+});
