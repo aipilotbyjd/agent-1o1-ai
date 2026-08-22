@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Templates;
 
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Templates\StoreTemplateCollectionRequest;
@@ -16,6 +17,7 @@ use App\Models\Templates\TemplateCollection;
 use App\Models\Templates\WorkflowTemplate;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Str;
 
 class TemplateCollectionController extends Controller
@@ -82,15 +84,28 @@ class TemplateCollectionController extends Controller
      * per `WorkflowTemplate` item, an agent per `AgentTemplate` item — each
      * named after its own template.
      */
-    public function use(Workspace $workspace, TemplateCollection $templateCollection)
+    public function use(Workspace $workspace, TemplateCollection $templateCollection, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::TemplateManage);
         $this->ensureVisibleToWorkspace($workspace, $templateCollection);
 
+        $items = $templateCollection->items()->with('templatable')->get();
+
+        // Assert the whole pack up front rather than per item: instantiation
+        // isn't transactional, so a cap hit mid-loop would leave half the
+        // collection created and the rest not.
+        $limits->assertCanCreate($workspace, PlanLimit::Workflows, $items->filter(
+            fn ($item): bool => $item->templatable instanceof WorkflowTemplate,
+        )->count());
+
+        $limits->assertCanCreate($workspace, PlanLimit::Agents, $items->filter(
+            fn ($item): bool => $item->templatable instanceof AgentTemplate,
+        )->count());
+
         $workflows = collect();
         $agents = collect();
 
-        foreach ($templateCollection->items()->with('templatable')->get() as $item) {
+        foreach ($items as $item) {
             if ($item->templatable instanceof WorkflowTemplate) {
                 $workflows->push($this->instantiateWorkflow($workspace, $item->templatable));
             } elseif ($item->templatable instanceof AgentTemplate) {

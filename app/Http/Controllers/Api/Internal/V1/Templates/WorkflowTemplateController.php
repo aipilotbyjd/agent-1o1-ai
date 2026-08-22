@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Templates;
 
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Templates\SaveWorkflowAsTemplateRequest;
@@ -16,6 +17,7 @@ use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowEdge;
 use App\Models\Workflows\WorkflowNode;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Str;
 
 class WorkflowTemplateController extends Controller
@@ -101,10 +103,11 @@ class WorkflowTemplateController extends Controller
      * `Workflow::replaceGraph()` — the same method the builder canvas uses
      * to save an ordinary edit.
      */
-    public function use(UseWorkflowTemplateRequest $request, Workspace $workspace, WorkflowTemplate $workflowTemplate)
+    public function use(UseWorkflowTemplateRequest $request, Workspace $workspace, WorkflowTemplate $workflowTemplate, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::WorkflowManage);
         $this->ensureVisibleToWorkspace($workspace, $workflowTemplate);
+        $limits->assertCanCreate($workspace, PlanLimit::Workflows);
 
         $name = $request->validated('name');
 

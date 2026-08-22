@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Workspaces;
 
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Enums\Workspaces\Role;
 use App\Http\Controllers\Controller;
@@ -12,6 +13,7 @@ use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceInvitation;
 use App\Notifications\Workspace\MemberInvitedNotification;
 use App\Notifications\Workspace\MemberJoinedNotification;
+use App\Services\Billing\PlanLimitGate;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Workspaces\WorkspaceInvitationService;
 use Illuminate\Http\Request;
@@ -21,6 +23,7 @@ class WorkspaceInvitationController extends Controller
     public function __construct(
         private readonly WorkspaceInvitationService $invitations,
         private readonly NotificationDispatcher $notifications,
+        private readonly PlanLimitGate $limits,
     ) {}
 
     public function index(Workspace $workspace)
@@ -33,6 +36,11 @@ class WorkspaceInvitationController extends Controller
     public function store(InviteMemberRequest $request, Workspace $workspace)
     {
         $this->requirePermission(Permission::MemberInvite);
+
+        // Fails fast so the inviter learns they're out of seats here, rather
+        // than the invitee discovering it when they try to accept. The accept
+        // path re-checks: this one can go stale between send and acceptance.
+        $this->limits->assertCanCreate($workspace, PlanLimit::Members);
 
         $invitation = $this->invitations->invite(
             $workspace,

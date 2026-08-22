@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Billing;
 
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\Internal\V1\Billing\PlanGrantResource;
@@ -9,7 +10,9 @@ use App\Http\Resources\Api\Internal\V1\Billing\PlanResource;
 use App\Http\Resources\Api\Internal\V1\Billing\SubscriptionResource;
 use App\Http\Resources\Api\Internal\V1\Billing\UsagePeriodResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\Billing\Plan;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PlanLimitGate;
 
 class BillingController extends Controller
 {
@@ -27,8 +30,13 @@ class BillingController extends Controller
      * `credits_available` is the number that actually gates a run: the
      * period's remaining plan allowance plus the non-expiring `topup_credits`
      * bought via credit packs. `null` means unlimited.
+     *
+     * `limits` reports what `PlanLimitGate` will actually enforce on the next
+     * create — render the "2 of 3 workflows" counter from this rather than
+     * from `current_plan.limits`, which carries the raw cap with no usage
+     * beside it. A `max` of `null` means unlimited.
      */
-    public function overview(Workspace $workspace)
+    public function overview(Workspace $workspace, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::BillingView);
 
@@ -43,6 +51,24 @@ class BillingController extends Controller
             'usage_period' => UsagePeriodResource::make($workspace->currentUsagePeriod()),
             'topup_credits' => $workspace->topup_credits,
             'credits_available' => $workspace->availableCredits(),
+            'limits' => $this->limitUsage($workspace, $currentPlan, $limits),
         ]);
+    }
+
+    /**
+     * @return array<string, array{used: int, max: int|null}>
+     */
+    private function limitUsage(Workspace $workspace, ?Plan $plan, PlanLimitGate $limits): array
+    {
+        $usage = [];
+
+        foreach (PlanLimit::cases() as $limit) {
+            $usage[$limit->value] = [
+                'used' => $limits->usage($workspace, $limit),
+                'max' => $plan?->limit($limit),
+            ];
+        }
+
+        return $usage;
     }
 }
