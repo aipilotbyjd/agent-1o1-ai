@@ -133,7 +133,7 @@ Separately, there is no Stripe Tax / `automatic_tax` configuration and no
 `tax_id` on `workspaces`. Tax becomes a legal exposure, not a feature
 request, the moment the product sells into the EU or UK.
 
-#### 2.9 Dunning stops after one notification — PARTIALLY ADDRESSED
+#### 2.9 Dunning stops after one notification — RESOLVED
 
 `handleInvoicePaymentFailed` sends `PaymentFailedNotification` and stops.
 There is no grace period, no retry/escalation sequence, and no in-product
@@ -141,9 +141,29 @@ There is no grace period, no retry/escalation sequence, and no in-product
 `past_due`, entitlement disappears silently — the failure mode is a customer
 who is locked out with one email as the only explanation.
 
-**Partially addressed:** the customer can now see the failed invoice
-(§2.2) and fix their card through the portal (§2.3). The server-side
-sequence — grace period, retries, escalation — is still missing.
+**Resolved**, with one deliberate exception: there is **no grace period**,
+by product decision. Unlike a typical SaaS, a workflow run here costs real
+model spend, so an unpaid workspace that kept executing would be a direct
+cash loss. `past_due` therefore still withdraws the plan the moment Stripe
+reports it.
+
+What was added is the explanation around that, which is what was actually
+missing:
+
+- A dunning cycle recorded on the subscription (`dunning_started_at`,
+  `dunning_invoice_id`, `dunning_attempts`), surfaced as a `dunning` block on
+  `GET /billing` so the frontend can render a banner. `subscription` is null
+  by then, so this is the only thing on the response that can explain why the
+  plan disappeared.
+- Escalating notifications driven by Stripe's own `attempt_count`, naming the
+  next retry date and stating plainly that paid features are suspended.
+- Recovery: `invoice.payment_succeeded` clears the cycle and notifies — but
+  only if one was open, so ordinary renewals stay silent.
+- Cancellation: `customer.subscription.deleted` notifies, distinguishing
+  "Stripe gave up" from "the customer cancelled".
+
+Retries themselves remain Stripe's job (Smart Retries, configured in the
+dashboard); reimplementing them here would duplicate that schedule.
 
 #### 2.10 Usage periods are not billing-cycle aligned
 
@@ -443,9 +463,9 @@ another workspace → 404, never another tenant's invoice.
 1. ~~**Plan limit enforcement** (§3)~~ — done.
 2. ~~**Native invoice endpoints** (§4)~~ — done.
 3. ~~**Billing Portal endpoint** (§2.3)~~ — done.
-4. **`verified` middleware** (§2.4) — a routing change, no new code.
-5. **Audit log** (§2.5) — gets cheaper the earlier it lands.
-6. **Tax configuration** (§2.8) — a legal exposure, not a feature.
+4. ~~**Dunning** (§2.9)~~ — done, minus a grace period by decision.
+5. **`verified` middleware** (§2.4) — a routing change, no new code.
+6. **Audit log** (§2.5) — gets cheaper the earlier it lands.
+7. **Tax configuration** (§2.8) — a legal exposure, not a feature.
 
-Dunning sequences and the admin back-office follow once the above are in
-place.
+The admin back-office follows once the above are in place.
