@@ -17,10 +17,11 @@ use Illuminate\Support\Arr;
  * `config.workflow_id` as a child run (`input: {item, index}`); up to
  * `max_concurrent` run at once, releasing the next queued item as an earlier
  * one settles (`resume()`). `on_item_error` governs a mid-batch failure:
- * `fail_fast` stops releasing more items and fails the loop as soon as one
- * item fails; `continue` tolerates item failures and always succeeds once
- * every item has settled; `collect_errors` runs every item to completion
- * (doesn't stop early) but fails the loop overall if any item errored.
+ * `fail_fast` fails the loop as soon as one item fails, releasing no further
+ * items and cancelling those already in flight; `continue` tolerates item
+ * failures and always succeeds once every item has settled; `collect_errors`
+ * runs every item to completion (doesn't stop early) but fails the loop
+ * overall if any item errored.
  *
  * Progress lives in `NodeRun.state` (docs/WORKFLOWS_AGENTS_BUILD_PLAN.md
  * Stage 4's `add_state_to_node_runs_table` migration) while the loop node's
@@ -32,6 +33,7 @@ class LoopCoordinator
     public function __construct(
         private readonly StartWorkflowRunAction $startWorkflowRun,
         private readonly StepFailureHandler $failureHandler,
+        private readonly RunCanceller $canceller,
     ) {}
 
     /**
@@ -109,6 +111,16 @@ class LoopCoordinator
         $nodeRun->forceFill(['state' => $state])->save();
 
         if ($state['failed']) {
+            // `fail_fast` means stop, not "stop starting new ones": items
+            // already in flight are cancelled too. Leaving them would keep
+            // siblings running (and billing) to produce results for a loop
+            // node that has already settled and will never read them.
+            //
+            // Safe to do mid-`resume()`: nothing resumes a parent on a
+            // *cancelled* child (only the completed/failed listeners do), so
+            // this can't re-enter and record a cancelled item as an error.
+            $this->canceller->cancelChildRunsOfNode($nodeRun);
+
             $this->finish($nodeRun->fresh());
 
             return;

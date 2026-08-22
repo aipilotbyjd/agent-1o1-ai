@@ -37,23 +37,26 @@ class AgentVersioner
     public function snapshot(Agent $agent, ?User $changedBy = null): AgentVersion
     {
         return DB::transaction(function () use ($agent, $changedBy): AgentVersion {
-            $next = ((int) $agent->versions()->lockForUpdate()->max('version')) + 1;
-
             try {
-                return $agent->versions()->create([
-                    'version' => $next,
-                    'snapshot' => $this->snapshotPayload($agent),
-                    'changed_by' => $changedBy?->id,
-                ]);
+                // Nested `transaction()` — i.e. a savepoint. Postgres aborts
+                // the whole transaction on a constraint violation, so without
+                // one the retry below could not issue a single query;
+                // rolling back to the savepoint keeps the outer transaction
+                // usable. `Workflow::publishVersion()` pairs the same way.
+                return DB::transaction(fn (): AgentVersion => $this->createVersion(
+                    $agent,
+                    ((int) $agent->versions()->lockForUpdate()->max('version')) + 1,
+                    $changedBy,
+                ));
             } catch (UniqueConstraintViolationException) {
                 // Two concurrent edits raced for the same version number.
                 // The loser retries against the now-higher watermark rather
                 // than failing the edit that triggered it.
-                return $agent->versions()->create([
-                    'version' => ((int) $agent->versions()->max('version')) + 1,
-                    'snapshot' => $this->snapshotPayload($agent),
-                    'changed_by' => $changedBy?->id,
-                ]);
+                return $this->createVersion(
+                    $agent,
+                    ((int) $agent->versions()->max('version')) + 1,
+                    $changedBy,
+                );
             }
         });
     }
@@ -90,6 +93,15 @@ class AgentVersioner
     public function currentVersion(Agent $agent): AgentVersion
     {
         return $agent->versions()->latest('version')->first() ?? $this->snapshot($agent);
+    }
+
+    private function createVersion(Agent $agent, int $version, ?User $changedBy): AgentVersion
+    {
+        return $agent->versions()->create([
+            'version' => $version,
+            'snapshot' => $this->snapshotPayload($agent),
+            'changed_by' => $changedBy?->id,
+        ]);
     }
 
     /**

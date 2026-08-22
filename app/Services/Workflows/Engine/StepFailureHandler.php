@@ -22,7 +22,10 @@ use Throwable;
  */
 class StepFailureHandler
 {
-    public function __construct(private readonly SecretRedactor $secretRedactor) {}
+    public function __construct(
+        private readonly SecretRedactor $secretRedactor,
+        private readonly RunCanceller $canceller,
+    ) {}
 
     /**
      * @param  array{key: string, type: string, config: array<string, mixed>}  $nodeDefinition
@@ -99,23 +102,34 @@ class StepFailureHandler
         return max(0, (int) round($exponential + $jitter));
     }
 
+    /**
+     * A run that fails abandons its in-flight work exactly as a cancelled
+     * one does, and for the same reasons — hence the shared `RunCanceller`.
+     * Settling only `pending`/`running` nodes here used to leave the two
+     * parked states behind: an approval on a failed run stayed actionable,
+     * and a `Wait` node's public callback URL kept resolving. Child runs
+     * a `subflow`/`loop` node started were left running too, billing for
+     * output whose parent node has already settled.
+     */
     private function failRun(Run $run, string $message): void
     {
-        // Per model, not a bulk `update()` — see `WorkflowRunner::cancel()`
-        // for why (model events drive `NodeRunObserver`'s broadcast).
-        $abandoned = $run->nodeRuns()
-            ->whereIn('status', [NodeRunStatus::Pending, NodeRunStatus::Running])
-            ->get();
-
-        foreach ($abandoned as $nodeRun) {
-            $nodeRun->forceFill(['status' => NodeRunStatus::Cancelled, 'finished_at' => now()])->save();
-        }
+        // Before the run's own status flips, so a `NodeRunObserver` broadcast
+        // and the `RunFailed` listeners see a consistent picture. The node
+        // that caused the failure is already terminal, so it keeps its own
+        // `failed` status and error message.
+        $this->canceller->settleInFlightNodeRuns($run);
 
         $run->forceFill([
             'status' => RunStatus::Failed,
             'error' => $message,
             'finished_at' => now(),
         ])->save();
+
+        // After the parent is terminal: a child settling mid-cancellation
+        // resumes its parent node (`WorkflowRunner::resolveSubWorkflow()`),
+        // which must find a run that has already stopped rather than one
+        // still advertising itself as in flight.
+        $this->canceller->cancelChildRuns($run);
 
         event(new RunFailed($run));
     }

@@ -3,14 +3,14 @@
 namespace App\Services\Workflows;
 
 use App\Contracts\NodeContract;
-use App\Models\Nodes\CustomNode;
 use InvalidArgumentException;
 
 /**
  * Resolves a `workflow_nodes.type` string to an executable `NodeContract`
  * instance. Built-in types are bound at boot by `NodeRegistryServiceProvider`;
- * `custom:{id}` types resolve to a workspace-scoped `CustomNode` row instead —
- * see docs/WORKFLOWS_PLAN.md's "Node contract & registry" section.
+ * `custom:{id}` types will resolve to a workspace-scoped `CustomNode` row
+ * once custom node execution exists — see docs/WORKFLOWS_PLAN.md's "Node
+ * contract & registry" section, and `has()` for how they behave until then.
  */
 class NodeRegistry
 {
@@ -29,10 +29,27 @@ class NodeRegistry
         $this->builtins[$type] = $class;
     }
 
+    /**
+     * Every caller is really asking "will `resolve()` hand me an executable
+     * node for this type?", so a `custom:{id}` type answers **false** until
+     * custom node execution lands (Stage 11) — a `CustomNode` row can be
+     * authored today, but nothing can run one.
+     *
+     * Answering `true` for an authored-but-unrunnable custom node and then
+     * throwing from `resolve()` turned an unimplemented feature into a hard
+     * error on every has()-then-resolve() caller: saving a canvas
+     * (`Workflow::replaceGraph()`), publishing it (`GraphValidator`),
+     * testing a node (`NodeTester`), binding one as an agent tool, and every
+     * agent turn whose bindings included one. Answering `false` puts custom
+     * types on exactly the path the engine already has for a type it doesn't
+     * know — schema checks skip it, `ToolRegistry` drops the binding, and a
+     * run that reaches one fails that single node with `resolve()`'s message
+     * instead of taking the whole request down.
+     */
     public function has(string $type): bool
     {
         if (str_starts_with($type, self::CUSTOM_PREFIX)) {
-            return CustomNode::whereKey($this->customId($type))->exists();
+            return false;
         }
 
         return isset($this->builtins[$type]);
@@ -40,10 +57,13 @@ class NodeRegistry
 
     public function resolve(string $type): NodeContract
     {
+        // Reached only from the engine's own execute path (`has()` says
+        // false, so nothing validates its way here) — the message is
+        // persisted onto the failing `NodeRun` and read by whoever is
+        // watching the run, so it stays user-facing. See
+        // docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 11 for the work itself.
         if (str_starts_with($type, self::CUSTOM_PREFIX)) {
-            throw new InvalidArgumentException(
-                "Custom node execution isn't implemented yet (type [{$type}]) — see docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 11.",
-            );
+            throw new InvalidArgumentException("Custom nodes can't be executed yet (type [{$type}]).");
         }
 
         if (! isset($this->builtins[$type])) {
@@ -87,10 +107,5 @@ class NodeRegistry
             })
             ->values()
             ->all();
-    }
-
-    private function customId(string $type): int
-    {
-        return (int) substr($type, strlen(self::CUSTOM_PREFIX));
     }
 }

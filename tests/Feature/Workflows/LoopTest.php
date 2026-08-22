@@ -149,3 +149,65 @@ it('tolerates item errors and still completes when on_item_error is continue', f
     // continue policy releases every item despite failures.
     expect(Run::where('parent_node_id', $loopNode->id)->count())->toBe(2);
 });
+
+it('cancels items still in flight when fail_fast trips', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    // Routes on the item it was handed: 'hold' parks on a `wait` node (so
+    // that item stays in flight), anything else hits an unreachable endpoint
+    // and fails.
+    $child = Workflow::factory()->forWorkspace($workspace)->create();
+    $child->replaceGraph([
+        'nodes' => [
+            ['key' => 'route', 'type' => 'router', 'config' => ['conditions' => [
+                ['path' => 'input.item', 'operator' => 'equals', 'value' => 'hold', 'result' => 'hold'],
+            ]]],
+            ['key' => 'hold', 'type' => 'wait', 'config' => []],
+            ['key' => 'boom', 'type' => 'call_api', 'config' => [
+                'method' => 'GET', 'url' => 'http://127.0.0.1:1/unreachable', 'timeout_seconds' => 1,
+            ]],
+        ],
+        'edges' => [
+            ['from' => 'route', 'to' => 'hold', 'condition' => 'hold'],
+            ['from' => 'route', 'to' => 'boom', 'condition' => 'default'],
+        ],
+    ]);
+    $child->publishVersion(publisher: $owner);
+    $child = $child->fresh();
+
+    // The loop node has an error edge, so the *run* survives the loop
+    // failing — which is what isolates this to the loop's own cleanup
+    // rather than the whole-run teardown `StepFailureHandler` does.
+    $parent = Workflow::factory()->forWorkspace($workspace)->create();
+    $parent->replaceGraph([
+        'nodes' => [
+            ['key' => 'loop', 'type' => 'loop', 'config' => [
+                'items_path' => 'input.items',
+                'workflow_id' => $child->id,
+                'max_concurrent' => 2,
+                'on_item_error' => 'fail_fast',
+            ]],
+            ['key' => 'recovery', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [['from' => 'loop', 'to' => 'recovery', 'condition' => 'error']],
+    ]);
+    $parent->publishVersion(publisher: $owner);
+
+    // Item 0 parks; item 1 fails and trips fail_fast while item 0 is still
+    // in flight.
+    $run = app(StartWorkflowRunAction::class)
+        ->execute($parent->fresh(), ['items' => ['hold', 'boom']])
+        ->fresh(['nodeRuns']);
+
+    expect($run->status)->toBe(RunStatus::Completed);
+
+    $loopNode = $run->nodeRuns->firstWhere('key', 'loop');
+    expect($loopNode->status)->toBe(NodeRunStatus::Failed);
+    expect($run->nodeRuns->firstWhere('key', 'recovery')->status)->toBe(NodeRunStatus::Completed);
+
+    $parked = Run::where('parent_node_id', $loopNode->id)->where('loop_index', 0)->sole();
+
+    expect($parked->status)->toBe(RunStatus::Cancelled);
+    expect($parked->nodeRuns()->where('key', 'hold')->sole()->callback_token)->toBeNull();
+});

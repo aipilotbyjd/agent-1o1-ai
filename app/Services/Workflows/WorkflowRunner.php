@@ -3,10 +3,8 @@
 namespace App\Services\Workflows;
 
 use App\Enums\NodeRunStatus;
-use App\Enums\RunStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Enums\Workflows\FlowControlNodeType;
-use App\Events\Runs\RunCancelled;
 use App\Jobs\Workflows\DispatchNextNodesJob;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
@@ -19,10 +17,10 @@ use App\Services\Secrets\ResolvedSecrets;
 use App\Services\Secrets\SecretRedactor;
 use App\Services\Secrets\SecretResolver;
 use App\Services\Workflows\Engine\LoopCoordinator;
+use App\Services\Workflows\Engine\RunCanceller;
 use App\Services\Workflows\Engine\StepFailureHandler;
 use App\Services\Workflows\Engine\SubWorkflowCoordinator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -48,6 +46,7 @@ class WorkflowRunner
         private readonly NotificationDispatcher $notifications,
         private readonly SecretResolver $secretResolver,
         private readonly SecretRedactor $secretRedactor,
+        private readonly RunCanceller $canceller,
     ) {}
 
     public function executeStep(NodeRun $nodeRun): void
@@ -364,65 +363,14 @@ class WorkflowRunner
     }
 
     /**
-     * Stops a run on request: every non-terminal `NodeRun` is settled as
-     * `cancelled`, the run itself becomes `cancelled`, and the same is done
-     * recursively to any child run a `subflow`/`loop` node started — leaving
-     * a child running would burn credits for work whose parent will never
-     * read the result. Callers that want the *whole* tree stopped (the API
-     * does) should hand this the root run; `CancelRunAction` resolves it.
-     *
-     * Idempotent: cancelling an already-terminal run is a no-op returning
-     * the run untouched, so a double-clicked button can't fail loudly.
+     * Stops a run on request — see `RunCanceller`, which owns the mechanics
+     * so the failure paths can reuse them without depending on this class.
+     * Kept here as the engine's single public entry point: callers depend on
+     * `WorkflowRunner`, not on the coordinators behind it.
      */
     public function cancel(Run $run, ?User $cancelledBy = null): Run
     {
-        $cancelled = DB::transaction(function () use ($run): ?Run {
-            $locked = Run::whereKey($run->id)->lockForUpdate()->firstOrFail();
-
-            if ($locked->status->isTerminal()) {
-                return null;
-            }
-
-            // Saved one model at a time rather than as a bulk `update()`:
-            // a query-builder update fires no model events, and a watching
-            // canvas would never see these nodes go grey (`NodeRunObserver`).
-            // Bounded by the graph's node count, so the cost is trivial.
-            //
-            // `callback_token` is nulled alongside the status so a `Wait`
-            // node's public callback URL stops resolving the moment its run
-            // is cancelled, exactly as `resolveCallback()` does on use.
-            $inFlight = $locked->nodeRuns()
-                ->whereIn('status', [NodeRunStatus::Pending, NodeRunStatus::Running, NodeRunStatus::AwaitingApproval, NodeRunStatus::AwaitingCallback])
-                ->get();
-
-            foreach ($inFlight as $nodeRun) {
-                $nodeRun->forceFill([
-                    'status' => NodeRunStatus::Cancelled,
-                    'finished_at' => now(),
-                    'callback_token' => null,
-                ])->save();
-            }
-
-            $locked->forceFill([
-                'status' => RunStatus::Cancelled,
-                'error' => 'Run cancelled.',
-                'finished_at' => now(),
-            ])->save();
-
-            return $locked;
-        });
-
-        if ($cancelled === null) {
-            return $run->fresh();
-        }
-
-        foreach ($cancelled->childRuns()->whereIn('status', RunStatus::inFlight())->get() as $childRun) {
-            $this->cancel($childRun, $cancelledBy);
-        }
-
-        event(new RunCancelled($cancelled, $cancelledBy));
-
-        return $cancelled;
+        return $this->canceller->cancel($run, $cancelledBy);
     }
 
     /**
