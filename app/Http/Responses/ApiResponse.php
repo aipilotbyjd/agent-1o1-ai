@@ -2,6 +2,7 @@
 
 namespace App\Http\Responses;
 
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -44,6 +45,32 @@ final class ApiResponse
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+            ],
+        ], HttpResponse::HTTP_OK);
+    }
+
+    /**
+     * The cursor-paginated counterpart of `paginated()`, for collections that
+     * can't be counted or offset — Stripe's invoice list being the case that
+     * introduced it. There is no `total` or `last_page` because the upstream
+     * API doesn't report one; the client walks the cursors instead.
+     */
+    public static function cursorPaginated(AnonymousResourceCollection $resource, string $message = 'Success'): JsonResponse
+    {
+        $paginator = $resource->resource;
+
+        abort_unless($paginator instanceof CursorPaginator, 500, 'ApiResponse::cursorPaginated() requires a cursor-paginated resource collection.');
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => HttpResponse::HTTP_OK,
+            'message' => $message,
+            'data' => $resource->collection,
+            'meta' => [
+                'per_page' => $paginator->perPage(),
+                'next_cursor' => $paginator->nextCursor()?->encode(),
+                'prev_cursor' => $paginator->previousCursor()?->encode(),
+                'has_more' => $paginator->hasMorePages(),
             ],
         ], HttpResponse::HTTP_OK);
     }

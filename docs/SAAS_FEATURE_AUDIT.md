@@ -38,7 +38,7 @@ by picking the more generous of the two.
 
 ### P0 — revenue or correctness impact
 
-#### 2.1 Plan limits are never enforced
+#### 2.1 Plan limits are never enforced — RESOLVED
 
 `PlanSeeder` defines per-plan caps — `['workflows' => 3, 'agents' => 1,
 'members' => 2]` on Free (`database/seeders/PlanSeeder.php:44`), 25/10/5 on
@@ -56,7 +56,12 @@ as do `AgentController::store()` (`:28`) and
 **Effect:** the paid tiers' non-credit differentiators are advertised on the
 pricing screen and unenforced in the API. See §3 for the full treatment.
 
-#### 2.2 No invoice or billing-history endpoints
+**Resolved** by `Services\Billing\PlanLimitGate`, called from every creation
+path on both API surfaces. `GET /billing` now also reports used-vs-max per
+limit. Caps remain plan-level data (`plans.limits`); there are no
+per-workspace overrides.
+
+#### 2.2 No invoice or billing-history endpoints — RESOLVED
 
 `routes/api/internal/billing.php` exposes overview, plans, subscription
 (show/checkout/cancel/resume), credit packs, and the credit ledger. There is
@@ -66,6 +71,11 @@ the `Workspace` billable — none are called anywhere.
 
 **Effect:** a customer cannot see or download what they were charged.
 See §4 for the full treatment.
+
+**Resolved** by `InvoiceController` — `GET /billing/invoices` (cursor
+paginated, open invoices included), `/billing/invoices/upcoming`, and
+`/billing/invoices/{id}`. PDFs are Stripe's own hosted documents, so no PDF
+dependency was added.
 
 #### 2.3 No payment-method management
 
@@ -419,13 +429,15 @@ another workspace → 404, never another tenant's invoice.
 
 ## 5. Suggested order
 
-1. **Billing Portal endpoint** (§4) — smallest change with the widest
-   coverage; unblocks invoices, payment methods, and self-serve cancellation
-   at once.
-2. **Plan limit enforcement** (§3) — the gap currently costing revenue.
-3. **`verified` middleware** (§2.4) — a routing change, no new code.
-4. **Audit log** (§2.5) — gets cheaper the earlier it lands.
-5. **Tax configuration** (§2.8) — a legal exposure, not a feature.
+1. ~~**Plan limit enforcement** (§3)~~ — done.
+2. ~~**Native invoice endpoints** (§4)~~ — done.
+3. **Billing Portal endpoint** — one controller method that closes §2.3
+   (payment methods) and the customer-facing half of §2.9 (self-serve
+   recovery from a failed payment). Requires the Customer Portal to be
+   configured in the Stripe dashboard.
+4. **`verified` middleware** (§2.4) — a routing change, no new code.
+5. **Audit log** (§2.5) — gets cheaper the earlier it lands.
+6. **Tax configuration** (§2.8) — a legal exposure, not a feature.
 
-Native invoice endpoints, dunning sequences, and the admin back-office follow
-once the above are in place.
+Dunning sequences and the admin back-office follow once the above are in
+place.
