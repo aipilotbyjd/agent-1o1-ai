@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Templates;
 
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Templates\SaveAgentAsTemplateRequest;
@@ -14,6 +15,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Templates\AgentTemplate;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Str;
 
 class AgentTemplateController extends Controller
@@ -101,10 +103,11 @@ class AgentTemplateController extends Controller
      * global/public one) silently drops references that don't resolve
      * rather than failing the whole operation.
      */
-    public function use(UseAgentTemplateRequest $request, Workspace $workspace, AgentTemplate $agentTemplate)
+    public function use(UseAgentTemplateRequest $request, Workspace $workspace, AgentTemplate $agentTemplate, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::AgentManage);
         $this->ensureVisibleToWorkspace($workspace, $agentTemplate);
+        $limits->assertCanCreate($workspace, PlanLimit::Agents);
 
         $config = $agentTemplate->config;
         $name = $request->validated('name');

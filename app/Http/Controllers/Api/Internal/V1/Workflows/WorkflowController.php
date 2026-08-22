@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Workflows;
 
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Workflows\StoreWorkflowRequest;
@@ -12,6 +13,7 @@ use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowEdge;
 use App\Models\Workflows\WorkflowNode;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Str;
 
 class WorkflowController extends Controller
@@ -25,9 +27,10 @@ class WorkflowController extends Controller
         ]);
     }
 
-    public function store(StoreWorkflowRequest $request, Workspace $workspace)
+    public function store(StoreWorkflowRequest $request, Workspace $workspace, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::WorkflowManage);
+        $limits->assertCanCreate($workspace, PlanLimit::Workflows);
 
         $workflow = $workspace->workflows()->create([
             ...$request->validated(),
@@ -74,10 +77,11 @@ class WorkflowController extends Controller
      * `WorkflowTemplate::storeFromWorkflow()`, credentials don't need
      * stripping here since the copy never leaves the source workspace).
      */
-    public function duplicate(Workspace $workspace, Workflow $workflow)
+    public function duplicate(Workspace $workspace, Workflow $workflow, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::WorkflowManage);
         $this->ensureBelongsToWorkspace($workspace, $workflow);
+        $limits->assertCanCreate($workspace, PlanLimit::Workflows);
 
         $name = "{$workflow->name} (copy)";
 

@@ -4,6 +4,7 @@ namespace App\Models\Billing;
 
 use App\Enums\Billing\BillingInterval;
 use App\Enums\Billing\Feature;
+use App\Enums\Billing\PlanLimit;
 use Database\Factories\Billing\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -62,6 +63,21 @@ class Plan extends Model
     public function hasFeature(Feature $feature): bool
     {
         return (bool) ($this->features[$feature->value] ?? false);
+    }
+
+    /**
+     * The cap this plan puts on a resource, or `null` for unlimited.
+     *
+     * A missing key reads as unlimited rather than zero, deliberately: adding
+     * a `PlanLimit` case must not retroactively cap every already-seeded plan
+     * at nothing. A negative value (the seeder's `-1`) means the same thing
+     * explicitly, so a plan can declare "unlimited" rather than omit the key.
+     */
+    public function limit(PlanLimit $limit): ?int
+    {
+        $value = $this->limits[$limit->value] ?? -1;
+
+        return $value < 0 ? null : (int) $value;
     }
 
     public function stripePriceId(BillingInterval $interval): ?string

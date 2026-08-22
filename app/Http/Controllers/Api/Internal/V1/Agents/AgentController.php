@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
 use App\Actions\Agents\DuplicateAgentAction;
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\DuplicateAgentRequest;
@@ -12,6 +13,7 @@ use App\Http\Resources\Api\Internal\V1\Agents\AgentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Str;
 
 class AgentController extends Controller
@@ -25,9 +27,10 @@ class AgentController extends Controller
         ]);
     }
 
-    public function store(StoreAgentRequest $request, Workspace $workspace)
+    public function store(StoreAgentRequest $request, Workspace $workspace, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::AgentManage);
+        $limits->assertCanCreate($workspace, PlanLimit::Agents);
 
         $agent = $workspace->agents()->create([
             ...$request->validated(),

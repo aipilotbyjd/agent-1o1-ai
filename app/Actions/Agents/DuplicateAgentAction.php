@@ -2,8 +2,10 @@
 
 namespace App\Actions\Agents;
 
+use App\Enums\Billing\PlanLimit;
 use App\Models\Agents\Agent;
 use App\Models\User;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -20,8 +22,12 @@ use Illuminate\Support\Str;
  */
 class DuplicateAgentAction
 {
+    public function __construct(private readonly PlanLimitGate $limits) {}
+
     public function execute(Agent $agent, ?User $creator = null, ?string $name = null): Agent
     {
+        $this->limits->assertCanCreate($agent->workspace, PlanLimit::Agents);
+
         return DB::transaction(function () use ($agent, $creator, $name): Agent {
             $copy = $agent->workspace->agents()->create([
                 'name' => $name ?? "{$agent->name} (copy)",

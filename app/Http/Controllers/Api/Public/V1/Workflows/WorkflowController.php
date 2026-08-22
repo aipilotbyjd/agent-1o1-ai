@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\Public\V1\Workflows;
 
+use App\Enums\Billing\PlanLimit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Public\V1\StoreWorkflowRequest;
 use App\Http\Requests\Api\Public\V1\UpdateWorkflowRequest;
 use App\Http\Resources\Api\Public\V1\WorkflowResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Workflows\Workflow;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -39,9 +41,12 @@ class WorkflowController extends Controller
         return ApiResponse::success(['workflow' => WorkflowResource::make($workflow)]);
     }
 
-    public function store(StoreWorkflowRequest $request)
+    public function store(StoreWorkflowRequest $request, PlanLimitGate $limits)
     {
-        $workflow = $this->apiKeyWorkspace($request)->workflows()->create([
+        $workspace = $this->apiKeyWorkspace($request);
+        $limits->assertCanCreate($workspace, PlanLimit::Workflows);
+
+        $workflow = $workspace->workflows()->create([
             ...$request->validated(),
             'slug' => $request->validated('slug') ?: Str::slug($request->validated('name')).'-'.Str::random(6),
         ]);
