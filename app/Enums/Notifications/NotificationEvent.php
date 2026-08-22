@@ -7,8 +7,7 @@ namespace App\Enums\Notifications;
  * drives both `NotificationPreferenceController::upsert`'s validation and
  * the `/notifications/events` catalogue endpoint the frontend settings
  * screen reads. Ported from the old project's `NotificationEvent`, trimmed
- * to the events that already have a real trigger site in this codebase —
- * billing dunning/trial-expiry cases land once that logic exists.
+ * to the events that already have a real trigger site in this codebase.
  */
 enum NotificationEvent: string
 {
@@ -19,6 +18,8 @@ enum NotificationEvent: string
     case RunApprovalRequested = 'run.approval_requested';
     case ConnectorCredentialExpired = 'connector.credential_expired';
     case PaymentFailed = 'billing.payment_failed';
+    case PaymentRecovered = 'billing.payment_recovered';
+    case SubscriptionCanceled = 'billing.subscription_canceled';
 
     public const DEFAULT_IN_APP = true;
 
@@ -34,6 +35,8 @@ enum NotificationEvent: string
             self::RunApprovalRequested => 'Run approval requested',
             self::ConnectorCredentialExpired => 'Connector credential expired',
             self::PaymentFailed => 'Payment failed',
+            self::PaymentRecovered => 'Payment recovered',
+            self::SubscriptionCanceled => 'Subscription canceled',
         };
     }
 
@@ -47,6 +50,8 @@ enum NotificationEvent: string
             self::RunApprovalRequested => 'A workflow run pauses awaiting human approval.',
             self::ConnectorCredentialExpired => 'A connector credential expires and could not be automatically refreshed.',
             self::PaymentFailed => 'A subscription invoice charge fails.',
+            self::PaymentRecovered => 'A previously failed subscription charge succeeds and the plan is restored.',
+            self::SubscriptionCanceled => 'A subscription ends, including when Stripe gives up after repeated failed charges.',
         };
     }
 

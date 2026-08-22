@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Billing\BillingController;
+use App\Http\Controllers\Api\Internal\V1\Billing\BillingPortalController;
 use App\Http\Controllers\Api\Internal\V1\Billing\CreditController;
 use App\Http\Controllers\Api\Internal\V1\Billing\CreditPackController;
+use App\Http\Controllers\Api\Internal\V1\Billing\InvoiceController;
 use App\Http\Controllers\Api\Internal\V1\Billing\PlanController;
 use App\Http\Controllers\Api\Internal\V1\Billing\SubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -23,4 +25,12 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('credit-packs/checkout', [CreditPackController::class, 'checkout'])->name('credit-packs.checkout');
 
         Route::get('credits', [CreditController::class, 'index'])->name('credits.index');
+
+        // `upcoming` is declared before `{invoiceId}` so the literal isn't
+        // swallowed as an invoice id.
+        Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('invoices/upcoming', [InvoiceController::class, 'upcoming'])->name('invoices.upcoming');
+        Route::get('invoices/{invoiceId}', [InvoiceController::class, 'show'])->name('invoices.show');
+
+        Route::post('portal', [BillingPortalController::class, 'store'])->name('portal.store');
     });

@@ -35,6 +35,12 @@ class BillingController extends Controller
      * create — render the "2 of 3 workflows" counter from this rather than
      * from `current_plan.limits`, which carries the raw cap with no usage
      * beside it. A `max` of `null` means unlimited.
+     *
+     * `dunning` is non-null only while Stripe is failing to collect. Because
+     * this app grants no grace period, `subscription` will already be null at
+     * that point — the workspace has been dropped to the free plan — so this
+     * is the only thing on the response that can explain why. Render it as a
+     * banner pointing at `POST /billing/portal`.
      */
     public function overview(Workspace $workspace, PlanLimitGate $limits)
     {
@@ -52,7 +58,29 @@ class BillingController extends Controller
             'topup_credits' => $workspace->topup_credits,
             'credits_available' => $workspace->availableCredits(),
             'limits' => $this->limitUsage($workspace, $currentPlan, $limits),
+            'dunning' => $this->dunning($workspace),
         ]);
+    }
+
+    /**
+     * Read off the raw subscription row rather than `activeSubscription()`,
+     * which is null precisely when this matters.
+     *
+     * @return array{started_at: string, attempts: int, invoice_id: string|null}|null
+     */
+    private function dunning(Workspace $workspace): ?array
+    {
+        $subscription = $workspace->subscription('default');
+
+        if (! $subscription?->inDunning()) {
+            return null;
+        }
+
+        return [
+            'started_at' => $subscription->dunning_started_at->toIso8601String(),
+            'attempts' => $subscription->dunning_attempts,
+            'invoice_id' => $subscription->dunning_invoice_id,
+        ];
     }
 
     /**

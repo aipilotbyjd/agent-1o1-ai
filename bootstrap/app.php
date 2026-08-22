@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\BillingAccountNotFoundException;
 use App\Exceptions\ConnectorException;
 use App\Exceptions\FeatureNotAvailableException;
 use App\Exceptions\InsufficientCreditsException;
@@ -86,6 +87,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (InsufficientCreditsException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 402);
+            }
+        });
+
+        $exceptions->render(function (BillingAccountNotFoundException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 409);
             }
         });
 
