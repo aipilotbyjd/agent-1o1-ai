@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Billing\BillingController;
+use App\Http\Controllers\Api\Internal\V1\Billing\BillingPortalController;
 use App\Http\Controllers\Api\Internal\V1\Billing\CreditController;
 use App\Http\Controllers\Api\Internal\V1\Billing\CreditPackController;
 use App\Http\Controllers\Api\Internal\V1\Billing\InvoiceController;
@@ -30,4 +31,6 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/upcoming', [InvoiceController::class, 'upcoming'])->name('invoices.upcoming');
         Route::get('invoices/{invoiceId}', [InvoiceController::class, 'show'])->name('invoices.show');
+
+        Route::post('portal', [BillingPortalController::class, 'store'])->name('portal.store');
     });

@@ -77,7 +77,7 @@ paginated, open invoices included), `/billing/invoices/upcoming`, and
 `/billing/invoices/{id}`. PDFs are Stripe's own hosted documents, so no PDF
 dependency was added.
 
-#### 2.3 No payment-method management
+#### 2.3 No payment-method management — RESOLVED via the Billing Portal
 
 No add/update/remove card, no default-payment-method endpoint, and no Stripe
 Billing Portal session endpoint (`billingPortalUrl()` is unused). `pm_type`
@@ -85,6 +85,13 @@ and `pm_last_four` exist on `workspaces`
 (`database/migrations/2026_08_10_172620_add_billable_columns_to_workspaces_table.php`)
 but are never surfaced. A customer whose card expires has no in-product way
 to fix it.
+
+**Resolved** by `POST /billing/portal`, which returns a Stripe-hosted Billing
+Portal URL covering payment methods, receipts, and self-serve cancellation.
+Native card-management endpoints were deliberately not built: Stripe's portal
+keeps card data off this API entirely. Requires the Customer Portal to be
+switched on once in the Stripe dashboard (Settings → Billing → Customer
+portal).
 
 #### 2.4 Email verification is not enforced
 
@@ -126,13 +133,17 @@ Separately, there is no Stripe Tax / `automatic_tax` configuration and no
 `tax_id` on `workspaces`. Tax becomes a legal exposure, not a feature
 request, the moment the product sells into the EU or UK.
 
-#### 2.9 Dunning stops after one notification
+#### 2.9 Dunning stops after one notification — PARTIALLY ADDRESSED
 
 `handleInvoicePaymentFailed` sends `PaymentFailedNotification` and stops.
 There is no grace period, no retry/escalation sequence, and no in-product
 "your payment failed" state. Because `activeSubscription()` correctly drops
 `past_due`, entitlement disappears silently — the failure mode is a customer
 who is locked out with one email as the only explanation.
+
+**Partially addressed:** the customer can now see the failed invoice
+(§2.2) and fix their card through the portal (§2.3). The server-side
+sequence — grace period, retries, escalation — is still missing.
 
 #### 2.10 Usage periods are not billing-cycle aligned
 
@@ -431,10 +442,7 @@ another workspace → 404, never another tenant's invoice.
 
 1. ~~**Plan limit enforcement** (§3)~~ — done.
 2. ~~**Native invoice endpoints** (§4)~~ — done.
-3. **Billing Portal endpoint** — one controller method that closes §2.3
-   (payment methods) and the customer-facing half of §2.9 (self-serve
-   recovery from a failed payment). Requires the Customer Portal to be
-   configured in the Stripe dashboard.
+3. ~~**Billing Portal endpoint** (§2.3)~~ — done.
 4. **`verified` middleware** (§2.4) — a routing change, no new code.
 5. **Audit log** (§2.5) — gets cheaper the earlier it lands.
 6. **Tax configuration** (§2.8) — a legal exposure, not a feature.
