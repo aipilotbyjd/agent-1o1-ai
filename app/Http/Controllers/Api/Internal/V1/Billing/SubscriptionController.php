@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api\Internal\V1\Billing;
 use App\Actions\Billing\CancelSubscriptionAction;
 use App\Actions\Billing\CheckoutLifetimePlanAction;
 use App\Actions\Billing\CheckoutSubscriptionAction;
+use App\Actions\Billing\PreviewSubscriptionSwapAction;
 use App\Actions\Billing\ResumeSubscriptionAction;
 use App\Enums\Billing\BillingInterval;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Billing\CheckoutSubscriptionRequest;
+use App\Http\Requests\Api\Internal\V1\Billing\PreviewSubscriptionSwapRequest;
+use App\Http\Resources\Api\Internal\V1\Billing\InvoiceResource;
 use App\Http\Resources\Api\Internal\V1\Billing\PlanGrantResource;
 use App\Http\Resources\Api\Internal\V1\Billing\SubscriptionResource;
 use App\Http\Responses\ApiResponse;
@@ -62,6 +65,26 @@ class SubscriptionController extends Controller
         }
 
         return ApiResponse::success(['checkout_url' => $checkoutUrl], 'Checkout session created.');
+    }
+
+    /**
+     * The prorated invoice a plan/interval swap would produce, so a customer
+     * can see the charge before `checkout()` puts it through. Read-only:
+     * nothing here touches the subscription.
+     */
+    public function previewSwap(
+        PreviewSubscriptionSwapRequest $request,
+        Workspace $workspace,
+        PreviewSubscriptionSwapAction $preview,
+    ) {
+        $this->requirePermission(Permission::BillingView);
+
+        $plan = Plan::findOrFail($request->validated('plan_id'));
+        $interval = BillingInterval::from($request->validated('interval'));
+
+        $invoice = $preview->execute($workspace, $plan, $interval);
+
+        return ApiResponse::success(['invoice' => $invoice ? InvoiceResource::make($invoice) : null]);
     }
 
     public function cancel(Request $request, Workspace $workspace, CancelSubscriptionAction $cancel)

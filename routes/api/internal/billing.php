@@ -17,6 +17,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
         Route::get('subscription', [SubscriptionController::class, 'show'])->name('subscription.show');
         Route::post('subscription/checkout', [SubscriptionController::class, 'checkout'])->name('subscription.checkout');
+        Route::get('subscription/preview', [SubscriptionController::class, 'previewSwap'])->name('subscription.preview');
         Route::post('subscription/cancel', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
         Route::post('subscription/resume', [SubscriptionController::class, 'resume'])->name('subscription.resume');
 

@@ -119,12 +119,18 @@ there is no admin route group. Support cannot inspect a workspace, grant
 credits, comp a plan, or suspend an abusive tenant without `tinker` on
 production. The only admin command is `TestAdminAlertCommand`.
 
-#### 2.7 No upgrade/downgrade preview
+#### 2.7 No upgrade/downgrade preview — RESOLVED
 
-`SubscriptionController::checkout()` swaps the plan directly. The customer
-never sees the prorated amount before it is charged, which is a predictable
-source of disputes — and disputes already have a revocation path
-(`handleChargeDisputeCreated`), so the cost is real.
+`SubscriptionController::checkout()` swaps the plan directly, and the
+customer never saw the prorated amount before it was charged — a predictable
+source of disputes, and disputes already have a revocation path
+(`handleChargeDisputeCreated`).
+
+`GET .../billing/subscription/preview` (`PreviewSubscriptionSwapAction`) now
+returns the prorated invoice Stripe's Create Preview Invoice API would
+produce for a given `plan_id`/`interval`, gated by the same availability
+guard as checkout, without charging anything. The client can show that
+number and let the customer confirm before calling `checkout()`.
 
 #### 2.8 No coupons, promo codes, or tax handling
 
