@@ -115,11 +115,11 @@ class Workflow extends Model
         $errors = [];
 
         foreach ($nodes as $node) {
-            if (! $registry->has($node['type'])) {
+            if (! $registry->has($node['type'], $this->workspace_id)) {
                 continue;
             }
 
-            $schema = $registry->resolve($node['type'])->configSchema();
+            $schema = $registry->resolve($node['type'], $this->workspace_id)->configSchema();
 
             foreach ($configValidator->validate($schema, $node['config'] ?? []) as $error) {
                 $errors[] = "Node '{$node['key']}': {$error}";
@@ -215,7 +215,7 @@ class Workflow extends Model
     {
         ['nodes' => $nodes, 'edges' => $edges] = $this->draftGraph();
 
-        $errors = app(GraphValidator::class)->validate($nodes, $edges);
+        $errors = app(GraphValidator::class)->validate($nodes, $edges, $this->workspace_id);
 
         if ($errors !== []) {
             throw new WorkflowValidationException($errors);

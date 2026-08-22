@@ -36,6 +36,14 @@ class GitHubListIssuesNode extends AbstractGitHubNode
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => ['issues' => ['type' => 'array', 'items' => ['type' => 'object']]],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         return ['issues' => $this->get($run, "/repos/{$config['repo']}/issues", $config, [

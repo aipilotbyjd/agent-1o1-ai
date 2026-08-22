@@ -26,11 +26,13 @@ it('simulates a valid graph and flags unresolved template references', function 
     expect($result['steps'])->toHaveCount(2);
     expect($result['steps'][0]['key'])->toBe('a');
     expect($result['steps'][1]['key'])->toBe('b');
-    // `run_code`'s sample output is an empty placeholder (only `router`/`filter`
-    // get a modelled `result`), so both templates referencing node `a`'s output
-    // are flagged — not just the misspelled one.
-    expect($result['warnings'])->toHaveCount(2);
-    expect(collect($result['warnings'])->implode(' '))->toContain('nodes.a.does_not_exist');
+    // `run_code` declares its output shape from its own config
+    // (`RunCodeNode::outputSchema()`), so node `a`'s sample really does carry a
+    // `result` key. Only the misspelled reference is flagged — the whole point
+    // of the schema being there.
+    expect($result['warnings'])->toHaveCount(1);
+    expect($result['warnings'][0])->toContain('nodes.a.does_not_exist');
+    expect(collect($result['warnings'])->implode(' '))->not->toContain('nodes.a.result');
     expect($result['ok'])->toBeFalse();
 });
 

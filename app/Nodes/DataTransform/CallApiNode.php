@@ -47,6 +47,20 @@ class CallApiNode implements NodeContract
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'status' => ['type' => 'integer'],
+                'headers' => ['type' => 'object'],
+                // Whatever the endpoint returns — decoded JSON when it is
+                // JSON, the raw body string when it isn't.
+                'body' => [],
+            ],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $response = Http::withHeaders($config['headers'] ?? [])

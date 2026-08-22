@@ -46,6 +46,24 @@ interface NodeContract
     public function configSchema(): array;
 
     /**
+     * JSON-schema-shaped description of what `execute()` returns — the same
+     * dialect `configSchema()` speaks (`ConfigSchemaValidator`'s subset).
+     *
+     * Takes the node's `config` because several nodes have output shapes the
+     * author chooses: `TransformNode` outputs exactly the keys of its
+     * `mapping`, `RunCodeNode` exactly the `output` of each operation. Nodes
+     * with a fixed shape ignore the argument.
+     *
+     * Consumed by `DryRunner` (to synthesize a realistic sample output for
+     * downstream nodes instead of an empty placeholder) and by
+     * `ContractGenerator` (to derive a workflow's output contract).
+     *
+     * @param  array<string, mixed>  $config  The node's configured params (workflow_nodes.config).
+     * @return array<string, mixed>
+     */
+    public function outputSchema(array $config = []): array;
+
+    /**
      * Execute the node and return its output payload, written to the owning
      * `NodeRun.output`.
      *

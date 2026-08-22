@@ -36,7 +36,7 @@ class WorkflowDiagnosticsController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $workflow);
 
         $graph = $this->graphFrom($request, $workflow);
-        $issues = $this->validator->validate($graph['nodes'], $graph['edges']);
+        $issues = $this->validator->validate($graph['nodes'], $graph['edges'], $workspace->id);
 
         return ApiResponse::success([
             'valid' => $issues === [],
@@ -52,7 +52,7 @@ class WorkflowDiagnosticsController extends Controller
         $graph = $this->graphFrom($request, $workflow);
 
         return ApiResponse::success([
-            'dry_run' => $this->dryRunner->run($graph, $request->validated('input') ?? []),
+            'dry_run' => $this->dryRunner->run($graph, $request->validated('input') ?? [], $workspace->id),
         ]);
     }
 

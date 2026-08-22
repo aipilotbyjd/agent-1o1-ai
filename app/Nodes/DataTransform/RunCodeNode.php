@@ -66,6 +66,31 @@ class RunCodeNode implements NodeContract
         ];
     }
 
+    /**
+     * One property per operation, named by its `output`. The string-producing
+     * operations are typed; `copy` lifts an arbitrary context value, so it
+     * stays unconstrained.
+     */
+    public function outputSchema(array $config = []): array
+    {
+        $properties = [];
+
+        foreach ($config['operations'] ?? [] as $operation) {
+            $outputKey = $operation['output'] ?? null;
+
+            if (! is_string($outputKey) || $outputKey === '') {
+                continue;
+            }
+
+            $properties[$outputKey] = match ($operation['op'] ?? null) {
+                'uppercase', 'lowercase', 'concat' => ['type' => 'string'],
+                default => [],
+            };
+        }
+
+        return ['type' => 'object', 'properties' => $properties];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $output = [];

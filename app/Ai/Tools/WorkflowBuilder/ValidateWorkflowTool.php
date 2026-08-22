@@ -26,7 +26,7 @@ class ValidateWorkflowTool implements Tool
     public function handle(Request $request): Stringable|string
     {
         $graph = $this->session->currentGraph();
-        $issues = app(GraphValidator::class)->validate($graph['nodes'], $graph['edges']);
+        $issues = app(GraphValidator::class)->validate($graph['nodes'], $graph['edges'], $this->session->workspace_id);
 
         if ($issues === []) {
             return 'The draft is valid and can be published.';

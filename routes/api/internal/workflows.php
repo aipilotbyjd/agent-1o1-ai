@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Internal\V1\Workflows\FolderController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\TagController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowContractController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowInterfaceController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowNodePinController;
@@ -25,6 +26,11 @@ Route::middleware(['auth:api', 'workspace.context'])
 
         // The workflow's input contract and the form-run that submits it —
         // see WorkflowInterfaceController.
+        // The same question as `interface`, answered as JSON Schema for a
+        // program rather than as form fields for a person — see
+        // WorkflowContractController.
+        Route::get('{workflow}/contract', [WorkflowContractController::class, 'show'])->name('contract.show');
+
         Route::get('{workflow}/interface', [WorkflowInterfaceController::class, 'show'])->name('interface.show');
         Route::put('{workflow}/interface', [WorkflowInterfaceController::class, 'update'])->name('interface.update');
         Route::post('{workflow}/interface/runs', [WorkflowInterfaceController::class, 'submit'])->name('interface.runs.store');

@@ -47,8 +47,8 @@ class ToolRegistry
     {
         $nodeTools = $agent->toolBindings()
             ->get()
-            ->filter(fn (AgentToolBinding $binding) => $this->nodes->has($binding->node_type))
-            ->map(fn (AgentToolBinding $binding) => new NodeTool($this->nodes->resolve($binding->node_type), $binding, $run));
+            ->filter(fn (AgentToolBinding $binding) => $this->nodes->has($binding->node_type, $agent->workspace_id))
+            ->map(fn (AgentToolBinding $binding) => new NodeTool($this->nodes->resolve($binding->node_type, $agent->workspace_id), $binding, $run));
 
         $workflowTools = $agent->workflows()
             ->get()

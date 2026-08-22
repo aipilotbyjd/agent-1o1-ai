@@ -46,6 +46,22 @@ class TransformNode implements NodeContract
         ];
     }
 
+    /**
+     * Exactly the keys of the configured `mapping`. Each value is whatever
+     * sat at the mapped context path, which the schema can't narrow — so the
+     * properties are declared but left unconstrained.
+     */
+    public function outputSchema(array $config = []): array
+    {
+        $properties = [];
+
+        foreach (array_keys($config['mapping'] ?? []) as $outputKey) {
+            $properties[$outputKey] = [];
+        }
+
+        return ['type' => 'object', 'properties' => $properties];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $mapping = $config['mapping'] ?? [];

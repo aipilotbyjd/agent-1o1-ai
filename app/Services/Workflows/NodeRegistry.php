@@ -3,14 +3,16 @@
 namespace App\Services\Workflows;
 
 use App\Contracts\NodeContract;
+use App\Models\Nodes\CustomNode;
+use App\Nodes\Custom\CustomHttpNode;
 use InvalidArgumentException;
 
 /**
  * Resolves a `workflow_nodes.type` string to an executable `NodeContract`
  * instance. Built-in types are bound at boot by `NodeRegistryServiceProvider`;
- * `custom:{id}` types will resolve to a workspace-scoped `CustomNode` row
- * once custom node execution exists — see docs/WORKFLOWS_PLAN.md's "Node
- * contract & registry" section, and `has()` for how they behave until then.
+ * `custom:{id}` types resolve to a workspace-scoped `CustomNode` row wrapped
+ * in `CustomHttpNode` — see docs/WORKFLOWS_PLAN.md's "Node contract &
+ * registry" section, and `has()` for why the workspace must be named.
  */
 class NodeRegistry
 {
@@ -31,39 +33,35 @@ class NodeRegistry
 
     /**
      * Every caller is really asking "will `resolve()` hand me an executable
-     * node for this type?", so a `custom:{id}` type answers **false** until
-     * custom node execution lands (Stage 11) — a `CustomNode` row can be
-     * authored today, but nothing can run one.
+     * node for this type?", so this must never answer `true` where `resolve()`
+     * would throw. Answering optimistically and throwing later turned a
+     * missing feature into a hard error on every has()-then-resolve() caller:
+     * saving a canvas (`Workflow::replaceGraph()`), publishing it
+     * (`GraphValidator`), testing a node (`NodeTester`), binding one as an
+     * agent tool, and every agent turn whose bindings included one. A `false`
+     * puts the type on exactly the path the engine already has for a type it
+     * doesn't know — schema checks skip it, `ToolRegistry` drops the binding,
+     * and a run that reaches one fails that single node with `resolve()`'s
+     * message instead of taking the whole request down.
      *
-     * Answering `true` for an authored-but-unrunnable custom node and then
-     * throwing from `resolve()` turned an unimplemented feature into a hard
-     * error on every has()-then-resolve() caller: saving a canvas
-     * (`Workflow::replaceGraph()`), publishing it (`GraphValidator`),
-     * testing a node (`NodeTester`), binding one as an agent tool, and every
-     * agent turn whose bindings included one. Answering `false` puts custom
-     * types on exactly the path the engine already has for a type it doesn't
-     * know — schema checks skip it, `ToolRegistry` drops the binding, and a
-     * run that reaches one fails that single node with `resolve()`'s message
-     * instead of taking the whole request down.
+     * `$workspaceId` is **required** to get a `true` for a `custom:{id}` type.
+     * A custom node belongs to one workspace, and a caller that can't say
+     * which workspace it is asking on behalf of has no business resolving one
+     * — so the tenant-unaware default is to refuse. See `customNode()`.
      */
-    public function has(string $type): bool
+    public function has(string $type, ?int $workspaceId = null): bool
     {
         if (str_starts_with($type, self::CUSTOM_PREFIX)) {
-            return false;
+            return $this->customNode($type, $workspaceId) !== null;
         }
 
         return isset($this->builtins[$type]);
     }
 
-    public function resolve(string $type): NodeContract
+    public function resolve(string $type, ?int $workspaceId = null): NodeContract
     {
-        // Reached only from the engine's own execute path (`has()` says
-        // false, so nothing validates its way here) — the message is
-        // persisted onto the failing `NodeRun` and read by whoever is
-        // watching the run, so it stays user-facing. See
-        // docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 11 for the work itself.
         if (str_starts_with($type, self::CUSTOM_PREFIX)) {
-            throw new InvalidArgumentException("Custom nodes can't be executed yet (type [{$type}]).");
+            return $this->resolveCustom($type, $workspaceId);
         }
 
         if (! isset($this->builtins[$type])) {
@@ -71,6 +69,58 @@ class NodeRegistry
         }
 
         return app($this->builtins[$type]);
+    }
+
+    /**
+     * The `CustomNode` behind a `custom:{id}` type, or null when there isn't
+     * an executable one — no such row, wrong workspace, deactivated, or a
+     * definition whose author never supplied an `implementation`.
+     *
+     * Scoping by `workspace_id` in the query (rather than loading by id and
+     * comparing afterwards) is what stops a graph in workspace B from
+     * referencing workspace A's node by guessing its id.
+     */
+    private function customNode(string $type, ?int $workspaceId): ?CustomNode
+    {
+        if ($workspaceId === null) {
+            return null;
+        }
+
+        $id = substr($type, strlen(self::CUSTOM_PREFIX));
+
+        if (! ctype_digit($id)) {
+            return null;
+        }
+
+        $node = CustomNode::query()
+            ->where('workspace_id', $workspaceId)
+            ->find((int) $id);
+
+        return $node?->isExecutable() === true ? $node : null;
+    }
+
+    /**
+     * Reached only from the engine's own execute path when `has()` said false
+     * — the message is persisted onto the failing `NodeRun` and read by
+     * whoever is watching the run, so it stays user-facing and says which of
+     * the several reasons applies.
+     */
+    private function resolveCustom(string $type, ?int $workspaceId): NodeContract
+    {
+        $node = $this->customNode($type, $workspaceId);
+
+        if ($node === null) {
+            throw new InvalidArgumentException(
+                "Custom node [{$type}] is not available in this workspace, or has no implementation to run."
+            );
+        }
+
+        return match ($node->implementation['kind']) {
+            CustomHttpNode::KIND => app(CustomHttpNode::class, ['node' => $node]),
+            default => throw new InvalidArgumentException(
+                "Custom node [{$type}] has an unsupported implementation kind [{$node->implementation['kind']}]."
+            ),
+        };
     }
 
     /**

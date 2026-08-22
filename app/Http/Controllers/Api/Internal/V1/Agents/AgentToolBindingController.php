@@ -31,7 +31,7 @@ class AgentToolBindingController extends Controller
         $this->requirePermission(Permission::AgentManage);
         $this->ensureBelongsToWorkspace($workspace, $agent);
 
-        if (! $this->nodes->has($request->validated('node_type'))) {
+        if (! $this->nodes->has($request->validated('node_type'), $workspace->id)) {
             return ApiResponse::error("No node is registered for type [{$request->validated('node_type')}].", 422);
         }
 

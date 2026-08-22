@@ -153,7 +153,7 @@ class WorkflowRunner
         }
 
         try {
-            $node = $this->registry->resolve($nodeRun->type);
+            $node = $this->registry->resolve($nodeRun->type, $run->workspace_id);
 
             // A node that echoes its own config back (an HTTP node returning
             // the request it made, an API replying with the token it was

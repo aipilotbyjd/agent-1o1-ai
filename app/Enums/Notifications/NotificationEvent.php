@@ -17,6 +17,7 @@ enum NotificationEvent: string
     case MemberRemoved = 'workspace.member_removed';
     case MemberRoleChanged = 'workspace.member_role_changed';
     case RunApprovalRequested = 'run.approval_requested';
+    case RunFailed = 'run.failed';
     case ConnectorCredentialExpired = 'connector.credential_expired';
     case PaymentFailed = 'billing.payment_failed';
 
@@ -32,6 +33,7 @@ enum NotificationEvent: string
             self::MemberRemoved => 'Member removed',
             self::MemberRoleChanged => 'Member role changed',
             self::RunApprovalRequested => 'Run approval requested',
+            self::RunFailed => 'Run failed',
             self::ConnectorCredentialExpired => 'Connector credential expired',
             self::PaymentFailed => 'Payment failed',
         };
@@ -45,6 +47,7 @@ enum NotificationEvent: string
             self::MemberRemoved => 'A member is removed from the workspace.',
             self::MemberRoleChanged => "A member's role in the workspace changes.",
             self::RunApprovalRequested => 'A workflow run pauses awaiting human approval.',
+            self::RunFailed => 'A workflow run ends in failure.',
             self::ConnectorCredentialExpired => 'A connector credential expires and could not be automatically refreshed.',
             self::PaymentFailed => 'A subscription invoice charge fails.',
         };

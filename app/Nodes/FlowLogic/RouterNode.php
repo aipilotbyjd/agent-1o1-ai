@@ -59,6 +59,30 @@ class RouterNode implements NodeContract
         ];
     }
 
+    /**
+     * The branches this router can actually take: every configured
+     * condition's `result`, plus the `default` fall-through `execute()`
+     * returns when none match. Config-derived because a router's outcomes are
+     * exactly what its author named them.
+     */
+    public function outputSchema(array $config = []): array
+    {
+        $results = collect($config['conditions'] ?? [])
+            ->pluck('result')
+            ->filter(fn ($result): bool => is_string($result) && $result !== '')
+            ->push('default')
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'type' => 'object',
+            'properties' => [
+                'result' => ['type' => 'string', 'enum' => $results],
+            ],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         foreach ($config['conditions'] ?? [] as $condition) {

@@ -46,6 +46,14 @@ class DelayNode implements NodeContract
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => ['seconds' => ['type' => 'integer']],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         return ['seconds' => max(0, (int) $config['seconds'])];

@@ -38,6 +38,19 @@ class GitHubCreatePullRequestNode extends AbstractGitHubNode
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'id' => ['type' => 'integer'],
+                'number' => ['type' => 'integer'],
+                'title' => ['type' => 'string'],
+                'url' => ['type' => 'string'],
+            ],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $data = $this->post($run, "/repos/{$config['repo']}/pulls", $config, [

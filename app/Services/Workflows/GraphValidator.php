@@ -23,11 +23,17 @@ class GraphValidator
     ) {}
 
     /**
+     * `$workspaceId` is only consulted for `custom:{id}` node types, whose
+     * config schema lives on a workspace-scoped `CustomNode` row rather than
+     * in the built-in registry. Callers that can't name a workspace still get
+     * every other check; custom nodes just go unchecked for them, exactly as
+     * an unknown type does.
+     *
      * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
      * @param  array<int, array{from: string, to: string, condition: string|null}>  $edges
      * @return array<int, string>
      */
-    public function validate(array $nodes, array $edges): array
+    public function validate(array $nodes, array $edges, ?int $workspaceId = null): array
     {
         if (($errors = $this->duplicateKeyErrors($nodes)) !== []) {
             return $errors;
@@ -55,7 +61,7 @@ class GraphValidator
             return $errors;
         }
 
-        return $this->nodeConfigErrors($nodes);
+        return $this->nodeConfigErrors($nodes, $workspaceId);
     }
 
     /**
@@ -218,7 +224,7 @@ class GraphValidator
      * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
      * @return array<int, string>
      */
-    private function nodeConfigErrors(array $nodes): array
+    private function nodeConfigErrors(array $nodes, ?int $workspaceId): array
     {
         $errors = [];
 
@@ -229,11 +235,11 @@ class GraphValidator
             // schema-check for those until they exist; this is not a
             // silent pass for genuinely unknown types once every stage
             // lands.
-            if (! $this->registry->has($node['type'])) {
+            if (! $this->registry->has($node['type'], $workspaceId)) {
                 continue;
             }
 
-            $schema = $this->registry->resolve($node['type'])->configSchema();
+            $schema = $this->registry->resolve($node['type'], $workspaceId)->configSchema();
 
             foreach ($this->configValidator->validate($schema, $node['config']) as $error) {
                 $errors[] = "Node '{$node['key']}': {$error}";

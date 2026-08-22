@@ -48,6 +48,23 @@ class AskAiNode implements NodeContract
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'text' => ['type' => 'string'],
+                'usage' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'input_tokens' => ['type' => 'integer'],
+                        'output_tokens' => ['type' => 'integer'],
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $agent = new AdHocPromptAgent($config['instructions'] ?? 'You are a helpful assistant.');

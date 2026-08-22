@@ -18,6 +18,22 @@ enum InterfaceFieldType: string
     case Json = 'json';
 
     /**
+     * The JSON-schema type this maps onto, for `ContractGenerator`'s
+     * machine-facing contract. `text`/`select` are presentation choices over a
+     * string, and `json` is an object — the distinction only matters to the
+     * form, not to a caller posting run input.
+     */
+    public function jsonSchemaType(): string
+    {
+        return match ($this) {
+            self::String, self::Text, self::Select => 'string',
+            self::Number => 'number',
+            self::Boolean => 'boolean',
+            self::Json => 'object',
+        };
+    }
+
+    /**
      * The validation rule this type contributes, before required/optional is
      * layered on by `WorkflowInterface`.
      *

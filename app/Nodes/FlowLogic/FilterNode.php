@@ -50,6 +50,19 @@ class FilterNode implements NodeContract
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                // `result` is what conditioned edges match on, so the enum is
+                // the exhaustive list of branches a filter can take.
+                'result' => ['type' => 'string', 'enum' => ['passed', 'failed']],
+                'passed' => ['type' => 'boolean'],
+            ],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $actual = Arr::get($context, $config['path'] ?? '');

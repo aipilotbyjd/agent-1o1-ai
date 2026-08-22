@@ -72,7 +72,7 @@ class NodeTester
     ): NodeRun {
         $config = $configOverride ?? $node->config ?? [];
 
-        $contract = $this->executableContract($node);
+        $contract = $this->executableContract($node, $workflow->workspace_id);
         $this->assertConfigValid($contract, $node, $config);
 
         $this->creditGate->assertCanStartRun($workflow->workspace);
@@ -136,7 +136,7 @@ class NodeTester
     /**
      * @throws WorkflowValidationException
      */
-    private function executableContract(WorkflowNode $node): NodeContract
+    private function executableContract(WorkflowNode $node, int $workspaceId): NodeContract
     {
         if (FlowControlNodeType::tryFrom($node->type) !== null) {
             throw new WorkflowValidationException([
@@ -144,13 +144,13 @@ class NodeTester
             ]);
         }
 
-        if (! $this->registry->has($node->type)) {
+        if (! $this->registry->has($node->type, $workspaceId)) {
             throw new WorkflowValidationException([
                 "Node '{$node->key}' has an unknown type '{$node->type}'.",
             ]);
         }
 
-        return $this->registry->resolve($node->type);
+        return $this->registry->resolve($node->type, $workspaceId);
     }
 
     /**

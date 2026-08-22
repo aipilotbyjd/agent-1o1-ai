@@ -12,14 +12,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * A workspace-defined node — resolved by `NodeRegistry` from a `custom:{id}`
- * type string instead of a PHP `NodeContract` class. Execution machinery
- * (interpreting `config_schema` at runtime) is Stage 11
- * (docs/WORKFLOWS_AGENTS_BUILD_PLAN.md) — this model only carries the
- * definition for now.
+ * type string instead of a PHP `NodeContract` class, and executed by
+ * `App\Nodes\Custom\CustomHttpNode` interpreting `implementation`.
+ *
+ * A row without an `implementation` is a definition with no behavior: it is
+ * still listed in the node picker and can still be placed on a canvas, but
+ * `NodeRegistry::has()` answers false for it and a run that reaches it fails
+ * that one node. `isExecutable()` is the single place that distinction lives.
  */
 #[Fillable([
     'workspace_id', 'category_id', 'type', 'name', 'description', 'icon', 'color',
-    'config_schema', 'input_schema', 'output_schema', 'credential_type', 'is_active', 'created_by',
+    'config_schema', 'implementation', 'input_schema', 'output_schema', 'credential_type', 'is_active', 'created_by',
 ])]
 class CustomNode extends Model
 {
@@ -40,10 +43,30 @@ class CustomNode extends Model
     {
         return [
             'config_schema' => 'array',
+            'implementation' => 'array',
             'input_schema' => 'array',
             'output_schema' => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * The `custom:{id}` string a graph stores in `workflow_nodes.type` to
+     * point at this row.
+     */
+    public function nodeType(): string
+    {
+        return 'custom:'.$this->id;
+    }
+
+    /**
+     * Whether the engine can actually run this node. An inactive row, or one
+     * whose author never supplied an `implementation`, is a catalogue entry
+     * only.
+     */
+    public function isExecutable(): bool
+    {
+        return $this->is_active && ($this->implementation['kind'] ?? null) !== null;
     }
 
     public function workspace(): BelongsTo

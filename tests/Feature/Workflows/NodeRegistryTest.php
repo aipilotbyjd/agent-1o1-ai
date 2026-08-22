@@ -36,6 +36,6 @@ it('throws for an unregistered node type', function () {
     app(NodeRegistry::class)->resolve('does-not-exist');
 })->throws(InvalidArgumentException::class);
 
-it('throws for a custom node type since the executor is not built yet', function () {
+it('throws for a custom node type when no workspace is named', function () {
     app(NodeRegistry::class)->resolve('custom:1');
 })->throws(InvalidArgumentException::class);

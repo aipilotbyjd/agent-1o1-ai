@@ -21,6 +21,16 @@ abstract class AbstractGmailNode implements NodeContract
 
     private const string BASE_URL = 'https://gmail.googleapis.com/gmail/v1';
 
+    /**
+     * Gmail's response bodies are returned verbatim by most of this family —
+     * see `AbstractSlackNode::outputSchema()` for why that is declared as a
+     * free-form object rather than transcribed key by key.
+     */
+    public function outputSchema(array $config = []): array
+    {
+        return ['type' => 'object'];
+    }
+
     public function category(): string
     {
         return 'gmail';

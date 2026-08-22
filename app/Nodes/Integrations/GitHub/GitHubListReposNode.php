@@ -35,6 +35,14 @@ class GitHubListReposNode extends AbstractGitHubNode
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => ['repos' => ['type' => 'array', 'items' => ['type' => 'object']]],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $endpoint = isset($config['owner']) ? "/orgs/{$config['owner']}/repos" : '/user/repos';

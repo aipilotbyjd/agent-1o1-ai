@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Public\V1\Workflows\WorkflowContractController;
 use App\Http\Controllers\Api\Public\V1\Workflows\WorkflowController;
 use App\Http\Controllers\Api\Public\V1\Workflows\WorkflowGraphController;
 use App\Http\Controllers\Api\Public\V1\Workflows\WorkflowInterfaceController;
@@ -12,6 +13,10 @@ Route::middleware('api-key:workflows:read')->group(function () {
 
     // The input contract a caller must satisfy to start this workflow.
     Route::get('workflows/{workflow}/interface', [WorkflowInterfaceController::class, 'show']);
+
+    // The same contract as JSON Schema, plus the output shape — for generated
+    // clients and contract tests. See WorkflowContractController.
+    Route::get('workflows/{workflow}/contract', [WorkflowContractController::class, 'show']);
 });
 
 /*

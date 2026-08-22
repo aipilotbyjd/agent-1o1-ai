@@ -21,6 +21,17 @@ abstract class AbstractGitHubNode implements NodeContract
 
     private const string BASE_URL = 'https://api.github.com';
 
+    /**
+     * GitHub's response bodies are returned verbatim by the `get`-shaped
+     * nodes — see `AbstractSlackNode::outputSchema()` for why that is declared
+     * as a free-form object. The nodes that pick specific fields out of the
+     * response override this with the shape they actually build.
+     */
+    public function outputSchema(array $config = []): array
+    {
+        return ['type' => 'object'];
+    }
+
     public function category(): string
     {
         return 'github';

@@ -32,7 +32,7 @@ class DryRunWorkflowTool implements Tool
             return 'sample_input_json must be a valid JSON object string.';
         }
 
-        $result = app(DryRunner::class)->run($this->session->currentGraph(), $input ?? []);
+        $result = app(DryRunner::class)->run($this->session->currentGraph(), $input ?? [], $this->session->workspace_id);
 
         return json_encode($result, JSON_THROW_ON_ERROR);
     }

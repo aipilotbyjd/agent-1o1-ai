@@ -38,6 +38,25 @@ class CustomNodeFactory extends Factory
         ];
     }
 
+    /**
+     * A node with a runnable HTTP implementation. The default factory state
+     * deliberately leaves `implementation` null — that's the definition-only
+     * row the table shipped with, and it must keep behaving as unrunnable.
+     *
+     * @param  array<string, mixed>  $implementation
+     */
+    public function executable(array $implementation = []): static
+    {
+        return $this->state(fn (): array => [
+            'implementation' => [
+                'kind' => 'http',
+                'method' => 'POST',
+                'url' => 'https://api.example.test/things',
+                ...$implementation,
+            ],
+        ]);
+    }
+
     public function forWorkspace(Workspace $workspace): static
     {
         return $this->state(fn (): array => ['workspace_id' => $workspace->id]);

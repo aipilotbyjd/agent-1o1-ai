@@ -36,6 +36,14 @@ class GitHubListPullRequestsNode extends AbstractGitHubNode
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => ['pull_requests' => ['type' => 'array', 'items' => ['type' => 'object']]],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         return ['pull_requests' => $this->get($run, "/repos/{$config['repo']}/pulls", $config, [

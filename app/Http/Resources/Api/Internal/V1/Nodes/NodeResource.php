@@ -23,12 +23,20 @@ class NodeResource extends JsonResource
         return [
             'id' => $this->id,
             'type' => $this->type,
+            /*
+             * What a graph must put in `workflow_nodes.type` to place this
+             * node — `type` above is the author-facing slug and is *not*
+             * resolvable by `NodeRegistry` on its own.
+             */
+            'node_type' => $this->nodeType(),
             'category' => $this->category?->slug,
             'name' => $this->name,
             'description' => $this->description,
             'icon' => $this->icon,
             'color' => $this->color,
             'config_schema' => $this->config_schema,
+            'implementation' => $this->implementation,
+            'is_executable' => $this->isExecutable(),
             'input_schema' => $this->input_schema,
             'output_schema' => $this->output_schema,
             'credential_type' => $this->credential_type,

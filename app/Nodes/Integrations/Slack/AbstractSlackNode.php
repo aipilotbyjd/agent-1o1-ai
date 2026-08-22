@@ -27,6 +27,20 @@ abstract class AbstractSlackNode implements NodeContract
     }
 
     /**
+     * Most nodes in this family hand back Slack's response body verbatim, and
+     * Slack's payloads are large, endpoint-specific and versioned by Slack —
+     * enumerating their keys here would be a second, silently-drifting copy of
+     * someone else's API. A free-form object is the honest schema: `DryRunner`
+     * reads it as "anything under here is legitimate" rather than warning on
+     * every `{{ nodes.x.channel.id }}`. Nodes that *shape* their own output
+     * override this.
+     */
+    public function outputSchema(array $config = []): array
+    {
+        return ['type' => 'object'];
+    }
+
+    /**
      * @param  array<string, mixed>  $config
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>

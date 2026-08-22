@@ -16,10 +16,13 @@ use App\Services\Workspaces\WorkspaceService;
 use Laravel\Passport\Passport;
 
 /**
- * A `CustomNode` can be authored today but nothing can execute one yet, so
- * `NodeRegistry::has()` answers false for a `custom:{id}` type. These cover
- * the call sites that used to ask `has()` and then `resolve()`, and took the
+ * A `CustomNode` *without* an `implementation` is a definition with no
+ * behavior, so `NodeRegistry::has()` still answers false for it. These cover
+ * the call sites that ask `has()` and then `resolve()`, and used to take the
  * whole request down when the answer disagreed.
+ *
+ * `CustomNodeExecutionTest` covers the other half: a row that does have an
+ * implementation, which runs.
  */
 function workspaceWithCustomNode(): array
 {
@@ -30,10 +33,30 @@ function workspaceWithCustomNode(): array
     return [$owner, $workspace, $custom];
 }
 
-it('reports a custom node type as unresolvable while execution is unimplemented', function () {
-    [, , $custom] = workspaceWithCustomNode();
+it('reports a custom node with no implementation as unresolvable', function () {
+    [, $workspace, $custom] = workspaceWithCustomNode();
 
-    expect(app(NodeRegistry::class)->has("custom:{$custom->id}"))->toBeFalse();
+    expect(app(NodeRegistry::class)->has("custom:{$custom->id}", $workspace->id))->toBeFalse();
+});
+
+it('refuses to resolve an executable custom node without being told the workspace', function () {
+    [, $workspace] = workspaceWithCustomNode();
+
+    $runnable = CustomNode::factory()->forWorkspace($workspace)->executable()->create();
+
+    // A caller that can't name a workspace can't be allowed to reach a
+    // workspace-scoped node — see NodeRegistry::has().
+    expect(app(NodeRegistry::class)->has($runnable->nodeType()))->toBeFalse();
+    expect(app(NodeRegistry::class)->has($runnable->nodeType(), $workspace->id))->toBeTrue();
+});
+
+it('will not resolve a custom node belonging to another workspace', function () {
+    [, $workspace] = workspaceWithCustomNode();
+    [, $otherWorkspace] = workspaceWithCustomNode();
+
+    $runnable = CustomNode::factory()->forWorkspace($workspace)->executable()->create();
+
+    expect(app(NodeRegistry::class)->has($runnable->nodeType(), $otherWorkspace->id))->toBeFalse();
 });
 
 it('saves and publishes a graph containing a custom node instead of erroring', function () {
@@ -70,7 +93,7 @@ it('fails only the custom node at run time, leaving the rest of the graph to rou
 
     $failed = $run->nodeRuns->firstWhere('key', 'a');
     expect($failed->status)->toBe(NodeRunStatus::Failed);
-    expect($failed->error)->toContain("Custom nodes can't be executed yet");
+    expect($failed->error)->toContain('has no implementation to run');
 
     expect($run->nodeRuns->firstWhere('key', 'recovery')->status)->toBe(NodeRunStatus::Completed);
 });

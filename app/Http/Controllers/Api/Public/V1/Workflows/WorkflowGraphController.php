@@ -70,7 +70,7 @@ class WorkflowGraphController extends Controller
         $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $workflow);
 
         $graph = $workflow->draftGraph();
-        $issues = $validator->validate($graph['nodes'], $graph['edges']);
+        $issues = $validator->validate($graph['nodes'], $graph['edges'], $workflow->workspace_id);
 
         return ApiResponse::success(['valid' => $issues === [], 'issues' => $issues]);
     }

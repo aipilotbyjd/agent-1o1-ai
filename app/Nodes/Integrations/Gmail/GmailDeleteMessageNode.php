@@ -34,6 +34,17 @@ class GmailDeleteMessageNode extends AbstractGmailNode
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'trashed' => ['type' => 'boolean'],
+                'message_id' => ['type' => 'string'],
+            ],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $this->post($run, "/users/me/messages/{$config['message_id']}/trash", $config);

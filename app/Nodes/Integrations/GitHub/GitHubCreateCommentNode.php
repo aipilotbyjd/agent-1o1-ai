@@ -36,6 +36,17 @@ class GitHubCreateCommentNode extends AbstractGitHubNode
         ];
     }
 
+    public function outputSchema(array $config = []): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'id' => ['type' => 'integer'],
+                'url' => ['type' => 'string'],
+            ],
+        ];
+    }
+
     public function execute(Run $run, array $config, array $context): array
     {
         $data = $this->post($run, "/repos/{$config['repo']}/issues/{$config['issue_number']}/comments", $config, [
