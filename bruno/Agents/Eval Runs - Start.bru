@@ -1,0 +1,42 @@
+meta {
+  name: Eval Runs - Start
+  type: http
+  seq: 28
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/eval-suites/:suite/runs
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+  suite: {{evalSuiteId}}
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const run = res.body.data?.run;
+    if (run && run.id) {
+      bru.setVar("evalRunId", run.id);
+    }
+  }
+}
+
+docs {
+  Executes every case in the suite and grades the answers. Requires *both*
+  the `agent.manage` and `agent.chat` permissions: it edits nothing, but it
+  really does run the agent — tools included — so trigger rights are as
+  necessary here as they are for chatting with it.
+
+  Synchronous, and it runs the agent once per case, so a large suite takes a
+  while. Suites using `llm_rubric` assertions cost an extra model call per
+  assertion on top.
+
+  Takes no body. Stores the new run's ID in `evalRunId`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { run } }`,
+  with per-case `results` loaded.
+}
