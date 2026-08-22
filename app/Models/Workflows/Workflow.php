@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 #[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'input_schema', 'created_by'])]
@@ -221,14 +222,36 @@ class Workflow extends Model
         }
 
         return DB::transaction(function () use ($nodes, $edges, $notes, $publisher): WorkflowVersion {
-            $nextVersion = ((int) $this->versions()->max('version')) + 1;
+            $graph = ['nodes' => $nodes, 'edges' => $edges];
 
-            $version = $this->versions()->create([
-                'version' => $nextVersion,
-                'graph' => ['nodes' => $nodes, 'edges' => $edges],
-                'notes' => $notes,
-                'published_by' => $publisher?->id,
-            ]);
+            // `lockForUpdate()` on the watermark read, plus a retry on the
+            // `unique(workflow_id, version)` constraint — the same pairing
+            // `AgentVersioner::snapshot()` uses. Two people hitting Publish
+            // at once would otherwise both read the same `max('version')`
+            // and the loser's request would die on the constraint. The lock
+            // alone isn't enough: on a workflow's *first* publish there are
+            // no rows to lock, so both readers see null and both try 1.
+            //
+            // The first attempt runs in a nested transaction — i.e. a
+            // savepoint — because Postgres aborts the whole transaction on a
+            // constraint violation, which would leave the retry below unable
+            // to issue any query at all. Rolling back to the savepoint keeps
+            // the outer transaction usable.
+            try {
+                $version = DB::transaction(fn (): WorkflowVersion => $this->createVersion(
+                    ((int) $this->versions()->lockForUpdate()->max('version')) + 1,
+                    $graph,
+                    $notes,
+                    $publisher,
+                ));
+            } catch (UniqueConstraintViolationException) {
+                $version = $this->createVersion(
+                    ((int) $this->versions()->max('version')) + 1,
+                    $graph,
+                    $notes,
+                    $publisher,
+                );
+            }
 
             $this->forceFill([
                 'current_version_id' => $version->id,
@@ -238,5 +261,18 @@ class Workflow extends Model
 
             return $version;
         });
+    }
+
+    /**
+     * @param  array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}  $graph
+     */
+    private function createVersion(int $version, array $graph, ?string $notes, ?User $publisher): WorkflowVersion
+    {
+        return $this->versions()->create([
+            'version' => $version,
+            'graph' => $graph,
+            'notes' => $notes,
+            'published_by' => $publisher?->id,
+        ]);
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Agents\CreateAgentSessionAction;
 use App\Models\Agents\Agent;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
@@ -83,4 +84,26 @@ it('duplicates an agent with its tools and skills but not its sessions', functio
     expect($copy->toolBindings)->toHaveCount(1);
     expect($copy->sessions)->toHaveCount(0);
     expect($copy->versions()->count())->toBe(1);
+});
+
+it('applies a pinned snapshot to a copy, leaving the live agent unchanged', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['instructions' => 'be terse']);
+
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+
+    $agent->forceFill(['instructions' => 'be verbose'])->save();
+
+    $session = $session->fresh();
+    expect($session->pinnedAgent()->instructions)->toBe('be terse');
+
+    // The session's own `agent` relation must not be left holding the
+    // snapshot as a dirty attribute — a later save() anywhere in the request
+    // would otherwise persist a stale snapshot over the live agent.
+    expect($session->agent->isDirty())->toBeFalse();
+
+    $session->agent->save();
+
+    expect($agent->fresh()->instructions)->toBe('be verbose');
 });

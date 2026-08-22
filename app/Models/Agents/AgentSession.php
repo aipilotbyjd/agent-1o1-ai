@@ -78,6 +78,13 @@ class AgentSession extends Model
      * knowledge, tool bindings) are deliberately left live; see
      * `AgentVersioner`'s docblock for why an old snapshot doesn't get to
      * decide which tools are attached today.
+     *
+     * The snapshot is applied to a `clone`, not to `$this->agent` itself.
+     * Filling the loaded relation would leave the session's own `agent`
+     * carrying pinned values as dirty attributes, so any later `save()` on
+     * it — anywhere in the same request — would quietly persist a months-old
+     * snapshot over the live agent. Cloning keeps the relations shared (so
+     * they stay live, as intended) while the attributes are the clone's own.
      */
     public function pinnedAgent(): Agent
     {
@@ -88,7 +95,7 @@ class AgentSession extends Model
             return $agent;
         }
 
-        return $agent->forceFill([
+        return (clone $agent)->forceFill([
             'instructions' => $snapshot['instructions'] ?? $agent->instructions,
             'provider' => $snapshot['provider'] ?? $agent->provider,
             'model' => $snapshot['model'] ?? null,
