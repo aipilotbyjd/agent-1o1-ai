@@ -239,7 +239,7 @@ class Workflow extends Model
             // the outer transaction usable.
             try {
                 $version = DB::transaction(fn (): WorkflowVersion => $this->createVersion(
-                    ((int) $this->versions()->lockForUpdate()->max('version')) + 1,
+                    ((int) $this->versions()->lockForUpdate()->pluck('version')->max()) + 1,
                     $graph,
                     $notes,
                     $publisher,
