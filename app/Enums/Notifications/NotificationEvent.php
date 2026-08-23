@@ -20,6 +20,11 @@ enum NotificationEvent: string
     case PaymentFailed = 'billing.payment_failed';
     case PaymentRecovered = 'billing.payment_recovered';
     case SubscriptionCanceled = 'billing.subscription_canceled';
+    case TrialEnding = 'billing.trial_ending';
+    case SubscriptionRenewed = 'billing.subscription_renewed';
+    case CreditsLow = 'billing.credits_low';
+    case CreditsExhausted = 'billing.credits_exhausted';
+    case RunFailed = 'run.failed';
 
     public const DEFAULT_IN_APP = true;
 
@@ -37,6 +42,11 @@ enum NotificationEvent: string
             self::PaymentFailed => 'Payment failed',
             self::PaymentRecovered => 'Payment recovered',
             self::SubscriptionCanceled => 'Subscription canceled',
+            self::TrialEnding => 'Trial ending soon',
+            self::SubscriptionRenewed => 'Subscription renewed',
+            self::CreditsLow => 'Credits running low',
+            self::CreditsExhausted => 'Credits exhausted',
+            self::RunFailed => 'Run failed',
         };
     }
 
@@ -52,6 +62,11 @@ enum NotificationEvent: string
             self::PaymentFailed => 'A subscription invoice charge fails.',
             self::PaymentRecovered => 'A previously failed subscription charge succeeds and the plan is restored.',
             self::SubscriptionCanceled => 'A subscription ends, including when Stripe gives up after repeated failed charges.',
+            self::TrialEnding => 'A trial is about to end and convert to a paid charge.',
+            self::SubscriptionRenewed => 'An ordinary subscription renewal charge succeeds.',
+            self::CreditsLow => 'A workspace crosses the configured percentage of its credit allowance.',
+            self::CreditsExhausted => 'A workspace runs out of credits and new runs are being refused.',
+            self::RunFailed => 'A workflow or agent run fails.',
         };
     }
 

@@ -10,7 +10,9 @@ use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Notifications\Billing\CreditsExhaustedNotification;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /**
@@ -51,6 +53,17 @@ it('refuses to start a workflow run when the workspace is out of credits', funct
 
     // Refused before any Run row or node execution — not after the spend.
     expect(Run::where('workspace_id', $workspace->id)->count())->toBe(0);
+});
+
+it('notifies workspace owners when credits are exhausted', function () {
+    Notification::fake();
+    $workspace = exhaustedWorkspace();
+    $workflow = publishedWorkflowFor($workspace);
+
+    expect(fn () => app(StartWorkflowRunAction::class)->execute($workflow))
+        ->toThrow(InsufficientCreditsException::class);
+
+    Notification::assertSentTo($workspace->owner, CreditsExhaustedNotification::class);
 });
 
 it('allows a workflow run while credits remain', function () {

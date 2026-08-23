@@ -21,6 +21,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trial Ending Warning
+    |--------------------------------------------------------------------------
+    |
+    | How many days before `trial_ends_at` `billing:notify-trial-ending` warns
+    | a workspace that its trial is about to convert to a paid charge.
+    |
+    */
+
+    'trial_ending_warning_days' => (int) env('BILLING_TRIAL_ENDING_WARNING_DAYS', 3),
+
+    /*
+    |--------------------------------------------------------------------------
     | Billing Intervals
     |--------------------------------------------------------------------------
     |

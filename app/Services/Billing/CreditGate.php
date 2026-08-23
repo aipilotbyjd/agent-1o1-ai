@@ -5,7 +5,10 @@ namespace App\Services\Billing;
 use App\Enums\Notifications\AlertSeverity;
 use App\Exceptions\InsufficientCreditsException;
 use App\Models\Workspaces\Workspace;
+use App\Notifications\Billing\CreditsExhaustedNotification;
 use App\Services\Notifications\AdminAlerts;
+use App\Services\Notifications\NotificationDispatcher;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * The pre-flight balance check. Credits are metered *after* the fact, on
@@ -32,7 +35,17 @@ class CreditGate
      */
     private const int MINIMUM_CREDITS_TO_START = 1;
 
-    public function __construct(private readonly AdminAlerts $adminAlerts) {}
+    /**
+     * How long a workspace goes without a repeat "you're out of credits"
+     * notification — independent of `admin_alerts.enabled`, since that flag
+     * governs operator alerting, not what customers are told.
+     */
+    private const int NOTIFICATION_THROTTLE_SECONDS = 3600;
+
+    public function __construct(
+        private readonly AdminAlerts $adminAlerts,
+        private readonly NotificationDispatcher $dispatcher,
+    ) {}
 
     /**
      * @throws InsufficientCreditsException
@@ -67,6 +80,31 @@ class CreditGate
             ],
             severity: AlertSeverity::Critical,
             throttleKey: "usage.limit_exhausted:{$workspace->id}",
+        );
+
+        $this->notifyCreditsExhausted($workspace);
+    }
+
+    /**
+     * Told once per throttle window, same as the admin alert above but on
+     * its own key — this must fire even when `admin_alerts.enabled` is off,
+     * since that flag is an operator kill switch, not a customer-facing one.
+     */
+    private function notifyCreditsExhausted(Workspace $workspace): void
+    {
+        $claimed = Cache::add(
+            'credit-gate:exhausted-notified:'.$workspace->id,
+            true,
+            self::NOTIFICATION_THROTTLE_SECONDS,
+        );
+
+        if (! $claimed) {
+            return;
+        }
+
+        $this->dispatcher->dispatch(
+            $this->dispatcher->ownersAndAdmins($workspace),
+            new CreditsExhaustedNotification($workspace),
         );
     }
 }

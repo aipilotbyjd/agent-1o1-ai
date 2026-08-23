@@ -7,6 +7,7 @@ use App\Models\Workspaces\Workspace;
 use App\Notifications\Billing\PaymentFailedNotification;
 use App\Notifications\Billing\PaymentRecoveredNotification;
 use App\Notifications\Billing\SubscriptionCanceledNotification;
+use App\Notifications\Billing\SubscriptionRenewedNotification;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
@@ -199,6 +200,50 @@ it('stays silent when a charge succeeds with no dunning cycle open', function ()
     ))->assertOk();
 
     Notification::assertNothingSent();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Ordinary renewals
+|--------------------------------------------------------------------------
+*/
+
+it('notifies on an ordinary renewal charge', function () {
+    Notification::fake();
+    subscribedWorkspace();
+
+    $this->postJson('/api/stripe/webhook', invoiceEventPayload(
+        'evt_paid_1', 'invoice.payment_succeeded', 'cus_dunning', ['billing_reason' => 'subscription_cycle'],
+    ))->assertOk();
+
+    Notification::assertSentTo(User::first(), SubscriptionRenewedNotification::class);
+});
+
+it('does not send a renewal notification for the first charge on checkout', function () {
+    Notification::fake();
+    subscribedWorkspace();
+
+    $this->postJson('/api/stripe/webhook', invoiceEventPayload(
+        'evt_paid_1', 'invoice.payment_succeeded', 'cus_dunning', ['billing_reason' => 'subscription_create'],
+    ))->assertOk();
+
+    Notification::assertNothingSent();
+});
+
+it('sends recovery, not a renewal notification, when a renewal closes a dunning cycle', function () {
+    Notification::fake();
+    subscribedWorkspace();
+
+    $this->postJson('/api/stripe/webhook', invoiceEventPayload(
+        'evt_fail_1', 'invoice.payment_failed', 'cus_dunning',
+    ))->assertOk();
+
+    $this->postJson('/api/stripe/webhook', invoiceEventPayload(
+        'evt_paid_1', 'invoice.payment_succeeded', 'cus_dunning', ['billing_reason' => 'subscription_cycle'],
+    ))->assertOk();
+
+    Notification::assertSentTo(User::first(), PaymentRecoveredNotification::class);
+    Notification::assertNotSentTo(User::first(), SubscriptionRenewedNotification::class);
 });
 
 /*

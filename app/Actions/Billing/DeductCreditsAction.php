@@ -8,7 +8,9 @@ use App\Exceptions\InsufficientCreditsException;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Workspaces\Workspace;
+use App\Notifications\Billing\CreditsLowNotification;
 use App\Services\Notifications\AdminAlerts;
+use App\Services\Notifications\NotificationDispatcher;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -40,7 +42,10 @@ use Illuminate\Support\Facades\DB;
  */
 class DeductCreditsAction
 {
-    public function __construct(private readonly AdminAlerts $adminAlerts) {}
+    public function __construct(
+        private readonly AdminAlerts $adminAlerts,
+        private readonly NotificationDispatcher $dispatcher,
+    ) {}
 
     /**
      * @param  bool  $allowOverdraft  Record the charge even when it exceeds the
@@ -179,6 +184,8 @@ class DeductCreditsAction
             return;
         }
 
+        $percentUsed = (int) floor($creditsAfter / $creditsLimit * 100);
+
         $this->adminAlerts->raise(
             key: 'usage.threshold_crossed',
             title: "{$workspace->name} crossed {$percent}% of its credit limit",
@@ -187,10 +194,15 @@ class DeductCreditsAction
                 'workspace_id' => $workspace->id,
                 'credits_used' => $creditsAfter,
                 'credits_limit' => $creditsLimit,
-                'percent_used' => (int) floor($creditsAfter / $creditsLimit * 100),
+                'percent_used' => $percentUsed,
             ],
             severity: AlertSeverity::Warning,
             throttleKey: "usage.threshold_crossed:{$workspace->id}",
+        );
+
+        $this->dispatcher->dispatch(
+            $this->dispatcher->ownersAndAdmins($workspace),
+            new CreditsLowNotification($workspace, $creditsAfter, $creditsLimit, $percentUsed),
         );
     }
 }

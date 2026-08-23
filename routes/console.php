@@ -14,3 +14,4 @@ Schedule::command('triggers:run-due')->everyMinute()->withoutOverlapping()->onOn
 Schedule::command('triggers:retry-stuck')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 Schedule::job(new ExpireStaleWaitsJob)->everyMinute()->onOneServer();
 Schedule::command('billing:expire-trials')->hourly()->withoutOverlapping()->onOneServer();
+Schedule::command('billing:notify-trial-ending')->daily()->withoutOverlapping()->onOneServer();

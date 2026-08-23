@@ -7,6 +7,8 @@ use App\Exceptions\InsufficientCreditsException;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Admin\AdminAlertNotification;
+use App\Notifications\Billing\CreditsExhaustedNotification;
+use App\Notifications\Billing\CreditsLowNotification;
 use App\Services\Billing\CreditGate;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Notification;
@@ -52,6 +54,19 @@ it('alerts admins when a charge crosses the usage threshold', function () {
                     'percent_used' => 80,
                 ];
         },
+    );
+});
+
+it('also notifies the workspace itself when a charge crosses the usage threshold', function () {
+    $workspace = workspaceWithCreditLimit(100);
+    Notification::fake();
+
+    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 80);
+
+    Notification::assertSentTo(
+        $workspace->owner,
+        CreditsLowNotification::class,
+        fn (CreditsLowNotification $n): bool => $n->data['percent_used'] === 80,
     );
 });
 
@@ -136,4 +151,29 @@ it('stays quiet at the gate while the workspace can still afford to start', func
     app(CreditGate::class)->assertCanStartRun($workspace);
 
     Notification::assertNothingSent();
+});
+
+it('also notifies the workspace when the gate refuses it for lack of credits', function () {
+    $workspace = workspaceWithCreditLimit(10);
+    spendPlanAllowance($workspace);
+
+    Notification::fake();
+
+    expect(fn () => app(CreditGate::class)->assertCanStartRun($workspace->fresh()))
+        ->toThrow(InsufficientCreditsException::class);
+
+    Notification::assertSentTo($workspace->owner, CreditsExhaustedNotification::class);
+});
+
+it('notifies the workspace of exhaustion even when admin alerting is disabled', function () {
+    config()->set('admin_alerts.enabled', false);
+    $workspace = workspaceWithCreditLimit(10);
+    spendPlanAllowance($workspace);
+
+    Notification::fake();
+
+    expect(fn () => app(CreditGate::class)->assertCanStartRun($workspace->fresh()))
+        ->toThrow(InsufficientCreditsException::class);
+
+    Notification::assertSentTo($workspace->owner, CreditsExhaustedNotification::class);
 });

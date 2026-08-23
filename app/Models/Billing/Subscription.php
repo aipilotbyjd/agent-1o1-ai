@@ -20,6 +20,7 @@ class Subscription extends CashierSubscription
         return [
             'dunning_started_at' => 'datetime',
             'dunning_attempts' => 'integer',
+            'trial_ending_notified_at' => 'datetime',
         ];
     }
 
@@ -67,6 +68,15 @@ class Subscription extends CashierSubscription
         ])->save();
 
         return true;
+    }
+
+    /**
+     * Records that the trial-ending reminder was sent, so
+     * `billing:notify-trial-ending` never sends it twice for the same trial.
+     */
+    public function markTrialEndingNotified(): void
+    {
+        $this->forceFill(['trial_ending_notified_at' => now()])->save();
     }
 
     /**

@@ -13,6 +13,7 @@ use App\Models\Billing\ProcessedWebhookEvent;
 use App\Notifications\Billing\PaymentFailedNotification;
 use App\Notifications\Billing\PaymentRecoveredNotification;
 use App\Notifications\Billing\SubscriptionCanceledNotification;
+use App\Notifications\Billing\SubscriptionRenewedNotification;
 use App\Services\Notifications\NotificationDispatcher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -229,13 +230,18 @@ class StripeWebhookController extends CashierWebhookController
     /**
      * Collection succeeded. Closes any open dunning cycle and says so — but
      * only if there was one, so an ordinary monthly renewal doesn't generate a
-     * "payment recovered" notification nobody was waiting for.
+     * "payment recovered" notification nobody was waiting for. An ordinary
+     * renewal (Stripe's `billing_reason: subscription_cycle`, with no
+     * dunning cycle to close) gets its own quieter notification instead — the
+     * first charge on checkout (`subscription_create`) stays silent, since
+     * the checkout response already confirmed it.
      */
     protected function handleInvoicePaymentSucceeded(array $payload)
     {
         $response = parent::handleInvoicePaymentSucceeded($payload);
 
-        $customerId = $payload['data']['object']['customer'] ?? null;
+        $invoice = $payload['data']['object'] ?? [];
+        $customerId = $invoice['customer'] ?? null;
 
         if ($customerId === null) {
             return $response;
@@ -244,12 +250,21 @@ class StripeWebhookController extends CashierWebhookController
         $workspace = Cashier::findBillable($customerId);
         $recovered = $workspace?->subscription('default')?->clearDunning() ?? false;
 
-        if ($workspace !== null && $recovered) {
-            $dispatcher = app(NotificationDispatcher::class);
+        if ($workspace === null) {
+            return $response;
+        }
 
+        $dispatcher = app(NotificationDispatcher::class);
+
+        if ($recovered) {
             $dispatcher->dispatch(
                 $dispatcher->ownersAndAdmins($workspace),
                 new PaymentRecoveredNotification($workspace),
+            );
+        } elseif (($invoice['billing_reason'] ?? null) === 'subscription_cycle') {
+            $dispatcher->dispatch(
+                $dispatcher->ownersAndAdmins($workspace),
+                new SubscriptionRenewedNotification($workspace, $invoice['id'] ?? null),
             );
         }
 
