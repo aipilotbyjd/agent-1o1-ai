@@ -40,6 +40,38 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Manage repositories, issues, pull requests, and commits on GitHub.',
                 'sort_order' => 3,
             ],
+            [
+                'slug' => 'google_drive',
+                'name' => 'Google Drive',
+                'icon' => 'drive',
+                'color' => '#0F9D58',
+                'description' => 'List, fetch, and delete files in Google Drive.',
+                'sort_order' => 4,
+            ],
+            [
+                'slug' => 'google_sheets',
+                'name' => 'Google Sheets',
+                'icon' => 'sheets',
+                'color' => '#0F9D58',
+                'description' => 'Read, append, and update values in Google Sheets.',
+                'sort_order' => 5,
+            ],
+            [
+                'slug' => 'google_docs',
+                'name' => 'Google Docs',
+                'icon' => 'docs',
+                'color' => '#4285F4',
+                'description' => 'Create and edit Google Docs.',
+                'sort_order' => 6,
+            ],
+            [
+                'slug' => 'google_calendar',
+                'name' => 'Google Calendar',
+                'icon' => 'calendar',
+                'color' => '#4285F4',
+                'description' => 'List, create, and delete events on Google Calendar.',
+                'sort_order' => 7,
+            ],
         ];
 
         foreach ($categories as $category) {
