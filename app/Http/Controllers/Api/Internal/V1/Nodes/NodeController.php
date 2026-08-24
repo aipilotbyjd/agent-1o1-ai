@@ -53,6 +53,22 @@ class NodeController extends Controller
     }
 
     /**
+     * The global built-in catalog only — no workspace, no custom nodes.
+     */
+    public function globalCatalog(Request $request)
+    {
+        $category = $request->query('category');
+        $search = $request->query('search');
+
+        $nodes = collect($this->registry->catalog())
+            ->when($category, fn ($nodes) => $nodes->where('category', $category))
+            ->when($search, fn ($nodes) => $nodes->filter(fn (array $node): bool => $this->matchesSearch($node['type'], $node['name'], $node['description'], $search)))
+            ->values();
+
+        return ApiResponse::success(['nodes' => $nodes]);
+    }
+
+    /**
      * Just this workspace's custom nodes — no built-ins merged in.
      */
     public function custom(Workspace $workspace)
