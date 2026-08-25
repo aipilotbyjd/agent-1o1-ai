@@ -10,6 +10,7 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
 use App\Models\Billing\Subscription as BillingSubscription;
 use App\Models\Runs\NodeRun;
@@ -168,6 +169,7 @@ class AppServiceProvider extends ServiceProvider
             'agent_session' => AgentSession::class,
             'agent_eval_run' => AgentEvalRun::class,
             'reflection_run' => ReflectionRun::class,
+            'agent_session_evaluation' => AgentSessionEvaluation::class,
             'workflow_template' => WorkflowTemplate::class,
             'agent_template' => AgentTemplate::class,
             // Needed for Laravel\Ai\Concerns\RemembersConversations'

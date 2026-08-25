@@ -141,6 +141,20 @@ class Agent extends Model
         return $this->hasMany(ReflectionRun::class);
     }
 
+    /**
+     * Whether/how this agent's live sessions are automatically graded after
+     * each turn — see `Services\Agents\SessionEvaluator`.
+     */
+    public function evaluationSettings(): HasOne
+    {
+        return $this->hasOne(AgentEvaluationSettings::class);
+    }
+
+    public function sessionEvaluations(): HasMany
+    {
+        return $this->hasMany(AgentSessionEvaluation::class);
+    }
+
     public function reflections(): HasMany
     {
         return $this->hasMany(Reflection::class);

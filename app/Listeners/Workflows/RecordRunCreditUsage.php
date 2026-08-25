@@ -10,6 +10,7 @@ use App\Events\Runs\RunCompleted;
 use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use App\Services\Billing\CreditMeter;
@@ -67,7 +68,33 @@ class RecordRunCreditUsage implements ShouldQueue
 
         if ($run->runnable instanceof AgentEvalRun) {
             $this->chargeForEvalRun($run->runnable);
+
+            return;
         }
+
+        if ($run->runnable instanceof AgentSessionEvaluation) {
+            $this->chargeForSessionEvaluation($run->runnable);
+        }
+    }
+
+    /**
+     * One charge per evaluation. An evaluation that failed before the judge
+     * answered carries no usage and is skipped — nothing was spent on it.
+     */
+    private function chargeForSessionEvaluation(AgentSessionEvaluation $evaluation): void
+    {
+        if ($evaluation->usage === null) {
+            return;
+        }
+
+        $this->deductCredits->execute(
+            $evaluation->workspace,
+            CreditTransactionType::SessionEvaluation,
+            $evaluation->id,
+            $this->meter->costForSessionEvaluation($evaluation),
+            'Session evaluation',
+            allowOverdraft: true,
+        );
     }
 
     private function chargeForWorkflowRun(Run $run): void

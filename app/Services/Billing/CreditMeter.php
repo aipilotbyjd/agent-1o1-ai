@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Models\Agents\AgentEvalCaseResult;
 use App\Models\Agents\AgentMessage;
+use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Runs\NodeRun;
 
 /**
@@ -43,6 +44,15 @@ class CreditMeter
     public function costForEvalCase(AgentEvalCaseResult $result): int
     {
         return self::BASE_CREDITS_PER_RUN + $this->tokenCost($result->usage);
+    }
+
+    /**
+     * One automatic session grading. Priced the same as any other judge
+     * call — it is one, on the same models, same tokens.
+     */
+    public function costForSessionEvaluation(AgentSessionEvaluation $evaluation): int
+    {
+        return self::BASE_CREDITS_PER_RUN + $this->tokenCost($evaluation->usage);
     }
 
     /**

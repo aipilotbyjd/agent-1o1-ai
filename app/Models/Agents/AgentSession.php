@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -117,5 +118,16 @@ class AgentSession extends Model
     public function runs(): MorphMany
     {
         return $this->morphMany(Run::class, 'runnable');
+    }
+
+    /**
+     * The latest automatic QA grading of this conversation — see
+     * `Services\Agents\SessionEvaluator`. A `HasOne` because a session that
+     * continues and completes again replaces its evaluation rather than
+     * accumulating one per turn.
+     */
+    public function evaluation(): HasOne
+    {
+        return $this->hasOne(AgentSessionEvaluation::class);
     }
 }

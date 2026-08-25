@@ -4,9 +4,11 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalCaseController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalRunController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalSuiteController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvaluationSettingsController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionEvaluationController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionStreamController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSkillController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentToolBindingController;
@@ -98,4 +100,13 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{agent}/reflections/{reflection}', [ReflectionController::class, 'show'])->name('reflections.show');
         Route::post('{agent}/reflections/{reflection}/apply', [ReflectionController::class, 'apply'])->name('reflections.apply');
         Route::post('{agent}/reflections/{reflection}/dismiss', [ReflectionController::class, 'dismiss'])->name('reflections.dismiss');
+
+        // Evaluations: automatic QA grading of live sessions — see
+        // Services\Agents\SessionEvaluator.
+        Route::get('{agent}/evaluation-settings', [AgentEvaluationSettingsController::class, 'show'])->name('evaluation-settings.show');
+        Route::patch('{agent}/evaluation-settings', [AgentEvaluationSettingsController::class, 'update'])->name('evaluation-settings.update');
+
+        Route::get('{agent}/session-evaluations', [AgentSessionEvaluationController::class, 'index'])->name('session-evaluations.index');
+        Route::get('{agent}/session-evaluations/{evaluation}', [AgentSessionEvaluationController::class, 'show'])->name('session-evaluations.show');
+        Route::post('{agent}/sessions/{session}/evaluation', [AgentSessionEvaluationController::class, 'run'])->name('sessions.evaluation.run');
     });

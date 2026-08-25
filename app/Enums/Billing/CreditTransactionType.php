@@ -18,4 +18,11 @@ enum CreditTransactionType: string
      * `AgentMessage` id.
      */
     case EvalCase = 'eval_case';
+
+    /**
+     * One automatic QA grading of a live `AgentSession` — see
+     * `Services\Agents\SessionEvaluator`. Kept distinct from `AgentStep` for
+     * the same ledger-clarity and idempotency-key reasons as `EvalCase`.
+     */
+    case SessionEvaluation = 'session_evaluation';
 }
