@@ -12,6 +12,9 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentSkillController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentToolBindingController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentVersionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentWorkflowToolController;
+use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionController;
+use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionRunController;
+use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:api', 'workspace.context'])
@@ -81,4 +84,18 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('{agent}/memories', [AgentMemoryController::class, 'store'])->name('memories.store');
         Route::patch('{agent}/memories/{memory}', [AgentMemoryController::class, 'update'])->name('memories.update');
         Route::delete('{agent}/memories/{memory}', [AgentMemoryController::class, 'destroy'])->name('memories.destroy');
+
+        // Reflections: periodic review of the agent's own past sessions —
+        // see Services\Agents\ReflectionAnalyzer.
+        Route::get('{agent}/reflection-settings', [ReflectionSettingsController::class, 'show'])->name('reflection-settings.show');
+        Route::patch('{agent}/reflection-settings', [ReflectionSettingsController::class, 'update'])->name('reflection-settings.update');
+
+        Route::get('{agent}/reflection-runs', [ReflectionRunController::class, 'index'])->name('reflection-runs.index');
+        Route::post('{agent}/reflection-runs', [ReflectionRunController::class, 'store'])->name('reflection-runs.store');
+        Route::get('{agent}/reflection-runs/{run}', [ReflectionRunController::class, 'show'])->name('reflection-runs.show');
+
+        Route::get('{agent}/reflections', [ReflectionController::class, 'index'])->name('reflections.index');
+        Route::get('{agent}/reflections/{reflection}', [ReflectionController::class, 'show'])->name('reflections.show');
+        Route::post('{agent}/reflections/{reflection}/apply', [ReflectionController::class, 'apply'])->name('reflections.apply');
+        Route::post('{agent}/reflections/{reflection}/dismiss', [ReflectionController::class, 'dismiss'])->name('reflections.dismiss');
     });

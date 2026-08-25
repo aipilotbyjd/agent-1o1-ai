@@ -25,6 +25,7 @@ enum NotificationEvent: string
     case CreditsLow = 'billing.credits_low';
     case CreditsExhausted = 'billing.credits_exhausted';
     case RunFailed = 'run.failed';
+    case ReflectionRunCompleted = 'agent.reflection_run_completed';
 
     public const DEFAULT_IN_APP = true;
 
@@ -47,6 +48,7 @@ enum NotificationEvent: string
             self::CreditsLow => 'Credits running low',
             self::CreditsExhausted => 'Credits exhausted',
             self::RunFailed => 'Run failed',
+            self::ReflectionRunCompleted => 'Agent reflection completed',
         };
     }
 
@@ -67,6 +69,7 @@ enum NotificationEvent: string
             self::CreditsLow => 'A workspace crosses the configured percentage of its credit allowance.',
             self::CreditsExhausted => 'A workspace runs out of credits and new runs are being refused.',
             self::RunFailed => 'A workflow or agent run fails.',
+            self::ReflectionRunCompleted => 'A scheduled reflection run finishes analyzing an agent\'s recent conversations.',
         };
     }
 

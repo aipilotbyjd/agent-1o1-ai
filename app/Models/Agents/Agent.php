@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -124,5 +125,24 @@ class Agent extends Model
     public function evalSuites(): HasMany
     {
         return $this->hasMany(AgentEvalSuite::class);
+    }
+
+    /**
+     * Whether/how this agent periodically reviews its own past sessions —
+     * see `Services\Agents\ReflectionAnalyzer`.
+     */
+    public function reflectionSettings(): HasOne
+    {
+        return $this->hasOne(ReflectionSettings::class);
+    }
+
+    public function reflectionRuns(): HasMany
+    {
+        return $this->hasMany(ReflectionRun::class);
+    }
+
+    public function reflections(): HasMany
+    {
+        return $this->hasMany(Reflection::class);
     }
 }
