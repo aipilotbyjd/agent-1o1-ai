@@ -1,0 +1,24 @@
+meta {
+  name: Model Catalog - List
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/model-catalog
+  body: none
+  auth: inherit
+}
+
+docs {
+  The public model picker for an agent's `model_catalog_id` or an
+  `ask_ai` workflow node's `model_catalog_slug` config — not
+  workspace-scoped, same as `Nodes - List (Global Catalog)`.
+
+  Only active, non-internal catalog entries are returned. Which real
+  backend(s) actually serve an entry (`model_routes`, credentials,
+  priority/failover order) is never exposed here — see
+  `Services\Ai\ModelCatalogResolver`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { model_catalog: [{ slug, display_name, brand, capabilities }] } }`.
+}
