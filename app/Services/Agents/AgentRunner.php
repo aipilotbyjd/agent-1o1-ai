@@ -12,6 +12,7 @@ use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
+use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Throwable;
@@ -33,6 +34,7 @@ class AgentRunner
         private readonly ToolRegistry $tools,
         private readonly SkillInjector $skillInjector,
         private readonly CreditGate $creditGate,
+        private readonly ModelCatalogResolver $modelCatalog,
     ) {}
 
     public function run(AgentSession $session, string $message, string $triggerType = 'manual'): AgentMessage
@@ -103,14 +105,33 @@ class AgentRunner
         ]);
 
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
+        [$provider, $model] = $this->resolveProvider($agent);
 
         return new AgentTurn(
             $session,
             $run,
             new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run)),
-            $agent->provider,
-            $agent->model,
+            $provider,
+            $model,
         );
+    }
+
+    /**
+     * The provider/model to prompt with for `$agent` — either its plain
+     * `provider`/`model` columns, or, when it's opted into a
+     * `model_catalog_id`, the ordered failover chain resolved from it (see
+     * `ModelCatalogResolver`). A resolved chain already carries its own
+     * model ids, so `model` comes back `null` in that case.
+     *
+     * @return array{0: string|array<string, string>, 1: ?string}
+     */
+    private function resolveProvider(AgentModel $agent): array
+    {
+        if ($agent->model_catalog_id === null) {
+            return [$agent->provider, $agent->model];
+        }
+
+        return [$this->modelCatalog->providerChain($agent->modelCatalog->slug), null];
     }
 
     /**
@@ -175,8 +196,10 @@ class AgentRunner
     public function ask(AgentModel $agent, Run $run, string $prompt): array
     {
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
+        [$provider, $model] = $this->resolveProvider($agent);
+
         $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run)))
-            ->prompt($prompt, provider: $agent->provider, model: $agent->model);
+            ->prompt($prompt, provider: $provider, model: $model);
 
         return ['text' => $response->text, 'usage' => $response->usage->toArray()];
     }

@@ -6,9 +6,12 @@ use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
 use App\Models\Agents\Agent;
+use App\Models\Ai\ModelCatalog;
+use App\Models\Ai\ModelRoute;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Ai\Prompts\AgentPrompt;
 
 it('sends a message with no tools and completes a run', function () {
     WorkspaceAgent::fake(['Hello there!']);
@@ -71,4 +74,31 @@ it('fails the run and rethrows when the provider call fails', function () {
 
     // The user's message is still recorded even though the reply failed.
     expect($session->fresh()->messages)->toHaveCount(1);
+});
+
+it('prompts using the resolved model catalog chain when the agent is opted in', function () {
+    WorkspaceAgent::fake(['Hello there!']);
+
+    $catalog = ModelCatalog::factory()->create(['slug' => 'claude-3-5-sonnet']);
+    ModelRoute::factory()->forCatalog($catalog)->create([
+        'execution_provider' => 'anthropic',
+        'execution_model_id' => 'claude-3-5-sonnet-latest',
+        'priority' => 0,
+    ]);
+    ModelRoute::factory()->forCatalog($catalog)->create([
+        'execution_provider' => 'openrouter',
+        'execution_model_id' => 'anthropic/claude-3.5-sonnet',
+        'priority' => 1,
+    ]);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['model_catalog_id' => $catalog->id]);
+
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+    app(SendAgentMessageAction::class)->execute($session, 'Hi!');
+
+    WorkspaceAgent::assertPrompted(function (AgentPrompt $prompt) {
+        return $prompt->provider->name() === 'anthropic' && $prompt->model === 'claude-3-5-sonnet-latest';
+    });
 });

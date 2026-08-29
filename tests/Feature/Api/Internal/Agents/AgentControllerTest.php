@@ -3,6 +3,7 @@
 use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Workspaces\Role;
 use App\Models\Agents\Agent;
+use App\Models\Ai\ModelCatalog;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
 use Laravel\Passport\Passport;
@@ -21,6 +22,42 @@ it('creates an agent with a generated slug', function () {
     $response->assertCreated();
     expect($response->json('data.agent.slug'))->toStartWith('support-bot-');
     expect($response->json('data.agent.provider'))->toBe('anthropic');
+});
+
+it('opts an agent into a model catalog entry via update, and back out again', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $catalog = ModelCatalog::factory()->create(['slug' => 'claude-3-5-sonnet']);
+
+    Passport::actingAs($owner);
+
+    $response = $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}", [
+        'model_catalog_id' => $catalog->id,
+    ]);
+
+    $response->assertOk();
+    expect($response->json('data.agent.model_catalog_id'))->toBe($catalog->id);
+    expect($agent->fresh()->model_catalog_id)->toBe($catalog->id);
+
+    $response = $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}", [
+        'model_catalog_id' => null,
+    ]);
+
+    $response->assertOk();
+    expect($response->json('data.agent.model_catalog_id'))->toBeNull();
+});
+
+it('rejects an unknown model catalog id', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}", [
+        'model_catalog_id' => 999999,
+    ])->assertJsonValidationErrors('model_catalog_id');
 });
 
 it('404s reading an agent that belongs to a different workspace', function () {

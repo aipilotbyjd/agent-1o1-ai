@@ -2,6 +2,7 @@
 
 namespace App\Models\Agents;
 
+use App\Models\Ai\ModelCatalog;
 use App\Models\Artifacts\Artifact;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
@@ -22,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * (not `AgentModel`) per project convention; registered in
  * `AppServiceProvider::configureMorphMap()` as `TriggerTargetType::Agent`.
  */
-#[Fillable(['workspace_id', 'name', 'slug', 'description', 'instructions', 'provider', 'model', 'temperature', 'settings', 'created_by'])]
+#[Fillable(['workspace_id', 'name', 'slug', 'description', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'created_by'])]
 class Agent extends Model
 {
     /** @use HasFactory<AgentFactory> */
@@ -49,6 +50,16 @@ class Agent extends Model
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class);
+    }
+
+    /**
+     * The public model identity this agent runs against, when opted in —
+     * see `Services\Ai\ModelCatalogResolver`. `null` means this agent still
+     * runs on its plain `provider`/`model` columns directly.
+     */
+    public function modelCatalog(): BelongsTo
+    {
+        return $this->belongsTo(ModelCatalog::class);
     }
 
     public function creator(): BelongsTo

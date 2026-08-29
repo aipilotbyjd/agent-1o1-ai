@@ -98,6 +98,18 @@ return [
             'key' => env('ELEVENLABS_API_KEY'),
         ],
 
+        'fireworks' => [
+            'driver' => 'openai-compatible',
+            'url' => env('FIREWORKS_URL', 'https://api.fireworks.ai/inference/v1'),
+            'key' => env('FIREWORKS_API_KEY'),
+        ],
+
+        'together' => [
+            'driver' => 'openai-compatible',
+            'url' => env('TOGETHER_URL', 'https://api.together.xyz/v1'),
+            'key' => env('TOGETHER_API_KEY'),
+        ],
+
         'gemini' => [
             'driver' => 'gemini',
             'key' => env('GEMINI_API_KEY'),

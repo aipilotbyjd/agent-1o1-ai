@@ -12,6 +12,7 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/workflows.php';
     require __DIR__.'/workflow_builder.php';
     require __DIR__.'/nodes.php';
+    require __DIR__.'/model_catalog.php';
     require __DIR__.'/connectors.php';
     require __DIR__.'/secrets.php';
     require __DIR__.'/runs.php';

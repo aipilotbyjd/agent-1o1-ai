@@ -6,6 +6,7 @@ use App\Ai\Agents\AdHocPromptAgent;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Services\Ai\ModelCatalogResolver;
 
 /**
  * Gumloop's "Ask AI" node — a provider-agnostic single-turn LLM call routed
@@ -14,6 +15,8 @@ use App\Models\Runs\Run;
  */
 class AskAiNode implements NodeContract
 {
+    public function __construct(private readonly ModelCatalogResolver $modelCatalog) {}
+
     public function type(): string
     {
         return 'ask_ai';
@@ -42,6 +45,7 @@ class AskAiNode implements NodeContract
             'properties' => [
                 'instructions' => ['type' => 'string'],
                 'prompt' => ['type' => 'string'],
+                'model_catalog_slug' => ['type' => 'string'],
                 'provider' => ['type' => 'string'],
                 'model' => ['type' => 'string'],
             ],
@@ -52,11 +56,15 @@ class AskAiNode implements NodeContract
     {
         $agent = new AdHocPromptAgent($config['instructions'] ?? 'You are a helpful assistant.');
 
-        $response = $agent->prompt(
-            $config['prompt'],
-            provider: $config['provider'] ?? null,
-            model: $config['model'] ?? null,
-        );
+        if (isset($config['model_catalog_slug'])) {
+            $provider = $this->modelCatalog->providerChain($config['model_catalog_slug']);
+            $model = null;
+        } else {
+            $provider = $config['provider'] ?? null;
+            $model = $config['model'] ?? null;
+        }
+
+        $response = $agent->prompt($config['prompt'], provider: $provider, model: $model);
 
         return [
             'text' => $response->text,

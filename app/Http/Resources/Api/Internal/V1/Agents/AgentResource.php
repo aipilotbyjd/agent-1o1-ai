@@ -25,6 +25,8 @@ class AgentResource extends JsonResource
             'instructions' => $this->instructions,
             'provider' => $this->provider,
             'model' => $this->model,
+            'model_catalog_id' => $this->model_catalog_id,
+            'model_catalog_slug' => $this->whenLoaded('modelCatalog', fn () => $this->modelCatalog?->slug),
             'temperature' => $this->temperature,
             'settings' => $this->settings,
             'created_by' => $this->created_by,

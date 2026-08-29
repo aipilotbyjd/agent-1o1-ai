@@ -23,6 +23,7 @@ class StoreAgentRequest extends FormRequest
             'instructions' => ['required', 'string'],
             'provider' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
+            'model_catalog_id' => ['nullable', 'integer', 'exists:model_catalog,id'],
             'temperature' => ['nullable', 'numeric', 'between:0,1'],
             'settings' => ['nullable', 'array'],
         ];
