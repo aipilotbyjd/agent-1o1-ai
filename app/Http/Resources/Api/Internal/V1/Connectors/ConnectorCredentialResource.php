@@ -23,6 +23,8 @@ class ConnectorCredentialResource extends JsonResource
             'id' => $this->id,
             'connector' => ConnectorResource::make($this->whenLoaded('connector')),
             'connector_id' => $this->connector_id,
+            'scope' => $this->scope->value,
+            'is_default' => $this->is_default,
             'name' => $this->name,
             'is_expired' => $this->isExpired(),
             'last_used_at' => $this->last_used_at,

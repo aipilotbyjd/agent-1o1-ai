@@ -21,4 +21,5 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{connectorCredential}', [ConnectorCredentialController::class, 'show'])->name('show');
         Route::patch('{connectorCredential}', [ConnectorCredentialController::class, 'update'])->name('update');
         Route::delete('{connectorCredential}', [ConnectorCredentialController::class, 'destroy'])->name('destroy');
+        Route::post('{connectorCredential}/default', [ConnectorCredentialController::class, 'setDefault'])->name('set-default');
     });

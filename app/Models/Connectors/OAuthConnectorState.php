@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * flow — created by `OAuthConnectorFlowService::initiate()`, consumed and
  * deleted by `handleCallback()`. Never holds a token itself.
  */
-#[Fillable(['workspace_id', 'user_id', 'connector_id', 'state', 'name', 'redirect_uri', 'expires_at'])]
+#[Fillable(['workspace_id', 'user_id', 'connector_id', 'state', 'name', 'redirect_uri', 'scope', 'expires_at'])]
 class OAuthConnectorState extends Model
 {
     protected $table = 'oauth_connector_states';

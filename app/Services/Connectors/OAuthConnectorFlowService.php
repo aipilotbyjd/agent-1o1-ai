@@ -2,6 +2,7 @@
 
 namespace App\Services\Connectors;
 
+use App\Enums\Connectors\ConnectorCredentialScope;
 use App\Exceptions\ConnectorException;
 use App\Models\Connectors\Connector;
 use App\Models\Connectors\ConnectorCredential;
@@ -28,8 +29,14 @@ class OAuthConnectorFlowService
     /**
      * @return array{authorize_url: string, state: string}
      */
-    public function initiate(Workspace $workspace, User $user, Connector $connector, string $name, string $redirectUri): array
-    {
+    public function initiate(
+        Workspace $workspace,
+        User $user,
+        Connector $connector,
+        string $name,
+        string $redirectUri,
+        ?string $scope = null,
+    ): array {
         if (! $connector->isOAuth()) {
             throw new ConnectorException("Connector [{$connector->key}] does not support OAuth.");
         }
@@ -43,6 +50,7 @@ class OAuthConnectorFlowService
             'state' => $state,
             'name' => $name,
             'redirect_uri' => $redirectUri,
+            'scope' => $scope ?? ConnectorCredentialScope::Team->value,
             'expires_at' => now()->addMinutes(self::STATE_TTL_MINUTES),
         ]);
 
@@ -86,6 +94,7 @@ class OAuthConnectorFlowService
             'workspace_id' => $pending->workspace_id,
             'connector_id' => $connector->id,
             'created_by' => $pending->user_id,
+            'scope' => $pending->scope,
             'name' => $pending->name,
             'data' => $this->tokenData($response->json()),
             'expires_at' => $this->expiresAt($response->json()),
