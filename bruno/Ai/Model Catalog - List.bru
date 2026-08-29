@@ -20,5 +20,9 @@ docs {
   priority/failover order) is never exposed here — see
   `Services\Ai\ModelCatalogResolver`.
 
-  Response is wrapped: `{ success, statusCode, message, data: { model_catalog: [{ slug, display_name, brand, capabilities }] } }`.
+  `id` is what `Agents - Update`'s `model_catalog_id` expects; `slug` is
+  what an `ask_ai` node's `model_catalog_slug` config expects — pick the
+  right one for the endpoint you're calling.
+
+  Response is wrapped: `{ success, statusCode, message, data: { model_catalog: [{ id, slug, display_name, brand, capabilities }] } }`.
 }

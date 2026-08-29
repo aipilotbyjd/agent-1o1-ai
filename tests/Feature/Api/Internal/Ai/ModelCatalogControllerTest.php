@@ -8,7 +8,7 @@ it('lists active model catalog entries without exposing execution routes', funct
     $user = User::factory()->create();
     Passport::actingAs($user);
 
-    ModelCatalog::factory()->create([
+    $catalog = ModelCatalog::factory()->create([
         'slug' => 'claude-3-5-sonnet',
         'display_name' => 'Claude 3.5 Sonnet',
         'brand' => 'anthropic',
@@ -22,6 +22,7 @@ it('lists active model catalog entries without exposing execution routes', funct
     $response->assertOk();
     $response->assertJsonCount(1, 'data.model_catalog');
     $response->assertJsonFragment([
+        'id' => $catalog->id,
         'slug' => 'claude-3-5-sonnet',
         'display_name' => 'Claude 3.5 Sonnet',
         'brand' => 'anthropic',
