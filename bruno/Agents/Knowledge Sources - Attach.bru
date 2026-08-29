@@ -1,0 +1,31 @@
+meta {
+  name: Knowledge Sources - Attach
+  type: http
+  seq: 62
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/knowledge-sources/:collection
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+  collection: {{knowledgeCollection}}
+}
+
+docs {
+  Attaches one workspace knowledge-base collection to this agent, scoping
+  its `search_knowledge`/`read_knowledge_document` tools to it (alongside
+  any other attached collections, and the agent's own exported artifacts,
+  which are always implicitly searchable). Requires `agent.manage`.
+
+  `collection` is a name from `Knowledge Sources - List`'s `available`
+  list, not a numeric id — it's a plain string on `document_embeddings`,
+  not a separate model. Attaching an already-attached collection is a
+  no-op.
+
+  Response is wrapped: `{ ..., data: { attached } }`.
+}

@@ -3,14 +3,19 @@
 use App\Actions\Artifacts\StoreArtifactAction;
 use App\Ai\Tools\ExportArtifactTool;
 use App\Models\Agents\Agent;
+use App\Models\Agents\DocumentEmbedding;
 use App\Models\Artifacts\Artifact;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Ai\Embeddings;
 use Laravel\Ai\Tools\Request;
 
 it('creates a new artifact on first export', function () {
     Storage::fake('local');
+    // text/plain export gets indexed into the agent's artifact knowledge
+    // collection — see StoreArtifactAction::indexForAgent().
+    Embeddings::fake([[[1.0, 0.0]]]);
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $agent = Agent::factory()->forWorkspace($workspace)->create();
@@ -35,6 +40,8 @@ it('creates a new artifact on first export', function () {
 
 it('creates a new version instead of overwriting on re-export', function () {
     Storage::fake('local');
+    // Each export indexes the artifact afresh — two calls, two embed calls.
+    Embeddings::fake([[[1.0, 0.0]], [[1.0, 0.0]]]);
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $agent = Agent::factory()->forWorkspace($workspace)->create();
@@ -71,6 +78,60 @@ it('decodes base64 content', function () {
     $artifact = Artifact::sole();
     Storage::disk('local')->assertExists($artifact->path);
     expect(Storage::disk('local')->get($artifact->path))->toBe('binary-data');
+});
+
+it('indexes a text export into the agent\'s own artifact knowledge collection', function () {
+    Storage::fake('local');
+    Embeddings::fake([[[1.0, 0.0]]]);
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
+    $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
+
+    $tool->handle(new Request([
+        'filename' => 'report.txt', 'mime_type' => 'text/plain', 'content' => 'Q3 revenue grew 12%.',
+    ]));
+
+    $chunk = DocumentEmbedding::sole();
+    expect($chunk->collection)->toBe($agent->artifactKnowledgeCollection());
+    expect($chunk->source)->toBe('report.txt');
+    expect($chunk->chunk_text)->toBe('Q3 revenue grew 12%.');
+});
+
+it('replaces the indexed chunks rather than accumulating them on re-export', function () {
+    Storage::fake('local');
+    Embeddings::fake([[[1.0, 0.0]], [[1.0, 0.0]]]);
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
+    $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
+
+    $tool->handle(new Request(['filename' => 'report.txt', 'mime_type' => 'text/plain', 'content' => 'v1 content']));
+    $tool->handle(new Request(['filename' => 'report.txt', 'mime_type' => 'text/plain', 'content' => 'v2 content']));
+
+    $chunk = DocumentEmbedding::sole();
+    expect($chunk->chunk_text)->toBe('v2 content');
+});
+
+it('does not index a non-text export (e.g. an image)', function () {
+    Storage::fake('local');
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
+    $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
+
+    $tool->handle(new Request([
+        'filename' => 'image.png', 'mime_type' => 'image/png',
+        'content' => base64_encode('binary-data'), 'is_base64' => true,
+    ]));
+
+    expect(DocumentEmbedding::count())->toBe(0);
 });
 
 it('returns an error when required fields are missing', function () {

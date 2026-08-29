@@ -28,7 +28,9 @@ docs {
   conversation. Requires `agent.view`.
 
   - `query` — required.
-  - `collection` — optional; omit to search every collection.
+  - `collection` — optional; omit to search every collection. An actual
+    agent, at run time, is further scoped to only its attached collections
+    when it has any — see `Agents/Knowledge Sources - List`.
   - `limit` — optional, 1-50, defaults to 5.
 
   Results are ordered by cosine similarity, highest first, each with its

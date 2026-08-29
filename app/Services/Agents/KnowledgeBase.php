@@ -74,19 +74,24 @@ class KnowledgeBase
     /**
      * The top-scoring chunks for a query, highest first.
      *
+     * @param  string|array<int, string>|null  $collection  One collection, a
+     *                                                      list to search across (an agent's attached sources — see
+     *                                                      `ToolRegistry`), or null for every collection in the workspace.
      * @return Collection<int, array{id: int, source: string|null, text: string, score: float}>
      */
     public function search(
         Workspace $workspace,
         string $query,
-        ?string $collection = null,
+        string|array|null $collection = null,
         int $topN = self::DEFAULT_TOP_N,
     ): Collection {
         $queryVector = Embeddings::for([$query])->generate()->embeddings[0] ?? [];
 
         return DocumentEmbedding::query()
             ->where('workspace_id', $workspace->id)
-            ->when($collection !== null, fn ($builder) => $builder->where('collection', $collection))
+            ->when($collection !== null, fn ($builder) => is_array($collection)
+                ? $builder->whereIn('collection', $collection)
+                : $builder->where('collection', $collection))
             ->get()
             ->map(fn (DocumentEmbedding $chunk): array => [
                 'id' => $chunk->id,
@@ -97,6 +102,29 @@ class KnowledgeBase
             ->sortByDesc('score')
             ->take($topN)
             ->values();
+    }
+
+    /**
+     * The full text of one "document" — every chunk sharing a `source`
+     * (and, when given, a `collection`), reassembled in storage order.
+     * Backs `Ai\Tools\ReadKnowledgeDocumentTool`: a search hit's `source` is
+     * a chunk-level snippet, and this is what a model calls when a snippet
+     * alone isn't enough context.
+     *
+     * @param  string|array<int, string>|null  $collection
+     */
+    public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null): ?string
+    {
+        $chunks = DocumentEmbedding::query()
+            ->where('workspace_id', $workspace->id)
+            ->where('source', $source)
+            ->when($collection !== null, fn ($builder) => is_array($collection)
+                ? $builder->whereIn('collection', $collection)
+                : $builder->where('collection', $collection))
+            ->orderBy('id')
+            ->pluck('chunk_text');
+
+        return $chunks->isEmpty() ? null : $chunks->implode("\n\n");
     }
 
     /**

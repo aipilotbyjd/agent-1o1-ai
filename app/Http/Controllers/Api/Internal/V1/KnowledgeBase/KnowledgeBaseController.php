@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Internal\V1\KnowledgeBase;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\KnowledgeBase\IngestKnowledgeRequest;
+use App\Http\Requests\Api\Internal\V1\KnowledgeBase\ReadKnowledgeDocumentRequest;
 use App\Http\Requests\Api\Internal\V1\KnowledgeBase\SearchKnowledgeRequest;
 use App\Http\Resources\Api\Internal\V1\KnowledgeBase\DocumentEmbeddingResource;
 use App\Http\Responses\ApiResponse;
@@ -65,10 +66,15 @@ class KnowledgeBaseController extends Controller
     {
         $this->requirePermission(Permission::AgentManage);
 
+        $file = $request->file('file');
+        $text = $file !== null ? (string) file_get_contents($file->getRealPath()) : (string) $request->validated('text');
+
+        abort_if(trim($text) === '', 422, 'The file has no readable text.');
+
         $chunks = $this->knowledgeBase->ingest(
             $workspace,
-            $request->validated('text'),
-            $request->validated('source'),
+            $text,
+            $request->validated('source') ?? $file?->getClientOriginalName(),
             $request->validated('collection') ?? 'default',
             $request->validated('metadata'),
         );
@@ -77,6 +83,29 @@ class KnowledgeBaseController extends Controller
             'chunks_count' => $chunks->count(),
             'chunks' => DocumentEmbeddingResource::collection($chunks),
         ], 'Knowledge ingested.');
+    }
+
+    /**
+     * Runs the exact retrieval `Ai\Tools\ReadKnowledgeDocumentTool` would,
+     * so a workspace can preview a document's full text without starting a
+     * conversation — the "read document" counterpart to `search()`.
+     */
+    public function document(ReadKnowledgeDocumentRequest $request, Workspace $workspace)
+    {
+        $this->requirePermission(Permission::AgentView);
+
+        $text = $this->knowledgeBase->readDocument(
+            $workspace,
+            $request->validated('source'),
+            $request->validated('collection'),
+        );
+
+        abort_if($text === null, 404, 'No document found for that source.');
+
+        return ApiResponse::success([
+            'source' => $request->validated('source'),
+            'text' => $text,
+        ]);
     }
 
     /**

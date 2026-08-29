@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalRunController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalSuiteController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvaluationSettingsController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeSourceController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionEvaluationController;
@@ -64,6 +65,12 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('{agent}/knowledge', [AgentKnowledgeController::class, 'store'])->name('knowledge.store');
         Route::patch('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'update'])->name('knowledge.update');
         Route::delete('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'destroy'])->name('knowledge.destroy');
+
+        // Which workspace knowledge-base collections this agent may search
+        // — see AgentKnowledgeSourceController.
+        Route::get('{agent}/knowledge-sources', [AgentKnowledgeSourceController::class, 'index'])->name('knowledge-sources.index');
+        Route::post('{agent}/knowledge-sources/{collection}', [AgentKnowledgeSourceController::class, 'store'])->name('knowledge-sources.store');
+        Route::delete('{agent}/knowledge-sources/{collection}', [AgentKnowledgeSourceController::class, 'destroy'])->name('knowledge-sources.destroy');
 
         // Evals: saved suites of cases graded against the agent — see
         // Services\Agents\EvalRunner.

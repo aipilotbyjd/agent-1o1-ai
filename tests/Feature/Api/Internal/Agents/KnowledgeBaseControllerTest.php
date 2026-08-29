@@ -6,6 +6,7 @@ use App\Models\Agents\DocumentEmbedding;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Http\UploadedFile;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Tools\Request;
 use Laravel\Passport\Passport;
@@ -203,4 +204,71 @@ it('does not let a viewer ingest', function () {
 
     $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['text' => 'a'])->assertForbidden();
     expect(DocumentEmbedding::count())->toBe(0);
+});
+
+it('ingests a plain-text file upload, defaulting source to its filename', function () {
+    Embeddings::fake();
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $file = UploadedFile::fake()->createWithContent('handbook.md', "# Handbook\n\nRefund window is 30 days.");
+
+    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", [
+        'file' => $file,
+        'collection' => 'support',
+    ]);
+
+    $response->assertCreated();
+    $chunk = DocumentEmbedding::sole();
+    expect($chunk->source)->toBe('handbook.md');
+    expect($chunk->chunk_text)->toContain('Refund window is 30 days.');
+});
+
+it('rejects a knowledge-base file upload of an unsupported type', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $file = UploadedFile::fake()->create('handbook.pdf', 10, 'application/pdf');
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['file' => $file])
+        ->assertJsonValidationErrors('file');
+});
+
+it('rejects sending both text and file', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $file = UploadedFile::fake()->createWithContent('a.txt', 'a');
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['text' => 'a', 'file' => $file])
+        ->assertJsonValidationErrors('text');
+});
+
+it('reads a document\'s full text back across its chunks', function () {
+    Embeddings::fake([[[1.0, 0.0], [0.0, 1.0]]]);
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", [
+        'text' => longParagraph('First part.')."\n\n".longParagraph('Second part.'),
+        'source' => 'handbook.md',
+        'collection' => 'support',
+    ])->assertCreated();
+
+    $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/document?".http_build_query([
+        'source' => 'handbook.md',
+        'collection' => 'support',
+    ]));
+
+    $response->assertOk();
+    expect($response->json('data.text'))->toContain('First part.')
+        ->toContain('Second part.');
+});
+
+it('404s reading a document that does not exist', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/document?source=nope.md")
+        ->assertNotFound();
 });

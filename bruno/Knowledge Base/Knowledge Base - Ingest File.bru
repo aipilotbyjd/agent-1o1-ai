@@ -1,0 +1,36 @@
+meta {
+  name: Knowledge Base - Ingest File
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/knowledge-base
+  body: multipartForm
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+}
+
+body:multipart-form {
+  file: @file()
+  collection: support
+}
+
+docs {
+  Same endpoint as `Knowledge Base - Ingest`, with a `file` instead of
+  `text` — send exactly one of the two. Requires `agent.manage`.
+
+  Only plain-text-like formats are accepted: `txt`, `md`, `markdown`, `csv`,
+  `json`, `xml`, `yaml`, `yml`, `html`, `htm`. PDF and Office formats
+  (`.docx`, `.pptx`, `.xlsx`) are **not** supported — there is no
+  text-extraction library in this project. Convert to plain text/Markdown
+  first, or use `Knowledge Base - Ingest` with `text` directly.
+
+  Max size is `config('knowledge_base.max_upload_kilobytes')` (5MB by
+  default). `source` defaults to the file's own name when omitted.
+
+  Response is wrapped: `{ ..., data: { chunks_count, chunks } }`.
+}

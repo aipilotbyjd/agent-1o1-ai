@@ -112,6 +112,27 @@ class Agent extends Model
     }
 
     /**
+     * `document_embeddings.collection`s explicitly attached to this agent —
+     * the opt-in scoping `ToolRegistry` prefers over its workspace-wide
+     * fallback. See `AgentKnowledgeCollection`'s docblock.
+     */
+    public function knowledgeCollections(): HasMany
+    {
+        return $this->hasMany(AgentKnowledgeCollection::class);
+    }
+
+    /**
+     * The `document_embeddings.collection` this agent's own exported
+     * artifacts are indexed under — see `StoreArtifactAction`. Always
+     * implicitly searchable by this agent, unlike `knowledgeCollections()`
+     * which must be attached explicitly.
+     */
+    public function artifactKnowledgeCollection(): string
+    {
+        return "artifacts:{$this->id}";
+    }
+
+    /**
      * Durable key/value facts read/written across sessions.
      */
     public function memories(): HasMany

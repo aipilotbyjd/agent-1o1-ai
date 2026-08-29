@@ -1,0 +1,30 @@
+meta {
+  name: Knowledge Sources - List
+  type: http
+  seq: 61
+}
+
+get {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/knowledge-sources
+  body: none
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+}
+
+docs {
+  Lists which `Knowledge Base` collections this agent may search, plus
+  every collection in the workspace so a picker can offer what isn't
+  attached yet. Requires `agent.view`.
+
+  This is Gumloop's "Knowledge Sources" agent-configuration section —
+  attaching a collection here is what scopes the agent's
+  `search_knowledge`/`read_knowledge_document` tools to it instead of the
+  whole workspace. An agent with nothing attached falls back to searching
+  every collection (see `Knowledge Base - Ingest`'s docs).
+
+  Response is wrapped: `{ ..., data: { attached, available } }`.
+}

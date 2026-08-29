@@ -19,9 +19,12 @@ use Stringable;
  */
 class SearchKnowledgeTool implements Tool
 {
+    /**
+     * @param  string|array<int, string>|null  $collection
+     */
     public function __construct(
         private readonly Workspace $workspace,
-        private readonly ?string $collection = null,
+        private readonly string|array|null $collection = null,
         private readonly KnowledgeBase $knowledgeBase = new KnowledgeBase,
     ) {}
 
