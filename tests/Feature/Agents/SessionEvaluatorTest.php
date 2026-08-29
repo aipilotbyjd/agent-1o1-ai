@@ -7,12 +7,15 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvaluationSettings;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Ai\ModelCatalog;
+use App\Models\Ai\ModelRoute;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Notifications\Agents\SessionEvaluationNotifyNotification;
 use App\Services\Agents\SessionEvaluator;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Notification;
+use Laravel\Ai\Prompts\AgentPrompt;
 
 /**
  * @return array{0: AgentSession, 1: User}
@@ -141,4 +144,58 @@ it('treats an unparseable judge response as a failed evaluation', function () {
 
     expect($evaluation->status)->toBe(SessionEvaluationStatus::Failed);
     expect($evaluation->error)->not->toBeNull();
+});
+
+it('judges through the agent model catalog chain when the agent is opted in', function () {
+    SessionEvalJudgeAgent::fake([json_encode([
+        'criteria_results' => [], 'tags' => [], 'data_results' => [], 'sentiment' => null, 'call_successful' => 'success', 'summary' => 'Fine.',
+    ])]);
+
+    $catalog = ModelCatalog::factory()->create(['slug' => 'claude-3-5-sonnet']);
+    ModelRoute::factory()->forCatalog($catalog)->create([
+        'execution_provider' => 'anthropic',
+        'execution_model_id' => 'claude-3-5-sonnet-latest',
+        'priority' => 0,
+    ]);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['model_catalog_id' => $catalog->id]);
+    AgentEvaluationSettings::factory()->forAgent($agent)->create(['is_enabled' => true, 'criteria' => []]);
+    $session = AgentSession::factory()->forAgent($agent)->create();
+    AgentMessage::factory()->forSession($session)->create(['content' => 'hi']);
+    AgentMessage::factory()->forSession($session)->assistant()->create(['content' => 'hello']);
+
+    app(SessionEvaluator::class)->evaluate($session->fresh());
+
+    SessionEvalJudgeAgent::assertPrompted(function (AgentPrompt $prompt) {
+        return $prompt->provider->name() === 'anthropic' && $prompt->model === 'claude-3-5-sonnet-latest';
+    });
+});
+
+it('lets an explicit evaluation-settings model override win over the catalog chain', function () {
+    SessionEvalJudgeAgent::fake([json_encode([
+        'criteria_results' => [], 'tags' => [], 'data_results' => [], 'sentiment' => null, 'call_successful' => 'success', 'summary' => 'Fine.',
+    ])]);
+
+    $catalog = ModelCatalog::factory()->create(['slug' => 'claude-3-5-sonnet']);
+    ModelRoute::factory()->forCatalog($catalog)->create([
+        'execution_provider' => 'anthropic',
+        'execution_model_id' => 'claude-3-5-sonnet-latest',
+        'priority' => 0,
+    ]);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['model_catalog_id' => $catalog->id, 'provider' => 'anthropic']);
+    AgentEvaluationSettings::factory()->forAgent($agent)->create(['is_enabled' => true, 'criteria' => [], 'model' => 'claude-3-haiku-latest']);
+    $session = AgentSession::factory()->forAgent($agent)->create();
+    AgentMessage::factory()->forSession($session)->create(['content' => 'hi']);
+    AgentMessage::factory()->forSession($session)->assistant()->create(['content' => 'hello']);
+
+    app(SessionEvaluator::class)->evaluate($session->fresh());
+
+    SessionEvalJudgeAgent::assertPrompted(function (AgentPrompt $prompt) {
+        return $prompt->provider->name() === 'anthropic' && $prompt->model === 'claude-3-haiku-latest';
+    });
 });

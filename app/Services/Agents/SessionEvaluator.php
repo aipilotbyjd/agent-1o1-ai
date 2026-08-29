@@ -8,11 +8,13 @@ use App\Enums\Agents\SessionEvaluationStatus;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
+use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentEvaluationSettings;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Runs\Run;
 use App\Notifications\Agents\SessionEvaluationNotifyNotification;
+use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Notifications\NotificationDispatcher;
 use RuntimeException;
@@ -38,6 +40,7 @@ class SessionEvaluator
         private readonly CreditGate $creditGate,
         private readonly SessionEvaluationGrader $grader,
         private readonly NotificationDispatcher $notifications,
+        private readonly ModelCatalogResolver $modelCatalog,
     ) {}
 
     /**
@@ -122,11 +125,12 @@ class SessionEvaluator
     {
         $agent = $session->agent;
         $transcript = $this->transcriptFor($session);
+        [$provider, $model] = $this->resolveProvider($agent, $settings);
 
         $response = (new SessionEvalJudgeAgent)->prompt(
             SessionEvalJudgeAgent::promptFor($agent, $settings, $transcript),
-            provider: $agent->provider,
-            model: $settings->model ?? $agent->model,
+            provider: $provider,
+            model: $model,
         );
 
         $decoded = json_decode(trim($response->text), true);
@@ -138,6 +142,31 @@ class SessionEvaluator
         $decoded['_usage'] = $response->usage->toArray();
 
         return $decoded;
+    }
+
+    /**
+     * The provider/model to judge `$agent`'s transcript with. `settings.model`
+     * is a deliberate, explicit override (grade with a specific model
+     * regardless of what generated the answer) and always wins. Otherwise
+     * this must match whatever `AgentRunner::resolveProvider()` used to
+     * generate the transcript being judged — reading `$agent->provider`/
+     * `$agent->model` directly here would silently ignore an agent's
+     * `model_catalog_id`, grading against stale columns the run itself
+     * never touched.
+     *
+     * @return array{0: string|array<string, string>, 1: ?string}
+     */
+    private function resolveProvider(AgentModel $agent, AgentEvaluationSettings $settings): array
+    {
+        if ($settings->model !== null) {
+            return [$agent->provider, $settings->model];
+        }
+
+        if ($agent->model_catalog_id === null) {
+            return [$agent->provider, $agent->model];
+        }
+
+        return [$this->modelCatalog->providerChain($agent->modelCatalog->slug), null];
     }
 
     private function transcriptFor(AgentSession $session): string
