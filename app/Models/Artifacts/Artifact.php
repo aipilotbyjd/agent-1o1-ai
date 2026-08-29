@@ -2,6 +2,7 @@
 
 namespace App\Models\Artifacts;
 
+use App\Enums\Artifacts\ArtifactGeneralAccess;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
@@ -13,14 +14,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'workspace_id', 'agent_id', 'agent_session_id', 'run_id', 'created_by',
     'group_id', 'version', 'filename', 'mime_type', 'size', 'disk', 'path', 'metadata',
+    'general_access',
 ])]
 class Artifact extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected function casts(): array
     {
@@ -28,6 +31,7 @@ class Artifact extends Model
             'version' => 'integer',
             'size' => 'integer',
             'metadata' => 'array',
+            'general_access' => ArtifactGeneralAccess::class,
         ];
     }
 
@@ -57,6 +61,15 @@ class Artifact extends Model
     }
 
     /**
+     * Explicit per-user grants on this artifact's group — only consulted
+     * when `general_access` is `restricted`.
+     */
+    public function shares(): HasMany
+    {
+        return $this->hasMany(ArtifactShare::class, 'group_id', 'group_id');
+    }
+
+    /**
      * All versions sharing this artifact's group_id, newest first.
      */
     public function versions(): HasMany
@@ -79,8 +92,38 @@ class Artifact extends Model
         );
     }
 
+    private const PREVIEWABLE_MIME_TYPES = [
+        'text/html',
+        'application/pdf',
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+
     public function isPreviewable(): bool
     {
-        return str_starts_with($this->mime_type, 'image/') || $this->mime_type === 'text/html';
+        return str_starts_with($this->mime_type, 'image/')
+            || in_array($this->mime_type, self::PREVIEWABLE_MIME_TYPES, true);
+    }
+
+    /**
+     * Whether `$user` may view this artifact. The creator and anyone with
+     * `artifact.manage` (checked by the caller and passed in as
+     * `$canManage`) always can; beyond that it follows `general_access` —
+     * `restricted` narrows to an explicit `ArtifactShare` grant, while
+     * `organization`/`anyone` defer to the workspace-level `artifact.view`
+     * permission already enforced by the route.
+     */
+    public function isAccessibleBy(User $user, bool $canManage = false): bool
+    {
+        if ($canManage || $this->created_by === $user->id) {
+            return true;
+        }
+
+        if ($this->general_access !== ArtifactGeneralAccess::Restricted) {
+            return true;
+        }
+
+        return $this->shares()->where('user_id', $user->id)->exists();
     }
 }

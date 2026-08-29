@@ -33,8 +33,9 @@ docs {
   response and paste it in — it's a temporary signed route valid for
   15 minutes.
 
-  Only previewable artifacts have a `preview_url` at all: images and
-  `text/html`. Anything else answers `404`.
+  Only previewable artifacts have a `preview_url` at all: images, HTML,
+  PDF, and spreadsheet types (`text/csv`, `.xls`, `.xlsx`). Anything else
+  answers `404`.
 
   The response is the raw file, not the JSON envelope. HTML artifacts are
   served under a `sandbox` Content-Security-Policy and `nosniff`, since

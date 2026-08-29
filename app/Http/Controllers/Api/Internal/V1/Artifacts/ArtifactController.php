@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api\Internal\V1\Artifacts;
 
 use App\Actions\Artifacts\StoreArtifactAction;
+use App\Enums\Artifacts\ArtifactGeneralAccess;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Artifacts\ShareArtifactRequest;
+use App\Http\Requests\Api\Internal\V1\Artifacts\UpdateArtifactAccessRequest;
 use App\Http\Requests\Api\Internal\V1\Artifacts\UploadArtifactRequest;
 use App\Http\Resources\Api\Internal\V1\Artifacts\ArtifactResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Artifacts\Artifact;
+use App\Models\Artifacts\ArtifactShare;
+use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -27,11 +32,19 @@ class ArtifactController extends Controller
     {
         $this->requirePermission(Permission::ArtifactView);
 
+        $user = $request->user();
+        $canManage = $user->can(Permission::ArtifactManage->value);
+
         $artifacts = Artifact::query()
             ->where('workspace_id', $workspace->id)
             ->latestPerGroup()
             ->with(['agent', 'creator'])
             ->withCount('versions')
+            ->when(! $canManage, fn ($q) => $q->where(function ($access) use ($user) {
+                $access->where('general_access', '!=', ArtifactGeneralAccess::Restricted->value)
+                    ->orWhere('created_by', $user->id)
+                    ->orWhereHas('shares', fn ($shared) => $shared->where('user_id', $user->id));
+            }))
             ->when($request->query('search'), fn ($q, $search) => $q->where('filename', 'like', "%{$search}%"))
             ->when($request->query('agent_id'), fn ($q, $agentId) => $q->where('agent_id', $agentId))
             ->when($request->query('mime_category'), function ($q, $category) {
@@ -79,10 +92,11 @@ class ArtifactController extends Controller
         ], 'Artifact uploaded.');
     }
 
-    public function show(Workspace $workspace, Artifact $artifact)
+    public function show(Request $request, Workspace $workspace, Artifact $artifact)
     {
         $this->requirePermission(Permission::ArtifactView);
         $this->ensureBelongsToWorkspace($workspace, $artifact);
+        $this->ensureAccessible($request, $artifact);
 
         return ApiResponse::success([
             'artifact' => ArtifactResource::make($artifact->load(['agent', 'creator', 'versions'])),
@@ -94,24 +108,100 @@ class ArtifactController extends Controller
         $this->requirePermission(Permission::ArtifactManage);
         $this->ensureBelongsToWorkspace($workspace, $artifact);
 
-        $group = Artifact::where('group_id', $artifact->group_id)->get();
-
-        foreach ($group as $version) {
-            Storage::disk($version->disk)->delete($version->path);
-            $version->delete();
-        }
+        // Soft delete: storage and every version's row survive, so a later
+        // re-export with this group's filename restores the group and
+        // continues its version history — see `StoreArtifactAction`.
+        Artifact::where('group_id', $artifact->group_id)->delete();
 
         return ApiResponse::noContent();
     }
 
-    public function download(Workspace $workspace, Artifact $artifact): StreamedResponse
+    public function download(Request $request, Workspace $workspace, Artifact $artifact): StreamedResponse
     {
         $this->requirePermission(Permission::ArtifactView);
         $this->ensureBelongsToWorkspace($workspace, $artifact);
+        $this->ensureAccessible($request, $artifact);
 
         return Storage::disk($artifact->disk)->download($artifact->path, $artifact->filename, [
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    /**
+     * Sets the group's sharing tier — General Access in Gumloop's terms.
+     */
+    public function updateAccess(UpdateArtifactAccessRequest $request, Workspace $workspace, Artifact $artifact)
+    {
+        $this->requirePermission(Permission::ArtifactView);
+        $this->ensureBelongsToWorkspace($workspace, $artifact);
+        $this->ensureCanShare($request, $artifact);
+
+        Artifact::where('group_id', $artifact->group_id)
+            ->update(['general_access' => $request->validated('general_access')]);
+
+        return ApiResponse::success([
+            'artifact' => ArtifactResource::make($artifact->refresh()->load(['agent', 'creator'])),
+        ]);
+    }
+
+    /**
+     * Grants one workspace member explicit access to a `restricted` artifact.
+     */
+    public function addShare(ShareArtifactRequest $request, Workspace $workspace, Artifact $artifact)
+    {
+        $this->requirePermission(Permission::ArtifactView);
+        $this->ensureBelongsToWorkspace($workspace, $artifact);
+        $this->ensureCanShare($request, $artifact);
+
+        ArtifactShare::query()->firstOrCreate(
+            ['group_id' => $artifact->group_id, 'user_id' => $request->validated('user_id')],
+            ['granted_by' => $request->user()->id],
+        );
+
+        return ApiResponse::success([
+            'artifact' => ArtifactResource::make($artifact->load(['agent', 'creator', 'shares.user'])),
+        ]);
+    }
+
+    public function removeShare(Request $request, Workspace $workspace, Artifact $artifact, User $user)
+    {
+        $this->requirePermission(Permission::ArtifactView);
+        $this->ensureBelongsToWorkspace($workspace, $artifact);
+        $this->ensureCanShare($request, $artifact);
+
+        ArtifactShare::query()
+            ->where('group_id', $artifact->group_id)
+            ->where('user_id', $user->id)
+            ->delete();
+
+        return ApiResponse::noContent();
+    }
+
+    private function ensureAccessible(Request $request, Artifact $artifact): void
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $artifact->isAccessibleBy($user, $user->can(Permission::ArtifactManage->value)),
+            403,
+            'You do not have access to this artifact.',
+        );
+    }
+
+    /**
+     * Only the creator or someone with `artifact.manage` may change an
+     * artifact's sharing — narrower than `artifact.view`, which everyone
+     * calling this controller already has.
+     */
+    private function ensureCanShare(Request $request, Artifact $artifact): void
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $artifact->created_by === $user->id || $user->can(Permission::ArtifactManage->value),
+            403,
+            'Only the creator or a manager may change this artifact\'s sharing.',
+        );
     }
 
     public function preview(Request $request, Artifact $artifact): StreamedResponse

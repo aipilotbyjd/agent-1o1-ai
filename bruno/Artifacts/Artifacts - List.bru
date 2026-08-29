@@ -24,6 +24,10 @@ params:query {
 docs {
   Lists the newest version of each artifact group. Requires `artifact.view`.
 
+  Unless the caller has `artifact.manage`, a `restricted` artifact is only
+  included if the caller is its creator or has an explicit share — see
+  `Artifacts - Update Access` / `Artifacts - Add Share`.
+
   - `search` — matches on filename.
   - `agent_id` — only artifacts filed under that agent.
   - `mime_category` — one of `images`, `documents`, `spreadsheets`.

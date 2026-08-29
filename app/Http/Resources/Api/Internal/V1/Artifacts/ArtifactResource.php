@@ -35,6 +35,11 @@ class ArtifactResource extends JsonResource
             'preview_url' => $this->isPreviewable()
                 ? URL::temporarySignedRoute('artifacts.preview', now()->addMinutes(15), ['artifact' => $this->id])
                 : null,
+            'general_access' => $this->general_access->value,
+            'shared_with' => $this->whenLoaded('shares', fn () => $this->shares->map(fn ($share) => [
+                'user_id' => $share->user_id,
+                'user' => $share->relationLoaded('user') ? UserResource::make($share->user) : null,
+            ])),
             'versions_count' => $this->whenCounted('versions'),
             'versions' => $this->whenLoaded('versions', fn () => $this->versions->map(fn ($v) => [
                 'id' => $v->id,

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Artifacts;
 
+use App\Enums\Artifacts\ArtifactGeneralAccess;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Artifacts\Artifact;
@@ -42,7 +43,10 @@ class StoreArtifactAction
         ?string $groupId = null,
         ?array $metadata = null,
     ): Artifact {
-        $previous = Artifact::query()
+        // `withTrashed()`: a soft-deleted group must still be found here, both
+        // to keep versioning past its last version number and so a matching
+        // re-export restores it — see the soft-delete note on the migration.
+        $previous = Artifact::withTrashed()
             ->where('workspace_id', $workspace->id)
             ->when(
                 $groupId !== null,
@@ -57,6 +61,10 @@ class StoreArtifactAction
             )
             ->orderByDesc('version')
             ->first();
+
+        if ($previous?->trashed()) {
+            Artifact::withTrashed()->where('group_id', $previous->group_id)->restore();
+        }
 
         $groupId = $previous?->group_id ?? $groupId ?? (string) Str::uuid();
         $version = $previous ? $previous->version + 1 : 1;
@@ -80,6 +88,9 @@ class StoreArtifactAction
             'disk' => $disk,
             'path' => $path,
             'metadata' => $metadata,
+            // A new version keeps the group's existing sharing tier rather
+            // than resetting to restricted.
+            'general_access' => $previous?->general_access?->value ?? ArtifactGeneralAccess::Restricted->value,
         ]);
     }
 
