@@ -143,9 +143,12 @@ it('lists and shows node runs in detail', function () {
     $index->assertOk();
     expect($index->json('data.node_runs'))->toHaveCount(1);
 
+    expect($index->json('data.node_runs.0.credits_used'))->toBe(1);
+
     $this->getJson("/api/v1/workspaces/{$workspace->id}/runs/{$run->id}/node-runs/{$nodeRun->id}")
         ->assertOk()
         ->assertJsonPath('data.node_run.key', 'a')
+        ->assertJsonPath('data.node_run.credits_used', 1)
         ->assertJsonPath('data.node_run.output.x', 1)
         ->assertJsonPath('data.node_run.input.x', 1);
 });

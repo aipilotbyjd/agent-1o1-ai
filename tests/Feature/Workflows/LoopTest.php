@@ -7,6 +7,7 @@ use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Passport\Passport;
 
 it('runs one child workflow per item and joins the results', function () {
     $owner = User::factory()->create();
@@ -50,6 +51,45 @@ it('runs one child workflow per item and joins the results', function () {
 
     expect(Run::where('parent_node_id', $loopNode->id)->count())->toBe(3);
     expect($run->nodeRuns->firstWhere('key', 'after')->status)->toBe(NodeRunStatus::Completed);
+});
+
+it('numbers each loop iteration\'s child run and exposes it via the run resource', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    $child = Workflow::factory()->forWorkspace($workspace)->create();
+    $child->replaceGraph(['nodes' => [
+        ['key' => 'c', 'type' => 'transform', 'config' => ['mapping' => ['n' => 'input.item']]],
+    ], 'edges' => []]);
+    $child->publishVersion(publisher: $owner);
+    $child = $child->fresh();
+
+    $parent = Workflow::factory()->forWorkspace($workspace)->create();
+    $parent->replaceGraph([
+        'nodes' => [
+            ['key' => 'loop', 'type' => 'loop', 'config' => [
+                'items_path' => 'input.items',
+                'workflow_id' => $child->id,
+                'max_concurrent' => 1,
+            ]],
+        ],
+        'edges' => [],
+    ]);
+    $parent->publishVersion(publisher: $owner);
+    $parent = $parent->fresh();
+
+    $run = app(StartWorkflowRunAction::class)->execute($parent, ['items' => [10, 20, 30]]);
+    $loopNode = $run->fresh(['nodeRuns'])->nodeRuns->firstWhere('key', 'loop');
+
+    expect($loopNode->childRuns->pluck('loop_index')->sort()->values()->all())->toBe([0, 1, 2]);
+
+    Passport::actingAs($owner);
+
+    $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/runs/{$run->id}/node-runs/{$loopNode->id}")
+        ->assertOk();
+
+    expect(collect($response->json('data.node_run.child_runs'))->pluck('loop_index')->sort()->values()->all())
+        ->toBe([0, 1, 2]);
 });
 
 it('completes with an empty result set when the items list is empty', function () {

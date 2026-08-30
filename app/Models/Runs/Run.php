@@ -2,7 +2,11 @@
 
 namespace App\Models\Runs;
 
+use App\Enums\Billing\CreditTransactionType;
 use App\Enums\RunStatus;
+use App\Models\Agents\AgentSession;
+use App\Models\Agents\AgentSessionEvaluation;
+use App\Models\Billing\CreditTransaction;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowVersion;
@@ -109,5 +113,65 @@ class Run extends Model
     public function triggeredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'triggered_by');
+    }
+
+    /**
+     * Wall-clock time this run took, or null while it's still running (or
+     * never started). Same formula `NodeRunDetailResource` already uses for
+     * a single node run.
+     */
+    public function durationMs(): ?int
+    {
+        if ($this->started_at === null || $this->finished_at === null) {
+            return null;
+        }
+
+        return $this->started_at->diffInMilliseconds($this->finished_at);
+    }
+
+    /**
+     * Total credits this run has been billed, covering the three runnable
+     * types that map cleanly onto a single run's charges:
+     *
+     * - A `Workflow` run: the sum of its `nodeRuns`' own
+     *   `CreditTransaction`s (call `load('nodeRuns.creditTransaction')`
+     *   first to avoid an N+1 per node run).
+     * - An `AgentSession` turn: the one `AgentStep` transaction for the
+     *   `AgentMessage` this run produced (`output.message_id`).
+     * - An `AgentSessionEvaluation` grading: the one `SessionEvaluation`
+     *   transaction for the evaluation this run graded (`runnable_id`).
+     *
+     * Returns null for an `AgentEvalRun` run — that runnable bills one
+     * `CreditTransaction` per graded case (`AgentEvalCaseResult`), not one
+     * per run, so summing it here would mean joining through eval case
+     * results rather than reusing this run's own relations; left for when
+     * eval-run reporting needs it.
+     */
+    public function totalCreditsUsed(): ?int
+    {
+        if ($this->runnable_type === Workflow::class) {
+            return $this->relationLoaded('nodeRuns')
+                ? $this->nodeRuns->sum(fn (NodeRun $nodeRun): int => $nodeRun->creditTransaction?->credits ?? 0)
+                : $this->nodeRuns()->with('creditTransaction')->get()
+                    ->sum(fn (NodeRun $nodeRun): int => $nodeRun->creditTransaction?->credits ?? 0);
+        }
+
+        if ($this->runnable_type === AgentSession::class) {
+            $messageId = $this->output['message_id'] ?? null;
+
+            return $messageId === null ? null : CreditTransaction::query()
+                ->where('source_type', CreditTransactionType::AgentStep)
+                ->where('source_id', $messageId)
+                ->value('credits');
+        }
+
+        if ($this->runnable_type === AgentSessionEvaluation::class) {
+            return CreditTransaction::query()
+                ->where('source_type', CreditTransactionType::SessionEvaluation)
+                ->where('source_id', $this->runnable_id)
+                ->value('credits');
+        }
+
+        return null;
     }
 }

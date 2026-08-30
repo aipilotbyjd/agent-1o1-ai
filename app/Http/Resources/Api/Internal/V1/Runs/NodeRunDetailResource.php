@@ -45,6 +45,7 @@ class NodeRunDetailResource extends JsonResource
             'duration_ms' => $this->started_at !== null && $this->finished_at !== null
                 ? $this->started_at->diffInMilliseconds($this->finished_at)
                 : null,
+            'credits_used' => $this->creditTransaction?->credits,
             'child_runs' => RunResource::collection($this->whenLoaded('childRuns')),
         ];
     }

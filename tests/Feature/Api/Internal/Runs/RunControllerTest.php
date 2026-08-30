@@ -61,3 +61,29 @@ it('lists and shows runs scoped to the workspace', function () {
         ->assertOk()
         ->assertJsonPath('data.run.id', $runId);
 });
+
+it('exposes total credits used and duration on a completed run', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph([
+        'nodes' => [
+            ['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]],
+            ['key' => 'b', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [['from' => 'a', 'to' => 'b']],
+    ]);
+    $workflow->publishVersion(publisher: $owner);
+    $workflow = $workflow->fresh();
+
+    Passport::actingAs($owner);
+
+    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/runs");
+    $runId = $response->json('data.run.id');
+
+    $show = $this->getJson("/api/v1/workspaces/{$workspace->id}/runs/{$runId}")->assertOk();
+
+    // Two free `transform` nodes: 1 base credit each.
+    expect($show->json('data.run.total_credits_used'))->toBe(2);
+    expect($show->json('data.run.duration_ms'))->toBeGreaterThanOrEqual(0);
+});

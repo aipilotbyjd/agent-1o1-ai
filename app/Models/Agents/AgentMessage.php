@@ -3,11 +3,14 @@
 namespace App\Models\Agents;
 
 use App\Enums\Agents\AgentMessageRole;
+use App\Enums\Billing\CreditTransactionType;
+use App\Models\Billing\CreditTransaction;
 use Database\Factories\Agents\AgentMessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * `usage` (token/credit accounting, same shape as `node_runs.usage`) is
@@ -35,5 +38,16 @@ class AgentMessage extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(AgentSession::class, 'agent_session_id');
+    }
+
+    /**
+     * The `CreditTransaction` this turn was billed under — see
+     * `NodeRun::creditTransaction()`'s docblock for why this isn't a real
+     * `morphOne`.
+     */
+    public function creditTransaction(): HasOne
+    {
+        return $this->hasOne(CreditTransaction::class, 'source_id')
+            ->where('source_type', CreditTransactionType::AgentStep);
     }
 }

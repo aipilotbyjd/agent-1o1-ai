@@ -2,7 +2,9 @@
 
 namespace App\Models\Runs;
 
+use App\Enums\Billing\CreditTransactionType;
 use App\Enums\NodeRunStatus;
+use App\Models\Billing\CreditTransaction;
 use App\Models\Workflows\WorkflowApproval;
 use Database\Factories\Runs\NodeRunFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -65,5 +67,19 @@ class NodeRun extends Model
     public function childRuns(): HasMany
     {
         return $this->hasMany(Run::class, 'parent_node_id');
+    }
+
+    /**
+     * The `CreditTransaction` `RecordRunCreditUsage` billed this node run
+     * under — null until the (queued) listener has run, or if the node run
+     * never finished. `credit_transactions.source_type`/`source_id` isn't a
+     * real Eloquent morph (it's a `CreditTransactionType` string, not a
+     * class name), so this pins the type explicitly rather than using
+     * `morphOne`.
+     */
+    public function creditTransaction(): HasOne
+    {
+        return $this->hasOne(CreditTransaction::class, 'source_id')
+            ->where('source_type', CreditTransactionType::NodeRun);
     }
 }

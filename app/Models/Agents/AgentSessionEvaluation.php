@@ -4,6 +4,8 @@ namespace App\Models\Agents;
 
 use App\Enums\Agents\SessionEvaluationGrade;
 use App\Enums\Agents\SessionEvaluationStatus;
+use App\Enums\Billing\CreditTransactionType;
+use App\Models\Billing\CreditTransaction;
 use App\Models\Runs\Run;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\Agents\AgentSessionEvaluationFactory;
@@ -11,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -67,5 +70,16 @@ class AgentSessionEvaluation extends Model
     public function runs(): MorphMany
     {
         return $this->morphMany(Run::class, 'runnable');
+    }
+
+    /**
+     * The `CreditTransaction` this grading was billed under — see
+     * `NodeRun::creditTransaction()`'s docblock for why this isn't a real
+     * `morphOne`.
+     */
+    public function creditTransaction(): HasOne
+    {
+        return $this->hasOne(CreditTransaction::class, 'source_id')
+            ->where('source_type', CreditTransactionType::SessionEvaluation);
     }
 }

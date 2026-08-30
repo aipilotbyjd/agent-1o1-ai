@@ -28,6 +28,7 @@ class RunController extends Controller
         $runs = $this->apiKeyWorkspace($request)->runs()
             ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->validated('workflow_id'), fn ($query, $workflowId) => $query->where('workflow_id', $workflowId))
+            ->with('nodeRuns.creditTransaction')
             ->latest()
             ->paginate($request->validated('per_page') ?? 25)
             ->withQueryString();
@@ -48,7 +49,7 @@ class RunController extends Controller
     {
         $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $run);
 
-        return ApiResponse::success(['run' => RunResource::make($run)]);
+        return ApiResponse::success(['run' => RunResource::make($run->load('nodeRuns.creditTransaction'))]);
     }
 
     /**
@@ -59,7 +60,9 @@ class RunController extends Controller
     {
         $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $run);
 
-        return ApiResponse::success(['run' => RunResource::make($this->cancelRun->execute($run))], 'Run cancelled.');
+        $cancelled = $this->cancelRun->execute($run);
+
+        return ApiResponse::success(['run' => RunResource::make($cancelled->load('nodeRuns.creditTransaction'))], 'Run cancelled.');
     }
 
     public function retry(RetryRunRequest $request, Run $run)
@@ -68,6 +71,6 @@ class RunController extends Controller
 
         $retry = $this->retryRun->execute($run, fromNodeKey: $request->validated('from_node_key'));
 
-        return ApiResponse::success(['run' => RunResource::make($retry)], 'Run retried.', 202);
+        return ApiResponse::success(['run' => RunResource::make($retry->load('nodeRuns.creditTransaction'))], 'Run retried.', 202);
     }
 }

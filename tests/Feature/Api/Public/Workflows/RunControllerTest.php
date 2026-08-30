@@ -30,7 +30,8 @@ it('starts and reads a run through the public api with a valid ability', functio
     $this->withToken($plainTextKey)
         ->getJson("/api/public/v1/runs/{$runId}")
         ->assertOk()
-        ->assertJsonPath('data.run.status', 'completed');
+        ->assertJsonPath('data.run.status', 'completed')
+        ->assertJsonPath('data.run.total_credits_used', 1);
 });
 
 it('rejects starting a run through the public api without the workflows:write ability', function () {
