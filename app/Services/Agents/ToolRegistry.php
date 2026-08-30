@@ -29,9 +29,12 @@ use App\Services\Workflows\NodeRegistry;
  * Knowledge tools (`SearchKnowledgeTool`/`ReadKnowledgeDocumentTool`) follow
  * Gumloop's "attach a source to use it" model — see `knowledgeTools()`.
  *
- * `ExportArtifactTool` is only attached for a session-backed chat turn
- * (`$run->runnable` is an `AgentSession`) — `ask()`'s embedded, session-less
- * calls have nowhere to file an artifact under, so they skip it.
+ * `ExportArtifactTool` is only attached when there's an `AgentSession` to
+ * file an artifact under — normally `$run->runnable` for a session-backed
+ * chat turn, or the explicit `$session` a caller with no session-backed
+ * `$run` passes in (`AgentRunner::askInConversation()`, for an Agent node's
+ * own conversation). `ask()`'s stateless embedded calls pass neither and so
+ * skip it, same as before.
  */
 class ToolRegistry
 {
@@ -45,7 +48,7 @@ class ToolRegistry
     /**
      * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|RememberTool|ExportArtifactTool>
      */
-    public function toolsFor(Agent $agent, Run $run): array
+    public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null): array
     {
         $nodeTools = $agent->toolBindings()
             ->get()
@@ -60,8 +63,10 @@ class ToolRegistry
 
         $memoryTools = [new RememberTool($agent, $run->triggered_by)];
 
-        $artifactTools = $run->runnable instanceof AgentSession
-            ? [new ExportArtifactTool($agent, $run->runnable, $run, $this->storeArtifact)]
+        $session ??= $run->runnable instanceof AgentSession ? $run->runnable : null;
+
+        $artifactTools = $session !== null
+            ? [new ExportArtifactTool($agent, $session, $run, $this->storeArtifact)]
             : [];
 
         return [

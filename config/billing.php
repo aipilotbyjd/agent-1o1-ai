@@ -99,15 +99,20 @@ return [
     |
     | `run_code` is priced here because it executes in an isolated sandbox
     | for security, which carries a real infra cost — the same bracket as
-    | Gumloop's "Custom and MCP nodes: 3 credits each". Add an entry here
-    | for any future node type that deserves its own surcharge (a real
-    | custom/MCP node, image generation, data enrichment, ...) instead of
-    | changing `CreditMeter`.
+    | Gumloop's "Custom and MCP nodes: 3 credits each". `agent` matches
+    | Gumloop's own stated Agent-node price: "a base cost of 3 credits per
+    | run, charged on top of the actual credit cost of running the agent"
+    | (docs/gumloop/output/raw/core-concepts/agent_node.md's "Credit Costs"
+    | section) — `CreditMeter::costForNodeRun()` already adds this on top of
+    | the node's own token cost. Add an entry here for any future node type
+    | that deserves its own surcharge (a real custom/MCP node, image
+    | generation, data enrichment, ...) instead of changing `CreditMeter`.
     |
     */
 
     'node_costs' => [
         'run_code' => (int) env('BILLING_NODE_COST_RUN_CODE', 3),
+        'agent' => (int) env('BILLING_NODE_COST_AGENT', 3),
     ],
 
     /*

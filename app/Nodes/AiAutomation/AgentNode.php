@@ -12,12 +12,18 @@ use InvalidArgumentException;
 
 /**
  * Embeds an `Agent` inside a workflow — the Workflow→Agent direction (Stage 7's
- * `WorkflowTool` is the reverse, Agent→Workflow). Ported design from the old
- * project's `AgentStepHandler`: resolves the `Agent` scoped to the run's
- * workspace, prompts it synchronously via `AgentRunner::ask()`, and returns
- * `{text, usage}` — `usage` lands on `NodeRun.usage` the same way
- * `AskAiNode`'s does (`WorkflowRunner::executeNodeContract()`), which is all
- * `CreditMeter` needs; no separate credit-accounting wiring for this node.
+ * `WorkflowTool` is the reverse, Agent→Workflow), and this app's version of
+ * Gumloop's Agent node (docs/gumloop/output/raw/core-concepts/agent_node.md).
+ * Ported design from the old project's `AgentStepHandler`: resolves the
+ * `Agent` scoped to the run's workspace and prompts it via
+ * `AgentRunner::askInConversation()`, which persists the turn as a real
+ * conversation (see that method's docblock for why, and for how
+ * `previous_conversation_id`/`conversation_id` continuity works) and returns
+ * `{text, usage, conversation_id, messages, attachment_names}`. `usage` lands
+ * on `NodeRun.usage` the same way `AskAiNode`'s does
+ * (`WorkflowRunner::executeNodeContract()`), which is all `CreditMeter` needs;
+ * no separate credit-accounting wiring for this node beyond its
+ * `config('billing.node_costs.agent')` surcharge.
  *
  * `config.prompt` is already `{{ }}`-resolved by the time `execute()` sees it
  * (`WorkflowRunner`'s templating pass runs before any node type) — omitting
@@ -56,6 +62,10 @@ class AgentNode implements NodeContract
             'properties' => [
                 'agent_id' => ['type' => 'integer'],
                 'prompt' => ['type' => 'string'],
+                // Continues a conversation started by an earlier Agent node
+                // run (its returned `conversation_id`) instead of starting a
+                // fresh one — see AgentRunner::askInConversation()'s docblock.
+                'previous_conversation_id' => ['type' => 'integer'],
             ],
         ];
     }
@@ -73,6 +83,6 @@ class AgentNode implements NodeContract
 
         $prompt = $config['prompt'] ?? (string) Arr::get($context, 'input.message', '');
 
-        return $this->runner->ask($agent, $run, $prompt);
+        return $this->runner->askInConversation($agent, $run, $prompt, $config['previous_conversation_id'] ?? null);
     }
 }

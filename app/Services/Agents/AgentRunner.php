@@ -2,6 +2,7 @@
 
 namespace App\Services\Agents;
 
+use App\Actions\Agents\CreateAgentSessionAction;
 use App\Ai\Agents\EmbeddedAgent;
 use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Agents\AgentMessageRole;
@@ -11,9 +12,11 @@ use App\Events\Runs\RunFailed;
 use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Artifacts\Artifact;
 use App\Models\Runs\Run;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
+use InvalidArgumentException;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Throwable;
@@ -36,6 +39,7 @@ class AgentRunner
         private readonly SkillInjector $skillInjector,
         private readonly CreditGate $creditGate,
         private readonly ModelCatalogResolver $modelCatalog,
+        private readonly CreateAgentSessionAction $createSession,
     ) {}
 
     public function run(AgentSession $session, string $message, string $triggerType = 'manual'): AgentMessage
@@ -204,13 +208,13 @@ class AgentRunner
     }
 
     /**
-     * A single, stateless prompt against `$agent` — what
-     * `Nodes\AiAutomation\AgentNode` calls during a workflow run. `$run` is
-     * the *workflow's* run (not a fresh per-turn one — an embedded call
-     * doesn't create its own `Run`/`AgentSession`/history, it's scoped
-     * entirely inside the calling `NodeRun`), and is the execution context
-     * any attached tool call executes against, same as a chat turn's own
-     * `Run` is for `NodeTool::handle()`.
+     * A single, stateless prompt against `$agent` with no history and no
+     * conversation of its own — what `EvalRunner` calls for a graded eval
+     * case, where each case is meant to be a fresh, independent turn.
+     * `$run` is the *calling* run (an eval run's own `Run`, not a fresh
+     * per-turn one), and is the execution context any attached tool call
+     * executes against, same as a chat turn's own `Run` is for
+     * `NodeTool::handle()`.
      *
      * @return array{text: string, usage: array<string, mixed>}
      */
@@ -232,5 +236,105 @@ class AgentRunner
         ];
 
         return ['text' => $response->text, 'usage' => $usage];
+    }
+
+    /**
+     * What `Nodes\AiAutomation\AgentNode` calls during a workflow run — see
+     * docs/gumloop/output/raw/core-concepts/agent_node.md's "Node Inputs"/
+     * "Node Outputs"/"Continuing Conversations" sections. Unlike `ask()`,
+     * this turn is persisted as a real `AgentSession`/`AgentMessage` pair so
+     * a later Agent-node call can continue it via `$previousConversationId`
+     * — started fresh when that's null, otherwise loaded and validated
+     * against `$agent` and `$run`'s workspace.
+     *
+     * Deliberately creates no `Run` of its own and never fires
+     * `RunCompleted`: this call's tokens are already billed as part of the
+     * calling workflow node's own `NodeRun.usage` (`CreditMeter::costForNodeRun`)
+     * — billing them again under `AgentStep` would double-charge the same
+     * tokens. `AgentMessage.usage` is still recorded, purely so the turn's
+     * cost is visible when inspecting the conversation later.
+     *
+     * @return array{
+     *     text: string,
+     *     usage: array<string, mixed>,
+     *     conversation_id: int,
+     *     messages: array<int, array{role: string, content: string, tool_calls: array<int, mixed>|null}>,
+     *     attachment_names: string,
+     * }
+     */
+    public function askInConversation(AgentModel $agent, Run $run, string $prompt, ?int $previousConversationId): array
+    {
+        $session = $previousConversationId === null
+            ? $this->createSession->execute($agent, $run->triggeredBy)
+            : $this->conversationFor($agent, $run, $previousConversationId);
+
+        $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
+        [$provider, $model] = $this->resolveProvider($agent);
+
+        $userMessage = $session->messages()->create([
+            'role' => AgentMessageRole::User,
+            'content' => $prompt,
+        ]);
+
+        $startedAt = now();
+
+        $response = (new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run, $session)))
+            ->prompt($prompt, provider: $provider, model: $model);
+
+        $usage = [
+            ...$response->usage->toArray(),
+            ...$response->meta->toArray(),
+            'tool_call_count' => $response->toolCalls->count(),
+            'duration_seconds' => $startedAt->diffInSeconds(now()),
+        ];
+
+        $assistantMessage = $session->messages()->create([
+            'role' => AgentMessageRole::Assistant,
+            'content' => $response->text,
+            'tool_calls' => $response->toolCalls->isNotEmpty() ? $response->toolCalls->toArray() : null,
+        ]);
+        $assistantMessage->forceFill(['usage' => $usage])->save();
+
+        $session->forceFill(['last_activity_at' => now()])->save();
+
+        return [
+            'text' => $response->text,
+            'usage' => $usage,
+            'conversation_id' => $session->id,
+            'messages' => $session->messages()->oldest()->get()
+                ->map(fn (AgentMessage $message): array => [
+                    'role' => $message->role->value,
+                    'content' => $message->content,
+                    'tool_calls' => $message->tool_calls,
+                ])
+                ->all(),
+            'attachment_names' => Artifact::query()
+                ->where('run_id', $run->id)
+                ->where('agent_session_id', $session->id)
+                ->pluck('filename')
+                ->implode(','),
+        ];
+    }
+
+    /**
+     * Loads and validates a conversation to continue — it must exist, in
+     * the calling run's own workspace, for this same `$agent`. A session
+     * belongs to exactly one agent (`AgentSession::pinnedAgent()`), so
+     * continuing it with a different agent selected on the node wouldn't
+     * mean anything; Gumloop's own doc calls the equivalent failure
+     * "Conversation Not Found".
+     */
+    private function conversationFor(AgentModel $agent, Run $run, int $previousConversationId): AgentSession
+    {
+        $session = AgentSession::query()
+            ->where('workspace_id', $run->workspace_id)
+            ->where('agent_id', $agent->id)
+            ->find($previousConversationId);
+
+        if ($session === null) {
+            throw new InvalidArgumentException("Conversation [{$previousConversationId}] not found for agent [{$agent->id}] in this workspace.");
+        }
+
+        return $session;
     }
 }
