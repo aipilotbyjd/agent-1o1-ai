@@ -22,6 +22,7 @@ class TagResource extends JsonResource
             'name' => $this->name,
             'color' => $this->color,
             'workflow_count' => $this->whenCounted('workflows'),
+            'agent_count' => $this->whenCounted('agents'),
             'created_at' => $this->created_at,
         ];
     }

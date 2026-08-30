@@ -2,6 +2,7 @@
 
 namespace App\Models\Workflows;
 
+use App\Models\Agents\Agent;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\Workflows\TagFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -24,5 +25,10 @@ class Tag extends Model
     public function workflows(): BelongsToMany
     {
         return $this->belongsToMany(Workflow::class, 'tag_workflow');
+    }
+
+    public function agents(): BelongsToMany
+    {
+        return $this->belongsToMany(Agent::class, 'tag_agent');
     }
 }

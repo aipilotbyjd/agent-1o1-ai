@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Workflows;
 
+use App\Enums\Triggers\TriggerTargetType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreFolderRequest extends FormRequest
 {
@@ -18,8 +20,13 @@ class StoreFolderRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', Rule::enum(TriggerTargetType::class)],
             'color' => ['nullable', 'string', 'max:7'],
-            'parent_id' => ['nullable', 'integer', 'exists:folders,id'],
+            'parent_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('folders', 'id')->where('type', $this->input('type')),
+            ],
             'position' => ['nullable', 'integer', 'min:0'],
         ];
     }

@@ -42,6 +42,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('/', [FolderController::class, 'index'])->name('index');
         Route::post('/', [FolderController::class, 'store'])->name('store');
         Route::post('move-workflows', [FolderController::class, 'moveWorkflows'])->name('move-workflows');
+        Route::post('move-agents', [FolderController::class, 'moveAgents'])->name('move-agents');
         Route::patch('{folder}', [FolderController::class, 'update'])->name('update');
         Route::delete('{folder}', [FolderController::class, 'destroy'])->name('destroy');
     });

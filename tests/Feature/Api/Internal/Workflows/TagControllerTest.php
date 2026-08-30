@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Agents\Agent;
 use App\Models\User;
 use App\Models\Workflows\Tag;
 use App\Models\Workflows\Workflow;
@@ -68,6 +69,38 @@ it('syncs tags onto a workflow', function () {
 
     $response->assertOk();
     expect($workflow->fresh()->tags)->toHaveCount(2);
+});
+
+it('syncs tags onto an agent', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    $tags = Tag::factory()->forWorkspace($workspace)->count(2)->create();
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $response = $this->putJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/tags", [
+        'tag_ids' => $tags->pluck('id')->all(),
+    ]);
+
+    $response->assertOk();
+    expect($agent->fresh()->tags)->toHaveCount(2);
+});
+
+it('shares a tag across a workflow and an agent, counted separately', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    $tag = Tag::factory()->forWorkspace($workspace)->create();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $tag->workflows()->attach($workflow);
+    $tag->agents()->attach($agent);
+
+    Passport::actingAs($owner);
+
+    $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/tags");
+
+    $response->assertOk();
+    expect($response->json('data.tags.0.workflow_count'))->toBe(1);
+    expect($response->json('data.tags.0.agent_count'))->toBe(1);
 });
 
 it('deletes a tag', function () {

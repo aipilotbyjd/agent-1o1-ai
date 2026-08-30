@@ -20,6 +20,7 @@ class UpdateAgentRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', 'alpha_dash'],
             'description' => ['sometimes', 'nullable', 'string'],
+            'folder_id' => ['sometimes', 'nullable', 'integer'],
             'instructions' => ['sometimes', 'string'],
             'provider' => ['sometimes', 'string', 'max:255'],
             'model' => ['sometimes', 'nullable', 'string', 'max:255'],

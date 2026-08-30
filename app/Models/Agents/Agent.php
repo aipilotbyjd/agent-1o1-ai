@@ -5,6 +5,8 @@ namespace App\Models\Agents;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Artifacts\Artifact;
 use App\Models\User;
+use App\Models\Workflows\Folder;
+use App\Models\Workflows\Tag;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\Agents\AgentFactory;
@@ -23,7 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * (not `AgentModel`) per project convention; registered in
  * `AppServiceProvider::configureMorphMap()` as `TriggerTargetType::Agent`.
  */
-#[Fillable(['workspace_id', 'name', 'slug', 'description', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'created_by'])]
+#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'created_by'])]
 class Agent extends Model
 {
     /** @use HasFactory<AgentFactory> */
@@ -50,6 +52,16 @@ class Agent extends Model
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class);
+    }
+
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(Folder::class);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'tag_agent');
     }
 
     /**

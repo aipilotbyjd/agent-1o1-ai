@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentWorkflowToolController;
 use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionRunController;
 use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionSettingsController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\TagController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:api', 'workspace.context'])
@@ -30,6 +31,8 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::patch('{agent}', [AgentController::class, 'update'])->name('update');
         Route::delete('{agent}', [AgentController::class, 'destroy'])->name('destroy');
         Route::post('{agent}/duplicate', [AgentController::class, 'duplicate'])->name('duplicate');
+
+        Route::put('{agent}/tags', [TagController::class, 'syncForAgent'])->name('tags.sync');
 
         // Behavioral history. Addressed by version number, not row id —
         // see AgentVersionController.
