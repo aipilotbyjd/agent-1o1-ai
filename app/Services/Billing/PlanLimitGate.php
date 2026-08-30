@@ -61,7 +61,7 @@ class PlanLimitGate
     public function usage(Workspace $workspace, PlanLimit $limit): int
     {
         return match ($limit) {
-            PlanLimit::Workflows => $workspace->workflows()->count(),
+            PlanLimit::Workflows => $workspace->workflows()->visible()->count(),
             PlanLimit::Agents => $workspace->agents()->count(),
             PlanLimit::Members => $workspace->members()->count()
                 + $workspace->invitations()->pending()->count(),

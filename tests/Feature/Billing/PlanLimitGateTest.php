@@ -49,6 +49,14 @@ it('refuses to create once the cap is reached', function () {
         ->toThrow(PlanLimitExceededException::class);
 });
 
+it('does not count internal (loop-mode) workflows toward the workflow limit', function () {
+    $workspace = cappedWorkspace(['workflows' => 2]);
+    Workflow::factory()->forWorkspace($workspace)->create();
+    Workflow::factory()->count(5)->forWorkspace($workspace)->create(['is_internal' => true]);
+
+    app(PlanLimitGate::class)->assertCanCreate($workspace, PlanLimit::Workflows);
+})->throwsNoExceptions();
+
 it('treats a negative cap as unlimited', function () {
     $workspace = cappedWorkspace(['workflows' => -1]);
     Workflow::factory()->count(25)->forWorkspace($workspace)->create();

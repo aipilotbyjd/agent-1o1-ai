@@ -29,7 +29,7 @@ class WorkflowController extends Controller
     {
         return ApiResponse::success([
             'workflows' => WorkflowResource::collection(
-                $this->apiKeyWorkspace($request)->workflows()->latest()->get(),
+                $this->apiKeyWorkspace($request)->workflows()->visible()->latest()->get(),
             ),
         ]);
     }

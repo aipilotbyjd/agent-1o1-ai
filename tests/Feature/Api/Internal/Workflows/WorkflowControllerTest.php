@@ -44,6 +44,18 @@ it('404s reading a workflow that belongs to a different workspace', function () 
     $this->getJson("/api/v1/workspaces/{$workspace->id}/workflows/{$foreign->id}")->assertNotFound();
 });
 
+it('excludes internal (loop-mode) workflows from the workspace listing', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    Workflow::factory()->forWorkspace($workspace)->create();
+    Workflow::factory()->forWorkspace($workspace)->create(['is_internal' => true]);
+
+    Passport::actingAs($owner);
+
+    $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/workflows")->assertOk();
+
+    expect($response->json('data.workflows'))->toHaveCount(1);
+});
+
 it('saves a draft graph via the builder endpoint', function () {
     [$workspace, $owner] = ownerWorkspaceForWorkflow();
     $workflow = Workflow::factory()->forWorkspace($workspace)->create();

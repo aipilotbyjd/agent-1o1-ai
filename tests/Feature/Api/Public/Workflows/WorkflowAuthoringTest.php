@@ -81,6 +81,16 @@ it('refuses workflow writes to a read-only key', function () {
     $this->withToken($key)->getJson('/api/public/v1/workflows')->assertOk();
 });
 
+it('excludes internal (loop-mode) workflows from the public api listing', function () {
+    [$workspace, $key] = publicApiWorkspace(['workflows:read']);
+    Workflow::factory()->forWorkspace($workspace)->create();
+    Workflow::factory()->forWorkspace($workspace)->create(['is_internal' => true]);
+
+    $response = $this->withToken($key)->getJson('/api/public/v1/workflows')->assertOk();
+
+    expect($response->json('data'))->toHaveCount(1);
+});
+
 it('never exposes another workspaces workflow', function () {
     [$mine, $key] = publicApiWorkspace(['workflows:read', 'workflows:write']);
     [$theirs] = publicApiWorkspace(['workflows:read']);

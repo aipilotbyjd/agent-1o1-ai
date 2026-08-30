@@ -1,8 +1,10 @@
 <?php
 
 use App\Actions\Workflows\StartWorkflowRunAction;
+use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\NodeRunStatus;
 use App\Enums\RunStatus;
+use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
@@ -187,6 +189,68 @@ it('tolerates item errors and still completes when on_item_error is continue', f
     expect(count($loopNode->output['errors']))->toBe(2);
 
     // continue policy releases every item despite failures.
+    expect(Run::where('parent_node_id', $loopNode->id)->count())->toBe(2);
+});
+
+it('loops a single node via config._loop without a hand-built child workflow', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    $parent = Workflow::factory()->forWorkspace($workspace)->create();
+    $parent->replaceGraph([
+        'nodes' => [
+            ['key' => 'ask', 'type' => 'transform', 'config' => [
+                'mapping' => ['n' => 'input.item'],
+                '_loop' => ['items_path' => 'input.items'],
+            ]],
+            ['key' => 'after', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [['from' => 'ask', 'to' => 'after']],
+    ]);
+    $parent->publishVersion(publisher: $owner);
+    $parent = $parent->fresh();
+
+    $run = app(StartWorkflowRunAction::class)->execute($parent, ['items' => [10, 20, 30]]);
+    $run = $run->fresh(['nodeRuns']);
+
+    expect($run->status)->toBe(RunStatus::Completed);
+
+    $loopNode = $run->nodeRuns->firstWhere('key', 'ask');
+    expect($loopNode->status)->toBe(NodeRunStatus::Completed);
+    expect($loopNode->output['results'])->toBe([
+        0 => ['item' => ['n' => 10]],
+        1 => ['item' => ['n' => 20]],
+        2 => ['item' => ['n' => 30]],
+    ]);
+    expect(Run::where('parent_node_id', $loopNode->id)->count())->toBe(3);
+    expect($run->nodeRuns->firstWhere('key', 'after')->status)->toBe(NodeRunStatus::Completed);
+});
+
+it('loops an Agent node via config._loop, matching Gumloop\'s "Loop Mode Support"', function () {
+    WorkspaceAgent::fake(['reply']);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    $parent = Workflow::factory()->forWorkspace($workspace)->create();
+    $parent->replaceGraph([
+        'nodes' => [['key' => 'ask', 'type' => 'agent', 'config' => [
+            'agent_id' => $agent->id,
+            'prompt' => 'Echo {{ input.item }}',
+            '_loop' => ['items_path' => 'input.items'],
+        ]]],
+        'edges' => [],
+    ]);
+    $parent->publishVersion(publisher: $owner);
+    $parent = $parent->fresh();
+
+    $run = app(StartWorkflowRunAction::class)->execute($parent, ['items' => ['a', 'b']]);
+    $run = $run->fresh(['nodeRuns']);
+
+    expect($run->status)->toBe(RunStatus::Completed);
+    $loopNode = $run->nodeRuns->firstWhere('key', 'ask');
+    expect($loopNode->status)->toBe(NodeRunStatus::Completed);
     expect(Run::where('parent_node_id', $loopNode->id)->count())->toBe(2);
 });
 

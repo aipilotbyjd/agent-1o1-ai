@@ -23,7 +23,7 @@ class WorkflowController extends Controller
         $this->requirePermission(Permission::WorkflowView);
 
         return ApiResponse::success([
-            'workflows' => WorkflowResource::collection($workspace->workflows()->latest()->get()),
+            'workflows' => WorkflowResource::collection($workspace->workflows()->visible()->latest()->get()),
         ]);
     }
 
