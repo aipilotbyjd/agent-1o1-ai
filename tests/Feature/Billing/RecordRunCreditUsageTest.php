@@ -45,6 +45,30 @@ it('charges one credit_transaction per completed node run', function () {
     expect($workspace->currentUsagePeriod()->credits_used)->toBe(2);
 });
 
+it('adds run_code\'s configured node cost on top of the base credit', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    $workflow->replaceGraph([
+        'nodes' => [
+            ['key' => 'a', 'type' => 'run_code', 'config' => [
+                'operations' => [['op' => 'set', 'output' => 'x', 'value' => 'y']],
+            ]],
+        ],
+        'edges' => [],
+    ]);
+    $workflow->publishVersion(publisher: $owner);
+    $workflow = $workflow->fresh();
+
+    app(StartWorkflowRunAction::class)->execute($workflow);
+
+    $transaction = CreditTransaction::where('source_type', CreditTransactionType::NodeRun)->sole();
+
+    expect($transaction->credits)->toBe(4);
+    expect($workspace->currentUsagePeriod()->credits_used)->toBe(4);
+});
+
 it('persists a node run\'s usage so it feeds CreditMeter\'s token-based cost', function () {
     AdHocPromptAgent::fake(['a canned reply']);
 
@@ -83,6 +107,21 @@ it('charges one credit_transaction per agent turn', function () {
     expect($transaction->source_id)->toBe($reply->id);
     expect($transaction->workspace_id)->toBe($workspace->id);
     expect($workspace->currentUsagePeriod()->credits_used)->toBe($transaction->credits);
+});
+
+it('captures the model, tool call count, and duration CreditMeter needs to price a chat turn', function () {
+    WorkspaceAgent::fake(['Hello there!']);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+
+    $reply = app(SendAgentMessageAction::class)->execute($session, 'Hi!');
+
+    expect($reply->usage)->toHaveKeys(['provider', 'model', 'tool_call_count', 'duration_seconds']);
+    expect($reply->usage['tool_call_count'])->toBe(0);
+    expect($reply->usage['duration_seconds'])->toBeGreaterThanOrEqual(0);
 });
 
 it('does not double-bill a run whose charge listener is replayed', function () {

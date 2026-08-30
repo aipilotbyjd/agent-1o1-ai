@@ -14,6 +14,7 @@ use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
+use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Throwable;
 
@@ -44,7 +45,7 @@ class AgentRunner
         try {
             $response = $turn->agent->prompt($message, provider: $turn->provider, model: $turn->model);
 
-            return $this->completeTurn($turn, $response->text, $response->usage->toArray());
+            return $this->completeTurn($turn, $response->text, $this->usageFor($turn, $response));
         } catch (Throwable $e) {
             $this->failTurn($turn->run, $e);
 
@@ -70,7 +71,7 @@ class AgentRunner
         $response = $turn->agent->stream($message, provider: $turn->provider, model: $turn->model);
 
         $response->then(function (StreamedAgentResponse $streamed) use ($turn): void {
-            $this->completeTurn($turn, $streamed->text, $streamed->usage->toArray());
+            $this->completeTurn($turn, $streamed->text, $this->usageFor($turn, $streamed));
         });
 
         return new StreamedTurn($turn->run, $response);
@@ -132,6 +133,26 @@ class AgentRunner
         }
 
         return [$this->modelCatalog->providerChain($agent->modelCatalog->slug), null];
+    }
+
+    /**
+     * `$response->usage` plus what `CreditMeter` needs to price this turn
+     * like a Gumloop chat: which model actually served it (`Meta`, so real
+     * $-based pricing can look it up), how many tool calls it made (1
+     * credit each), and how long it ran (5 credits/session-minute compute).
+     * `Usage`/`Meta`/`toolCalls` are all populated by the SDK already —
+     * this just persists what the app previously discarded.
+     *
+     * @return array<string, mixed>
+     */
+    private function usageFor(AgentTurn $turn, AgentResponse $response): array
+    {
+        return [
+            ...$response->usage->toArray(),
+            ...$response->meta->toArray(),
+            'tool_call_count' => $response->toolCalls->count(),
+            'duration_seconds' => $turn->run->started_at->diffInSeconds(now()),
+        ];
     }
 
     /**
@@ -198,9 +219,18 @@ class AgentRunner
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
         [$provider, $model] = $this->resolveProvider($agent);
 
+        $startedAt = now();
+
         $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run)))
             ->prompt($prompt, provider: $provider, model: $model);
 
-        return ['text' => $response->text, 'usage' => $response->usage->toArray()];
+        $usage = [
+            ...$response->usage->toArray(),
+            ...$response->meta->toArray(),
+            'tool_call_count' => $response->toolCalls->count(),
+            'duration_seconds' => $startedAt->diffInSeconds(now()),
+        ];
+
+        return ['text' => $response->text, 'usage' => $usage];
     }
 }

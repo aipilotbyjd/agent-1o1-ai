@@ -85,4 +85,84 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Node Credit Costs
+    |--------------------------------------------------------------------------
+    |
+    | Flat credits a workflow node's type adds on top of `CreditMeter`'s base
+    | 1 credit per run, keyed by the node's `type()` string (matches
+    | `workflow_nodes.type` / `NodeRun.type`). A type left out of this table
+    | costs nothing extra — most nodes (transform, filter, Slack, Gmail,
+    | GitHub, Google Suite, ...) are free beyond the base credit, same as
+    | Gumloop's node pricing.
+    |
+    | `run_code` is priced here because it executes in an isolated sandbox
+    | for security, which carries a real infra cost — the same bracket as
+    | Gumloop's "Custom and MCP nodes: 3 credits each". Add an entry here
+    | for any future node type that deserves its own surcharge (a real
+    | custom/MCP node, image generation, data enrichment, ...) instead of
+    | changing `CreditMeter`.
+    |
+    */
+
+    'node_costs' => [
+        'run_code' => (int) env('BILLING_NODE_COST_RUN_CODE', 3),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Credit Value
+    |--------------------------------------------------------------------------
+    |
+    | What one credit is worth in USD — mirrors Gumloop's "$1 buys 200
+    | credits" ($0.005/credit). `CreditMeter` divides a model call's real
+    | dollar cost (from `model_prices` below) by this to get its credit
+    | price, rounded up.
+    |
+    */
+
+    'credit_value_usd' => (float) env('BILLING_CREDIT_VALUE_USD', 0.005),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Orchestration Fee
+    |--------------------------------------------------------------------------
+    |
+    | Gumloop's "running the agent loop itself" surcharge on agent chats —
+    | applied by `CreditMeter` to the sum of an agent turn's reasoning, tool
+    | call, and compute credits. Workflow runs never carry this fee; see
+    | Gumloop's "Compute and the orchestration fee apply to agent chats
+    | only."
+    |
+    */
+
+    'orchestration_fee_rate' => (float) env('BILLING_ORCHESTRATION_FEE_RATE', 0.08),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Model Prices
+    |--------------------------------------------------------------------------
+    |
+    | Real $ per 1M tokens, keyed by "{provider}:{model}" — the same
+    | provider/model strings `laravel/ai` reports back on a response's
+    | `Meta` (and that match `model_routes.execution_provider`/
+    | `execution_model_id`). `CreditMeter` uses this to bill a model call at
+    | its real cost (`credit_value_usd` above), the same way Gumloop's
+    | "Model calls bill at cost" works.
+    |
+    | This app's `ModelCatalogSeeder` lists a fictional, future-dated model
+    | lineup with no real published pricing — only `gpt-4o`/`gpt-4o-mini`
+    | below are real, current public rates, kept as worked examples. Every
+    | other model has no entry and falls back to `CreditMeter`'s flat
+    | per-1,000-token ratio rather than being charged 0 credits. Add a row
+    | here once a model's real vendor pricing is known.
+    |
+    */
+
+    'model_prices' => [
+        'openai:gpt-4o' => ['input' => 2.50, 'output' => 10.00],
+        'openai:gpt-4o-mini' => ['input' => 0.15, 'output' => 0.60],
+    ],
+
 ];

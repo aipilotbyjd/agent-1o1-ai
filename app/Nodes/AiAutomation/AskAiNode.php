@@ -68,7 +68,9 @@ class AskAiNode implements NodeContract
 
         return [
             'text' => $response->text,
-            'usage' => $response->usage->toArray(),
+            // `meta` carries the provider/model that actually served the
+            // call, so `CreditMeter` can price it at its real $ cost.
+            'usage' => [...$response->usage->toArray(), ...$response->meta->toArray()],
         ];
     }
 }

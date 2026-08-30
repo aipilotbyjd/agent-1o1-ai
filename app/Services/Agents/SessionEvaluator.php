@@ -127,6 +127,8 @@ class SessionEvaluator
         $transcript = $this->transcriptFor($session);
         [$provider, $model] = $this->resolveProvider($agent, $settings);
 
+        $startedAt = now();
+
         $response = (new SessionEvalJudgeAgent)->prompt(
             SessionEvalJudgeAgent::promptFor($agent, $settings, $transcript),
             provider: $provider,
@@ -139,7 +141,15 @@ class SessionEvaluator
             throw new RuntimeException('Judge returned an unparseable response.');
         }
 
-        $decoded['_usage'] = $response->usage->toArray();
+        // Priced like any other chat turn (see the class docblock), so
+        // `CreditMeter` needs the same extras `AgentRunner` captures: which
+        // model judged it, and how long the judge call ran.
+        $decoded['_usage'] = [
+            ...$response->usage->toArray(),
+            ...$response->meta->toArray(),
+            'tool_call_count' => $response->toolCalls->count(),
+            'duration_seconds' => $startedAt->diffInSeconds(now()),
+        ];
 
         return $decoded;
     }
