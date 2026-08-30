@@ -151,18 +151,41 @@ return [
     | its real cost (`credit_value_usd` above), the same way Gumloop's
     | "Model calls bill at cost" works.
     |
-    | This app's `ModelCatalogSeeder` lists a fictional, future-dated model
-    | lineup with no real published pricing — only `gpt-4o`/`gpt-4o-mini`
-    | below are real, current public rates, kept as worked examples. Every
-    | other model has no entry and falls back to `CreditMeter`'s flat
-    | per-1,000-token ratio rather than being charged 0 credits. Add a row
-    | here once a model's real vendor pricing is known.
+    | This app's `ModelCatalogSeeder` lists a mostly fictional, future-dated
+    | model lineup (Claude Opus 5, GPT-5.6 *, Gemini 3.x, Grok 4.6, DeepSeek
+    | V4, Kimi K3, GLM-5.2, MiniMax M3, Qwen3.6, Mistral Medium 3.5, ...) —
+    | none of those exist yet, so there's no real price to put here, and this
+    | table deliberately does not guess one. Every unpriced model (the
+    | fictional ones, plus any real one not yet added below) falls back to
+    | `CreditMeter`'s flat per-1,000-token ratio rather than being charged 0
+    | credits.
+    |
+    | The rates below are best-effort, not independently verified this
+    | session against each vendor's current pricing page — treat them as a
+    | starting point and confirm against the vendor before relying on them
+    | for real billing, the same way `ModelCatalogSeeder` flags its own
+    | best-effort aggregator model ids. Add a row here once a model's price
+    | is confirmed.
     |
     */
 
     'model_prices' => [
+        // OpenAI — unverified, confirm against OpenAI's current pricing.
         'openai:gpt-4o' => ['input' => 2.50, 'output' => 10.00],
         'openai:gpt-4o-mini' => ['input' => 0.15, 'output' => 0.60],
+
+        // Anthropic — unverified, confirm against Anthropic's current
+        // pricing. Keyed to Claude Haiku 4.5's primary route
+        // (`ModelCatalogSeeder`'s enabled anthropic route).
+        'anthropic:claude-haiku-4-5-20251001' => ['input' => 1.00, 'output' => 5.00],
+
+        // Fireworks — unverified, confirm against Fireworks' current
+        // pricing for Meta's Llama 3.1 405B. Every route for this catalog
+        // entry ships disabled by default (aggregator-only, no direct Meta
+        // API); keyed to Fireworks' model id since that's the seeded
+        // priority-0 route — re-key this if a different route (e.g.
+        // Together) becomes primary instead.
+        'fireworks:accounts/fireworks/models/llama-v3p1-405b-instruct' => ['input' => 3.00, 'output' => 3.00],
     ],
 
 ];
