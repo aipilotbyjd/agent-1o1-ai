@@ -12,6 +12,7 @@ use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -46,6 +47,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.context' => EnsureWorkspaceScope::class,
             'api-key' => EnsureApiKeyIsValid::class,
         ]);
+
+        $middleware->api(append: [AddQueuedCookiesToResponse::class]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
     })

@@ -13,10 +13,17 @@ use App\Http\Responses\ApiResponse;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
+    private const REFRESH_COOKIE = 'refresh_token';
+
+    private const REFRESH_COOKIE_MINUTES = 60 * 24 * 30;
+
     public function __construct(
         private readonly AuthService $auth,
     ) {}
@@ -25,10 +32,7 @@ class AuthController extends Controller
     {
         $result = $this->auth->register($request->validated());
 
-        return ApiResponse::created([
-            'user' => UserResource::make($result['user']),
-            'tokens' => $result['tokens'],
-        ], 'Registered successfully.');
+        return $this->respondWithTokens($result['user'], $result['tokens'], 'Registered successfully.', 201);
     }
 
     public function login(LoginRequest $request)
@@ -42,10 +46,7 @@ class AuthController extends Controller
             );
         }
 
-        return ApiResponse::success([
-            'user' => UserResource::make($result['user']),
-            'tokens' => $result['tokens'],
-        ], 'Logged in successfully.');
+        return $this->respondWithTokens($result['user'], $result['tokens'], 'Logged in successfully.');
     }
 
     public function verifyTwoFactor(VerifyTwoFactorRequest $request)
@@ -55,17 +56,19 @@ class AuthController extends Controller
             $request->validated('code'),
         );
 
-        return ApiResponse::success([
-            'user' => UserResource::make($result['user']),
-            'tokens' => $result['tokens'],
-        ], 'Logged in successfully.');
+        return $this->respondWithTokens($result['user'], $result['tokens'], 'Logged in successfully.');
     }
 
     public function refresh(Request $request)
     {
-        $request->validate(['refresh_token' => ['required', 'string']]);
+        $refreshToken = $request->cookie(self::REFRESH_COOKIE);
 
-        $tokens = $this->auth->refresh($request->string('refresh_token')->toString());
+        abort_if($refreshToken === null, 401, 'Missing refresh token.');
+
+        $tokens = $this->auth->refresh($refreshToken);
+
+        Cookie::queue($this->makeRefreshCookie($tokens['refresh_token']));
+        unset($tokens['refresh_token']);
 
         return ApiResponse::success(['tokens' => $tokens]);
     }
@@ -73,6 +76,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $this->auth->logout($request->user());
+        Cookie::queue(Cookie::forget(self::REFRESH_COOKIE));
 
         return ApiResponse::noContent();
     }
@@ -80,6 +84,7 @@ class AuthController extends Controller
     public function logoutAll(Request $request)
     {
         $this->auth->logoutAll($request->user());
+        Cookie::queue(Cookie::forget(self::REFRESH_COOKIE));
 
         return ApiResponse::noContent();
     }
@@ -153,14 +158,32 @@ class AuthController extends Controller
 
     public function handleProviderCallback(string $provider)
     {
-        $socialUser = Socialite::driver($provider)->stateless()->user();
+        try {
+            $socialUser = Socialite::driver($provider)->stateless()->user();
+            $result = $this->auth->handleSocialCallback($provider, $socialUser);
+        } catch (\Throwable $e) {
+            report($e);
 
-        $result = $this->auth->handleSocialCallback($provider, $socialUser);
+            return redirect(config('app.frontend_url').'/oauth/callback?error='.urlencode('Sign-in failed. Please try again.'));
+        }
 
-        return ApiResponse::success([
-            'user' => UserResource::make($result['user']),
-            'access_token' => $result['access_token'],
-        ], 'Logged in successfully.');
+        $code = Str::random(40);
+
+        Cache::put("oauth-exchange:{$code}", [
+            'user_id' => $result['user']->id,
+            'tokens' => $result['tokens'],
+        ], now()->addSeconds(60));
+
+        return redirect(config('app.frontend_url')."/oauth/callback?code={$code}");
+    }
+
+    public function exchangeSocialCode(Request $request)
+    {
+        $request->validate(['code' => ['required', 'string']]);
+
+        $result = $this->auth->exchangeSocialCode($request->string('code')->toString());
+
+        return $this->respondWithTokens($result['user'], $result['tokens'], 'Logged in successfully.');
     }
 
     public function sessions(Request $request)
@@ -173,5 +196,31 @@ class AuthController extends Controller
         $this->auth->revokeSession($request->user(), $tokenId);
 
         return ApiResponse::noContent();
+    }
+
+    private function respondWithTokens(User $user, array $tokens, string $message, int $status = 200)
+    {
+        Cookie::queue($this->makeRefreshCookie($tokens['refresh_token']));
+        unset($tokens['refresh_token']);
+
+        return ApiResponse::success([
+            'user' => UserResource::make($user),
+            'tokens' => $tokens,
+        ], $message, $status);
+    }
+
+    private function makeRefreshCookie(string $refreshToken)
+    {
+        return Cookie::make(
+            self::REFRESH_COOKIE,
+            $refreshToken,
+            self::REFRESH_COOKIE_MINUTES,
+            '/',
+            null,
+            true,
+            true,
+            false,
+            'none',
+        );
     }
 }

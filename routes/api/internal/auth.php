@@ -19,6 +19,7 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function () {
         ->where('provider', 'google|github');
     Route::get('social/{provider}/callback', [AuthController::class, 'handleProviderCallback'])
         ->where('provider', 'google|github');
+    Route::post('social/exchange', [AuthController::class, 'exchangeSocialCode']);
 
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
         ->middleware('signed')

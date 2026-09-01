@@ -184,7 +184,7 @@ class AuthService
     }
 
     /**
-     * @return array{user: User, access_token: string}
+     * @return array{user: User, tokens: array}
      */
     public function handleSocialCallback(string $provider, SocialiteUser $socialUser): array
     {
@@ -217,11 +217,33 @@ class AuthService
             ]);
         }
 
-        $token = $user->createToken('social-login-'.$provider);
-
         return [
             'user' => $user,
-            'access_token' => $token->accessToken,
+            'tokens' => $this->issueTokensForSocialUser($user),
+        ];
+    }
+
+    /**
+     * Exchanges a one-time OAuth code (minted by the social callback redirect —
+     * see AuthController::handleProviderCallback) for the tokens it was issued
+     * alongside. Single-use: `Cache::pull` atomically reads and deletes it, so a
+     * replayed code always misses.
+     *
+     * @return array{user: User, tokens: array}
+     */
+    public function exchangeSocialCode(string $code): array
+    {
+        $payload = Cache::pull("oauth-exchange:{$code}");
+
+        if ($payload === null) {
+            throw ValidationException::withMessages([
+                'code' => 'This sign-in link has expired. Please try again.',
+            ]);
+        }
+
+        return [
+            'user' => User::query()->findOrFail($payload['user_id']),
+            'tokens' => $payload['tokens'],
         ];
     }
 
@@ -251,6 +273,30 @@ class AuthService
         ], now()->addMinutes(5));
 
         return $challengeToken;
+    }
+
+    /**
+     * Issues a full access+refresh token set for a social-login user.
+     *
+     * `$user->createToken()` only produces a refresh-token-less personal access
+     * token — Passport only issues refresh tokens through an actual grant flow.
+     * To get parity with password login (refresh support), we rotate the user's
+     * internal password to a fresh random value and password-grant through it,
+     * the same trick `completeTwoFactorChallenge()` uses.
+     *
+     * Caveat: this silently rotates the user's password on every social sign-in.
+     * Fine today since social-originated accounts never log in with a password —
+     * revisit if this app ever lets a user link a password to such an account.
+     *
+     * @return array{access_token: string, refresh_token: string, expires_in: int, token_type: string}
+     */
+    private function issueTokensForSocialUser(User $user): array
+    {
+        $password = Str::password(32);
+
+        $user->forceFill(['password' => $password])->save();
+
+        return $this->issuePasswordGrantToken($user->email, $password);
     }
 
     /**
