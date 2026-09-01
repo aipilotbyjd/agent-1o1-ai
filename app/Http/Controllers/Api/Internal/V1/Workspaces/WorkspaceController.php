@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Workspaces;
 
+use App\Authorization\WorkspaceContext;
 use App\Enums\Workspaces\Permission;
+use App\Enums\Workspaces\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Workspaces\StoreWorkspaceRequest;
 use App\Http\Requests\Api\Internal\V1\Workspaces\UpdateWorkspaceRequest;
@@ -27,23 +29,23 @@ class WorkspaceController extends Controller
     {
         $workspace = $this->workspaces->create($request->user(), $request->validated());
 
-        return ApiResponse::created(['workspace' => WorkspaceResource::make($workspace)], 'Workspace created successfully.');
+        return ApiResponse::created(['workspace' => WorkspaceResource::make($workspace)->withRole(Role::Owner)], 'Workspace created successfully.');
     }
 
-    public function show(Workspace $workspace)
+    public function show(Workspace $workspace, WorkspaceContext $context)
     {
         $this->requirePermission(Permission::WorkspaceView);
 
-        return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)]);
+        return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)->withRole($context->role)]);
     }
 
-    public function update(UpdateWorkspaceRequest $request, Workspace $workspace)
+    public function update(UpdateWorkspaceRequest $request, Workspace $workspace, WorkspaceContext $context)
     {
         $this->requirePermission(Permission::WorkspaceUpdate);
 
         $workspace = $this->workspaces->update($workspace, $request->validated());
 
-        return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)], 'Workspace updated successfully.');
+        return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)->withRole($context->role)], 'Workspace updated successfully.');
     }
 
     public function destroy(Workspace $workspace)
