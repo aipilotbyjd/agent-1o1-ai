@@ -23,7 +23,7 @@ pest()->extend(TestCase::class)
             'name' => 'Testing Password Grant Client',
             'secret' => config('passport.password_client_secret'),
             'redirect_uris' => [],
-            'grant_types' => ['password', 'refresh_token'],
+            'grant_types' => ['password', 'refresh_token', 'social_exchange'],
             'revoked' => false,
         ]);
     })

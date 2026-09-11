@@ -11,5 +11,6 @@ get {
 }
 
 docs {
-  Returns the authenticated user.
+  Returns the authenticated user, including `two_factor_enabled` and
+  `pending_email` (set while an email change is awaiting confirmation).
 }

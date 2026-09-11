@@ -17,10 +17,15 @@ it('logs in with valid credentials and returns access + refresh tokens', functio
     $response->assertJsonStructure([
         'data' => [
             'user' => ['id', 'email'],
-            'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+            'tokens' => ['access_token', 'expires_in', 'token_type'],
         ],
     ]);
     $response->assertJsonPath('data.user.email', 'jane@example.com');
+
+    // The refresh token is deliberately kept out of the body — see
+    // AuthController::respondWithTokens().
+    $response->assertJsonMissingPath('data.tokens.refresh_token');
+    expect($response->getCookie('refresh_token', false))->not->toBeNull();
 });
 
 it('rejects an invalid password', function () {

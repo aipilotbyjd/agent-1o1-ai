@@ -12,10 +12,19 @@ patch {
 
 body:json {
   {
-    "name": "Jane D. Updated"
+    "name": "Jane D. Updated",
+    "email": "jane.new@example.com"
   }
 }
 
 docs {
   Updates the authenticated user's profile. All fields are optional.
+
+  `email` is **staged, not applied**: the account keeps its current
+  address and `pending_email` is set, while a confirmation link goes to
+  the new address and a security alert goes to the old one. The change
+  only lands when that link is followed (see `Auth / Confirm Email
+  Change`), and doing so revokes every session.
+
+  Cancel a staged change with `Cancel Email Change`.
 }

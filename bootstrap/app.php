@@ -9,6 +9,7 @@ use App\Exceptions\RunStateException;
 use App\Exceptions\WorkflowValidationException;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsureWorkspaceScope;
+use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -48,7 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api-key' => EnsureApiKeyIsValid::class,
         ]);
 
-        $middleware->api(append: [AddQueuedCookiesToResponse::class]);
+        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
     })

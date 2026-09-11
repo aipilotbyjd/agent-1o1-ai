@@ -23,6 +23,8 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'email_verified_at' => $this->email_verified_at,
+            'pending_email' => $this->pending_email,
+            'two_factor_enabled' => $this->hasTwoFactorEnabled(),
             'avatar' => $this->avatar ? Storage::disk('public')->url($this->avatar) : null,
             'current_workspace_id' => $this->current_workspace_id,
             'current_workspace' => WorkspaceResource::make($this->whenLoaded('currentWorkspace')),

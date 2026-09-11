@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Auth;
 
+use App\Enums\Auth\AuthEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\Internal\V1\Auth\LoginRequest;
 use App\Http\Requests\Api\Internal\V1\Auth\RegisterRequest;
 use App\Http\Requests\Api\Internal\V1\Auth\VerifyTwoFactorRequest;
+use App\Http\Resources\Api\Internal\V1\Auth\AuthEventResource;
 use App\Http\Resources\Api\Internal\V1\Auth\TokenResource;
 use App\Http\Resources\Api\Internal\V1\User\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\User;
+use App\Services\Auth\AuthEventRecorder;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
@@ -26,6 +29,7 @@ class AuthController extends Controller
 
     public function __construct(
         private readonly AuthService $auth,
+        private readonly AuthEventRecorder $events,
     ) {}
 
     public function register(RegisterRequest $request)
@@ -103,7 +107,7 @@ class AuthController extends Controller
         $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed'],
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         $this->auth->resetPassword($request->only('token', 'email', 'password', 'password_confirmation'));
@@ -123,23 +127,58 @@ class AuthController extends Controller
         return ApiResponse::noContent();
     }
 
-    public function verifyEmail(Request $request, int $id)
+    /**
+     * Followed from an email client, so it answers with a redirect into the SPA
+     * rather than JSON — matching the password reset link, which has always
+     * pointed at the frontend.
+     */
+    public function verifyEmail(Request $request, string $id)
     {
         if (! $request->hasValidSignature()) {
-            abort(403, 'Invalid or expired verification link.');
+            return $this->redirectToFrontend('/verify-email', ['status' => 'expired']);
         }
 
-        $user = User::query()->findOrFail($id);
+        $user = User::query()->find($id);
 
-        if (! hash_equals(sha1($user->getEmailForVerification()), (string) $request->route('hash'))) {
-            abort(403, 'Invalid verification link.');
+        if ($user === null || ! hash_equals(sha1($user->getEmailForVerification()), (string) $request->route('hash'))) {
+            return $this->redirectToFrontend('/verify-email', ['status' => 'invalid']);
         }
 
-        if (! $user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
+        if ($user->hasVerifiedEmail()) {
+            return $this->redirectToFrontend('/verify-email', ['status' => 'already-verified']);
         }
 
-        return ApiResponse::success(message: 'Email verified.');
+        $user->markEmailAsVerified();
+
+        $this->events->record(AuthEvent::EmailVerified, $user);
+
+        return $this->redirectToFrontend('/verify-email', ['status' => 'verified']);
+    }
+
+    /**
+     * The counterpart for a staged email change. Signed rather than
+     * authenticated: the link is followed from the new mailbox, which is very
+     * often not the browser holding the session.
+     */
+    public function confirmEmailChange(Request $request, string $id)
+    {
+        if (! $request->hasValidSignature()) {
+            return $this->redirectToFrontend('/settings/account', ['email_change' => 'expired']);
+        }
+
+        $user = User::query()->find($id);
+
+        if ($user === null) {
+            return $this->redirectToFrontend('/settings/account', ['email_change' => 'invalid']);
+        }
+
+        try {
+            $this->auth->confirmEmailChange($user, (string) $request->route('hash'));
+        } catch (ValidationException $e) {
+            return $this->redirectToFrontend('/settings/account', ['email_change' => 'invalid']);
+        }
+
+        return $this->redirectToFrontend('/settings/account', ['email_change' => 'confirmed']);
     }
 
     public function resendVerification(Request $request)
@@ -164,17 +203,12 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return redirect(config('app.frontend_url').'/oauth/callback?error='.urlencode('Sign-in failed. Please try again.'));
+            return $this->redirectToFrontend('/oauth/callback', ['error' => 'Sign-in failed. Please try again.']);
         }
 
-        $code = Str::random(40);
+        $code = $this->auth->issueSocialExchangeCode($result['user'], $provider);
 
-        Cache::put("oauth-exchange:{$code}", [
-            'user_id' => $result['user']->id,
-            'tokens' => $result['tokens'],
-        ], now()->addSeconds(60));
-
-        return redirect(config('app.frontend_url')."/oauth/callback?code={$code}");
+        return $this->redirectToFrontend('/oauth/callback', ['code' => $code]);
     }
 
     public function exchangeSocialCode(Request $request)
@@ -198,6 +232,21 @@ class AuthController extends Controller
         return ApiResponse::noContent();
     }
 
+    /**
+     * The account's own security log — the same rows that drive the alert
+     * emails, so a user can check "was that me?" without contacting support.
+     */
+    public function events(Request $request)
+    {
+        $events = $request->user()
+            ->authEvents()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(perPage: max(1, min($request->integer('per_page', 25), 100)));
+
+        return ApiResponse::paginated(AuthEventResource::collection($events));
+    }
+
     private function respondWithTokens(User $user, array $tokens, string $message, int $status = 200)
     {
         Cookie::queue($this->makeRefreshCookie($tokens['refresh_token']));
@@ -207,6 +256,14 @@ class AuthController extends Controller
             'user' => UserResource::make($user),
             'tokens' => $tokens,
         ], $message, $status);
+    }
+
+    /**
+     * @param  array<string, string>  $query
+     */
+    private function redirectToFrontend(string $path, array $query)
+    {
+        return redirect(rtrim((string) config('app.frontend_url'), '/').$path.'?'.http_build_query($query));
     }
 
     private function makeRefreshCookie(string $refreshToken)

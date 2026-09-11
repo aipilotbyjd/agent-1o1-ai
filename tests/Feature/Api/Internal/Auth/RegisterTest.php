@@ -14,9 +14,12 @@ it('registers a user, creates their workspace, and issues tokens', function () {
     $response->assertJsonStructure([
         'data' => [
             'user' => ['id', 'name', 'email'],
-            'tokens' => ['access_token', 'refresh_token', 'expires_in', 'token_type'],
+            'tokens' => ['access_token', 'expires_in', 'token_type'],
         ],
     ]);
+
+    $response->assertJsonMissingPath('data.tokens.refresh_token');
+    expect($response->getCookie('refresh_token', false))->not->toBeNull();
 
     $user = User::query()->where('email', 'jane@example.com')->firstOrFail();
 
