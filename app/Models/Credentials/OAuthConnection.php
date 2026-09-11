@@ -13,6 +13,12 @@ class OAuthConnection extends Model
 {
     use HasFactory;
 
+    /**
+     * Set explicitly: the convention would snake-case this class to
+     * `o_auth_connections`, but the table has always been `oauth_connections`.
+     */
+    protected $table = 'oauth_connections';
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
