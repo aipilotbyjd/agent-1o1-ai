@@ -13,8 +13,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * via `Actions\Billing\DeductCreditsAction`. `(source_type, source_id)` is
  * unique, so a given `NodeRun`/`AgentMessage` can only ever be billed once
  * however many times a queued charge is replayed.
+ *
+ * `credits` is the whole charge; `topup_credits` and `overage_credits` say
+ * how much of it came out of the non-expiring top-up pool and out of overage
+ * respectively, so the remainder is what the plan allowance covered.
  */
-#[Fillable(['workspace_id', 'usage_period_id', 'source_type', 'source_id', 'credits', 'topup_credits', 'reason'])]
+#[Fillable(['workspace_id', 'usage_period_id', 'source_type', 'source_id', 'credits', 'topup_credits', 'overage_credits', 'reason'])]
 class CreditTransaction extends Model
 {
     /**
@@ -26,6 +30,7 @@ class CreditTransaction extends Model
             'source_type' => CreditTransactionType::class,
             'credits' => 'integer',
             'topup_credits' => 'integer',
+            'overage_credits' => 'integer',
         ];
     }
 

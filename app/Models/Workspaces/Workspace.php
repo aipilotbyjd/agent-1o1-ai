@@ -48,6 +48,8 @@ class Workspace extends Model
      */
     protected $attributes = [
         'topup_credits' => 0,
+        'credit_overage_enabled' => false,
+        'out_of_credits_notification_enabled' => true,
     ];
 
     /**
@@ -57,6 +59,10 @@ class Workspace extends Model
     {
         return [
             'topup_credits' => 'integer',
+            'credit_overage_enabled' => 'boolean',
+            'credit_overage_limit' => 'integer',
+            'credit_usage_notification_thresholds' => 'array',
+            'out_of_credits_notification_enabled' => 'boolean',
         ];
     }
 
@@ -298,5 +304,31 @@ class Workspace extends Model
         }
 
         return $period->remainingPlanCredits() + $this->topup_credits;
+    }
+
+    /**
+     * Percentages of this period's allowance at which the workspace wants to
+     * be told it is running low — Gumloop's Credit Usage Notifications,
+     * defaulting to 75% and 90%.
+     *
+     * `null` means the workspace never chose, so the estate default applies.
+     * An empty array is a deliberate "don't tell me" and is honoured as one,
+     * which is why this can't just coalesce to the default.
+     *
+     * Sorted ascending and de-duplicated so `DeductCreditsAction` can reason
+     * about "the highest line this charge crossed" without re-normalizing.
+     *
+     * @return list<int>
+     */
+    public function creditUsageNotificationThresholds(): array
+    {
+        $thresholds = $this->credit_usage_notification_thresholds
+            ?? config('billing.credit_notifications.default_thresholds', []);
+
+        $thresholds = array_unique(array_map(intval(...), $thresholds));
+
+        sort($thresholds);
+
+        return array_values($thresholds);
     }
 }

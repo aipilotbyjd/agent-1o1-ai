@@ -12,6 +12,7 @@ use App\Http\Resources\Api\Internal\V1\Billing\UsagePeriodResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Billing\Plan;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\CreditOverage;
 use App\Services\Billing\PlanLimitGate;
 
 class BillingController extends Controller
@@ -36,13 +37,19 @@ class BillingController extends Controller
      * from `current_plan.limits`, which carries the raw cap with no usage
      * beside it. A `max` of `null` means unlimited.
      *
+     * `overage` says whether the workspace keeps running once
+     * `credits_available` hits zero, and what that is allowed to cost —
+     * `credits_remaining` there is the second balance a run is gated on, so
+     * a workspace showing `credits_available: 0` is only actually blocked
+     * when this is `0` too. `PUT /billing/overage` changes it.
+     *
      * `dunning` is non-null only while Stripe is failing to collect. Because
      * this app grants no grace period, `subscription` will already be null at
      * that point — the workspace has been dropped to the free plan — so this
      * is the only thing on the response that can explain why. Render it as a
      * banner pointing at `POST /billing/portal`.
      */
-    public function overview(Workspace $workspace, PlanLimitGate $limits)
+    public function overview(Workspace $workspace, PlanLimitGate $limits, CreditOverage $overage)
     {
         $this->requirePermission(Permission::BillingView);
 
@@ -58,8 +65,29 @@ class BillingController extends Controller
             'topup_credits' => $workspace->topup_credits,
             'credits_available' => $workspace->availableCredits(),
             'limits' => $this->limitUsage($workspace, $currentPlan, $limits),
+            'overage' => $this->overage($workspace, $overage),
             'dunning' => $this->dunning($workspace),
         ]);
+    }
+
+    /**
+     * The same shape `GET /billing/overage` returns, minus the settings-only
+     * fields the overview has no use for — one fewer request for a screen
+     * that has to render the balance and the overage allowance together.
+     *
+     * @return array{available: bool, enabled: bool, effective_limit: int|null, credits_used: int, credits_remaining: int|null}
+     */
+    private function overage(Workspace $workspace, CreditOverage $overage): array
+    {
+        $period = $workspace->currentUsagePeriod();
+
+        return [
+            'available' => $overage->isAvailableTo($workspace),
+            'enabled' => $workspace->credit_overage_enabled,
+            'effective_limit' => $overage->effectiveLimitFor($workspace),
+            'credits_used' => $period->overage_credits_used,
+            'credits_remaining' => $overage->remainingFor($workspace, $period),
+        ];
     }
 
     /**

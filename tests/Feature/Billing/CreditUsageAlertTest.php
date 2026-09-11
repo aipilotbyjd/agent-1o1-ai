@@ -19,6 +19,12 @@ beforeEach(function () {
     config()->set('admin_alerts.recipients.mail', ['ops@example.com']);
     config()->set('admin_alerts.usage.threshold_percent', 80);
     config()->set('admin_alerts.throttle_seconds', 3600);
+
+    // A workspace now picks its own customer-facing thresholds (75% and 90%
+    // by default). Pinning them to the operator's single line keeps these
+    // cases about one threshold; the per-workspace behaviour has its own
+    // test in `CreditNotificationPreferencesTest`.
+    config()->set('billing.credit_notifications.default_thresholds', [80]);
 });
 
 function workspaceWithCreditLimit(?int $limit): Workspace
@@ -125,6 +131,7 @@ it('raises a critical alert when the gate refuses a workspace that is out of cre
                 && $notification->context === [
                     'workspace_id' => $workspace->id,
                     'credits_available' => 0,
+                    'overage_enabled' => false,
                 ];
         },
     );

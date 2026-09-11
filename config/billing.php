@@ -87,6 +87,62 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Credit Overage
+    |--------------------------------------------------------------------------
+    |
+    | Gumloop's "enable credit overage to keep running past your monthly
+    | credits, billed at $0.005 per credit". Off per workspace until it opts
+    | in (`workspaces.credit_overage_enabled`) and only offered on plans
+    | carrying the `credit_overage` feature.
+    |
+    | `default_limit` is the ceiling on how many overage credits one billing
+    | period may accrue when a workspace hasn't set its own — Gumloop's
+    | "default ceiling is 1,000,000 overage credits per billing period
+    | ($5,000)". A workspace may lower this on its subscription screen but
+    | never raise it, so overage can't run away unbounded. Setting the env var
+    | to `null` lifts the ceiling estate-wide, which is Gumloop's uncapped
+    | Enterprise case.
+    |
+    | `minimum_invoice_cents` stops `billing:invoice-overage` opening a Stripe
+    | invoice for a few cents of accrued usage — anything below it rolls into
+    | the next run rather than being written off, since the credits stay
+    | unbilled.
+    |
+    */
+
+    'overage' => [
+        'default_limit' => is_numeric(env('BILLING_OVERAGE_DEFAULT_LIMIT', 1_000_000))
+            ? (int) env('BILLING_OVERAGE_DEFAULT_LIMIT', 1_000_000)
+            : null,
+        'minimum_invoice_cents' => (int) env('BILLING_OVERAGE_MINIMUM_INVOICE_CENTS', 50),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Credit Notifications
+    |--------------------------------------------------------------------------
+    |
+    | Gumloop's Credit Notification Preferences: "Credit Usage Notifications
+    | ... defaults to 75% and 90%". These are the thresholds a workspace gets
+    | until it sets its own on `PUT /billing/credit-notifications`; each is a
+    | percentage of the period's `credits_limit`, and only the charge that
+    | actually crosses one notifies.
+    |
+    | `maximum_thresholds` caps how many a workspace may configure, so a
+    | threshold per percent can't turn one busy period into 100 emails.
+    |
+    | This is distinct from `admin_alerts.usage.threshold_percent`, which is
+    | the operator-facing alert and stays a single estate-wide number.
+    |
+    */
+
+    'credit_notifications' => [
+        'default_thresholds' => [75, 90],
+        'maximum_thresholds' => (int) env('BILLING_CREDIT_NOTIFICATION_MAX_THRESHOLDS', 10),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Node Credit Costs
     |--------------------------------------------------------------------------
     |

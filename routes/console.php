@@ -15,4 +15,5 @@ Schedule::command('triggers:retry-stuck')->everyFiveMinutes()->withoutOverlappin
 Schedule::job(new ExpireStaleWaitsJob)->everyMinute()->onOneServer();
 Schedule::command('billing:expire-trials')->hourly()->withoutOverlapping()->onOneServer();
 Schedule::command('billing:notify-trial-ending')->daily()->withoutOverlapping()->onOneServer();
+Schedule::command('billing:invoice-overage')->daily()->withoutOverlapping()->onOneServer();
 Schedule::command('reflections:run-due')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
