@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\Internal\V1\Billing\BillingController;
 use App\Http\Controllers\Api\Internal\V1\Billing\BillingPortalController;
 use App\Http\Controllers\Api\Internal\V1\Billing\CreditController;
+use App\Http\Controllers\Api\Internal\V1\Billing\CreditNotificationController;
+use App\Http\Controllers\Api\Internal\V1\Billing\CreditOverageController;
 use App\Http\Controllers\Api\Internal\V1\Billing\CreditPackController;
 use App\Http\Controllers\Api\Internal\V1\Billing\InvoiceController;
 use App\Http\Controllers\Api\Internal\V1\Billing\PlanController;
@@ -26,6 +28,12 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('credit-packs/checkout', [CreditPackController::class, 'checkout'])->name('credit-packs.checkout');
 
         Route::get('credits', [CreditController::class, 'index'])->name('credits.index');
+
+        Route::get('overage', [CreditOverageController::class, 'show'])->name('overage.show');
+        Route::put('overage', [CreditOverageController::class, 'update'])->name('overage.update');
+
+        Route::get('credit-notifications', [CreditNotificationController::class, 'show'])->name('credit-notifications.show');
+        Route::put('credit-notifications', [CreditNotificationController::class, 'update'])->name('credit-notifications.update');
 
         // `upcoming` is declared before `{invoiceId}` so the literal isn't
         // swallowed as an invoice id.
