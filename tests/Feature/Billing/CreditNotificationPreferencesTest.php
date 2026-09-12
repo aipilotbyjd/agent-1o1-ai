@@ -21,6 +21,11 @@ use Laravel\Passport\Passport;
  */
 beforeEach(function () {
     config()->set('billing.credit_notifications.default_thresholds', [75, 90]);
+
+    // The operator alert needs a destination before `AdminAlerts` will raise
+    // anything, and these cases assert on both sides of that split.
+    config()->set('admin_alerts.enabled', true);
+    config()->set('admin_alerts.recipients.mail', ['ops@example.com']);
     config()->set('admin_alerts.usage.threshold_percent', 80);
 });
 
@@ -110,7 +115,7 @@ it('keeps the operator alert on its own estate-wide threshold', function () {
     app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 45);
 
     Notification::assertSentTo($workspace->owner, CreditsLowNotification::class);
-    Notification::assertNothingSentOnDemand();
+    Notification::assertSentOnDemandTimes(AdminAlertNotification::class, 0);
 });
 
 it('silences the out-of-credits notification when the workspace turns it off', function () {
