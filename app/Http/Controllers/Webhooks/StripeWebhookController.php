@@ -317,10 +317,7 @@ class StripeWebhookController extends CashierWebhookController
         }
 
         $plan = $stripePriceId !== null
-            ? Plan::query()
-                ->where('stripe_price_id_monthly', $stripePriceId)
-                ->orWhere('stripe_price_id_yearly', $stripePriceId)
-                ->first()
+            ? Plan::findByStripePriceId($stripePriceId)
             : null;
 
         if ($plan !== null) {
