@@ -22,12 +22,15 @@ class WorkspaceController extends Controller
 
     public function index(Request $request)
     {
-        return ApiResponse::success(['workspaces' => WorkspaceResource::collection($request->user()->workspaces()->get())]);
+        $workspaces = $request->user()->workspaces()->withCount(['workflows', 'agents'])->get();
+
+        return ApiResponse::success(['workspaces' => WorkspaceResource::collection($workspaces)]);
     }
 
     public function store(StoreWorkspaceRequest $request)
     {
         $workspace = $this->workspaces->create($request->user(), $request->validated());
+        $workspace->loadCount(['workflows', 'agents']);
 
         return ApiResponse::created(['workspace' => WorkspaceResource::make($workspace)->withRole(Role::Owner)], 'Workspace created successfully.');
     }
@@ -35,6 +38,8 @@ class WorkspaceController extends Controller
     public function show(Workspace $workspace, WorkspaceContext $context)
     {
         $this->requirePermission(Permission::WorkspaceView);
+
+        $workspace->loadCount(['workflows', 'agents']);
 
         return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)->withRole($context->role)]);
     }
@@ -44,6 +49,7 @@ class WorkspaceController extends Controller
         $this->requirePermission(Permission::WorkspaceUpdate);
 
         $workspace = $this->workspaces->update($workspace, $request->validated());
+        $workspace->loadCount(['workflows', 'agents']);
 
         return ApiResponse::success(['workspace' => WorkspaceResource::make($workspace)->withRole($context->role)], 'Workspace updated successfully.');
     }

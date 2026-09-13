@@ -36,6 +36,8 @@ class WorkspaceResource extends JsonResource
             'owner' => UserResource::make($this->whenLoaded('owner')),
             'role' => $this->viewerRole?->value
                 ?? $this->whenPivotLoaded('workspace_members', fn () => $this->pivot->role),
+            'workflows_count' => $this->whenCounted('workflows'),
+            'agents_count' => $this->whenCounted('agents'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
