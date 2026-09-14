@@ -15,10 +15,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('artifact_shares', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->uuid('group_id');
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('granted_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('granted_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['group_id', 'user_id']);

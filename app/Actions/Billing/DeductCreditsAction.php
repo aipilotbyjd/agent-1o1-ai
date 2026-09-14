@@ -62,7 +62,7 @@ class DeductCreditsAction
     public function execute(
         Workspace $workspace,
         CreditTransactionType $sourceType,
-        int $sourceId,
+        string $sourceId,
         int $credits,
         ?string $reason = null,
         bool $allowOverdraft = false,

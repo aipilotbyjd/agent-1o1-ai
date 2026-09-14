@@ -20,11 +20,11 @@ class UpdateAgentRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', 'alpha_dash'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'folder_id' => ['sometimes', 'nullable', 'integer'],
+            'folder_id' => ['sometimes', 'nullable', 'uuid'],
             'instructions' => ['sometimes', 'string'],
             'provider' => ['sometimes', 'string', 'max:255'],
             'model' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'model_catalog_id' => ['sometimes', 'nullable', 'integer', 'exists:model_catalog,id'],
+            'model_catalog_id' => ['sometimes', 'nullable', 'uuid', 'exists:model_catalog,id'],
             'temperature' => ['sometimes', 'nullable', 'numeric', 'between:0,1'],
             'settings' => ['sometimes', 'nullable', 'array'],
         ];

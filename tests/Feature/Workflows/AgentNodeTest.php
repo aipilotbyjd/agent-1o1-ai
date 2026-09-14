@@ -122,7 +122,7 @@ it('starts a fresh conversation and returns its id, full history, and attachment
     $run = app(StartWorkflowRunAction::class)->execute($workflow);
     $output = $run->fresh(['nodeRuns'])->nodeRuns->first()->output;
 
-    expect($output['conversation_id'])->toBeInt();
+    expect($output['conversation_id'])->toBeString();
     expect(AgentSession::find($output['conversation_id']))->not->toBeNull();
     expect($output['messages'])->toBe([
         ['role' => 'user', 'content' => 'hi', 'tool_calls' => null],

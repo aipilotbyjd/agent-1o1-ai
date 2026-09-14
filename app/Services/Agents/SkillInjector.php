@@ -18,7 +18,7 @@ use App\Models\Agents\AgentMemory;
  */
 class SkillInjector
 {
-    public function instructionsFor(Agent $agent, ?int $userId = null): string
+    public function instructionsFor(Agent $agent, ?string $userId = null): string
     {
         $sections = [$agent->instructions];
 
@@ -44,7 +44,7 @@ class SkillInjector
      * null) memories — a memory tied to a specific user shouldn't leak into
      * another user's conversation.
      */
-    private function memoriesSection(Agent $agent, ?int $userId): ?string
+    private function memoriesSection(Agent $agent, ?string $userId): ?string
     {
         $entries = $agent->memories()
             ->where(fn ($q) => $q->whereNull('user_id')->when($userId, fn ($q) => $q->orWhere('user_id', $userId)))

@@ -28,7 +28,7 @@ class GmailReplyToMessageNode extends AbstractGmailNode
             'required' => ['to', 'message_id', 'thread_id', 'body'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'to' => ['type' => 'string'],
                 'message_id' => ['type' => 'string'],
                 'thread_id' => ['type' => 'string'],

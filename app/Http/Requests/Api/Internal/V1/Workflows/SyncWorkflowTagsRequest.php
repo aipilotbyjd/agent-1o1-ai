@@ -18,7 +18,7 @@ class SyncWorkflowTagsRequest extends FormRequest
     {
         return [
             'tag_ids' => ['present', 'array'],
-            'tag_ids.*' => ['integer', 'exists:tags,id'],
+            'tag_ids.*' => ['uuid', 'exists:tags,id'],
         ];
     }
 }

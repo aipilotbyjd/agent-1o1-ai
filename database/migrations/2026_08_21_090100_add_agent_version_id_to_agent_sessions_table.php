@@ -19,7 +19,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('agent_sessions', function (Blueprint $table) {
-            $table->foreignId('agent_version_id')->nullable()->after('agent_id')->constrained('agent_versions')->nullOnDelete();
+            $table->foreignUuid('agent_version_id')->nullable()->after('agent_id')->constrained('agent_versions')->nullOnDelete();
         });
     }
 

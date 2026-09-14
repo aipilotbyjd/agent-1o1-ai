@@ -21,8 +21,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_evaluation_settings', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_id')->unique()->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_id')->unique()->constrained()->cascadeOnDelete();
             $table->boolean('is_enabled')->default(false);
             $table->string('model')->nullable();
             $table->boolean('sentiment_enabled')->default(true);

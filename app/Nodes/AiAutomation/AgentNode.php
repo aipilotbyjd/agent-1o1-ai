@@ -60,12 +60,12 @@ class AgentNode implements NodeContract
             'type' => 'object',
             'required' => ['agent_id'],
             'properties' => [
-                'agent_id' => ['type' => 'integer'],
+                'agent_id' => ['type' => 'string'],
                 'prompt' => ['type' => 'string'],
                 // Continues a conversation started by an earlier Agent node
                 // run (its returned `conversation_id`) instead of starting a
                 // fresh one — see AgentRunner::askInConversation()'s docblock.
-                'previous_conversation_id' => ['type' => 'integer'],
+                'previous_conversation_id' => ['type' => 'string'],
             ],
         ];
     }

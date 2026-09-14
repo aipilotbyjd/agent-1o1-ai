@@ -7,6 +7,7 @@ use App\Enums\Triggers\TriggerType;
 use App\Models\Runs\Run;
 use Database\Factories\Triggers\TriggerEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TriggerEvent extends Model
 {
     /** @use HasFactory<TriggerEventFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @var array<string, mixed>
@@ -101,7 +102,7 @@ class TriggerEvent extends Model
         $this->update(['status' => TriggerEventStatus::Queued]);
     }
 
-    public function markFired(int $runId): void
+    public function markFired(string $runId): void
     {
         $this->update([
             'status' => TriggerEventStatus::Fired,

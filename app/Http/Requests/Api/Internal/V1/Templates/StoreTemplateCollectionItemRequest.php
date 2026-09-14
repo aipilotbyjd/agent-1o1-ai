@@ -19,7 +19,7 @@ class StoreTemplateCollectionItemRequest extends FormRequest
     {
         return [
             'templatable_type' => ['required', 'string', Rule::in(['workflow_template', 'agent_template'])],
-            'templatable_id' => ['required', 'integer'],
+            'templatable_id' => ['required', 'uuid'],
             'position' => ['nullable', 'integer', 'min:0'],
         ];
     }

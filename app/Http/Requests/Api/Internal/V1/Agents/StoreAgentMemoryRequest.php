@@ -17,7 +17,7 @@ class StoreAgentMemoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'user_id' => ['nullable', 'uuid', 'exists:users,id'],
             'key' => ['required', 'string', 'max:255'],
             'value' => ['required', 'string'],
             'type' => ['nullable', 'string', 'max:30'],

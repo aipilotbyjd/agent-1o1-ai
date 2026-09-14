@@ -4,6 +4,7 @@ namespace App\Models\Workflows;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['workflow_id', 'key', 'type', 'config', 'position', 'pinned_data', 'pinned_at', 'pinned_by'])]
 class WorkflowNode extends Model
 {
+    use HasUuids;
+
     /**
      * @return array<string, string>
      */

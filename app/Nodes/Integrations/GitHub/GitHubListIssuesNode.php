@@ -28,7 +28,7 @@ class GitHubListIssuesNode extends AbstractGitHubNode
             'required' => ['repo'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'repo' => ['type' => 'string'],
                 'state' => ['type' => 'string'],
                 'per_page' => ['type' => 'integer'],

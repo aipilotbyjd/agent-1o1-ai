@@ -28,7 +28,7 @@ class SlackInviteToChannelNode extends AbstractSlackNode
             'required' => ['channel', 'users'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'channel' => ['type' => 'string'],
                 // Comma-separated Slack user IDs, per Slack's own API shape.
                 'users' => ['type' => 'string'],

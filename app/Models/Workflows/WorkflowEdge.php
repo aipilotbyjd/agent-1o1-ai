@@ -3,6 +3,7 @@
 namespace App\Models\Workflows;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['workflow_id', 'from_node_id', 'to_node_id', 'condition'])]
 class WorkflowEdge extends Model
 {
+    use HasUuids;
+
     public const string ERROR_CONDITION = 'error';
 
     public function workflow(): BelongsTo

@@ -4,6 +4,7 @@ namespace App\Models\Billing;
 
 use App\Models\Workspaces\Workspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['workspace_id', 'plan_id', 'subscription_id', 'starts_at', 'ends_at', 'credits_limit'])]
 class UsagePeriod extends Model
 {
+    use HasUuids;
+
     /**
      * @var array<string, mixed>
      */

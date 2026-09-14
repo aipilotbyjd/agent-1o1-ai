@@ -19,8 +19,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_knowledge', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
             $table->string('title');
             $table->longText('content')->nullable();
             $table->string('source_type')->default('text');

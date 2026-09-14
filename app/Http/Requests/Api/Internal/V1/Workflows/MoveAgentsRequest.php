@@ -18,8 +18,8 @@ class MoveAgentsRequest extends FormRequest
     {
         return [
             'agent_ids' => ['required', 'array', 'min:1'],
-            'agent_ids.*' => ['integer'],
-            'folder_id' => ['nullable', 'integer', 'exists:folders,id'],
+            'agent_ids.*' => ['uuid'],
+            'folder_id' => ['nullable', 'uuid', 'exists:folders,id'],
         ];
     }
 }

@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('model_routes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('model_catalog_id')->constrained('model_catalog')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('model_catalog_id')->constrained('model_catalog')->cascadeOnDelete();
             // A `laravel/ai` provider name — either a native `Lab` enum
             // value (anthropic, openai, bedrock, openrouter, ...) or a
             // custom `openai-compatible` provider key from config/ai.php
             // (fireworks, together, ...).
             $table->string('execution_provider');
             $table->string('execution_model_id');
-            $table->foreignId('connector_credential_id')->nullable()->constrained('connector_credentials')->nullOnDelete();
+            $table->foreignUuid('connector_credential_id')->nullable()->constrained('connector_credentials')->nullOnDelete();
             // Lower runs first — resolved into an ordered `provider` array
             // that `laravel/ai` fails over across on a transient error.
             $table->unsignedInteger('priority')->default(0);

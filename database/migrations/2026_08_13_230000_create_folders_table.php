@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('folders', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('folders')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('parent_id')->nullable()->constrained('folders')->nullOnDelete();
             $table->string('name');
             $table->string('color', 7)->nullable();
             $table->unsignedInteger('position')->default(0);

@@ -23,7 +23,7 @@ return new class extends Migration
 
         Schema::table('subscriptions', function (Blueprint $table) {
             $table->foreign('workspace_id')->references('id')->on('workspaces')->cascadeOnDelete();
-            $table->foreignId('plan_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
+            $table->foreignUuid('plan_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
             $table->index(['workspace_id', 'stripe_status']);
         });
     }

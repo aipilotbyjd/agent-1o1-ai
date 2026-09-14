@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('tag_workflow', function (Blueprint $table) {
-            $table->foreignId('tag_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('workflow_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('tag_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('workflow_id')->constrained()->cascadeOnDelete();
             $table->primary(['tag_id', 'workflow_id']);
         });
     }

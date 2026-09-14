@@ -9,6 +9,7 @@ use App\Services\Workflows\ConfigSchemaValidator;
 use App\Services\Workflows\NodeRegistry;
 use Database\Factories\Workflows\Builder\WorkflowBuilderSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,7 +31,7 @@ use InvalidArgumentException;
 class WorkflowBuilderSession extends Model
 {
     /** @use HasFactory<WorkflowBuilderSessionFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @var array<string, mixed>

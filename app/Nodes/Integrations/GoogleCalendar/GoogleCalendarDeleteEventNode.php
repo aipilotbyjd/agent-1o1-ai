@@ -28,7 +28,7 @@ class GoogleCalendarDeleteEventNode extends AbstractGoogleCalendarNode
             'required' => ['event_id'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'calendar_id' => ['type' => 'string'],
                 'event_id' => ['type' => 'string'],
             ],

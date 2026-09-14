@@ -16,9 +16,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workflow_builder_draft_versions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('session_id')->constrained('workflow_builder_sessions')->cascadeOnDelete();
-            $table->foreignId('triggered_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('session_id')->constrained('workflow_builder_sessions')->cascadeOnDelete();
+            $table->foreignUuid('triggered_by')->nullable()->constrained('users')->nullOnDelete();
             $table->json('graph_snapshot');
             $table->string('label')->nullable();
             $table->timestamps();

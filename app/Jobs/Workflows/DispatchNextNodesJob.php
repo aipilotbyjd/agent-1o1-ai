@@ -24,8 +24,8 @@ class DispatchNextNodesJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(
-        public int $runId,
-        public ?int $settledNodeRunId = null,
+        public string $runId,
+        public ?string $settledNodeRunId = null,
         public bool $continueOnError = false,
     ) {
         $this->onQueue(Queue::WorkflowDispatch->value);

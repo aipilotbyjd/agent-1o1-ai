@@ -28,7 +28,7 @@ class GmailListLabelsNode extends AbstractGmailNode
             'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
             ],
         ];
     }

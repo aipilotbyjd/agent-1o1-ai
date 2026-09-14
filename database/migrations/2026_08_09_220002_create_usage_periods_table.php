@@ -19,8 +19,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('usage_periods', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->timestamp('starts_at');
             $table->timestamp('ends_at');
             $table->unsignedInteger('credits_used')->default(0);

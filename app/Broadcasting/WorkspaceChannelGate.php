@@ -20,12 +20,12 @@ use App\Models\Workspaces\Workspace;
  */
 class WorkspaceChannelGate
 {
-    public function runs(User $user, int $workspaceId): bool
+    public function runs(User $user, string $workspaceId): bool
     {
         return $this->allows($user, $workspaceId, Permission::RunView);
     }
 
-    public function run(User $user, int $workspaceId, int $runId): bool
+    public function run(User $user, string $workspaceId, string $runId): bool
     {
         if (! $this->allows($user, $workspaceId, Permission::RunView)) {
             return false;
@@ -37,7 +37,7 @@ class WorkspaceChannelGate
         return Run::whereKey($runId)->where('workspace_id', $workspaceId)->exists();
     }
 
-    public function agentSession(User $user, int $workspaceId, int $sessionId): bool
+    public function agentSession(User $user, string $workspaceId, string $sessionId): bool
     {
         if (! $this->allows($user, $workspaceId, Permission::AgentView)) {
             return false;
@@ -46,7 +46,7 @@ class WorkspaceChannelGate
         return AgentSession::whereKey($sessionId)->where('workspace_id', $workspaceId)->exists();
     }
 
-    private function allows(User $user, int $workspaceId, Permission $permission): bool
+    private function allows(User $user, string $workspaceId, Permission $permission): bool
     {
         $workspace = Workspace::find($workspaceId);
 

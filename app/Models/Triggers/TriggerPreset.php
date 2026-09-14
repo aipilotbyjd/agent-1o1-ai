@@ -5,6 +5,7 @@ namespace App\Models\Triggers;
 use App\Enums\Triggers\TriggerType;
 use Database\Factories\Triggers\TriggerPresetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TriggerPreset extends Model
 {
     /** @use HasFactory<TriggerPresetFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @var array<string, mixed>

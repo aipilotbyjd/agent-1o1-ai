@@ -28,7 +28,7 @@ class GoogleDocsAppendTextNode extends AbstractGoogleDocsNode
             'required' => ['document_id', 'text'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'document_id' => ['type' => 'string'],
                 'text' => ['type' => 'string'],
             ],

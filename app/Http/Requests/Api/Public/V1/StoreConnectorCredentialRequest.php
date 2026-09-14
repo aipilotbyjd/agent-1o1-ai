@@ -17,7 +17,7 @@ class StoreConnectorCredentialRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'connector_id' => ['required', 'integer', 'exists:connectors,id'],
+            'connector_id' => ['required', 'uuid', 'exists:connectors,id'],
             'name' => ['required', 'string', 'max:255'],
             'data' => ['required', 'array'],
             'expires_at' => ['sometimes', 'nullable', 'date'],

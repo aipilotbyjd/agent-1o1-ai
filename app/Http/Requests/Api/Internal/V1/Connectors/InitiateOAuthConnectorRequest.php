@@ -19,7 +19,7 @@ class InitiateOAuthConnectorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'connector_id' => ['required', 'integer', 'exists:connectors,id'],
+            'connector_id' => ['required', 'uuid', 'exists:connectors,id'],
             'name' => ['required', 'string', 'max:255'],
             'redirect_uri' => ['required', 'url'],
             'scope' => ['sometimes', new Enum(ConnectorCredentialScope::class)],

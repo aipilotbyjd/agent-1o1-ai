@@ -15,10 +15,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('reflections', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('reflection_run_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('reflection_run_id')->constrained()->cascadeOnDelete();
             $table->string('type');
             $table->string('title');
             $table->text('rationale');
@@ -26,9 +26,9 @@ return new class extends Migration
             $table->unsignedTinyInteger('confidence')->default(0);
             $table->unsignedInteger('support_count')->default(0);
             $table->text('proposed_prompt');
-            $table->foreignId('target_skill_id')->nullable()->constrained('skills')->nullOnDelete();
+            $table->foreignUuid('target_skill_id')->nullable()->constrained('skills')->nullOnDelete();
             $table->string('status')->default('pending');
-            $table->foreignId('applied_run_id')->nullable()->constrained('runs')->nullOnDelete();
+            $table->foreignUuid('applied_run_id')->nullable()->constrained('runs')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['agent_id', 'status', 'created_at']);

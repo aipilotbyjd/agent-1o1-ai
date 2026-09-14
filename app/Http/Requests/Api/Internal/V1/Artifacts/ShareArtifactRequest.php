@@ -26,7 +26,7 @@ class ShareArtifactRequest extends FormRequest
             // cross-workspace grant.
             'user_id' => [
                 'required',
-                'integer',
+                'uuid',
                 Rule::exists('workspace_members', 'user_id')->where('workspace_id', $workspaceId),
             ],
         ];

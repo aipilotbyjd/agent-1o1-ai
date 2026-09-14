@@ -16,8 +16,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_knowledge_collections', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
             $table->string('collection');
             $table->timestamps();
 

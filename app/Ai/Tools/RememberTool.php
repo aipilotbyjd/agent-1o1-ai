@@ -21,7 +21,7 @@ class RememberTool implements Tool
 {
     public function __construct(
         private readonly Agent $agent,
-        private readonly ?int $userId = null,
+        private readonly ?string $userId = null,
     ) {}
 
     public function description(): Stringable|string

@@ -15,9 +15,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('reflection_runs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
             $table->string('status')->default('pending');
             $table->unsignedInteger('sessions_analyzed_count')->default(0);
             $table->text('skip_reason')->nullable();

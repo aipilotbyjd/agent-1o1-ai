@@ -15,14 +15,12 @@ class RunStatsRequest extends DashboardWindowRequest
     {
         return [
             ...parent::rules(),
-            'workflow_id' => ['nullable', 'integer'],
+            'workflow_id' => ['nullable', 'uuid'],
         ];
     }
 
-    public function workflowId(): ?int
+    public function workflowId(): ?string
     {
-        $workflowId = $this->validated('workflow_id');
-
-        return $workflowId === null ? null : (int) $workflowId;
+        return $this->validated('workflow_id');
     }
 }

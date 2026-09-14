@@ -24,7 +24,7 @@ class StoreFolderRequest extends FormRequest
             'color' => ['nullable', 'string', 'max:7'],
             'parent_id' => [
                 'nullable',
-                'integer',
+                'uuid',
                 Rule::exists('folders', 'id')->where('type', $this->input('type')),
             ],
             'position' => ['nullable', 'integer', 'min:0'],

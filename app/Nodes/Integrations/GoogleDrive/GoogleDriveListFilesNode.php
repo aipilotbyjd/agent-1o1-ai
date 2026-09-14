@@ -28,7 +28,7 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode
             'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'query' => ['type' => 'string'],
                 'page_size' => ['type' => 'integer'],
             ],

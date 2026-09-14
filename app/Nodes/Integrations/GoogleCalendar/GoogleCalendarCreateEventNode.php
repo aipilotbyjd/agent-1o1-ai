@@ -28,7 +28,7 @@ class GoogleCalendarCreateEventNode extends AbstractGoogleCalendarNode
             'required' => ['summary', 'start_at', 'end_at'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'calendar_id' => ['type' => 'string'],
                 'summary' => ['type' => 'string'],
                 'description' => ['type' => 'string'],

@@ -257,12 +257,12 @@ class AgentRunner
      * @return array{
      *     text: string,
      *     usage: array<string, mixed>,
-     *     conversation_id: int,
+     *     conversation_id: string,
      *     messages: array<int, array{role: string, content: string, tool_calls: array<int, mixed>|null}>,
      *     attachment_names: string,
      * }
      */
-    public function askInConversation(AgentModel $agent, Run $run, string $prompt, ?int $previousConversationId): array
+    public function askInConversation(AgentModel $agent, Run $run, string $prompt, ?string $previousConversationId): array
     {
         $session = $previousConversationId === null
             ? $this->createSession->execute($agent, $run->triggeredBy)
@@ -324,7 +324,7 @@ class AgentRunner
      * mean anything; Gumloop's own doc calls the equivalent failure
      * "Conversation Not Found".
      */
-    private function conversationFor(AgentModel $agent, Run $run, int $previousConversationId): AgentSession
+    private function conversationFor(AgentModel $agent, Run $run, string $previousConversationId): AgentSession
     {
         $session = AgentSession::query()
             ->where('workspace_id', $run->workspace_id)

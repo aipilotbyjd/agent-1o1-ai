@@ -11,6 +11,7 @@ use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\Agents\AgentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,7 +30,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Agent extends Model
 {
     /** @use HasFactory<AgentFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasUuids, SoftDeletes;
 
     /**
      * @var array<string, mixed>

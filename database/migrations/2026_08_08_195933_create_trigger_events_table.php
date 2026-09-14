@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('trigger_events', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('trigger_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('trigger_id')->constrained()->cascadeOnDelete();
             $table->string('source');
             $table->string('status')->default('queued');
 
             // No FK yet — workflow_runs doesn't exist until the workflow engine ships
             // (docs/WORKFLOWS_PLAN.md). Column is real; constraint follows.
-            $table->unsignedBigInteger('workflow_run_id')->nullable();
+            $table->uuid('workflow_run_id')->nullable();
 
             $table->json('payload')->nullable();
             $table->text('payload_snippet')->nullable();

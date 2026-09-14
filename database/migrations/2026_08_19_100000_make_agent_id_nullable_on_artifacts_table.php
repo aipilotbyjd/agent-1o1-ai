@@ -14,14 +14,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('artifacts', function (Blueprint $table) {
-            $table->foreignId('agent_id')->nullable()->change();
+            $table->foreignUuid('agent_id')->nullable()->change();
         });
     }
 
     public function down(): void
     {
         Schema::table('artifacts', function (Blueprint $table) {
-            $table->foreignId('agent_id')->nullable(false)->change();
+            $table->foreignUuid('agent_id')->nullable(false)->change();
         });
     }
 };

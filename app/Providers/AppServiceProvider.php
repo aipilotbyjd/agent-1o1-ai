@@ -14,6 +14,7 @@ use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
 use App\Models\Auth\PassportToken;
 use App\Models\Billing\Subscription as BillingSubscription;
+use App\Models\Billing\SubscriptionItem as BillingSubscriptionItem;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\Templates\AgentTemplate;
@@ -235,5 +236,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Cashier::useCustomerModel(Workspace::class);
         Cashier::useSubscriptionModel(BillingSubscription::class);
+        Cashier::useSubscriptionItemModel(BillingSubscriptionItem::class);
     }
 }

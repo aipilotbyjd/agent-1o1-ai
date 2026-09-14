@@ -3,11 +3,14 @@
 namespace App\Models\Billing;
 
 use App\Models\Workspaces\Workspace;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Cashier\Subscription as CashierSubscription;
 
 class Subscription extends CashierSubscription
 {
+    use HasUuids;
+
     /**
      * Only the columns this subclass adds — Laravel merges these over
      * Cashier's own `$casts` property, so redeclaring its dates here would

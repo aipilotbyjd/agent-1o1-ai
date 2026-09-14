@@ -28,7 +28,7 @@ class GoogleDocsGetDocumentNode extends AbstractGoogleDocsNode
             'required' => ['document_id'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'document_id' => ['type' => 'string'],
             ],
         ];

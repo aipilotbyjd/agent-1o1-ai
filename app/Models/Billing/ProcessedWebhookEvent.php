@@ -3,6 +3,7 @@
 namespace App\Models\Billing;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['stripe_event_id', 'type', 'processed_at'])]
 class ProcessedWebhookEvent extends Model
 {
+    use HasUuids;
+
     /**
      * @return array<string, string>
      */

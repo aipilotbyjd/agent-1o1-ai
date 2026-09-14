@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('agents', function (Blueprint $table) {
-            $table->foreignId('folder_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
+            $table->foreignUuid('folder_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
         });
     }
 

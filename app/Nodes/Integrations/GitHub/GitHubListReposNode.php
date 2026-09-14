@@ -28,7 +28,7 @@ class GitHubListReposNode extends AbstractGitHubNode
             'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'owner' => ['type' => 'string'],
                 'per_page' => ['type' => 'integer'],
             ],

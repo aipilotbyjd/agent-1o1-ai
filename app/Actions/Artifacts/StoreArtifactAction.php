@@ -65,7 +65,7 @@ class StoreArtifactAction
         ?Agent $agent = null,
         ?AgentSession $session = null,
         ?Run $run = null,
-        ?int $createdBy = null,
+        ?string $createdBy = null,
         ?string $groupId = null,
         ?array $metadata = null,
     ): Artifact {

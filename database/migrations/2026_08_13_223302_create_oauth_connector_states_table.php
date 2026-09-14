@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('oauth_connector_states', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('connector_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('connector_id')->constrained()->cascadeOnDelete();
             $table->string('state')->unique();
             $table->string('name');
             $table->string('redirect_uri');

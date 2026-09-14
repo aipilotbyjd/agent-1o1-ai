@@ -70,7 +70,7 @@ class TargetRunStarter implements RunStarter
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function start(Trigger $trigger, array $payload): int
+    public function start(Trigger $trigger, array $payload): string
     {
         $target = $this->targetFor($trigger);
 
@@ -88,7 +88,7 @@ class TargetRunStarter implements RunStarter
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function startWorkflow(Trigger $trigger, Workflow $workflow, array $payload): int
+    private function startWorkflow(Trigger $trigger, Workflow $workflow, array $payload): string
     {
         return $this->startWorkflowRun->execute(
             $workflow,
@@ -107,7 +107,7 @@ class TargetRunStarter implements RunStarter
      *
      * @param  array<string, mixed>  $payload
      */
-    private function startAgent(Trigger $trigger, Agent $agent, array $payload): int
+    private function startAgent(Trigger $trigger, Agent $agent, array $payload): string
     {
         $session = $this->createAgentSession->execute(
             $agent,

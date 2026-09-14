@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('template_collections', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             // Null workspace_id = a global/system pack visible to every workspace.
-            $table->foreignId('workspace_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('workspace_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();

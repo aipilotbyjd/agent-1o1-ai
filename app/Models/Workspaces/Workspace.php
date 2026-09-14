@@ -30,6 +30,7 @@ use App\Models\Workflows\Folder;
 use App\Models\Workflows\Tag;
 use App\Models\Workflows\Workflow;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,7 +42,7 @@ use Laravel\Cashier\Billable;
 #[Fillable(['name', 'slug', 'avatar', 'owner_id'])]
 class Workspace extends Model
 {
-    use Billable, HasFactory, SoftDeletes;
+    use Billable, HasFactory, HasUuids, SoftDeletes;
 
     /**
      * @var array<string, mixed>

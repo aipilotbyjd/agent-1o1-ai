@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('auth_events', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
 
             // Nullable because failed sign-ins are recorded for addresses that
             // may not belong to an account, and the log outlives the user row.
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignUuid('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('email')->nullable();
             $table->string('event')->index();
             $table->string('ip_address', 45)->nullable();

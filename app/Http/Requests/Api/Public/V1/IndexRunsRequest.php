@@ -20,7 +20,7 @@ class IndexRunsRequest extends FormRequest
     {
         return [
             'status' => ['nullable', Rule::enum(RunStatus::class)],
-            'workflow_id' => ['nullable', 'integer'],
+            'workflow_id' => ['nullable', 'uuid'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

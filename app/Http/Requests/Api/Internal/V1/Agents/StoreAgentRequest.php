@@ -20,11 +20,11 @@ class StoreAgentRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash'],
             'description' => ['nullable', 'string'],
-            'folder_id' => ['nullable', 'integer'],
+            'folder_id' => ['nullable', 'uuid'],
             'instructions' => ['required', 'string'],
             'provider' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
-            'model_catalog_id' => ['nullable', 'integer', 'exists:model_catalog,id'],
+            'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id'],
             'temperature' => ['nullable', 'numeric', 'between:0,1'],
             'settings' => ['nullable', 'array'],
         ];

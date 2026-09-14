@@ -59,7 +59,7 @@ final class DashboardMetrics
      *     by_status: array<string, int>
      * }
      */
-    public function runTotals(Workspace $workspace, DashboardWindow $window, ?int $workflowId = null): array
+    public function runTotals(Workspace $workspace, DashboardWindow $window, ?string $workflowId = null): array
     {
         $byStatus = $this->runs($workspace, $workflowId)
             ->where('runs.created_at', '>=', $window->from)
@@ -101,7 +101,7 @@ final class DashboardMetrics
      *
      * @return array<int, array{date: string, total: int, completed: int, failed: int}>
      */
-    public function runSeries(Workspace $workspace, DashboardWindow $window, ?int $workflowId = null): array
+    public function runSeries(Workspace $workspace, DashboardWindow $window, ?string $workflowId = null): array
     {
         $rows = $this->runs($workspace, $workflowId)
             ->where('runs.created_at', '>=', $window->from)
@@ -127,7 +127,7 @@ final class DashboardMetrics
      * `workflow_id`, so they fall out here by construction rather than by a
      * filter that could drift.
      *
-     * @return array<int, array{workflow_id: int, name: string|null, runs: int, failed: int}>
+     * @return array<int, array{workflow_id: string, name: string|null, runs: int, failed: int}>
      */
     public function topWorkflowsByRuns(Workspace $workspace, DashboardWindow $window): array
     {
@@ -146,8 +146,8 @@ final class DashboardMetrics
         $names = $this->workflowNames($rows->pluck('workflow_id')->all());
 
         return $rows->map(fn (object $row): array => [
-            'workflow_id' => (int) $row->workflow_id,
-            'name' => $names[(int) $row->workflow_id] ?? null,
+            'workflow_id' => (string) $row->workflow_id,
+            'name' => $names[$row->workflow_id] ?? null,
             'runs' => (int) $row->runs_count,
             'failed' => (int) $row->failed_count,
         ])->all();
@@ -253,7 +253,7 @@ final class DashboardMetrics
      * a workflow behind it, which is why the `source_type` filter is not
      * optional here.
      *
-     * @return array<int, array{workflow_id: int, name: string|null, credits: int}>
+     * @return array<int, array{workflow_id: string, name: string|null, credits: int}>
      */
     public function topWorkflowsByCredits(Workspace $workspace, DashboardWindow $window): array
     {
@@ -272,8 +272,8 @@ final class DashboardMetrics
         $names = $this->workflowNames($rows->pluck('workflow_id')->all());
 
         return $rows->map(fn (object $row): array => [
-            'workflow_id' => (int) $row->workflow_id,
-            'name' => $names[(int) $row->workflow_id] ?? null,
+            'workflow_id' => (string) $row->workflow_id,
+            'name' => $names[$row->workflow_id] ?? null,
             'credits' => (int) $row->credits,
         ])->all();
     }
@@ -285,7 +285,7 @@ final class DashboardMetrics
      * session-evaluation spend is deliberately left out: it belongs to a test
      * suite, not to production agent traffic.
      *
-     * @return array<int, array{agent_id: int, name: string|null, credits: int}>
+     * @return array<int, array{agent_id: string, name: string|null, credits: int}>
      */
     public function topAgentsByCredits(Workspace $workspace, DashboardWindow $window): array
     {
@@ -306,8 +306,8 @@ final class DashboardMetrics
             ->pluck('name', 'id');
 
         return $rows->map(fn (object $row): array => [
-            'agent_id' => (int) $row->agent_id,
-            'name' => $names[(int) $row->agent_id] ?? null,
+            'agent_id' => (string) $row->agent_id,
+            'name' => $names[$row->agent_id] ?? null,
             'credits' => (int) $row->credits,
         ])->all();
     }
@@ -318,7 +318,7 @@ final class DashboardMetrics
      *
      * @return Builder<Run>
      */
-    private function runs(Workspace $workspace, ?int $workflowId = null): Builder
+    private function runs(Workspace $workspace, ?string $workflowId = null): Builder
     {
         return Run::query()
             ->where('runs.workspace_id', $workspace->id)
@@ -356,7 +356,7 @@ final class DashboardMetrics
      * Null when nothing has finished, and also on a driver this doesn't know
      * how to subtract two timestamps on — an absent number beats a wrong one.
      */
-    private function averageRunDurationMs(Workspace $workspace, DashboardWindow $window, ?int $workflowId): ?int
+    private function averageRunDurationMs(Workspace $workspace, DashboardWindow $window, ?string $workflowId): ?int
     {
         $expression = $this->durationMs('runs.started_at', 'runs.finished_at');
 

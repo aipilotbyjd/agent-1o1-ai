@@ -38,7 +38,7 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
 
     public function __construct(
         public readonly WorkflowBuilderSession $session,
-        private readonly ?int $beforeMessageId = null,
+        private readonly ?string $beforeMessageId = null,
     ) {}
 
     public function instructions(): string

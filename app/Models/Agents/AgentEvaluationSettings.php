@@ -4,6 +4,7 @@ namespace App\Models\Agents;
 
 use Database\Factories\Agents\AgentEvaluationSettingsFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AgentEvaluationSettings extends Model
 {
     /** @use HasFactory<AgentEvaluationSettingsFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * Gumloop's published limits (docs/gumloop/output/raw/core-concepts/evaluations.md's

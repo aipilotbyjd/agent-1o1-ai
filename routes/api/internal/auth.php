@@ -32,13 +32,13 @@ Route::prefix('auth')->as('auth.')->middleware('throttle:auth')->group(function 
     // are followed by a person in their email client who should land on the
     // frontend with a reason, not on an error page.
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-        ->whereNumber('id')
+        ->whereUuid('id')
         ->name('verify-email');
 
     // Signed rather than authenticated: the link is opened from the new mailbox,
     // which is usually not the browser holding the session.
     Route::get('confirm-email-change/{id}/{hash}', [AuthController::class, 'confirmEmailChange'])
-        ->whereNumber('id')
+        ->whereUuid('id')
         ->name('confirm-email-change');
 
     Route::middleware('auth:api')->group(function () {

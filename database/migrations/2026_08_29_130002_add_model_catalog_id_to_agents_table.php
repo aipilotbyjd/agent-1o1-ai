@@ -17,7 +17,7 @@ return new class extends Migration
             // `AgentRunner::openTurn()`/`ask()`). Only opting an agent into
             // `model_catalog_id` switches it onto the resolved, potentially
             // multi-backend failover chain.
-            $table->foreignId('model_catalog_id')->nullable()->after('model')
+            $table->foreignUuid('model_catalog_id')->nullable()->after('model')
                 ->constrained('model_catalog')->nullOnDelete();
         });
     }

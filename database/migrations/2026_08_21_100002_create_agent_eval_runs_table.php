@@ -17,15 +17,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_eval_runs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_eval_suite_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_version_id')->nullable()->constrained('agent_versions')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_eval_suite_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_version_id')->nullable()->constrained('agent_versions')->nullOnDelete();
             $table->string('status')->default('pending');
             $table->unsignedInteger('passed')->default(0);
             $table->unsignedInteger('failed')->default(0);
             $table->text('error')->nullable();
-            $table->foreignId('triggered_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('triggered_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();

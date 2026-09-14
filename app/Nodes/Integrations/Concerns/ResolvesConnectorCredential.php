@@ -36,7 +36,7 @@ trait ResolvesConnectorCredential
         $credentialId = $config['credential_id'] ?? null;
 
         if ($credentialId !== null) {
-            return $this->tokenFrom($this->findCredential($run, (int) $credentialId));
+            return $this->tokenFrom($this->findCredential($run, (string) $credentialId));
         }
 
         $token = $config['access_token'] ?? null;
@@ -48,7 +48,7 @@ trait ResolvesConnectorCredential
         return $this->tokenFrom($this->defaultCredential($run));
     }
 
-    private function findCredential(Run $run, int $credentialId): ConnectorCredential
+    private function findCredential(Run $run, string $credentialId): ConnectorCredential
     {
         $credential = ConnectorCredential::query()
             ->where('workspace_id', $run->workspace_id)

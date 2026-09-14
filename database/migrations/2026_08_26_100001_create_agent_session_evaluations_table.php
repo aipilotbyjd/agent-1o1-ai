@@ -17,10 +17,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_session_evaluations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_session_id')->unique()->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_session_id')->unique()->constrained()->cascadeOnDelete();
             $table->string('status')->default('queued');
             $table->string('grade')->nullable();
             $table->string('call_successful')->nullable();

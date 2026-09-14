@@ -5,6 +5,7 @@ namespace App\Models\Billing;
 use App\Enums\Billing\CreditTransactionType;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['workspace_id', 'usage_period_id', 'source_type', 'source_id', 'credits', 'topup_credits', 'overage_credits', 'reason'])]
 class CreditTransaction extends Model
 {
+    use HasUuids;
+
     /**
      * @return array<string, string>
      */

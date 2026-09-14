@@ -46,18 +46,18 @@ final readonly class WorkspaceContext
         return $role;
     }
 
-    public static function forget(int $workspaceId, int $userId): void
+    public static function forget(string $workspaceId, string $userId): void
     {
         Cache::forget(self::cacheKey($workspaceId, $userId));
         Context::forgetHidden(self::contextKey($workspaceId, $userId));
     }
 
-    private static function cacheKey(int $workspaceId, int $userId): string
+    private static function cacheKey(string $workspaceId, string $userId): string
     {
         return "workspace:{$workspaceId}:member:{$userId}:role";
     }
 
-    private static function contextKey(int $workspaceId, int $userId): string
+    private static function contextKey(string $workspaceId, string $userId): string
     {
         return "workspace:{$workspaceId}:user:{$userId}:role";
     }

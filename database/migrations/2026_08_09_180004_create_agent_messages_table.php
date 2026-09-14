@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_messages', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_session_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_session_id')->constrained()->cascadeOnDelete();
             $table->string('role');
             $table->longText('content');
             $table->json('tool_calls')->nullable();

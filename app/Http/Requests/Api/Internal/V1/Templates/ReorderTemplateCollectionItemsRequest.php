@@ -18,7 +18,7 @@ class ReorderTemplateCollectionItemsRequest extends FormRequest
     {
         return [
             'items' => ['required', 'array', 'min:1'],
-            'items.*.id' => ['required', 'integer'],
+            'items.*.id' => ['required', 'uuid'],
             'items.*.position' => ['required', 'integer', 'min:0'],
         ];
     }

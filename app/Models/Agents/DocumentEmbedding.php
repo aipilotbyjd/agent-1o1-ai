@@ -4,12 +4,15 @@ namespace App\Models\Agents;
 
 use App\Models\Workspaces\Workspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['workspace_id', 'collection', 'source', 'chunk_text', 'embedding', 'metadata'])]
 class DocumentEmbedding extends Model
 {
+    use HasUuids;
+
     /**
      * @var array<string, mixed>
      */

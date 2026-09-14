@@ -28,7 +28,7 @@ class GoogleDriveDeleteFileNode extends AbstractGoogleDriveNode
             'required' => ['file_id'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'file_id' => ['type' => 'string'],
             ],
         ];

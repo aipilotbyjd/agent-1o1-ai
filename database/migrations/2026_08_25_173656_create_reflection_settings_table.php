@@ -21,8 +21,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('reflection_settings', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_id')->unique()->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_id')->unique()->constrained()->cascadeOnDelete();
             $table->boolean('is_enabled')->default(false);
             $table->string('apply_behavior')->default('review_queue');
             $table->string('schedule_cron')->default('0 22 * * *');

@@ -17,7 +17,7 @@ class SwitchWorkspaceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'workspace_id' => ['required', 'integer', 'exists:workspaces,id'],
+            'workspace_id' => ['required', 'uuid', 'exists:workspaces,id'],
         ];
     }
 }

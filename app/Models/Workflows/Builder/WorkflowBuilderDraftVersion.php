@@ -5,6 +5,7 @@ namespace App\Models\Workflows\Builder;
 use App\Models\User;
 use Database\Factories\Workflows\Builder\WorkflowBuilderDraftVersionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkflowBuilderDraftVersion extends Model
 {
     /** @use HasFactory<WorkflowBuilderDraftVersionFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @return array<string, string>

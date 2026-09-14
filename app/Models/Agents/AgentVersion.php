@@ -4,6 +4,7 @@ namespace App\Models\Agents;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['agent_id', 'version', 'snapshot', 'changed_by'])]
 class AgentVersion extends Model
 {
+    use HasUuids;
+
     /**
      * @return array<string, string>
      */

@@ -113,7 +113,7 @@ it('applies and dismisses a reflection', function () {
 it('denies a viewer from applying a reflection', function () {
     [$agent, $owner, $workspace] = reflectionApiAgent();
     $viewer = User::factory()->create();
-    $workspace->users()->attach($viewer, ['role' => 'viewer']);
+    $workspace->members()->create(['user_id' => $viewer->id, 'role' => 'viewer']);
 
     $run = ReflectionRun::factory()->forAgent($agent)->create();
     $reflection = Reflection::factory()->forRun($run)->create();

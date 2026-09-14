@@ -19,8 +19,8 @@ return new class extends Migration
     {
         Schema::create('agent_skill', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('skill_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('skill_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
 
             $table->unique(['agent_id', 'skill_id']);

@@ -34,7 +34,7 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
     public function __construct(
         private readonly string $instructions,
         private readonly AgentSession $session,
-        private readonly ?int $beforeMessageId = null,
+        private readonly ?string $beforeMessageId = null,
         private readonly array $tools = [],
     ) {}
 

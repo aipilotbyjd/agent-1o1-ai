@@ -17,7 +17,7 @@ class UpdateCustomNodeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['sometimes', 'integer', 'exists:node_categories,id'],
+            'category_id' => ['sometimes', 'uuid', 'exists:node_categories,id'],
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'icon' => ['sometimes', 'nullable', 'string', 'max:50'],

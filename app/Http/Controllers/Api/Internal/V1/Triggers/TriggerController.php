@@ -38,7 +38,7 @@ class TriggerController extends Controller
         $trigger = $this->triggers->create(
             $workspace,
             TriggerTargetType::from($request->validated('target_type')),
-            (int) $request->validated('target_id'),
+            $request->validated('target_id'),
             TriggerType::from($request->validated('type')),
             $request->validated(),
             $request->user(),

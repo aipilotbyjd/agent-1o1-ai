@@ -52,7 +52,7 @@ class ScheduleSessionEvaluation implements ShouldQueue
         EvaluateAgentSessionJob::dispatch($session, $token)->delay(now()->addSeconds(self::DEBOUNCE_SECONDS));
     }
 
-    public static function cacheKey(int $sessionId): string
+    public static function cacheKey(string $sessionId): string
     {
         return "session-evaluation:debounce:{$sessionId}";
     }

@@ -28,7 +28,7 @@ class GmailCreateDraftNode extends AbstractGmailNode
             'required' => ['to', 'subject', 'body'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'to' => ['type' => 'string'],
                 'subject' => ['type' => 'string'],
                 'body' => ['type' => 'string'],

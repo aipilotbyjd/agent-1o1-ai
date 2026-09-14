@@ -37,7 +37,7 @@ class SlackUploadFileNode extends AbstractSlackNode
             'required' => ['channels', 'content'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'channels' => ['type' => 'string'],
                 'content' => ['type' => 'string'],
                 'filename' => ['type' => 'string'],

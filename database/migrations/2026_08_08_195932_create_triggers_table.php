@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('triggers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->morphs('target');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->uuidMorphs('target');
             $table->string('type');
-            $table->foreignId('preset_id')->nullable()->constrained('trigger_presets')->nullOnDelete();
+            $table->foreignUuid('preset_id')->nullable()->constrained('trigger_presets')->nullOnDelete();
             $table->json('config')->nullable();
             $table->string('token', 64)->nullable()->unique();
             $table->text('signing_secret')->nullable();
@@ -24,12 +24,12 @@ return new class extends Migration
 
             // No FK yet — connector_credentials doesn't exist until Connectors ship
             // (docs/NODES_CATALOG.md build order). Column is real; constraint follows.
-            $table->unsignedBigInteger('credential_id')->nullable();
+            $table->uuid('credential_id')->nullable();
 
             $table->json('poll_cursor')->nullable();
             $table->unsignedInteger('consecutive_failure_count')->default(0);
             $table->timestamp('last_run_at')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['type', 'is_active']);

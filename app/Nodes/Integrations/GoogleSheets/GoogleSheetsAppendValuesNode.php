@@ -28,7 +28,7 @@ class GoogleSheetsAppendValuesNode extends AbstractGoogleSheetsNode
             'required' => ['spreadsheet_id', 'range', 'values'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'spreadsheet_id' => ['type' => 'string'],
                 'range' => ['type' => 'string'],
                 'values' => ['type' => 'array'],

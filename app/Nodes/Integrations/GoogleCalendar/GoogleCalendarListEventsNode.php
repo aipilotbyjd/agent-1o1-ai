@@ -28,7 +28,7 @@ class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode
             'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'calendar_id' => ['type' => 'string'],
                 'time_min' => ['type' => 'string'],
                 'max_results' => ['type' => 'integer'],

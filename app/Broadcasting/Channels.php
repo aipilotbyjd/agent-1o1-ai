@@ -34,7 +34,7 @@ final class Channels
      * subscribes to. Individual node steps do *not* land here; they would
      * flood a list view that only renders one row per run.
      */
-    public static function workspaceRuns(int $workspaceId): string
+    public static function workspaceRuns(string $workspaceId): string
     {
         return "workspaces.{$workspaceId}.runs";
     }

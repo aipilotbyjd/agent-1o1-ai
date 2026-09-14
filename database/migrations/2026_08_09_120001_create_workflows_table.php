@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workflows', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->unsignedBigInteger('folder_id')->nullable();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->uuid('folder_id')->nullable();
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();
@@ -22,10 +22,10 @@ return new class extends Migration
 
             // FK added once workflow_versions exists — see
             // add_current_version_id_to_workflows_table.
-            $table->unsignedBigInteger('current_version_id')->nullable();
+            $table->uuid('current_version_id')->nullable();
 
             $table->boolean('has_unpublished_changes')->default(false);
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 
