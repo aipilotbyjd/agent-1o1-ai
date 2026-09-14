@@ -22,16 +22,25 @@ return new class extends Migration
     public function up(): void
     {
         $duplicateIds = DB::table('credit_transactions')
-            ->select(DB::raw('MIN(id) as keep_id'), 'source_type', 'source_id')
+            ->select('source_type', 'source_id')
             ->groupBy('source_type', 'source_id')
             ->havingRaw('COUNT(*) > 1')
             ->get()
-            ->flatMap(fn (object $group): array => DB::table('credit_transactions')
-                ->where('source_type', $group->source_type)
-                ->where('source_id', $group->source_id)
-                ->where('id', '!=', $group->keep_id)
-                ->pluck('id')
-                ->all());
+            ->flatMap(function (object $group): array {
+                $keepId = DB::table('credit_transactions')
+                    ->where('source_type', $group->source_type)
+                    ->where('source_id', $group->source_id)
+                    ->orderBy('created_at')
+                    ->orderBy('id')
+                    ->value('id');
+
+                return DB::table('credit_transactions')
+                    ->where('source_type', $group->source_type)
+                    ->where('source_id', $group->source_id)
+                    ->where('id', '!=', $keepId)
+                    ->pluck('id')
+                    ->all();
+            });
 
         $duplicateIds->chunk(500)->each(
             fn ($chunk) => DB::table('credit_transactions')->whereIn('id', $chunk->all())->delete()

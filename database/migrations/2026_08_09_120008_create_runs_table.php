@@ -17,7 +17,7 @@ return new class extends Migration
             $table->uuidMorphs('runnable');
             $table->foreignUuid('workflow_id')->nullable()->constrained('workflows')->cascadeOnDelete();
             $table->foreignUuid('workflow_version_id')->nullable()->constrained('workflow_versions')->nullOnDelete();
-            $table->foreignUuid('parent_run_id')->nullable()->constrained('runs')->nullOnDelete();
+            $table->uuid('parent_run_id')->nullable();
 
             // FK to node_runs added once that table exists — see
             // create_node_runs_table / the parent_node_id foreign-key follow-up
@@ -40,6 +40,10 @@ return new class extends Migration
             $table->index(['workspace_id', 'status']);
             $table->index(['workspace_id', 'created_at']);
             $table->index(['parent_node_id', 'loop_index']);
+        });
+
+        Schema::table('runs', function (Blueprint $table) {
+            $table->foreign('parent_run_id')->references('id')->on('runs')->nullOnDelete();
         });
     }
 

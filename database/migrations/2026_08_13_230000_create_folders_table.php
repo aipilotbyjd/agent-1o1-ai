@@ -14,13 +14,17 @@ return new class extends Migration
         Schema::create('folders', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('parent_id')->nullable()->constrained('folders')->nullOnDelete();
+            $table->uuid('parent_id')->nullable();
             $table->string('name');
             $table->string('color', 7)->nullable();
             $table->unsignedInteger('position')->default(0);
             $table->timestamps();
 
             $table->index(['workspace_id', 'parent_id']);
+        });
+
+        Schema::table('folders', function (Blueprint $table) {
+            $table->foreign('parent_id')->references('id')->on('folders')->nullOnDelete();
         });
     }
 
