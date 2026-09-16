@@ -179,3 +179,46 @@ it('lets a viewer read workflows but not manage or publish them', function () {
     $this->patchJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}", ['name' => 'x'])->assertForbidden();
     $this->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/versions")->assertForbidden();
 });
+
+it('favorites and unfavorites a workflow per user', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $otherMember = User::factory()->create();
+    $workspace->members()->create(['user_id' => $otherMember->id, 'role' => Role::Member, 'joined_at' => now()]);
+
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/favorite", ['is_favorite' => true])
+        ->assertOk();
+
+    $listAsOwner = $this->getJson("/api/v1/workspaces/{$workspace->id}/workflows")->json('data.workflows');
+    expect(collect($listAsOwner)->firstWhere('id', $workflow->id)['is_favorite'])->toBeTrue();
+
+    Passport::actingAs($otherMember);
+    $listAsOther = $this->getJson("/api/v1/workspaces/{$workspace->id}/workflows")->json('data.workflows');
+    expect(collect($listAsOther)->firstWhere('id', $workflow->id)['is_favorite'])->toBeFalse();
+
+    Passport::actingAs($owner);
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/favorite", ['is_favorite' => false])
+        ->assertOk();
+
+    $listAfterUnfavorite = $this->getJson("/api/v1/workspaces/{$workspace->id}/workflows")->json('data.workflows');
+    expect(collect($listAfterUnfavorite)->firstWhere('id', $workflow->id)['is_favorite'])->toBeFalse();
+});
+
+it('includes node counts, node types, and last run time on the list', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->nodes()->create(['key' => 'a', 'type' => 'slack.send_message', 'config' => []]);
+    $workflow->nodes()->create(['key' => 'b', 'type' => 'slack.send_message', 'config' => []]);
+    $run = \App\Models\Runs\Run::factory()->forWorkflow($workflow)->completed()->create();
+
+    Passport::actingAs($owner);
+    $listed = collect($this->getJson("/api/v1/workspaces/{$workspace->id}/workflows")->json('data.workflows'))
+        ->firstWhere('id', $workflow->id);
+
+    expect($listed['nodes_count'])->toBe(2);
+    expect($listed['node_types'])->toBe(['slack.send_message']);
+    expect($listed['last_run_at'])->not->toBeNull();
+    expect(\Illuminate\Support\Carbon::parse($listed['last_run_at']))->toEqual($run->finished_at);
+});

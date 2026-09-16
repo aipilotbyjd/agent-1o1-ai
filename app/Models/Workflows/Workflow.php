@@ -90,6 +90,11 @@ class Workflow extends Model
         return $this->hasMany(WorkflowEdge::class);
     }
 
+    public function favoritedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'workflow_favorites')->withTimestamps();
+    }
+
     public function runs(): HasMany
     {
         return $this->hasMany(Run::class);

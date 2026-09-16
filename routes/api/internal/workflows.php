@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Internal\V1\Workflows\FolderController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\TagController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowFavoriteController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowInterfaceController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowNodePinController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowVersionController;
@@ -33,6 +34,8 @@ Route::middleware(['auth:api', 'workspace.context'])
 
         Route::post('{workflow}/nodes/{node}/pin', [WorkflowNodePinController::class, 'store'])->name('nodes.pin');
         Route::delete('{workflow}/nodes/{node}/pin', [WorkflowNodePinController::class, 'destroy'])->name('nodes.unpin');
+
+        Route::patch('{workflow}/favorite', [WorkflowFavoriteController::class, 'update'])->name('favorite.update');
     });
 
 Route::middleware(['auth:api', 'workspace.context'])

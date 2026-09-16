@@ -9,21 +9,49 @@ use App\Http\Requests\Api\Internal\V1\Workflows\StoreWorkflowRequest;
 use App\Http\Requests\Api\Internal\V1\Workflows\UpdateWorkflowRequest;
 use App\Http\Resources\Api\Internal\V1\Workflows\WorkflowResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowEdge;
 use App\Models\Workflows\WorkflowNode;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\PlanLimitGate;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class WorkflowController extends Controller
 {
-    public function index(Workspace $workspace)
+    public function index(Request $request, Workspace $workspace)
     {
         $this->requirePermission(Permission::WorkflowView);
 
+        $workflows = $workspace->workflows()
+            ->visible()
+            ->latest()
+            ->withCount('nodes')
+            ->withExists(['favoritedByUsers as is_favorite' => fn ($query) => $query->where('user_id', $request->user()->id)])
+            ->get();
+
+        $nodeTypesByWorkflow = WorkflowNode::query()
+            ->whereIn('workflow_id', $workflows->pluck('id'))
+            ->select('workflow_id', 'type')
+            ->distinct()
+            ->get()
+            ->groupBy('workflow_id')
+            ->map(fn ($rows) => $rows->pluck('type')->values()->all());
+
+        $lastRunAtByWorkflow = Run::query()
+            ->whereIn('workflow_id', $workflows->pluck('id'))
+            ->selectRaw('workflow_id, MAX(COALESCE(finished_at, started_at, created_at)) as last_run_at')
+            ->groupBy('workflow_id')
+            ->pluck('last_run_at', 'workflow_id');
+
+        $workflows->each(function (Workflow $workflow) use ($nodeTypesByWorkflow, $lastRunAtByWorkflow): void {
+            $workflow->setAttribute('node_types', $nodeTypesByWorkflow->get($workflow->id, []));
+            $workflow->setAttribute('last_run_at', $lastRunAtByWorkflow->get($workflow->id));
+        });
+
         return ApiResponse::success([
-            'workflows' => WorkflowResource::collection($workspace->workflows()->visible()->latest()->get()),
+            'workflows' => WorkflowResource::collection($workflows),
         ]);
     }
 

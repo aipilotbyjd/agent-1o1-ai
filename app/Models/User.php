@@ -8,6 +8,7 @@ use App\Enums\Onboarding\OnboardingStep;
 use App\Models\Auth\AuthEventLog;
 use App\Models\Credentials\OAuthConnection;
 use App\Models\Notifications\NotificationPreference;
+use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
@@ -84,6 +85,11 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function oauthConnections(): HasMany
     {
         return $this->hasMany(OAuthConnection::class);
+    }
+
+    public function favoriteWorkflows(): BelongsToMany
+    {
+        return $this->belongsToMany(Workflow::class, 'workflow_favorites')->withTimestamps();
     }
 
     public function authEvents(): HasMany
