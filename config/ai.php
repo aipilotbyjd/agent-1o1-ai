@@ -110,6 +110,12 @@ return [
             'key' => env('TOGETHER_API_KEY'),
         ],
 
+        'verboo' => [
+            'driver' => 'openai-compatible',
+            'url' => env('VERBOO_URL', 'https://code.verboo.ai/router/v1'),
+            'key' => env('VERBOO_API_KEY'),
+        ],
+
         'gemini' => [
             'driver' => 'gemini',
             'key' => env('GEMINI_API_KEY'),
