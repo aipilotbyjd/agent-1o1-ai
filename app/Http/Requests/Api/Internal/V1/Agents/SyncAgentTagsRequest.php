@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SyncAgentTagsRequest extends FormRequest
 {
@@ -18,7 +19,10 @@ class SyncAgentTagsRequest extends FormRequest
     {
         return [
             'tag_ids' => ['present', 'array'],
-            'tag_ids.*' => ['uuid', 'exists:tags,id'],
+            'tag_ids.*' => [
+                'uuid',
+                Rule::exists('tags', 'id')->where('workspace_id', $this->route('workspace')->id),
+            ],
         ];
     }
 }
