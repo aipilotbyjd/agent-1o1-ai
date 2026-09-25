@@ -5,6 +5,8 @@ namespace App\Services\Agents;
 use App\Ai\Agents\WorkspaceAgent;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
+use Laravel\Ai\Files\Document;
+use Laravel\Ai\Files\Image;
 
 /**
  * Everything one chat turn needs after its setup and before its result —
@@ -26,6 +28,7 @@ final readonly class AgentTurn
 {
     /**
      * @param  string|array<string, string>  $provider
+     * @param  array<int, Image|Document>  $attachments  The user message's files, ready to send with the prompt.
      */
     public function __construct(
         public AgentSession $session,
@@ -33,5 +36,6 @@ final readonly class AgentTurn
         public WorkspaceAgent $agent,
         public string|array $provider,
         public ?string $model,
+        public array $attachments = [],
     ) {}
 }

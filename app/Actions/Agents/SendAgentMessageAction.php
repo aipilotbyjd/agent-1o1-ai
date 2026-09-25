@@ -5,6 +5,7 @@ namespace App\Actions\Agents;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Services\Agents\AgentRunner;
+use Illuminate\Http\UploadedFile;
 
 class SendAgentMessageAction
 {
@@ -15,9 +16,11 @@ class SendAgentMessageAction
      * `manual` (a person chatting through the API) and is set to the trigger's
      * type when the turn was started by the trigger pipeline
      * (`App\Services\Triggers\TargetRunStarter`).
+     *
+     * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
-    public function execute(AgentSession $session, string $message, string $triggerType = 'manual'): AgentMessage
+    public function execute(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = []): AgentMessage
     {
-        return $this->runner->run($session, $message, $triggerType);
+        return $this->runner->run($session, $message, $triggerType, $attachments);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models\Artifacts;
 
 use App\Enums\Artifacts\ArtifactGeneralAccess;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Models\User;
@@ -16,9 +17,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Ai\Files\Document;
+use Laravel\Ai\Files\Image;
 
 #[Fillable([
-    'workspace_id', 'agent_id', 'agent_session_id', 'run_id', 'created_by',
+    'workspace_id', 'agent_id', 'agent_session_id', 'agent_message_id', 'run_id', 'created_by',
     'group_id', 'version', 'filename', 'mime_type', 'size', 'disk', 'path', 'metadata',
     'general_access',
 ])]
@@ -49,6 +53,15 @@ class Artifact extends Model
     public function agentSession(): BelongsTo
     {
         return $this->belongsTo(AgentSession::class);
+    }
+
+    /**
+     * The chat message a member attached this file to, if any — see
+     * `AgentMessage::attachments()`.
+     */
+    public function agentMessage(): BelongsTo
+    {
+        return $this->belongsTo(AgentMessage::class);
     }
 
     public function run(): BelongsTo
@@ -105,6 +118,26 @@ class Artifact extends Model
     {
         return str_starts_with($this->mime_type, 'image/')
             || in_array($this->mime_type, self::PREVIEWABLE_MIME_TYPES, true);
+    }
+
+    /**
+     * This file as an SDK attachment for a model prompt — how a chat message
+     * attachment reaches the provider. Text formats are sent as `text/plain`,
+     * the one text document type every provider accepts.
+     */
+    public function toPromptAttachment(): Image|Document
+    {
+        $config = config('artifacts.message_attachments');
+
+        if (in_array($this->mime_type, $config['image_mime_types'], true)) {
+            return Image::fromStorage($this->path, $this->disk)->withMimeType($this->mime_type)->as($this->filename);
+        }
+
+        if (in_array($this->mime_type, $config['text_mime_types'], true)) {
+            return Document::fromString((string) Storage::disk($this->disk)->get($this->path), 'text/plain')->as($this->filename);
+        }
+
+        return Document::fromStorage($this->path, $this->disk)->withMimeType($this->mime_type)->as($this->filename);
     }
 
     /**

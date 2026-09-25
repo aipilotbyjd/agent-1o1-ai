@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Internal\V1\Agents;
 
+use App\Http\Resources\Api\Internal\V1\Artifacts\ArtifactResource;
 use App\Models\Agents\AgentMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -21,6 +22,7 @@ class AgentMessageResource extends JsonResource
             'agent_session_id' => $this->agent_session_id,
             'role' => $this->role->value,
             'content' => $this->content,
+            'attachments' => ArtifactResource::collection($this->whenLoaded('attachments')),
             'usage' => $this->usage,
             'created_at' => $this->created_at,
         ];

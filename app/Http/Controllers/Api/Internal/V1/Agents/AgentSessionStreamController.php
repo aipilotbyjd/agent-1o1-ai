@@ -46,7 +46,7 @@ class AgentSessionStreamController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
-        $turn = $this->runner->stream($session, $request->validated('message'));
+        $turn = $this->runner->stream($session, $request->validated('message'), attachments: $request->attachmentFiles());
 
         return response()->eventStream(
             fn (): iterable => $this->events($turn),

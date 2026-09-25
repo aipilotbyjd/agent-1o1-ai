@@ -50,7 +50,7 @@ class AgentSessionController extends Controller
         abort_if($session->agent_id !== $agent->id, 404);
 
         return ApiResponse::success([
-            'session' => AgentSessionResource::make($session->load('messages')),
+            'session' => AgentSessionResource::make($session->load('messages.attachments.agent')),
         ]);
     }
 
@@ -91,7 +91,7 @@ class AgentSessionController extends Controller
 
         return ApiResponse::paginated(
             AgentMessageResource::collection(
-                $session->messages()->oldest('id')->paginate(min(max($perPage, 1), 200)),
+                $session->messages()->with('attachments.agent')->oldest('id')->paginate(min(max($perPage, 1), 200)),
             ),
         );
     }
@@ -102,7 +102,7 @@ class AgentSessionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
-        $reply = $this->sendMessage->execute($session, $request->validated('message'));
+        $reply = $this->sendMessage->execute($session, $request->validated('message'), attachments: $request->attachmentFiles());
 
         return ApiResponse::success(['message' => AgentMessageResource::make($reply)]);
     }

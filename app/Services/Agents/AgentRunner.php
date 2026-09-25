@@ -3,6 +3,7 @@
 namespace App\Services\Agents;
 
 use App\Actions\Agents\CreateAgentSessionAction;
+use App\Actions\Artifacts\StoreArtifactAction;
 use App\Ai\Agents\EmbeddedAgent;
 use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Agents\AgentMessageRole;
@@ -16,6 +17,8 @@ use App\Models\Artifacts\Artifact;
 use App\Models\Runs\Run;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
@@ -40,14 +43,18 @@ class AgentRunner
         private readonly CreditGate $creditGate,
         private readonly ModelCatalogResolver $modelCatalog,
         private readonly CreateAgentSessionAction $createSession,
+        private readonly StoreArtifactAction $storeArtifact,
     ) {}
 
-    public function run(AgentSession $session, string $message, string $triggerType = 'manual'): AgentMessage
+    /**
+     * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
+     */
+    public function run(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = []): AgentMessage
     {
-        $turn = $this->openTurn($session, $message, $triggerType);
+        $turn = $this->openTurn($session, $message, $triggerType, $attachments);
 
         try {
-            $response = $turn->agent->prompt($message, provider: $turn->provider, model: $turn->model);
+            $response = $turn->agent->prompt($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
             return $this->completeTurn($turn, $response->text, $this->usageFor($turn, $response));
         } catch (Throwable $e) {
@@ -67,12 +74,14 @@ class AgentRunner
      * an exception surfaces *there*, not here, and whoever iterates must call
      * `failTurn()` — otherwise the turn's `Run` would sit in `running`
      * forever.
+     *
+     * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
-    public function stream(AgentSession $session, string $message, string $triggerType = 'manual'): StreamedTurn
+    public function stream(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = []): StreamedTurn
     {
-        $turn = $this->openTurn($session, $message, $triggerType);
+        $turn = $this->openTurn($session, $message, $triggerType, $attachments);
 
-        $response = $turn->agent->stream($message, provider: $turn->provider, model: $turn->model);
+        $response = $turn->agent->stream($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
         $response->then(function (StreamedAgentResponse $streamed) use ($turn): void {
             $this->completeTurn($turn, $streamed->text, $this->usageFor($turn, $streamed));
@@ -83,10 +92,12 @@ class AgentRunner
 
     /**
      * Everything that happens before the provider is called: credit gate,
-     * the turn's own `Run`, the user's message, and the SDK agent built from
-     * the version this conversation is pinned to.
+     * the turn's own `Run`, the user's message and its attachments, and the
+     * SDK agent built from the version this conversation is pinned to.
+     *
+     * @param  array<int, UploadedFile>  $attachments
      */
-    private function openTurn(AgentSession $session, string $message, string $triggerType): AgentTurn
+    private function openTurn(AgentSession $session, string $message, string $triggerType, array $attachments): AgentTurn
     {
         // The version the conversation was started against, not whatever the
         // agent looks like right now — see `AgentSession::pinnedAgent()`.
@@ -109,6 +120,14 @@ class AgentRunner
             'content' => $message,
         ]);
 
+        try {
+            $storedAttachments = $this->storeAttachments($session, $run, $userMessage, $attachments);
+        } catch (Throwable $e) {
+            $this->failTurn($run, $e);
+
+            throw $e;
+        }
+
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
         [$provider, $model] = $this->resolveProvider($agent);
 
@@ -118,7 +137,44 @@ class AgentRunner
             new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run)),
             $provider,
             $model,
+            array_map(fn (Artifact $artifact) => $artifact->toPromptAttachment(), $storedAttachments),
         );
+    }
+
+    /**
+     * Stores each attached file as an `Artifact` on `$userMessage`. Every
+     * file starts its own artifact group — attaching `report.pdf` twice is
+     * two attachments, not a second version of the first — and none is
+     * indexed into the agent's shared knowledge (`searchable: false`).
+     *
+     * @param  array<int, UploadedFile>  $files
+     * @return array<int, Artifact>
+     */
+    private function storeAttachments(AgentSession $session, Run $run, AgentMessage $userMessage, array $files): array
+    {
+        if ($files === []) {
+            return [];
+        }
+
+        $artifacts = array_map(fn (UploadedFile $file): Artifact => $this->storeArtifact->execute(
+            workspace: $session->workspace,
+            filename: $file->getClientOriginalName(),
+            mimeType: $file->getMimeType() ?? 'application/octet-stream',
+            contents: $file,
+            agent: $session->agent,
+            session: $session,
+            run: $run,
+            createdBy: $session->user_id,
+            groupId: (string) Str::uuid(),
+            message: $userMessage,
+            searchable: false,
+        ), $files);
+
+        $run->forceFill([
+            'input' => [...$run->input, 'attachment_ids' => array_map(fn (Artifact $artifact) => $artifact->id, $artifacts)],
+        ])->save();
+
+        return $artifacts;
     }
 
     /**
