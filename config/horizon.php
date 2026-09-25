@@ -305,8 +305,10 @@ return [
             'nice' => 0,
         ],
         // RecordRunCreditUsage — money-adjacent, so it runs on its own
-        // supervisor with an elevated OS priority (`nice`) rather than queuing
-        // behind workflow load (docs/STRUCTURE.md's "Queues & Horizon" table).
+        // supervisor rather than queuing behind workflow load
+        // (docs/STRUCTURE.md's "Queues & Horizon" table). Raising its OS
+        // priority with a negative `nice` needs Horizon to run as root, so
+        // it's opt-in via HORIZON_BILLING_NICE.
         // `tries` is left to the listener's own $tries/$backoff, which retry a
         // failed charge without double-billing (charges are idempotent per
         // node run).
@@ -321,7 +323,7 @@ return [
             'memory' => 128,
             'tries' => 1,
             'timeout' => 60,
-            'nice' => -5,
+            'nice' => (int) env('HORIZON_BILLING_NICE', 0),
         ],
     ],
 

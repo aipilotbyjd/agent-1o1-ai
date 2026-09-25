@@ -3,8 +3,10 @@
 use App\Ai\Tools\ExportArtifactTool;
 use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\RememberTool;
+use App\Ai\Tools\UpdateInstructionsTool;
 use App\Ai\Tools\WorkflowTool;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
@@ -66,3 +68,18 @@ it('attaches ExportArtifactTool only for a session-backed run', function () {
     expect($tools)->toHaveCount(1);
     expect($tools[0])->toBeInstanceOf(RememberTool::class);
 });
+
+it('offers the self-update tool only in a conversation with an agent that allows it', function (bool $allowed, bool $inConversation, bool $offered) {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['allow_self_updates' => $allowed]);
+    $session = $inConversation ? AgentSession::factory()->forAgent($agent)->create() : null;
+
+    $tools = app(ToolRegistry::class)->toolsFor($agent, Run::factory()->create(), $session);
+
+    expect(collect($tools)->contains(fn ($tool) => $tool instanceof UpdateInstructionsTool))->toBe($offered);
+})->with([
+    'allowed, in a conversation' => [true, true, true],
+    'allowed, stateless eval call' => [true, false, false],
+    'not allowed' => [false, true, false],
+]);

@@ -24,6 +24,7 @@ class AgentSessionResource extends JsonResource
             'title' => $this->title,
             'status' => $this->status->value,
             'last_activity_at' => $this->last_activity_at,
+            'messages_count' => $this->whenCounted('messages'),
             'messages' => AgentMessageResource::collection($this->whenLoaded('messages')),
             'created_at' => $this->created_at,
         ];

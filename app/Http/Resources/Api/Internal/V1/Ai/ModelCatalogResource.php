@@ -3,6 +3,8 @@
 namespace App\Http\Resources\Api\Internal\V1\Ai;
 
 use App\Models\Ai\ModelCatalog;
+use App\Models\Ai\ModelRoute;
+use App\Services\Ai\ModelCatalogResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,6 +31,9 @@ class ModelCatalogResource extends JsonResource
             'display_name' => $this->display_name,
             'brand' => $this->brand,
             'capabilities' => $this->capabilities,
+            'is_available' => $this->whenLoaded('routes', fn (): bool => $this->routes->contains(
+                fn (ModelRoute $route): bool => ModelCatalogResolver::providerIsConfigured($route->execution_provider),
+            )),
         ];
     }
 }

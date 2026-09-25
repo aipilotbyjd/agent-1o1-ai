@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Agents\Agent;
+use App\Models\Agents\AgentSession;
+use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Services\Workspaces\WorkspaceService;
@@ -86,4 +89,25 @@ it('exposes total credits used and duration on a completed run', function () {
     // Two free `transform` nodes: 1 base credit each.
     expect($show->json('data.run.total_credits_used'))->toBe(2);
     expect($show->json('data.run.duration_ms'))->toBeGreaterThanOrEqual(0);
+});
+
+it('filters runs to everything done on one agent\'s behalf', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $otherAgent = Agent::factory()->forWorkspace($workspace)->create();
+
+    $chatRun = AgentSession::factory()->forAgent($agent)->create()
+        ->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    $reviewRun = $agent->reflectionRuns()->create(['workspace_id' => $workspace->id])
+        ->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'reflection']);
+    AgentSession::factory()->forAgent($otherAgent)->create()
+        ->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    Run::factory()->create(['workspace_id' => $workspace->id]);
+
+    Passport::actingAs($owner);
+
+    $ids = collect($this->getJson("/api/v1/workspaces/{$workspace->id}/runs?agent_id={$agent->id}")->assertOk()->json('data'))->pluck('id');
+
+    expect($ids->sort()->values()->all())->toBe(collect([$chatRun->id, $reviewRun->id])->sort()->values()->all());
 });

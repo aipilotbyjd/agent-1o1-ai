@@ -20,7 +20,19 @@ class SkillInjector
 {
     public function instructionsFor(Agent $agent, ?string $userId = null): string
     {
-        $sections = [$agent->instructions];
+        return implode("\n\n", [$agent->instructions, ...$this->injectedSections($agent, $userId)]);
+    }
+
+    /**
+     * Everything added to the base instructions, exactly as it appears in the
+     * final prompt — so `UpdateInstructionsTool` can strip any of it a model
+     * copies back into its own instructions.
+     *
+     * @return array<int, string>
+     */
+    public function injectedSections(Agent $agent, ?string $userId = null): array
+    {
+        $sections = [];
 
         foreach ($agent->skills as $skill) {
             $sections[] = "## Skill: {$skill->name}\n{$skill->instructions}";
@@ -36,7 +48,7 @@ class SkillInjector
             $sections[] = $memories;
         }
 
-        return implode("\n\n", $sections);
+        return $sections;
     }
 
     /**

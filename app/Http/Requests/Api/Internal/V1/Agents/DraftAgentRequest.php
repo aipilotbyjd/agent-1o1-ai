@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Api\Internal\V1\Templates;
+namespace App\Http\Requests\Api\Internal\V1\Agents;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UseAgentTemplateRequest extends FormRequest
+class DraftAgentRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,8 +17,8 @@ class UseAgentTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id'],
+            'prompt' => ['required', 'string', 'max:4000'],
+            'model_catalog_id' => ['required', 'uuid', 'exists:model_catalog,id'],
         ];
     }
 }

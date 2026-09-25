@@ -9,6 +9,7 @@ use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\ReadKnowledgeDocumentTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\SearchKnowledgeTool;
+use App\Ai\Tools\UpdateInstructionsTool;
 use App\Ai\Tools\WorkflowTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
@@ -34,7 +35,9 @@ use App\Services\Workflows\NodeRegistry;
  * chat turn, or the explicit `$session` a caller with no session-backed
  * `$run` passes in (`AgentRunner::askInConversation()`, for an Agent node's
  * own conversation). `ask()`'s stateless embedded calls pass neither and so
- * skip it, same as before.
+ * skip it, same as before. `UpdateInstructionsTool` has the same session
+ * requirement, so a stateless eval case can never rewrite the agent under
+ * test, and is only attached when the agent has `allow_self_updates` on.
  */
 class ToolRegistry
 {
@@ -43,10 +46,11 @@ class ToolRegistry
         private readonly StartWorkflowRunAction $startWorkflowRun,
         private readonly StoreArtifactAction $storeArtifact,
         private readonly KnowledgeBase $knowledgeBase,
+        private readonly SkillInjector $skillInjector,
     ) {}
 
     /**
-     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|RememberTool|ExportArtifactTool>
+     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool>
      */
     public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null): array
     {
@@ -69,12 +73,17 @@ class ToolRegistry
             ? [new ExportArtifactTool($agent, $session, $run, $this->storeArtifact)]
             : [];
 
+        $selfUpdateTools = $session !== null && $agent->allow_self_updates
+            ? [new UpdateInstructionsTool($agent, $this->skillInjector, $run->triggered_by)]
+            : [];
+
         return [
             ...$nodeTools->values()->all(),
             ...$workflowTools->values()->all(),
             ...$knowledgeTools,
             ...$memoryTools,
             ...$artifactTools,
+            ...$selfUpdateTools,
         ];
     }
 

@@ -34,3 +34,21 @@ it('lists active model catalog entries without exposing execution routes', funct
 it('requires authentication', function () {
     $this->getJson('/api/v1/model-catalog')->assertUnauthorized();
 });
+
+it('marks an entry available only when an enabled route\'s provider has an API key', function () {
+    Passport::actingAs(User::factory()->create());
+    config(['ai.providers.keyed' => ['driver' => 'openai-compatible', 'key' => 'sk-test'], 'ai.providers.keyless' => ['driver' => 'openai-compatible', 'key' => null]]);
+
+    $usable = ModelCatalog::factory()->create(['display_name' => 'A usable']);
+    $usable->routes()->create(['execution_provider' => 'keyless', 'execution_model_id' => 'm', 'priority' => 0]);
+    $usable->routes()->create(['execution_provider' => 'keyed', 'execution_model_id' => 'm', 'priority' => 1]);
+
+    $unusable = ModelCatalog::factory()->create(['display_name' => 'B unusable']);
+    $unusable->routes()->create(['execution_provider' => 'keyless', 'execution_model_id' => 'm', 'priority' => 0]);
+    $unusable->routes()->create(['execution_provider' => 'keyed', 'execution_model_id' => 'm', 'priority' => 1, 'is_enabled' => false]);
+
+    $entries = collect($this->getJson('/api/v1/model-catalog')->assertOk()->json('data.model_catalog'))->keyBy('id');
+
+    expect($entries[$usable->id]['is_available'])->toBeTrue();
+    expect($entries[$unusable->id]['is_available'])->toBeFalse();
+});

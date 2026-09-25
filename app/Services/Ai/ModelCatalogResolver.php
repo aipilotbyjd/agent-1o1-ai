@@ -38,6 +38,17 @@ class ModelCatalogResolver
     }
 
     /**
+     * Whether `$provider` can actually serve requests here: it's defined in
+     * `config/ai.php` and has an API key (Ollama runs locally without one).
+     */
+    public static function providerIsConfigured(string $provider): bool
+    {
+        $config = config("ai.providers.{$provider}");
+
+        return is_array($config) && (filled($config['key'] ?? null) || ($config['driver'] ?? null) === 'ollama');
+    }
+
+    /**
      * @return array<string, string> provider (a `Lab` value or custom
      *                               `openai-compatible` config key) => model id, ordered by priority
      */

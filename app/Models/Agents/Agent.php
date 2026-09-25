@@ -26,17 +26,25 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * (not `AgentModel`) per project convention; registered in
  * `AppServiceProvider::configureMorphMap()` as `TriggerTargetType::Agent`.
  */
-#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'created_by'])]
+#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'icon', 'color', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'allow_self_updates', 'created_by'])]
 class Agent extends Model
 {
     /** @use HasFactory<AgentFactory> */
     use HasFactory, HasUuids, SoftDeletes;
+
+    public const ICONS = [
+        'bot', 'brain', 'sparkles', 'search', 'target', 'shield', 'rocket', 'layers', 'flame', 'sliders-horizontal',
+        'users', 'database', 'calendar-days', 'file-text', 'mail', 'megaphone', 'chart-line', 'headphones', 'code',
+    ];
+
+    public const COLORS = ['purple', 'green', 'blue', 'teal', 'orange', 'red', 'rainbow'];
 
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
         'provider' => 'anthropic',
+        'allow_self_updates' => false,
     ];
 
     /**
@@ -47,6 +55,7 @@ class Agent extends Model
         return [
             'temperature' => 'decimal:2',
             'settings' => 'array',
+            'allow_self_updates' => 'boolean',
         ];
     }
 

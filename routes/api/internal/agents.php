@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentDraftController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalCaseController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalRunController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalSuiteController;
@@ -27,6 +28,7 @@ Route::middleware(['auth:api', 'workspace.context'])
     ->group(function () {
         Route::get('/', [AgentController::class, 'index'])->name('index');
         Route::post('/', [AgentController::class, 'store'])->name('store');
+        Route::post('draft', AgentDraftController::class)->name('draft');
         Route::get('{agent}', [AgentController::class, 'show'])->name('show');
         Route::patch('{agent}', [AgentController::class, 'update'])->name('update');
         Route::delete('{agent}', [AgentController::class, 'destroy'])->name('destroy');

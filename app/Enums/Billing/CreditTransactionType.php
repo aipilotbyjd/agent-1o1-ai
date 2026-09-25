@@ -31,4 +31,10 @@ enum CreditTransactionType: string
      * `Services\Agents\ReflectionAnalyzer`. Skipped reviews are never charged.
      */
     case Reflection = 'reflection';
+
+    /**
+     * Drafting a new agent from a description — see `AgentDraftController`.
+     * A draft saves nothing, so its charge carries an id of its own.
+     */
+    case AgentDraft = 'agent_draft';
 }
