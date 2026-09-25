@@ -25,7 +25,9 @@ class AgentController extends Controller
 
         $agents = $workspace->agents()
             ->with('tags')
-            ->when($request->query('tag_id'), fn ($query, $tagId) => $query->whereHas('tags', fn ($tags) => $tags->whereKey($tagId)))
+            ->when($request->query('tag_id'), fn ($query, $tagId) => Str::isUuid($tagId)
+                ? $query->whereHas('tags', fn ($tags) => $tags->whereKey($tagId))
+                : $query->whereRaw('1 = 0'))
             ->latest()
             ->get();
 

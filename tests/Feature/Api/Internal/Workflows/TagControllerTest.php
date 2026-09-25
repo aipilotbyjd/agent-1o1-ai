@@ -134,6 +134,17 @@ it('filters the agent list by tag', function () {
     expect($response->json('data.agents.0.id'))->toBe($tagged->id);
 });
 
+it('returns no agents for a malformed tag filter', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    Agent::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents?tag_id=not-a-uuid")
+        ->assertOk()
+        ->assertJsonCount(0, 'data.agents');
+});
+
 it('shares a tag across a workflow and an agent, counted separately', function () {
     [$workspace, $owner] = ownerWorkspaceForTag();
     $tag = Tag::factory()->forWorkspace($workspace)->create();
