@@ -116,6 +116,12 @@ return [
             'key' => env('VERBOO_API_KEY'),
         ],
 
+        'xkiro' => [
+            'driver' => 'openai-compatible',
+            'url' => env('XKIRO_URL', 'https://api.xkiro.com/v1'),
+            'key' => env('XKIRO_API_KEY'),
+        ],
+
         'gemini' => [
             'driver' => 'gemini',
             'key' => env('GEMINI_API_KEY'),

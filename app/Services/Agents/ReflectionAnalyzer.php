@@ -2,7 +2,10 @@
 
 namespace App\Services\Agents;
 
-use App\Ai\Agents\EmbeddedAgent;
+use App\Ai\Agents\ReflectionReviewerAgent;
+use App\Ai\ResponseUsage;
+use App\Ai\Tools\SubmitReflectionsTool;
+use App\Ai\ToolSubmission;
 use App\Enums\Agents\ReflectionApplyBehavior;
 use App\Enums\Agents\ReflectionRunStatus;
 use App\Enums\Agents\ReflectionStatus;
@@ -19,28 +22,28 @@ use App\Models\Agents\ReflectionRun;
 use App\Models\Agents\ReflectionSettings;
 use App\Models\Runs\Run;
 use App\Notifications\Agents\ReflectionReportNotification;
+use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Notifications\NotificationDispatcher;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Reviews an `Agent`'s `AgentSession`s since its last reflection, mines them
+ * Reviews an `Agent`'s activity since its last completed review, mines it
  * for recurring patterns, and proposes `Reflection`s: new/updated skills,
  * instruction changes, or flagged tool gaps.
  *
- * This collapses the reference feature's multi-step "mine candidates →
- * validate against transcripts → check existing knowledge" pipeline
- * (docs/gumloop/output/raw/core-concepts/reflections.md) into one prompt and
- * one parse: a single `EmbeddedAgent` call already receives the full
- * transcripts, the agent's current instructions, its attached skills, and its
- * still-pending reflections, so it can validate and de-duplicate in the same
- * pass rather than three separate LLM calls. That keeps one reflection pass
- * at roughly the cost of a single moderate conversation.
+ * Collapses the "mine → validate against transcripts → check existing
+ * knowledge" pipeline (docs/gumloop/output/raw/core-concepts/reflections.md)
+ * into one model call that sees the transcripts, instructions, skills and
+ * earlier reflections together, so a review costs about one conversation.
  *
- * A minimum-confidence, minimum-support auto-apply gate still runs entirely
- * in code afterward (`isAutoApplyEligible()`), so a model that scores its own
- * proposal generously can't unilaterally decide it's safe to apply.
+ * Only a completed review moves `last_run_at`; a skipped or failed one keeps
+ * its activity for the next review. Support is counted in code from the
+ * sessions the model cites, so a model can't inflate its own evidence past
+ * the auto-apply gate.
  */
 class ReflectionAnalyzer
 {
@@ -48,25 +51,36 @@ class ReflectionAnalyzer
 
     private const AUTO_APPLY_MIN_SUPPORT = 3;
 
+    private const MIN_SUPPORT = 2;
+
+    private const MAX_MESSAGE_CHARS = 2000;
+
+    private const MAX_TOOL_ARGUMENT_CHARS = 300;
+
+    private const PAST_REFLECTIONS_LIMIT = 30;
+
     public function __construct(
         private readonly CreditGate $creditGate,
         private readonly NotificationDispatcher $notifications,
+        private readonly ModelCatalogResolver $modelCatalog,
     ) {}
 
     public function run(Agent $agent): ReflectionRun
     {
         $settings = $agent->reflectionSettings ?? $agent->reflectionSettings()->save(new ReflectionSettings);
 
-        $this->creditGate->assertCanStartRun($agent->workspace);
+        $sessions = $this->sessionsSinceLastReview($agent, $settings);
+        $hasEnoughActivity = $sessions->isNotEmpty() && $sessions->count() >= $settings->min_chats_threshold;
 
-        $sessions = $agent->sessions()
-            ->with('messages')
-            ->when($settings->last_run_at, fn ($query) => $query->where('created_at', '>', $settings->last_run_at))
-            ->get();
+        // A skipped review costs nothing, so only a review that will actually
+        // prompt the model is gated on credits.
+        if ($hasEnoughActivity) {
+            $this->creditGate->assertCanStartRun($agent->workspace);
+        }
 
         $reflectionRun = $agent->reflectionRuns()->create(['workspace_id' => $agent->workspace_id]);
 
-        if ($sessions->count() < $settings->min_chats_threshold) {
+        if (! $hasEnoughActivity) {
             return $this->skip($agent, $settings, $reflectionRun, $sessions->count());
         }
 
@@ -75,14 +89,19 @@ class ReflectionAnalyzer
         $run = $this->openRun($reflectionRun, $agent);
 
         try {
-            $candidates = $this->minePatterns($agent, $settings, $sessions);
+            [$candidates, $usage] = $this->minePatterns($agent, $settings, $sessions);
             $created = $this->proposeReflections($agent, $reflectionRun, $settings, $sessions, $candidates);
 
             $reflectionRun->forceFill([
                 'status' => ReflectionRunStatus::Completed,
                 'sessions_analyzed_count' => $sessions->count(),
+                'usage' => $usage,
                 'finished_at' => now(),
             ])->save();
+
+            // The window restarts where this review started, so a chat that
+            // happened while the model was analyzing is still picked up next time.
+            $settings->forceFill(['last_run_at' => $reflectionRun->started_at])->save();
 
             $run->forceFill([
                 'status' => RunStatus::Completed,
@@ -94,6 +113,7 @@ class ReflectionAnalyzer
         } catch (Throwable $e) {
             $reflectionRun->forceFill([
                 'status' => ReflectionRunStatus::Failed,
+                'sessions_analyzed_count' => $sessions->count(),
                 'skip_reason' => $e->getMessage(),
                 'finished_at' => now(),
             ])->save();
@@ -103,23 +123,42 @@ class ReflectionAnalyzer
             event(new RunFailed($run));
         }
 
-        $settings->forceFill(['last_run_at' => now()])->save();
-
         $this->report($agent, $settings, $reflectionRun->fresh());
 
         return $reflectionRun->fresh();
     }
 
+    /**
+     * @return Collection<int, AgentSession>
+     */
+    private function sessionsSinceLastReview(Agent $agent, ReflectionSettings $settings): Collection
+    {
+        $since = $settings->last_run_at;
+
+        return $agent->sessions()
+            ->with([
+                'messages' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
+                'runs' => fn ($query) => $query->where('status', RunStatus::Failed->value)->orderBy('created_at'),
+            ])
+            ->when($since, fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->where('last_activity_at', '>', $since)
+                ->orWhere(fn (Builder $query) => $query->whereNull('last_activity_at')->where('created_at', '>', $since))))
+            ->orderBy('created_at')
+            ->get();
+    }
+
     private function skip(Agent $agent, ReflectionSettings $settings, ReflectionRun $reflectionRun, int $sessionCount): ReflectionRun
     {
+        $reason = $sessionCount === 0
+            ? 'No new chats since the last review.'
+            : "Only {$sessionCount} chat(s) since the last review; needs at least {$settings->min_chats_threshold}.";
+
         $reflectionRun->forceFill([
             'status' => ReflectionRunStatus::Skipped,
-            'skip_reason' => "Only {$sessionCount} session(s) since the last run; needs at least {$settings->min_chats_threshold}.",
+            'skip_reason' => $reason,
             'sessions_analyzed_count' => $sessionCount,
             'finished_at' => now(),
         ])->save();
-
-        $settings->forceFill(['last_run_at' => now()])->save();
 
         $this->report($agent, $settings, $reflectionRun);
 
@@ -128,70 +167,109 @@ class ReflectionAnalyzer
 
     /**
      * @param  Collection<int, AgentSession>  $sessions
-     * @return array<int, array<string, mixed>>
+     * @return array{0: array<int, array<string, mixed>>, 1: array<string, mixed>}
      */
     private function minePatterns(Agent $agent, ReflectionSettings $settings, Collection $sessions): array
     {
-        $transcript = $sessions
-            ->map(fn (AgentSession $session): string => "Session #{$session->id} ({$session->created_at->toDateString()}):\n".
-                $session->messages->map(fn (AgentMessage $message): string => "{$message->role->value}: {$message->content}")->implode("\n"))
+        $transcript = $sessions->values()
+            ->map(fn (AgentSession $session, int $index): string => $this->transcriptFor($session, $index + 1))
             ->implode("\n\n---\n\n");
 
         $existingSkills = $agent->skills->isEmpty()
             ? 'None.'
-            : $agent->skills->map(fn ($skill): string => "- [id {$skill->id}] {$skill->name}: {$skill->instructions}")->implode("\n");
+            : $agent->skills->map(fn ($skill): string => "- [id {$skill->id}] {$skill->name}:\n{$skill->instructions}")->implode("\n\n");
 
-        $pendingTitles = $agent->reflections()->where('status', ReflectionStatus::Pending->value)->pluck('title');
-        $pending = $pendingTitles->isEmpty() ? 'None.' : $pendingTitles->implode('; ');
+        $pastReflections = $agent->reflections()
+            ->where('status', '!=', ReflectionStatus::Superseded->value)
+            ->latest()
+            ->limit(self::PAST_REFLECTIONS_LIMIT)
+            ->get(['title', 'status', 'type'])
+            ->map(fn (Reflection $reflection): string => "- [{$reflection->status->value}] ({$reflection->type->value}) {$reflection->title}")
+            ->implode("\n") ?: 'None.';
+
+        $instructions = trim((string) $agent->instructions) !== '' ? $agent->instructions : 'None.';
+
+        $toolName = SubmitReflectionsTool::NAME;
 
         $extra = $settings->extra_instructions
             ? "\nExtra focus requested by the agent owner:\n{$settings->extra_instructions}\n"
             : '';
 
         $prompt = <<<PROMPT
-            You are reviewing an AI agent's recent conversation transcripts to find recurring patterns worth
-            fixing: repeated mistakes, inefficient tool usage, missing knowledge, or requests the agent handled
-            the same multi-step way more than once. Only propose a pattern that shows up across at least 2
-            distinct sessions and isn't already covered by the agent's current instructions or skills below.
+            You are reviewing an AI agent's recent activity to find recurring patterns worth fixing: repeated
+            mistakes, recurring tool errors, inefficient tool usage, missing knowledge, requests the agent
+            handled the same multi-step way more than once, or places it asked for clarification it shouldn't
+            have needed. Only propose a pattern that shows up across at least 2 distinct sessions. Reject
+            anything that happened once, is already handled by the current instructions or skills, or is
+            simply part of the job.
 
             Agent's current instructions:
-            {$agent->instructions}
+            {$instructions}
 
             Agent's existing skills:
             {$existingSkills}
 
-            Reflections already pending for this agent (do not repeat these):
-            {$pending}
+            Earlier reflections for this agent, newest first:
+            {$pastReflections}
+            Never re-propose a pending or dismissed one. If an applied one's problem is still showing up, you may
+            propose a new fix for it and say in the rationale that the earlier fix didn't hold.
             {$extra}
-            Transcripts since the last reflection:
+            Activity since the last review (one block per session):
             {$transcript}
 
-            Respond with ONLY a JSON array (no prose, no markdown fences). Each element must have exactly
-            these keys:
-            {
-              "type": "new_skill" | "skill_fix" | "instruction_update" | "tool_access",
-              "title": short string,
-              "rationale": why this change is needed, citing which session numbers show the pattern,
-              "confidence": integer 0-100,
-              "support_count": integer, how many distinct sessions show this pattern,
-              "proposed_prompt": the exact instructions text to apply (skill body or instruction update),
-              "target_skill_id": the existing skill id to update — only for "skill_fix", otherwise null
-            }
+            Pick the type that fits:
+            - "new_skill": a repeated multi-step workflow. proposed_prompt is the full instructions of the new skill.
+            - "skill_fix": an existing skill misses a case. proposed_prompt is the COMPLETE revised instructions for
+              that skill (it replaces the current text, so keep everything that still applies). Set target_skill_id.
+            - "instruction_update": a behavioral rule or domain fact. proposed_prompt is the COMPLETE revised agent
+              instructions (it replaces the current instructions, so keep everything that still applies).
+            - "tool_access": the agent is working around a missing integration or permission. proposed_prompt
+              describes exactly what access is needed and why.
 
-            Return an empty array [] if nothing qualifies.
+            Submit your findings with the {$toolName} tool, citing in session_numbers the sessions that show
+            each pattern. Submit an empty list if nothing qualifies.
             PROMPT;
 
-        $response = (new EmbeddedAgent('You analyze agent conversation histories and propose structured improvements.'))
-            ->prompt($prompt, provider: $agent->provider, model: $agent->model);
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
-        $decoded = json_decode(trim($response->text), true);
+        $startedAt = now();
 
-        return is_array($decoded) ? $decoded : [];
+        $response = (new ReflectionReviewerAgent)->prompt($prompt, provider: $provider, model: $model);
+
+        $reflections = ToolSubmission::arguments($response, SubmitReflectionsTool::NAME)['reflections'] ?? [];
+
+        return [
+            is_array($reflections) && array_is_list($reflections) ? $reflections : [],
+            ResponseUsage::from($response, $startedAt),
+        ];
+    }
+
+    private function transcriptFor(AgentSession $session, int $number): string
+    {
+        $lines = $session->messages->flatMap(function (AgentMessage $message): array {
+            $lines = collect($message->tool_calls ?? [])
+                ->map(fn (array $call): string => sprintf(
+                    'tool call: %s(%s)',
+                    $call['name'] ?? 'unknown',
+                    Str::limit(json_encode($call['arguments'] ?? []) ?: '', self::MAX_TOOL_ARGUMENT_CHARS),
+                ))
+                ->all();
+
+            if (trim((string) $message->content) !== '') {
+                $lines[] = "{$message->role->value}: ".Str::limit($message->content, self::MAX_MESSAGE_CHARS);
+            }
+
+            return $lines;
+        });
+
+        $errors = $session->runs->map(fn (Run $run): string => 'turn failed: '.Str::limit((string) $run->error, self::MAX_TOOL_ARGUMENT_CHARS));
+
+        return "Session {$number} ({$session->created_at->toDateString()}):\n".$lines->merge($errors)->implode("\n");
     }
 
     /**
      * @param  Collection<int, AgentSession>  $sessions
-     * @param  array<int, array<string, mixed>>  $candidates
+     * @param  array<int, mixed>  $candidates
      */
     private function proposeReflections(
         Agent $agent,
@@ -200,33 +278,71 @@ class ReflectionAnalyzer
         Collection $sessions,
         array $candidates,
     ): int {
+        $sessionIdsByNumber = $sessions->values()->mapWithKeys(fn (AgentSession $session, int $index): array => [$index + 1 => $session->id]);
+        $skillIds = $agent->skills->pluck('id')->map(fn ($id): string => (string) $id);
+        $dismissedTitles = $agent->reflections()
+            ->where('status', ReflectionStatus::Dismissed->value)
+            ->pluck('title')
+            ->map(fn (string $title): string => Str::lower(trim($title)));
+
         $created = 0;
 
         foreach ($candidates as $candidate) {
-            $type = ReflectionType::tryFrom((string) ($candidate['type'] ?? ''));
-
-            if ($type === null || empty($candidate['title']) || empty($candidate['proposed_prompt'])) {
+            if (! is_array($candidate)) {
                 continue;
+            }
+
+            $type = ReflectionType::tryFrom((string) ($candidate['type'] ?? ''));
+            $title = trim((string) ($candidate['title'] ?? ''));
+            $proposedPrompt = trim((string) ($candidate['proposed_prompt'] ?? ''));
+
+            if ($type === null || $title === '' || $proposedPrompt === '') {
+                continue;
+            }
+
+            if ($dismissedTitles->contains(Str::lower($title))) {
+                continue;
+            }
+
+            $supportingSessionIds = collect(is_array($candidate['session_numbers'] ?? null) ? $candidate['session_numbers'] : [])
+                ->filter(fn ($number): bool => is_numeric($number))
+                ->map(fn ($number) => $sessionIdsByNumber->get((int) $number))
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($supportingSessionIds->count() < self::MIN_SUPPORT) {
+                continue;
+            }
+
+            $targetSkillId = null;
+
+            if ($type === ReflectionType::SkillFix) {
+                $targetSkillId = (string) ($candidate['target_skill_id'] ?? '');
+
+                if (! $skillIds->contains($targetSkillId)) {
+                    continue;
+                }
             }
 
             // A newer proposal for the same recurring pattern supersedes the
             // older pending one rather than sitting alongside it.
             $agent->reflections()
                 ->where('status', ReflectionStatus::Pending->value)
-                ->where('title', $candidate['title'])
+                ->where('title', $title)
                 ->update(['status' => ReflectionStatus::Superseded->value]);
 
             $reflection = $reflectionRun->reflections()->create([
                 'workspace_id' => $agent->workspace_id,
                 'agent_id' => $agent->id,
                 'type' => $type->value,
-                'title' => (string) $candidate['title'],
+                'title' => $title,
                 'rationale' => (string) ($candidate['rationale'] ?? ''),
-                'evidence' => ['session_ids' => $sessions->pluck('id')->all()],
+                'evidence' => ['session_ids' => $supportingSessionIds->all()],
                 'confidence' => max(0, min(100, (int) ($candidate['confidence'] ?? 0))),
-                'support_count' => max(0, (int) ($candidate['support_count'] ?? 0)),
-                'proposed_prompt' => (string) $candidate['proposed_prompt'],
-                'target_skill_id' => $type === ReflectionType::SkillFix ? ($candidate['target_skill_id'] ?? null) : null,
+                'support_count' => $supportingSessionIds->count(),
+                'proposed_prompt' => $proposedPrompt,
+                'target_skill_id' => $targetSkillId,
             ]);
 
             $created++;

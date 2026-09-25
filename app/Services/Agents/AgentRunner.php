@@ -6,6 +6,7 @@ use App\Actions\Agents\CreateAgentSessionAction;
 use App\Actions\Artifacts\StoreArtifactAction;
 use App\Ai\Agents\EmbeddedAgent;
 use App\Ai\Agents\WorkspaceAgent;
+use App\Ai\ResponseUsage;
 use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
@@ -56,7 +57,7 @@ class AgentRunner
         try {
             $response = $turn->agent->prompt($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
-            return $this->completeTurn($turn, $response->text, $this->usageFor($turn, $response));
+            return $this->completeTurn($turn, $response);
         } catch (Throwable $e) {
             $this->failTurn($turn->run, $e);
 
@@ -84,7 +85,7 @@ class AgentRunner
         $response = $turn->agent->stream($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
         $response->then(function (StreamedAgentResponse $streamed) use ($turn): void {
-            $this->completeTurn($turn, $streamed->text, $this->usageFor($turn, $streamed));
+            $this->completeTurn($turn, $streamed);
         });
 
         return new StreamedTurn($turn->run, $response);
@@ -129,7 +130,7 @@ class AgentRunner
         }
 
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
-        [$provider, $model] = $this->resolveProvider($agent);
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
         return new AgentTurn(
             $session,
@@ -177,61 +178,16 @@ class AgentRunner
         return $artifacts;
     }
 
-    /**
-     * The provider/model to prompt with for `$agent` — either its plain
-     * `provider`/`model` columns, or, when it's opted into a
-     * `model_catalog_id`, the ordered failover chain resolved from it (see
-     * `ModelCatalogResolver`). A resolved chain already carries its own
-     * model ids, so `model` comes back `null` in that case.
-     *
-     * @return array{0: string|array<string, string>, 1: ?string}
-     */
-    private function resolveProvider(AgentModel $agent): array
+    private function completeTurn(AgentTurn $turn, AgentResponse $response): AgentMessage
     {
-        if ($agent->model_catalog_id === null) {
-            return [$agent->provider, $agent->model];
-        }
-
-        return [$this->modelCatalog->providerChain($agent->modelCatalog->slug), null];
-    }
-
-    /**
-     * `$response->usage` plus what `CreditMeter` needs to price this turn
-     * like a Gumloop chat: which model actually served it (`Meta`, so real
-     * $-based pricing can look it up), how many tool calls it made (1
-     * credit each), and how long it ran (5 credits/session-minute compute).
-     * `Usage`/`Meta`/`toolCalls` are all populated by the SDK already —
-     * this just persists what the app previously discarded.
-     *
-     * @return array<string, mixed>
-     */
-    private function usageFor(AgentTurn $turn, AgentResponse $response): array
-    {
-        return [
-            ...$response->usage->toArray(),
-            ...$response->meta->toArray(),
-            'tool_call_count' => $response->toolCalls->count(),
-            'duration_seconds' => $turn->run->started_at->diffInSeconds(now()),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $usage
-     */
-    private function completeTurn(AgentTurn $turn, string $text, array $usage): AgentMessage
-    {
-        $assistantMessage = $turn->session->messages()->create([
-            'role' => AgentMessageRole::Assistant,
-            'content' => $text,
-        ]);
-        $assistantMessage->forceFill(['usage' => $usage])->save();
+        $assistantMessage = $this->storeAssistantMessage($turn->session, $response, ResponseUsage::from($response, $turn->run->started_at));
 
         $turn->run->forceFill([
             'status' => RunStatus::Completed,
             // `message_id` lets `RecordRunCreditUsage` find the exact
             // `AgentMessage` to charge for, without guessing at "the
             // latest assistant message" for this session.
-            'output' => ['text' => $text, 'message_id' => $assistantMessage->id],
+            'output' => ['text' => $response->text, 'message_id' => $assistantMessage->id],
             'finished_at' => now(),
         ])->save();
 
@@ -240,6 +196,21 @@ class AgentRunner
         event(new RunCompleted($turn->run));
 
         return $assistantMessage;
+    }
+
+    /**
+     * @param  array<string, mixed>  $usage
+     */
+    private function storeAssistantMessage(AgentSession $session, AgentResponse $response, array $usage): AgentMessage
+    {
+        $message = $session->messages()->create([
+            'role' => AgentMessageRole::Assistant,
+            'content' => $response->text,
+            'tool_calls' => $response->toolCalls->isNotEmpty() ? $response->toolCalls->toArray() : null,
+        ]);
+        $message->forceFill(['usage' => $usage])->save();
+
+        return $message;
     }
 
     /**
@@ -277,21 +248,14 @@ class AgentRunner
     public function ask(AgentModel $agent, Run $run, string $prompt): array
     {
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
-        [$provider, $model] = $this->resolveProvider($agent);
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
         $startedAt = now();
 
         $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run)))
             ->prompt($prompt, provider: $provider, model: $model);
 
-        $usage = [
-            ...$response->usage->toArray(),
-            ...$response->meta->toArray(),
-            'tool_call_count' => $response->toolCalls->count(),
-            'duration_seconds' => $startedAt->diffInSeconds(now()),
-        ];
-
-        return ['text' => $response->text, 'usage' => $usage];
+        return ['text' => $response->text, 'usage' => ResponseUsage::from($response, $startedAt)];
     }
 
     /**
@@ -325,7 +289,7 @@ class AgentRunner
             : $this->conversationFor($agent, $run, $previousConversationId);
 
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
-        [$provider, $model] = $this->resolveProvider($agent);
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
         $userMessage = $session->messages()->create([
             'role' => AgentMessageRole::User,
@@ -337,19 +301,9 @@ class AgentRunner
         $response = (new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run, $session)))
             ->prompt($prompt, provider: $provider, model: $model);
 
-        $usage = [
-            ...$response->usage->toArray(),
-            ...$response->meta->toArray(),
-            'tool_call_count' => $response->toolCalls->count(),
-            'duration_seconds' => $startedAt->diffInSeconds(now()),
-        ];
+        $usage = ResponseUsage::from($response, $startedAt);
 
-        $assistantMessage = $session->messages()->create([
-            'role' => AgentMessageRole::Assistant,
-            'content' => $response->text,
-            'tool_calls' => $response->toolCalls->isNotEmpty() ? $response->toolCalls->toArray() : null,
-        ]);
-        $assistantMessage->forceFill(['usage' => $usage])->save();
+        $this->storeAssistantMessage($session, $response, $usage);
 
         $session->forceFill(['last_activity_at' => now()])->save();
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Models\Agents\Agent;
 use App\Models\Ai\ModelCatalog;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
@@ -18,6 +19,23 @@ use RuntimeException;
 class ModelCatalogResolver
 {
     private const int CACHE_TTL_SECONDS = 300;
+
+    /**
+     * The provider/model to prompt `$agent` with: its `provider`/`model`
+     * columns, or its catalog entry's failover chain (which carries its own
+     * model ids, so `model` is null). Anything prompting on an agent's behalf
+     * should use this rather than reading those columns directly.
+     *
+     * @return array{0: string|array<string, string>, 1: ?string}
+     */
+    public function forAgent(Agent $agent): array
+    {
+        if ($agent->model_catalog_id === null) {
+            return [$agent->provider, $agent->model];
+        }
+
+        return [$this->providerChain($agent->modelCatalog->slug), null];
+    }
 
     /**
      * @return array<string, string> provider (a `Lab` value or custom

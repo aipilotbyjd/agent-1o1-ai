@@ -3,7 +3,11 @@
 namespace App\Services\Agents;
 
 use App\Ai\Agents\EvalJudgeAgent;
+use App\Ai\Tools\SubmitVerdictTool;
+use App\Ai\ToolSubmission;
 use App\Enums\Agents\EvalAssertionType;
+use App\Models\Agents\Agent;
+use App\Services\Ai\ModelCatalogResolver;
 use Throwable;
 
 /**
@@ -17,11 +21,16 @@ use Throwable;
  */
 class AssertionGrader
 {
+    public function __construct(private readonly ModelCatalogResolver $modelCatalog) {}
+
     /**
+     * `$agent` is the agent under test; an `llm_rubric` is judged with its
+     * model, since that's the one model it's guaranteed to have access to.
+     *
      * @param  array<string, mixed>  $assertion  `{type, value}`
      * @return array{type: string, value: string, passed: bool, error: string|null}
      */
-    public function grade(array $assertion, string $output): array
+    public function grade(array $assertion, string $output, Agent $agent): array
     {
         $type = EvalAssertionType::tryFrom($assertion['type'] ?? '');
         $value = (string) ($assertion['value'] ?? '');
@@ -35,7 +44,7 @@ class AssertionGrader
         }
 
         try {
-            return $this->result($type->value, $value, $this->gradeWithJudge($value, $output), null);
+            return $this->result($type->value, $value, $this->gradeWithJudge($value, $output, $agent), null);
         } catch (Throwable $e) {
             // A judge that couldn't be reached is a failed *assertion*, not a
             // failed suite: the rest of the cases still carry information, and
@@ -57,11 +66,13 @@ class AssertionGrader
         };
     }
 
-    private function gradeWithJudge(string $rubric, string $output): bool
+    private function gradeWithJudge(string $rubric, string $output, Agent $agent): bool
     {
-        $response = (new EvalJudgeAgent)->prompt(EvalJudgeAgent::promptFor($rubric, $output));
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
-        return EvalJudgeAgent::verdictFromText($response->text);
+        $response = (new EvalJudgeAgent)->prompt(EvalJudgeAgent::promptFor($rubric, $output), provider: $provider, model: $model);
+
+        return (ToolSubmission::arguments($response, SubmitVerdictTool::NAME)['passed'] ?? false) === true;
     }
 
     /**

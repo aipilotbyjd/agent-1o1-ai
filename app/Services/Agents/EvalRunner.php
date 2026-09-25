@@ -130,7 +130,7 @@ class EvalRunner
         }
 
         $graded = array_map(
-            fn (array $assertion): array => $this->grader->grade($assertion, $answer['text']),
+            fn (array $assertion): array => $this->grader->grade($assertion, $answer['text'], $evalRun->suite->agent),
             $case->assertions ?? [],
         );
 

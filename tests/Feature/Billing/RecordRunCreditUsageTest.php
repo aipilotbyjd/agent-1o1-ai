@@ -107,6 +107,7 @@ it('charges one credit_transaction per agent turn', function () {
     expect($transaction->source_id)->toBe($reply->id);
     expect($transaction->workspace_id)->toBe($workspace->id);
     expect($workspace->currentUsagePeriod()->credits_used)->toBe($transaction->credits);
+    expect($session->runs()->sole()->totalCreditsUsed())->toBe($transaction->credits);
 });
 
 it('captures the model, tool call count, and duration CreditMeter needs to price a chat turn', function () {

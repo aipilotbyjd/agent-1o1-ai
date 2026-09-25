@@ -25,4 +25,10 @@ enum CreditTransactionType: string
      * the same ledger-clarity and idempotency-key reasons as `EvalCase`.
      */
     case SessionEvaluation = 'session_evaluation';
+
+    /**
+     * One completed review of an agent's recent activity — see
+     * `Services\Agents\ReflectionAnalyzer`. Skipped reviews are never charged.
+     */
+    case Reflection = 'reflection';
 }

@@ -2,10 +2,14 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Tools\SubmitEvaluationTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvaluationSettings;
+use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Contracts\Agent as AgentContract;
+use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Promptable;
+use Laravel\Ai\ToolChoice;
 
 /**
  * Grades one `AgentSession` transcript against its agent's
@@ -18,15 +22,24 @@ use Laravel\Ai\Promptable;
  * incomparable, and the judge is meant to be the constant the transcript is
  * measured against.
  *
- * Deliberately toolless and given only the agent's name, description and
- * skills — never its system prompt — mirroring Gumloop's stated privacy
- * boundary (docs/gumloop/output/raw/core-concepts/evaluations.md's "Does the
- * evaluator see my agent's system prompt?"). Transcript content is treated
- * purely as data to analyze, never as instructions.
+ * Given only the agent's name, description and skills — never its system
+ * prompt — mirroring Gumloop's stated privacy boundary
+ * (docs/gumloop/output/raw/core-concepts/evaluations.md's "Does the
+ * evaluator see my agent's system prompt?"). Its only tool,
+ * `SubmitEvaluationTool`, carries the verdict back and can't act on
+ * anything. Transcript content is treated purely as data, never as
+ * instructions.
  */
-class SessionEvalJudgeAgent implements AgentContract
+#[ToolChoice(ToolChoice::tool, SubmitEvaluationTool::NAME)]
+#[MaxSteps(1)]
+class SessionEvalJudgeAgent implements AgentContract, HasTools
 {
     use Promptable;
+
+    public function tools(): iterable
+    {
+        return [new SubmitEvaluationTool];
+    }
 
     public function instructions(): string
     {
@@ -54,16 +67,7 @@ class SessionEvalJudgeAgent implements AgentContract
           "failure", or "unknown".
         - Write a one or two sentence summary of what happened.
 
-        Respond with ONLY a JSON object (no prose, no markdown fences) of
-        exactly this shape:
-        {
-          "criteria_results": [{"id": string, "name": string, "result": "success"|"failure"|"unknown", "rationale": string}],
-          "tags": [string],
-          "data_results": [{"id": string, "name": string, "value": string|number|boolean|null}],
-          "sentiment": "positive"|"neutral"|"negative"|null,
-          "call_successful": "success"|"failure"|"unknown",
-          "summary": string
-        }
+        Submit your grading by calling the submit_evaluation tool.
         INSTRUCTIONS;
     }
 

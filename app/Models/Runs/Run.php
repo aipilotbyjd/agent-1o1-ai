@@ -6,6 +6,7 @@ use App\Enums\Billing\CreditTransactionType;
 use App\Enums\RunStatus;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
+use App\Models\Agents\ReflectionRun;
 use App\Models\Billing\CreditTransaction;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * A single execution of either a `Workflow` (runnable_type = Workflow::class)
@@ -139,40 +141,42 @@ class Run extends Model
      *   first to avoid an N+1 per node run).
      * - An `AgentSession` turn: the one `AgentStep` transaction for the
      *   `AgentMessage` this run produced (`output.message_id`).
-     * - An `AgentSessionEvaluation` grading: the one `SessionEvaluation`
-     *   transaction for the evaluation this run graded (`runnable_id`).
+     * - An `AgentSessionEvaluation` grading or a `ReflectionRun` review: the
+     *   one transaction for the runnable this run belongs to (`runnable_id`).
      *
      * Returns null for an `AgentEvalRun` run — that runnable bills one
      * `CreditTransaction` per graded case (`AgentEvalCaseResult`), not one
      * per run, so summing it here would mean joining through eval case
      * results rather than reusing this run's own relations; left for when
      * eval-run reporting needs it.
+     *
+     * `runnable_type` holds a morph-map alias for runs created through a
+     * relation and a class name for ones created directly, so it's resolved
+     * to a class before comparing.
      */
     public function totalCreditsUsed(): ?int
     {
-        if ($this->runnable_type === Workflow::class) {
-            return $this->relationLoaded('nodeRuns')
+        $runnableClass = Relation::getMorphedModel((string) $this->runnable_type) ?? $this->runnable_type;
+
+        return match ($runnableClass) {
+            Workflow::class => $this->relationLoaded('nodeRuns')
                 ? $this->nodeRuns->sum(fn (NodeRun $nodeRun): int => $nodeRun->creditTransaction?->credits ?? 0)
                 : $this->nodeRuns()->with('creditTransaction')->get()
-                    ->sum(fn (NodeRun $nodeRun): int => $nodeRun->creditTransaction?->credits ?? 0);
-        }
+                    ->sum(fn (NodeRun $nodeRun): int => $nodeRun->creditTransaction?->credits ?? 0),
+            AgentSession::class => isset($this->output['message_id'])
+                ? $this->creditsFor(CreditTransactionType::AgentStep, $this->output['message_id'])
+                : null,
+            AgentSessionEvaluation::class => $this->creditsFor(CreditTransactionType::SessionEvaluation, $this->runnable_id),
+            ReflectionRun::class => $this->creditsFor(CreditTransactionType::Reflection, $this->runnable_id),
+            default => null,
+        };
+    }
 
-        if ($this->runnable_type === AgentSession::class) {
-            $messageId = $this->output['message_id'] ?? null;
-
-            return $messageId === null ? null : CreditTransaction::query()
-                ->where('source_type', CreditTransactionType::AgentStep)
-                ->where('source_id', $messageId)
-                ->value('credits');
-        }
-
-        if ($this->runnable_type === AgentSessionEvaluation::class) {
-            return CreditTransaction::query()
-                ->where('source_type', CreditTransactionType::SessionEvaluation)
-                ->where('source_id', $this->runnable_id)
-                ->value('credits');
-        }
-
-        return null;
+    private function creditsFor(CreditTransactionType $type, string $sourceId): ?int
+    {
+        return CreditTransaction::query()
+            ->where('source_type', $type)
+            ->where('source_id', $sourceId)
+            ->value('credits');
     }
 }

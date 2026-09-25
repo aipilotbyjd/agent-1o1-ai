@@ -2,6 +2,7 @@
 
 use App\Ai\Agents\EmbeddedAgent;
 use App\Ai\Agents\EvalJudgeAgent;
+use App\Ai\Tools\SubmitVerdictTool;
 use App\Enums\Agents\EvalRunStatus;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvalCase;
@@ -10,6 +11,7 @@ use App\Models\Runs\Run;
 use App\Models\User;
 use App\Services\Agents\EvalRunner;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Ai\Responses\Data\ToolCall;
 
 /**
  * @return array{0: AgentEvalSuite, 1: Agent, 2: User}
@@ -83,7 +85,7 @@ it('records which agent version was graded', function () {
 
 it('grades an llm_rubric assertion through the judge agent', function () {
     EmbeddedAgent::fake(['I am afraid I cannot discuss that.']);
-    EvalJudgeAgent::fake(['PASS']);
+    EvalJudgeAgent::fake([new ToolCall('call_1', SubmitVerdictTool::NAME, ['passed' => true, 'reason' => 'It declines politely.'])]);
 
     [$suite, $agent, $owner] = evalSuiteFor([
         [
@@ -99,15 +101,29 @@ it('grades an llm_rubric assertion through the judge agent', function () {
     expect($evalRun->results()->sole()->assertions[0]['type'])->toBe('llm_rubric');
 });
 
-it('treats an unparseable judge verdict as a failure', function () {
+it('fails an llm_rubric assertion the judge rejects', function () {
     EmbeddedAgent::fake(['Some answer.']);
-    EvalJudgeAgent::fake(['I think it is mostly fine, honestly']);
+    EvalJudgeAgent::fake([new ToolCall('call_1', SubmitVerdictTool::NAME, ['passed' => false, 'reason' => 'It does not decline.'])]);
 
     [$suite, $agent, $owner] = evalSuiteFor([
         ['name' => 'rubric', 'input' => 'q', 'assertions' => [['type' => 'llm_rubric', 'value' => 'Anything']]],
     ]);
 
     expect(app(EvalRunner::class)->run($suite, $owner)->failed)->toBe(1);
+});
+
+it('does not take a text reply as a verdict', function () {
+    EmbeddedAgent::fake(['Some answer.']);
+    EvalJudgeAgent::fake(['PASS']);
+
+    [$suite, $agent, $owner] = evalSuiteFor([
+        ['name' => 'rubric', 'input' => 'q', 'assertions' => [['type' => 'llm_rubric', 'value' => 'Anything']]],
+    ]);
+
+    $evalRun = app(EvalRunner::class)->run($suite, $owner);
+
+    expect($evalRun->failed)->toBe(1);
+    expect($evalRun->results()->sole()->assertions[0]['error'])->toContain('did not call submit_verdict');
 });
 
 it('records a judge outage on the assertion instead of aborting the suite', function () {
