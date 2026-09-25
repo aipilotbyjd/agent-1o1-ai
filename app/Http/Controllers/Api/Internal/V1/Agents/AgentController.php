@@ -14,16 +14,25 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\PlanLimitGate;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class AgentController extends Controller
 {
-    public function index(Workspace $workspace)
+    public function index(Request $request, Workspace $workspace)
     {
         $this->requirePermission(Permission::AgentView);
 
+        $agents = $workspace->agents()
+            ->with('tags')
+            ->when($request->query('tag_id'), fn ($query, $tagId) => Str::isUuid($tagId)
+                ? $query->whereHas('tags', fn ($tags) => $tags->whereKey($tagId))
+                : $query->whereRaw('1 = 0'))
+            ->latest()
+            ->get();
+
         return ApiResponse::success([
-            'agents' => AgentResource::collection($workspace->agents()->latest()->get()),
+            'agents' => AgentResource::collection($agents),
         ]);
     }
 
@@ -46,7 +55,7 @@ class AgentController extends Controller
         $this->requirePermission(Permission::AgentView);
         $this->ensureBelongsToWorkspace($workspace, $agent);
 
-        return ApiResponse::success(['agent' => AgentResource::make($agent)]);
+        return ApiResponse::success(['agent' => AgentResource::make($agent->load('tags'))]);
     }
 
     public function update(UpdateAgentRequest $request, Workspace $workspace, Agent $agent)

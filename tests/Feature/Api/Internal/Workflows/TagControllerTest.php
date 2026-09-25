@@ -86,6 +86,65 @@ it('syncs tags onto an agent', function () {
     expect($agent->fresh()->tags)->toHaveCount(2);
 });
 
+it('rejects syncing a tag from another workspace onto an agent', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    [$otherWorkspace] = ownerWorkspaceForTag();
+    $foreignTag = Tag::factory()->forWorkspace($otherWorkspace)->create();
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->putJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/tags", [
+        'tag_ids' => [$foreignTag->id],
+    ])->assertUnprocessable()->assertJsonValidationErrors('tag_ids.0');
+
+    expect($agent->fresh()->tags)->toBeEmpty();
+});
+
+it('includes tags when listing and showing agents', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    $tag = Tag::factory()->forWorkspace($workspace)->create(['name' => 'support']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $agent->tags()->attach($tag);
+
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents")
+        ->assertOk()
+        ->assertJsonPath('data.agents.0.tags.0.name', 'support');
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}")
+        ->assertOk()
+        ->assertJsonPath('data.agent.tags.0.name', 'support');
+});
+
+it('filters the agent list by tag', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    $tag = Tag::factory()->forWorkspace($workspace)->create();
+    $tagged = Agent::factory()->forWorkspace($workspace)->create();
+    Agent::factory()->forWorkspace($workspace)->create();
+    $tagged->tags()->attach($tag);
+
+    Passport::actingAs($owner);
+
+    $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/agents?tag_id={$tag->id}");
+
+    $response->assertOk();
+    expect($response->json('data.agents'))->toHaveCount(1);
+    expect($response->json('data.agents.0.id'))->toBe($tagged->id);
+});
+
+it('returns no agents for a malformed tag filter', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    Agent::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents?tag_id=not-a-uuid")
+        ->assertOk()
+        ->assertJsonCount(0, 'data.agents');
+});
+
 it('shares a tag across a workflow and an agent, counted separately', function () {
     [$workspace, $owner] = ownerWorkspaceForTag();
     $tag = Tag::factory()->forWorkspace($workspace)->create();
