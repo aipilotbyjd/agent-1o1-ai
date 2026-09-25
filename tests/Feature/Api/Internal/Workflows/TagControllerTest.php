@@ -71,6 +71,21 @@ it('syncs tags onto a workflow', function () {
     expect($workflow->fresh()->tags)->toHaveCount(2);
 });
 
+it('rejects syncing a tag from another workspace onto a workflow', function () {
+    [$workspace, $owner] = ownerWorkspaceForTag();
+    [$otherWorkspace] = ownerWorkspaceForTag();
+    $foreignTag = Tag::factory()->forWorkspace($otherWorkspace)->create();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->putJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/tags", [
+        'tag_ids' => [$foreignTag->id],
+    ])->assertUnprocessable()->assertJsonValidationErrors('tag_ids.0');
+
+    expect($workflow->fresh()->tags)->toBeEmpty();
+});
+
 it('syncs tags onto an agent', function () {
     [$workspace, $owner] = ownerWorkspaceForTag();
     $tags = Tag::factory()->forWorkspace($workspace)->count(2)->create();

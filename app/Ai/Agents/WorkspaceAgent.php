@@ -2,12 +2,16 @@
 
 namespace App\Ai\Agents;
 
+use App\Enums\Agents\AgentMessageRole;
+use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Artifacts\Artifact;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Messages\Message;
+use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Promptable;
 
 /**
@@ -52,15 +56,22 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
     }
 
     /**
+     * A past user message that carried attachments is replayed with them,
+     * so the model can still refer back to a file sent earlier in the
+     * conversation.
+     *
      * @return iterable<int, Message>
      */
     public function messages(): iterable
     {
         return $this->session->messages()
+            ->with('attachments')
             ->when($this->beforeMessageId !== null, fn ($query) => $query->where('id', '!=', $this->beforeMessageId))
             ->oldest()
             ->get()
-            ->map(fn ($message) => new Message($message->role->value, $message->content))
+            ->map(fn (AgentMessage $message) => $message->role === AgentMessageRole::User && $message->attachments->isNotEmpty()
+                ? new UserMessage($message->content, $message->attachments->map(fn (Artifact $artifact) => $artifact->toPromptAttachment()))
+                : new Message($message->role->value, $message->content))
             ->all();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Actions\Artifacts;
 
 use App\Enums\Artifacts\ArtifactGeneralAccess;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Artifacts\Artifact;
@@ -54,6 +55,11 @@ class StoreArtifactAction
     ) {}
 
     /**
+     * `$searchable: false` skips indexing into the agent's knowledge
+     * collection — for chat message attachments, which belong to one
+     * member's conversation and must not become searchable from anyone
+     * else's.
+     *
      * @param  string|UploadedFile  $contents  Raw bytes, or the uploaded file to stream to disk.
      * @param  array<string, mixed>|null  $metadata
      */
@@ -68,6 +74,8 @@ class StoreArtifactAction
         ?string $createdBy = null,
         ?string $groupId = null,
         ?array $metadata = null,
+        ?AgentMessage $message = null,
+        bool $searchable = true,
     ): Artifact {
         // `withTrashed()`: a soft-deleted group must still be found here, both
         // to keep versioning past its last version number and so a matching
@@ -104,6 +112,7 @@ class StoreArtifactAction
             'workspace_id' => $workspace->id,
             'agent_id' => $agent?->id,
             'agent_session_id' => $session?->id,
+            'agent_message_id' => $message?->id,
             'run_id' => $run?->id,
             'created_by' => $createdBy,
             'group_id' => $groupId,
@@ -119,7 +128,7 @@ class StoreArtifactAction
             'general_access' => $previous?->general_access?->value ?? ArtifactGeneralAccess::Restricted->value,
         ]);
 
-        if ($agent !== null && in_array($mimeType, self::INDEXABLE_MIME_TYPES, true)) {
+        if ($searchable && $agent !== null && in_array($mimeType, self::INDEXABLE_MIME_TYPES, true)) {
             $this->indexForAgent($workspace, $agent, $artifact, $contents);
         }
 
