@@ -5,12 +5,33 @@ use App\Models\User;
 use App\Services\Agents\SkillInjector;
 use App\Services\Workspaces\WorkspaceService;
 
-it('returns just the base instructions when nothing is attached', function () {
+it('puts who the agent is ahead of its base instructions', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $agent = Agent::factory()->forWorkspace($workspace)->create(['instructions' => 'Be helpful.']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create([
+        'name' => 'Competitor Scout',
+        'description' => 'Researches competitors.',
+        'instructions' => 'Be helpful.',
+    ]);
 
-    expect(app(SkillInjector::class)->instructionsFor($agent))->toBe('Be helpful.');
+    $instructions = app(SkillInjector::class)->instructionsFor($agent);
+
+    expect($instructions)->toStartWith('# About you')
+        ->toContain('You are "Competitor Scout"')
+        ->toContain('Your purpose: Researches competitors.')
+        ->toContain('Today is '.now()->format('l, F j, Y'))
+        ->toContain('You cannot change your own instructions')
+        ->toEndWith('Be helpful.');
+});
+
+it('tells a self-updating agent it may rewrite its instructions', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['allow_self_updates' => true]);
+
+    expect(app(SkillInjector::class)->instructionsFor($agent))
+        ->toContain('update your own instructions')
+        ->not->toContain('You cannot change your own instructions');
 });
 
 it('appends attached skills and active knowledge, but skips inactive knowledge', function () {
@@ -62,5 +83,13 @@ it('omits the memories section entirely when there are none in scope', function 
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $agent = Agent::factory()->forWorkspace($workspace)->create(['instructions' => 'Be helpful.']);
 
-    expect(app(SkillInjector::class)->instructionsFor($agent, $owner->id))->toBe('Be helpful.');
+    expect(app(SkillInjector::class)->instructionsFor($agent, $owner->id))->not->toContain('## Things you remember');
+});
+
+it('leaves out empty base instructions', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['instructions' => null]);
+
+    expect(app(SkillInjector::class)->instructionsFor($agent))->toStartWith('# About you')->not->toContain("\n\n\n");
 });

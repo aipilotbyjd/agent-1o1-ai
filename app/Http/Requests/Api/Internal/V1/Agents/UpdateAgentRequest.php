@@ -25,7 +25,7 @@ class UpdateAgentRequest extends FormRequest
             'icon' => ['sometimes', 'nullable', Rule::in(Agent::ICONS)],
             'color' => ['sometimes', 'nullable', Rule::in(Agent::COLORS)],
             'folder_id' => ['sometimes', 'nullable', 'uuid'],
-            'instructions' => ['sometimes', 'string'],
+            'instructions' => ['sometimes', 'nullable', 'string'],
             'provider' => ['sometimes', 'string', 'max:255'],
             'model' => ['sometimes', 'nullable', 'string', 'max:255'],
             'model_catalog_id' => ['sometimes', 'nullable', 'uuid', 'exists:model_catalog,id'],

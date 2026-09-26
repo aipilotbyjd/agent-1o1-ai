@@ -33,8 +33,10 @@ enum CreditTransactionType: string
     case Reflection = 'reflection';
 
     /**
-     * Drafting a new agent from a description — see `AgentDraftController`.
-     * A draft saves nothing, so its charge carries an id of its own.
+     * Drafting a new agent from a description, or rewriting an agent's
+     * instructions — see `AgentDraftController` and
+     * `AgentInstructionsController`. A draft saves nothing, so its charge
+     * carries an id of its own.
      */
     case AgentDraft = 'agent_draft';
 }

@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentSession;
 use App\Services\Agents\SkillInjector;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -20,6 +21,10 @@ use Stringable;
  * and memories `SkillInjector` adds. Models copy those back despite being
  * told not to, so any injected section is stripped before saving; otherwise
  * it would be duplicated, and outlive the skill being detached.
+ *
+ * The conversation the correction was made in is moved onto the new
+ * version, so the change applies from the agent's next reply there rather
+ * than only in later conversations.
  */
 class UpdateInstructionsTool implements Tool
 {
@@ -29,6 +34,7 @@ class UpdateInstructionsTool implements Tool
         private readonly Agent $agent,
         private readonly SkillInjector $skillInjector,
         private readonly ?string $userId = null,
+        private readonly ?AgentSession $session = null,
     ) {}
 
     public function name(): string
@@ -42,7 +48,7 @@ class UpdateInstructionsTool implements Tool
             .'preference or fact that should apply to all future conversations, not for one-off requests. '
             .'Pass the COMPLETE revised base instructions: they replace the current ones, so keep everything that still applies. '
             .'Do not include "## Skill:", "## Knowledge:" or memory sections; those are managed separately. '
-            ."Your current base instructions are:\n\n".$this->liveAgent()->instructions;
+            ."Your current base instructions are:\n\n".($this->liveAgent()->instructions ?? '(none yet)');
     }
 
     public function handle(Request $request): Stringable|string
@@ -62,7 +68,9 @@ class UpdateInstructionsTool implements Tool
 
         $agent->update(['instructions' => $instructions]);
 
-        return 'Instructions updated. The change applies from the next conversation.';
+        $this->session?->update(['agent_version_id' => $agent->versions()->latest('version')->value('id')]);
+
+        return 'Instructions updated. The change applies from your next reply.';
     }
 
     public function schema(JsonSchema $schema): array

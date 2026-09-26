@@ -2,8 +2,10 @@
 
 use App\Ai\Tools\UpdateInstructionsTool;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentSession;
 use App\Models\Agents\Skill;
 use App\Models\User;
+use App\Services\Agents\AgentVersioner;
 use App\Services\Agents\SkillInjector;
 use App\Services\Workspaces\WorkspaceService;
 use Laravel\Ai\Tools\Request;
@@ -65,4 +67,17 @@ it('strips attached skills a model copies back into its instructions', function 
     ]));
 
     expect($agent->fresh()->instructions)->toBe("You help customers.\n\nAlways answer in Spanish.");
+});
+
+it('moves the conversation it was corrected in onto the new version', function () {
+    $agent = selfUpdatingAgent();
+    $version = app(AgentVersioner::class)->currentVersion($agent);
+    $session = AgentSession::factory()->forAgent($agent)->create(['agent_version_id' => $version->id]);
+    $otherSession = AgentSession::factory()->forAgent($agent)->create(['agent_version_id' => $version->id]);
+
+    (new UpdateInstructionsTool($session->pinnedAgent(), app(SkillInjector::class), session: $session))
+        ->handle(new Request(['instructions' => 'You help customers. Always answer in Spanish.']));
+
+    expect($session->fresh()->pinnedAgent()->instructions)->toBe('You help customers. Always answer in Spanish.');
+    expect($otherSession->fresh()->pinnedAgent()->instructions)->toBe('You help customers.');
 });

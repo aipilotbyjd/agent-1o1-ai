@@ -207,6 +207,7 @@ class AgentRunner
             'role' => AgentMessageRole::Assistant,
             'content' => $response->text,
             'tool_calls' => $response->toolCalls->isNotEmpty() ? $response->toolCalls->toArray() : null,
+            'tool_results' => $response->toolResults->isNotEmpty() ? $response->toolResults->toArray() : null,
         ]);
         $message->forceFill(['usage' => $usage])->save();
 

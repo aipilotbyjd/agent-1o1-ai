@@ -25,7 +25,7 @@ class StoreAgentRequest extends FormRequest
             'icon' => ['nullable', Rule::in(Agent::ICONS)],
             'color' => ['nullable', Rule::in(Agent::COLORS)],
             'folder_id' => ['nullable', 'uuid'],
-            'instructions' => ['required', 'string'],
+            'instructions' => ['nullable', 'string'],
             'provider' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id'],

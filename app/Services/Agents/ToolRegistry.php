@@ -16,7 +16,13 @@ use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentToolBinding;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Runs\Run;
+use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Workflows\NodeRegistry;
+use Laravel\Ai\AiManager;
+use Laravel\Ai\Contracts\Providers\SupportsWebFetch;
+use Laravel\Ai\Contracts\Providers\SupportsWebSearch;
+use Laravel\Ai\Providers\Tools\WebFetch;
+use Laravel\Ai\Providers\Tools\WebSearch;
 
 /**
  * Builds the actual `Laravel\Ai` tool list handed to the model at agent-run
@@ -38,6 +44,9 @@ use App\Services\Workflows\NodeRegistry;
  * skip it, same as before. `UpdateInstructionsTool` has the same session
  * requirement, so a stateless eval case can never rewrite the agent under
  * test, and is only attached when the agent has `allow_self_updates` on.
+ *
+ * Web search and page fetching are the SDK's provider-native `WebSearch`/
+ * `WebFetch`, run by the model provider itself — see `webTools()`.
  */
 class ToolRegistry
 {
@@ -47,10 +56,12 @@ class ToolRegistry
         private readonly StoreArtifactAction $storeArtifact,
         private readonly KnowledgeBase $knowledgeBase,
         private readonly SkillInjector $skillInjector,
+        private readonly ModelCatalogResolver $modelCatalog,
+        private readonly AiManager $ai,
     ) {}
 
     /**
-     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool>
+     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool|WebSearch|WebFetch>
      */
     public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null): array
     {
@@ -74,7 +85,7 @@ class ToolRegistry
             : [];
 
         $selfUpdateTools = $session !== null && $agent->allow_self_updates
-            ? [new UpdateInstructionsTool($agent, $this->skillInjector, $run->triggered_by)]
+            ? [new UpdateInstructionsTool($agent, $this->skillInjector, $run->triggered_by, $session)]
             : [];
 
         return [
@@ -84,7 +95,29 @@ class ToolRegistry
             ...$memoryTools,
             ...$artifactTools,
             ...$selfUpdateTools,
+            ...$this->webTools($agent),
         ];
+    }
+
+    /**
+     * Only offered when every provider in the agent's failover chain runs
+     * the tool natively: an unsupported provider (any `openai-compatible`
+     * gateway, for one) throws on a provider tool rather than ignoring it,
+     * which would fail the whole turn once failover reached it.
+     *
+     * @return array<int, WebSearch|WebFetch>
+     */
+    private function webTools(Agent $agent): array
+    {
+        [$provider] = $this->modelCatalog->forAgent($agent);
+
+        $providers = collect(is_array($provider) ? array_keys($provider) : [$provider])
+            ->map(fn (?string $name) => $this->ai->textProvider($name));
+
+        return array_values(array_filter([
+            $providers->every(fn ($instance) => $instance instanceof SupportsWebSearch) ? new WebSearch : null,
+            $providers->every(fn ($instance) => $instance instanceof SupportsWebFetch) ? new WebFetch : null,
+        ]));
     }
 
     /**

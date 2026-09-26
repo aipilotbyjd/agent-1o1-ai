@@ -7,16 +7,19 @@ use App\Ai\Tools\UpdateInstructionsTool;
 use App\Ai\Tools\WorkflowTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
+use App\Models\Ai\ModelCatalog;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Services\Agents\ToolRegistry;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Ai\Providers\Tools\WebFetch;
+use Laravel\Ai\Providers\Tools\WebSearch;
 
 it('builds one NodeTool per attached node and one WorkflowTool per attached workflow', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['provider' => 'mistral']);
     $run = Run::factory()->create();
 
     $agent->toolBindings()->create([
@@ -40,7 +43,7 @@ it('builds one NodeTool per attached node and one WorkflowTool per attached work
 it('silently skips a binding whose node type is no longer registered', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['provider' => 'mistral']);
     $run = Run::factory()->create();
 
     $agent->toolBindings()->create(['node_type' => 'custom:999999', 'config' => [], 'exposed_fields' => []]);
@@ -54,7 +57,7 @@ it('silently skips a binding whose node type is no longer registered', function 
 it('attaches ExportArtifactTool only for a session-backed run', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['provider' => 'mistral']);
     $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
     $sessionRun = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
 
@@ -83,3 +86,31 @@ it('offers the self-update tool only in a conversation with an agent that allows
     'allowed, stateless eval call' => [true, false, false],
     'not allowed' => [false, true, false],
 ]);
+
+it('offers native web search and fetch only when every provider in the chain runs them', function (string $provider, array $expected) {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['provider' => $provider]);
+
+    $tools = app(ToolRegistry::class)->toolsFor($agent, Run::factory()->create());
+
+    expect(collect($tools)->filter(fn ($tool) => $tool instanceof WebSearch || $tool instanceof WebFetch)->map(fn ($tool) => $tool::class)->values()->all())
+        ->toBe($expected);
+})->with([
+    'anthropic runs both' => ['anthropic', [WebSearch::class, WebFetch::class]],
+    'openai runs search only' => ['openai', [WebSearch::class]],
+    'an openai-compatible gateway runs neither' => ['xkiro', []],
+]);
+
+it('withholds a web tool when any provider in the failover chain lacks it', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $catalog = ModelCatalog::factory()->create();
+    $catalog->routes()->create(['execution_provider' => 'anthropic', 'execution_model_id' => 'claude-sonnet-5', 'priority' => 1, 'is_enabled' => true]);
+    $catalog->routes()->create(['execution_provider' => 'xkiro', 'execution_model_id' => 'mistral-small-4', 'priority' => 2, 'is_enabled' => true]);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['model_catalog_id' => $catalog->id]);
+
+    $tools = app(ToolRegistry::class)->toolsFor($agent, Run::factory()->create());
+
+    expect(collect($tools)->contains(fn ($tool) => $tool instanceof WebSearch || $tool instanceof WebFetch))->toBeFalse();
+});

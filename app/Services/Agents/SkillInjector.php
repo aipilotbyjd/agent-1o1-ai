@@ -20,7 +20,9 @@ class SkillInjector
 {
     public function instructionsFor(Agent $agent, ?string $userId = null): string
     {
-        return implode("\n\n", [$agent->instructions, ...$this->injectedSections($agent, $userId)]);
+        $sections = $this->injectedSections($agent, $userId);
+
+        return implode("\n\n", array_filter([array_shift($sections), $agent->instructions, ...$sections], filled(...)));
     }
 
     /**
@@ -32,7 +34,7 @@ class SkillInjector
      */
     public function injectedSections(Agent $agent, ?string $userId = null): array
     {
-        $sections = [];
+        $sections = [$this->aboutSection($agent)];
 
         foreach ($agent->skills as $skill) {
             $sections[] = "## Skill: {$skill->name}\n{$skill->instructions}";
@@ -49,6 +51,32 @@ class SkillInjector
         }
 
         return $sections;
+    }
+
+    /**
+     * Who the agent is and how it should behave. Without it the model only
+     * sees the user-written instructions, which are often generic, and
+     * introduces itself as the underlying model instead of this agent.
+     */
+    private function aboutSection(Agent $agent): string
+    {
+        $lines = [
+            "# About you\nYou are \"{$agent->name}\", an AI agent built in LinkFlow.",
+        ];
+
+        if (filled($agent->description)) {
+            $lines[] = "Your purpose: {$agent->description}";
+        }
+
+        $lines[] = 'Today is '.now()->format('l, F j, Y').'.';
+        $lines[] = "When asked who you are, answer as {$agent->name}; never present yourself as the underlying language model or its provider.";
+        $lines[] = 'Act on the most likely intent of each request, and ask a clarifying question only when a wrong guess would be costly. '
+            .'When you have tools that can get real data or do the work, use them instead of guessing, and chain several calls when a task needs it.';
+        $lines[] = $agent->allow_self_updates
+            ? 'When the user corrects you or sets a rule that should apply from now on, update your own instructions.'
+            : 'You cannot change your own instructions. If the user wants a lasting change to how you behave, tell them to edit your instructions in this agent\'s settings, or to turn on self-updates there.';
+
+        return implode("\n", $lines);
     }
 
     /**

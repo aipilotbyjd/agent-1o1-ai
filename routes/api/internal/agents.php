@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalCaseController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalRunController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalSuiteController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvaluationSettingsController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentInstructionsController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeSourceController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
@@ -33,6 +34,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::patch('{agent}', [AgentController::class, 'update'])->name('update');
         Route::delete('{agent}', [AgentController::class, 'destroy'])->name('destroy');
         Route::post('{agent}/duplicate', [AgentController::class, 'duplicate'])->name('duplicate');
+        Route::post('{agent}/instructions/improve', AgentInstructionsController::class)->name('instructions.improve');
 
         Route::put('{agent}/tags', [TagController::class, 'syncForAgent'])->name('tags.sync');
 

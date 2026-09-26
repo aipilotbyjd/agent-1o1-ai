@@ -13,7 +13,7 @@ use App\Services\Workspaces\WorkspaceService;
 it('auto-attaches knowledge tools once the workspace has any embedded chunks', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['provider' => 'mistral']);
     $run = Run::factory()->create();
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);

@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * engine-managed — not in `#[Fillable]`, written via `forceFill()` after
  * create(), mirroring `NodeRun`'s own convention.
  */
-#[Fillable(['agent_session_id', 'role', 'content', 'tool_calls', 'tool_call_id'])]
+#[Fillable(['agent_session_id', 'role', 'content', 'tool_calls', 'tool_results', 'tool_call_id'])]
 class AgentMessage extends Model
 {
     /** @use HasFactory<AgentMessageFactory> */
@@ -34,6 +34,7 @@ class AgentMessage extends Model
         return [
             'role' => AgentMessageRole::class,
             'tool_calls' => 'array',
+            'tool_results' => 'array',
             'usage' => 'array',
         ];
     }
