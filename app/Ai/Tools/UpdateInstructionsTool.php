@@ -22,8 +22,12 @@ use Stringable;
  *
  * The model sees its full prompt, which also carries the skills, knowledge
  * and memories `SkillInjector` adds. Models copy those back despite being
- * told not to, so any injected section is stripped before saving; otherwise
- * it would be duplicated, and outlive the skill being detached.
+ * told not to, often slightly reworded, so any injected section is stripped
+ * before saving, and then any line that closely matches an injected line
+ * without being in the current base instructions; otherwise it would be
+ * duplicated, freeze details like today's date, and outlive the skill being
+ * detached. Models asked for only the change instead tend not to call the
+ * tool at all.
  *
  * Only when the person it's working for (or the agent's creator, for a run
  * nobody started) may manage agents — otherwise anyone who can chat with it
@@ -36,6 +40,8 @@ use Stringable;
  */
 class UpdateInstructionsTool implements Tool
 {
+    private const INJECTED_LINE_SIMILARITY = 80;
+
     private ?Agent $liveAgent = null;
 
     public function __construct(
@@ -52,10 +58,11 @@ class UpdateInstructionsTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Permanently updates your own base instructions. Use it only when the user corrects you or tells you a rule, '
-            .'preference or fact that should apply to all future conversations, not for one-off requests. '
+        return 'Permanently updates your own base instructions. Use it only when the user corrects how you behave or sets a rule '
+            .'for how you should work in all future conversations (e.g. "always answer in Spanish", "end every answer with a question"), not for one-off requests. '
+            .'Do not use it for facts about the user or their work, such as their name or what to call them; save those with `'.RememberTool::NAME.'`. '
             .'Pass the COMPLETE revised base instructions: they replace the current ones, so keep everything that still applies. '
-            .'Do not include "## Skills", "## Knowledge:" or memory sections; those are managed separately. '
+            .'Do not include the "About you", "## Skills", "## Knowledge:" or memory sections; those are managed separately. '
             ."Your current base instructions are:\n\n".($this->liveAgent()->instructions ?? '(none yet)');
     }
 
@@ -70,12 +77,7 @@ class UpdateInstructionsTool implements Tool
                 .'Tell them to ask someone who manages agents to edit your instructions.';
         }
 
-        $instructions = str_replace(
-            $this->skillInjector->injectedSections($agent, $this->userId),
-            '',
-            (string) $request['instructions'],
-        );
-        $instructions = trim((string) preg_replace("/\n{3,}/", "\n\n", $instructions));
+        $instructions = $this->withoutInjectedText((string) $request['instructions'], $agent);
 
         if ($instructions === '') {
             return 'Not updated: the instructions were empty.';
@@ -93,6 +95,49 @@ class UpdateInstructionsTool implements Tool
         return [
             'instructions' => $schema->string()->description('The complete revised base instructions.')->required(),
         ];
+    }
+
+    private function withoutInjectedText(string $instructions, Agent $agent): string
+    {
+        $sections = $this->skillInjector->injectedSections($agent, $this->userId);
+        $baseLines = $this->lines((string) $agent->instructions);
+        $injectedLines = array_values(array_diff($this->lines(implode("\n", $sections)), $baseLines));
+
+        $kept = array_filter(
+            explode("\n", str_replace($sections, '', $instructions)),
+            fn (string $line): bool => in_array(trim($line), $baseLines, true)
+                || ! $this->closelyMatchesAny(trim($line), $injectedLines),
+        );
+
+        return trim((string) preg_replace("/\n{3,}/", "\n\n", implode("\n", $kept)));
+    }
+
+    /**
+     * @param  array<int, string>  $candidates
+     */
+    private function closelyMatchesAny(string $line, array $candidates): bool
+    {
+        if ($line === '') {
+            return false;
+        }
+
+        foreach ($candidates as $candidate) {
+            similar_text($line, $candidate, $percent);
+
+            if ($percent >= self::INJECTED_LINE_SIMILARITY) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function lines(string $text): array
+    {
+        return array_values(array_filter(array_map(trim(...), explode("\n", $text)), filled(...)));
     }
 
     private function liveAgent(): Agent

@@ -58,3 +58,14 @@ it('does not collide across different users for the same key', function () {
 
     expect($agent->memories()->count())->toBe(2);
 });
+
+it('is exposed to the model as `remember` and steers personal facts to itself', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    $tool = new RememberTool($agent, $owner->id);
+
+    expect($tool->name())->toBe('remember');
+    expect((string) $tool->description())->toContain('what to call them');
+});

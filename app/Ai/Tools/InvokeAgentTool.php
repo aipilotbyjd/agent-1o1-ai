@@ -55,6 +55,9 @@ class InvokeAgentTool implements Tool
             .'Split the work so each subagent gets a DIFFERENT part (for example one item each), never the same task twice. '
             .'Start every subtask first (one call each), then call `'.WaitForSubagentsTool::NAME.'` once to collect all the results. '
             .'A subagent starts fresh and cannot see this conversation, so give it a complete, self-contained task. '
+            .'A subagent cannot talk to the user either: get any answer you need from the user yourself first, and never delegate a task that involves asking them something. '
+            .'Only delegate work that splits into independent parts, or that the user asked to run in parallel; do a single task yourself. '
+            .'Never delegate combining, summarising or reviewing other subagents\' results: a subagent cannot see them. Collect every result, then write the combined answer yourself. '
             .'Available subagents:'."\n".$lines->implode("\n");
     }
 
