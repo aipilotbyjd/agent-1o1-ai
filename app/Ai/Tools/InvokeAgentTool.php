@@ -20,18 +20,15 @@ use Stringable;
  * conversation owned by the subagent, linked back through
  * `parent_session_id`; results are collected with `WaitForSubagentsTool`.
  *
- * `ToolRegistry` only offers the targets that are safe from where this
- * conversation sits in the chain: a clone never clones again, an agent
- * already in the chain is never called again, and chains stop at
- * `MAX_DEPTH` — see `ToolRegistry::subagentTools()`.
+ * `ToolRegistry` only offers this tool in a top-level conversation, so a
+ * subagent never starts subagents of its own — see
+ * `ToolRegistry::subagentTools()`.
  */
 class InvokeAgentTool implements Tool
 {
     public const NAME = 'invoke_agent';
 
     public const SELF = 'Me';
-
-    public const MAX_DEPTH = 3;
 
     public const MAX_CONCURRENT = 10;
 
@@ -74,6 +71,8 @@ class InvokeAgentTool implements Tool
         if ($task === '') {
             return json_encode(['error' => 'Give the subagent a task.']);
         }
+
+        SubagentTask::failStale($this->session->id);
 
         $running = SubagentTask::query()
             ->where('parent_session_id', $this->session->id)

@@ -24,8 +24,9 @@ class AssertionGrader
     public function __construct(private readonly ModelCatalogResolver $modelCatalog) {}
 
     /**
-     * `$agent` is the agent under test; an `llm_rubric` is judged with its
-     * model, since that's the one model it's guaranteed to have access to.
+     * `$agent` is the agent under test; an `llm_rubric` is judged with the
+     * judge model set in its evaluation settings, falling back to its own
+     * model — see `ModelCatalogResolver::forJudging()`.
      *
      * @param  array<string, mixed>  $assertion  `{type, value}`
      * @return array{type: string, value: string, passed: bool, error: string|null}
@@ -68,7 +69,7 @@ class AssertionGrader
 
     private function gradeWithJudge(string $rubric, string $output, Agent $agent): bool
     {
-        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+        [$provider, $model] = $this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model);
 
         $response = (new EvalJudgeAgent)->prompt(EvalJudgeAgent::promptFor($rubric, $output), provider: $provider, model: $model);
 

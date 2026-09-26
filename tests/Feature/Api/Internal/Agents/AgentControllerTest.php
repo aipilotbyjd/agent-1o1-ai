@@ -133,7 +133,7 @@ it('saves and returns an agent\'s icon, color and self-update setting', function
         ->assertJsonPath('data.agent.allow_self_updates', true);
 });
 
-it('turns an agent\'s skill editing off and back on', function () {
+it('leaves skill editing off by default and lets it be turned on', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $agent = Agent::factory()->forWorkspace($workspace)->create();
@@ -141,11 +141,11 @@ it('turns an agent\'s skill editing off and back on', function () {
     Passport::actingAs($owner);
 
     $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}")
-        ->assertJsonPath('data.agent.allow_skill_editing', true);
-
-    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}", ['allow_skill_editing' => false])
-        ->assertOk()
         ->assertJsonPath('data.agent.allow_skill_editing', false);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}", ['allow_skill_editing' => true])
+        ->assertOk()
+        ->assertJsonPath('data.agent.allow_skill_editing', true);
 });
 
 it('rejects an icon or color the frontend cannot render', function () {

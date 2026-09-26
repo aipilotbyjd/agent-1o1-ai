@@ -6,7 +6,9 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 use InvalidArgumentException;
 use League\CommonMark\GithubFlavoredMarkdownConverter;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpWord\IOFactory as WordIOFactory;
 use PhpOffice\PhpWord\PhpWord;
@@ -17,10 +19,12 @@ use PhpOffice\PhpWord\Shared\Html;
  * agent can hand over a PDF, spreadsheet or Word file instead of trying to
  * emit the bytes itself — see `ExportArtifactTool`.
  *
- * - `pdf`: Markdown, or a full HTML document, rendered by Dompdf with remote
- *   resources and PHP disabled, so model-written HTML can't fetch anything.
+ * - `pdf`: Markdown, or a full HTML document, rendered by Dompdf with PHP
+ *   disabled and only inline `data:` resources allowed, so model-written HTML
+ *   can't fetch anything remote or read local files.
  * - `xlsx`: CSV, or JSON `{"sheets": [{"name": "...", "rows": [[...], ...]}]}`
- *   (a bare list of rows is one sheet).
+ *   (a bare list of rows is one sheet). A value that starts with `=` stays
+ *   text rather than becoming a live formula.
  * - `docx`: Markdown. Raw HTML in it is stripped, not passed through.
  */
 class DocumentRenderer
@@ -50,7 +54,11 @@ class DocumentRenderer
         $options = new Options;
         $options->setIsRemoteEnabled(false);
         $options->setIsPhpEnabled(false);
-        $options->setChroot(sys_get_temp_dir());
+        // Inline `data:` images only. Dompdf reads `file://` (and bare paths)
+        // anywhere under its chroot, so model-written HTML could otherwise
+        // embed other files from this server, such as uploads still in the
+        // temp directory.
+        $options->setAllowedProtocols(['data://']);
         $options->setDefaultFont('DejaVu Sans');
 
         $dompdf = new Dompdf($options);
@@ -69,7 +77,7 @@ class DocumentRenderer
         foreach ($this->sheets($content) as $index => $sheet) {
             $worksheet = $spreadsheet->createSheet($index);
             $worksheet->setTitle($this->sheetTitle($sheet['name'] ?? '', $index));
-            $worksheet->fromArray($sheet['rows'], null, 'A1', true);
+            $this->fill($worksheet, $sheet['rows']);
 
             if ($sheet['rows'] !== []) {
                 $worksheet->getStyle('1:1')->getFont()->setBold(true);
@@ -83,6 +91,31 @@ class DocumentRenderer
         $spreadsheet->setActiveSheetIndex(0);
 
         return $this->capture(fn (string $path) => (new Xlsx($spreadsheet))->save($path));
+    }
+
+    /**
+     * Like `fromArray()`, except a string starting with `=` is stored as
+     * text. Otherwise model-written content (which may echo a fetched web
+     * page) could plant formulas such as `=WEBSERVICE(...)` or `=HYPERLINK(...)`
+     * that run when the file is opened.
+     *
+     * @param  list<list<mixed>>  $rows
+     */
+    private function fill(Worksheet $worksheet, array $rows): void
+    {
+        foreach ($rows as $rowIndex => $row) {
+            foreach ($row as $columnIndex => $value) {
+                if ($value === null) {
+                    continue;
+                }
+
+                $cell = $worksheet->getCell([$columnIndex + 1, $rowIndex + 1]);
+
+                is_string($value) && str_starts_with($value, '=')
+                    ? $cell->setValueExplicit($value, DataType::TYPE_STRING)
+                    : $cell->setValue(is_array($value) ? json_encode($value) : $value);
+            }
+        }
     }
 
     public function docx(string $content): string

@@ -18,6 +18,11 @@ use Stringable;
  * attached to this agent can be changed, and only by someone who may manage
  * skills. A change to the instructions bumps the skill's version, the same as
  * an edit on the Skills page.
+ *
+ * A skill attached to other agents too is left alone: a correction made in
+ * one agent's chat would otherwise silently change how every other agent
+ * using it behaves. That's an edit for the Skills page, where its reach is
+ * visible.
  */
 class UpdateSkillTool implements Tool
 {
@@ -56,6 +61,11 @@ class UpdateSkillTool implements Tool
             return 'Not updated: the person you are working for is not allowed to edit skills in this workspace.';
         }
 
+        if ($skill->agents()->whereKeyNot($this->agent->id)->exists()) {
+            return "Not updated: \"{$skill->name}\" is shared with other agents, so changing it here would change them too. "
+                .'Tell the user to edit it on the Skills page instead.';
+        }
+
         $changes = array_filter([
             'description' => trim((string) ($request['description'] ?? '')),
             'instructions' => trim((string) ($request['instructions'] ?? '')),
@@ -65,11 +75,12 @@ class UpdateSkillTool implements Tool
             return 'Not updated: pass new instructions or a new description.';
         }
 
-        $skill->update($changes);
-
-        if (array_key_exists('instructions', $changes)) {
-            $skill->increment('version');
+        // `version` isn't fillable, so it's set alongside the edit in one save.
+        if (array_key_exists('instructions', $changes) && $changes['instructions'] !== $skill->instructions) {
+            $changes['version'] = $skill->version + 1;
         }
+
+        $skill->forceFill($changes)->save();
 
         return "Updated the skill \"{$skill->name}\".";
     }

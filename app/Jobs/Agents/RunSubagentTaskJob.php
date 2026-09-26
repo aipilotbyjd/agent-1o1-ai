@@ -4,12 +4,15 @@ namespace App\Jobs\Agents;
 
 use App\Enums\Agents\SubagentTaskStatus;
 use App\Enums\Queue;
+use App\Enums\RunStatus;
 use App\Models\Agents\SubagentTask;
+use App\Models\Runs\Run;
 use App\Services\Agents\AgentRunner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -57,13 +60,27 @@ class RunSubagentTaskJob implements ShouldQueue
         }
     }
 
+    /**
+     * Reached when the worker gave up on the job (a timeout kills the process
+     * mid-turn), so `AgentRunner` never got to close out the turn's `Run`
+     * either — it's failed here too rather than left `running` forever.
+     */
     public function failed(?Throwable $e): void
     {
-        $task = SubagentTask::query()->find($this->taskId);
+        $task = SubagentTask::query()->with('session')->find($this->taskId);
 
-        if ($task !== null && ! $task->status->isFinished()) {
+        if ($task === null) {
+            return;
+        }
+
+        if (! $task->status->isFinished()) {
             $this->markFailed($task, $e);
         }
+
+        $task->session?->runs()
+            ->where('status', RunStatus::Running->value)
+            ->get()
+            ->each(fn (Run $run) => app(AgentRunner::class)->failTurn($run, $e ?? new RuntimeException('The subagent stopped before finishing.')));
     }
 
     private function markFailed(SubagentTask $task, ?Throwable $e): void

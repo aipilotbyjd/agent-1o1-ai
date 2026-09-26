@@ -11,7 +11,6 @@ use App\Enums\Agents\SessionEvaluationStatus;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
-use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentEvaluationSettings;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
@@ -127,7 +126,7 @@ class SessionEvaluator
     {
         $agent = $session->agent;
         $transcript = $this->transcriptFor($session);
-        [$provider, $model] = $this->resolveProvider($agent, $settings);
+        [$provider, $model] = $this->modelCatalog->forJudging($agent, $settings->model);
 
         $startedAt = now();
 
@@ -141,24 +140,6 @@ class SessionEvaluator
             ToolSubmission::arguments($response, SubmitEvaluationTool::NAME),
             ResponseUsage::from($response, $startedAt),
         ];
-    }
-
-    /**
-     * The provider/model to judge `$agent`'s transcript with. `settings.model`
-     * is a deliberate, explicit override (grade with a specific model
-     * regardless of what generated the answer) and always wins. Otherwise
-     * this must match whatever `ModelCatalogResolver::forAgent()` gave the
-     * agent to generate the transcript being judged.
-     *
-     * @return array{0: string|array<string, string>, 1: ?string}
-     */
-    private function resolveProvider(AgentModel $agent, AgentEvaluationSettings $settings): array
-    {
-        if ($settings->model !== null) {
-            return [$agent->provider, $settings->model];
-        }
-
-        return $this->modelCatalog->forAgent($agent);
     }
 
     private function transcriptFor(AgentSession $session): string

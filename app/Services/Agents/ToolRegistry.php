@@ -51,8 +51,8 @@ use Laravel\Ai\Providers\Tools\WebSearch;
  * requirement, so a stateless eval case can never rewrite the agent under
  * test, and is only attached when the agent has `allow_self_updates` on.
  * `CreateSkillTool`/`UpdateSkillTool` follow the same rule, gated on
- * `allow_skill_editing` instead. `InvokeAgentTool` also needs a session —
- * see `subagentTools()`.
+ * `allow_skill_editing` instead. `InvokeAgentTool` also needs a session, and is
+ * only offered in a top-level conversation — see `subagentTools()`.
  *
  * Web search and page fetching are the SDK's provider-native `WebSearch`/
  * `WebFetch`, run by the model provider itself — see `webTools()`.
@@ -124,40 +124,51 @@ class ToolRegistry
     }
 
     /**
-     * `InvokeAgentTool` with only the targets that are safe from this point
-     * in a delegation chain: "Me" unless this conversation is already a
-     * clone, attached subagents not already in the chain, and nothing once
-     * the chain is `InvokeAgentTool::MAX_DEPTH` deep.
+     * `InvokeAgentTool` for a top-level conversation only: "Me" when the
+     * agent allows self-cloning, plus its attached subagents. A subagent's
+     * own conversation never delegates further — its job runs on an
+     * `ai-subagent` worker, and one that waited on children queued behind it
+     * on the same workers could leave every worker waiting and none free to
+     * run them.
+     *
+     * Targets are keyed by the name the model uses, so a subagent whose name
+     * clashes with "Me" or another subagent gets a numbered suffix rather
+     * than silently replacing it.
      *
      * @return array<int, InvokeAgentTool|WaitForSubagentsTool>
      */
     private function subagentTools(Agent $agent, AgentSession $session): array
     {
-        $chain = [];
-        for ($current = $session; $current !== null && count($chain) <= InvokeAgentTool::MAX_DEPTH; $current = $current->parentSession) {
-            $chain[] = $current;
-        }
-
-        if (count($chain) > InvokeAgentTool::MAX_DEPTH) {
+        if ($session->parent_session_id !== null) {
             return [];
         }
 
-        $isClone = $session->parentSession?->agent_id === $session->agent_id;
-        $agentsInChain = collect($chain)->pluck('agent_id')->all();
-
         $targets = [];
 
-        if ($agent->allow_self_clone && ! $isClone) {
+        if ($agent->allow_self_clone) {
             $targets[InvokeAgentTool::SELF] = $agent;
         }
 
         foreach ($agent->subagents as $subagent) {
-            if (! in_array($subagent->id, $agentsInChain, true)) {
-                $targets[$subagent->name] = $subagent;
-            }
+            $targets[$this->uniqueTargetName($subagent->name, $targets)] = $subagent;
         }
 
         return $targets === [] ? [] : [new InvokeAgentTool($session, $targets), new WaitForSubagentsTool($session)];
+    }
+
+    /**
+     * @param  array<string, Agent>  $targets
+     */
+    private function uniqueTargetName(string $name, array $targets): string
+    {
+        $taken = array_map(mb_strtolower(...), array_keys($targets));
+        $candidate = $name;
+
+        for ($suffix = 2; in_array(mb_strtolower($candidate), $taken, true); $suffix++) {
+            $candidate = "{$name} ({$suffix})";
+        }
+
+        return $candidate;
     }
 
     /**

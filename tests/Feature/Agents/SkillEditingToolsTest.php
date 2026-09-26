@@ -18,7 +18,7 @@ function ownerAndAgent(): array
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
 
-    return [$owner, Agent::factory()->forWorkspace($workspace)->create()];
+    return [$owner, Agent::factory()->forWorkspace($workspace)->create(['allow_skill_editing' => true])];
 }
 
 it('creates a workspace skill as the person chatting and attaches it to the agent', function () {
@@ -80,6 +80,18 @@ it('updates an attached skill and bumps its version when the instructions change
     expect($result)->toBe('Updated the skill "Tone".');
     expect($skill->fresh()->instructions)->toBe('Sign off with "Thanks".');
     expect($skill->fresh()->version)->toBe(2);
+});
+
+it('will not update a skill other agents also use', function () {
+    [$owner, $agent] = ownerAndAgent();
+    $skill = Skill::factory()->create(['workspace_id' => $agent->workspace_id, 'name' => 'Tone', 'instructions' => 'Be brief.', 'version' => 1]);
+    $agent->skills()->attach($skill->id);
+    Agent::factory()->forWorkspace($agent->workspace)->create()->skills()->attach($skill->id);
+
+    $result = (string) (new UpdateSkillTool($agent->fresh(), $owner->id))->handle(new Request(['skill' => 'Tone', 'instructions' => 'Be long.']));
+
+    expect($result)->toStartWith('Not updated: "Tone" is shared with other agents');
+    expect($skill->fresh()->only(['instructions', 'version']))->toBe(['instructions' => 'Be brief.', 'version' => 1]);
 });
 
 it('will not update a skill that is not attached to the agent', function () {

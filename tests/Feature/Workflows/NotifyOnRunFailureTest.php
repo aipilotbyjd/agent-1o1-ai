@@ -9,7 +9,9 @@ use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Notifications\Workspace\RunFailedNotification;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 it('notifies workspace owners and admins when a run fails', function () {
     Notification::fake();
@@ -66,4 +68,30 @@ it('still says what kind of run failed after its chat is deleted', function () {
     $session->forceDelete();
 
     expect((new RunFailedNotification($workspace, $run->fresh()))->title)->toBe("An agent couldn't reply");
+});
+
+it('rewords failed-run notifications that were stored with the old text', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create(['name' => 'Lead sync']);
+    $run = Run::factory()->create(['workspace_id' => $workspace->id, 'workflow_id' => $workflow->id, 'runnable_type' => Workflow::class, 'runnable_id' => $workflow->id, 'error' => 'Timed out.']);
+
+    $stored = fn (string $runId) => [
+        'id' => (string) Str::uuid(),
+        'type' => RunFailedNotification::class,
+        'notifiable_type' => $owner->getMorphClass(),
+        'notifiable_id' => $owner->id,
+        'data' => json_encode(['title' => "Run {$runId} failed", 'body' => 'x', 'data' => ['run_id' => $runId, 'error' => 'Gone.']]),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ];
+    $existing = $stored($run->id);
+    $orphaned = $stored((string) Str::uuid());
+    DB::table('notifications')->insert([$existing, $orphaned]);
+
+    (require database_path('migrations/2026_09_26_120000_reword_stored_run_failed_notifications.php'))->up();
+
+    $data = fn (array $row) => json_decode(DB::table('notifications')->where('id', $row['id'])->value('data'), true);
+    expect($data($existing))->toMatchArray(['title' => 'Workflow “Lead sync” failed', 'body' => 'Timed out.']);
+    expect($data($orphaned))->toMatchArray(['title' => 'A run failed', 'body' => 'Gone.']);
 });

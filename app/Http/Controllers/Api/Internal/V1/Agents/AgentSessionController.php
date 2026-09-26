@@ -29,7 +29,7 @@ class AgentSessionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
 
         return ApiResponse::success([
-            'sessions' => AgentSessionResource::collection($agent->sessions()->withCount('messages')->latest()->get()),
+            'sessions' => AgentSessionResource::collection($agent->sessions()->whereNull('parent_session_id')->withCount('messages')->latest()->get()),
         ]);
     }
 

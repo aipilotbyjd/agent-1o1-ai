@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('agents', function (Blueprint $table) {
-            $table->boolean('allow_skill_editing')->default(true)->after('allow_self_updates');
+            $table->boolean('allow_skill_editing')->default(false)->after('allow_self_updates');
         });
     }
 

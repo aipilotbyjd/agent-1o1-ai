@@ -55,6 +55,18 @@ it('ignores completed runs whose runnable is not an agent session', function () 
     Bus::assertNotDispatched(EvaluateAgentSessionJob::class);
 });
 
+it('does not evaluate a conversation a subagent ran for another one', function () {
+    Bus::fake();
+
+    [$session, $run] = agentSessionRun();
+    $parent = AgentSession::factory()->forAgent($session->agent)->create();
+    $session->forceFill(['parent_session_id' => $parent->id])->save();
+
+    (new ScheduleSessionEvaluation)->handle(new RunCompleted($run->fresh()));
+
+    Bus::assertNotDispatched(EvaluateAgentSessionJob::class);
+});
+
 it('does not schedule an evaluation when the agent has not enabled it', function () {
     Bus::fake();
 

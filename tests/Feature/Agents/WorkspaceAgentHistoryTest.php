@@ -56,3 +56,21 @@ it('drops tool calls stored without a result', function () {
     expect($messages[0]->toolCalls)->toBeEmpty();
     expect($messages[0]->content)->toBe('Done.');
 });
+
+it('cuts a long earlier tool result short when replaying it', function () {
+    $session = historySession();
+    $page = str_repeat('a', WorkspaceAgent::MAX_REPLAYED_RESULT_CHARS + 500);
+
+    $session->messages()->create([
+        'role' => AgentMessageRole::Assistant,
+        'content' => 'Summarised.',
+        'tool_calls' => [['id' => 'call_1', 'name' => 'web_fetch', 'arguments' => []]],
+        'tool_results' => [['id' => 'call_1', 'name' => 'web_fetch', 'arguments' => [], 'result' => $page]],
+    ]);
+
+    $messages = array_values(iterator_to_array((new WorkspaceAgent('', $session))->messages()));
+    $replayed = $messages[1]->toolResults->first()->result;
+
+    expect($replayed)->toStartWith(str_repeat('a', WorkspaceAgent::MAX_REPLAYED_RESULT_CHARS).'…');
+    expect(mb_strlen($replayed))->toBeLessThan(mb_strlen($page));
+});

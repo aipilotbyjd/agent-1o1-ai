@@ -45,7 +45,7 @@ class Agent extends Model
     protected $attributes = [
         'provider' => 'anthropic',
         'allow_self_updates' => false,
-        'allow_skill_editing' => true,
+        'allow_skill_editing' => false,
         'allow_self_clone' => true,
     ];
 
@@ -130,10 +130,6 @@ class Agent extends Model
     }
 
     /**
-     * Reusable instruction snippets injected into the system prompt
-     * alongside `instructions()` — see `Services\Agents\SkillInjector`.
-     */
-    /**
      * Other agents this one may hand work to through `InvokeAgentTool`.
      */
     public function subagents(): BelongsToMany
@@ -141,6 +137,10 @@ class Agent extends Model
         return $this->belongsToMany(self::class, 'agent_subagents', 'agent_id', 'subagent_id')->withTimestamps();
     }
 
+    /**
+     * Reusable instruction snippets injected into the system prompt
+     * alongside `instructions()` — see `Services\Agents\SkillInjector`.
+     */
     public function skills(): BelongsToMany
     {
         return $this->belongsToMany(Skill::class, 'agent_skill')->withTimestamps();

@@ -33,6 +33,13 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
     use Promptable;
 
     /**
+     * How much of each earlier tool result is replayed. Every turn resends
+     * the whole history, so a fetched web page or long search result would
+     * otherwise be paid for again on every later turn of the conversation.
+     */
+    public const MAX_REPLAYED_RESULT_CHARS = 4000;
+
+    /**
      * `$beforeMessageId` excludes the just-persisted user turn from
      * `messages()` — `AgentRunner` writes it to `agent_messages` before
      * building this class, and the SDK appends the live `prompt()` argument
@@ -90,7 +97,8 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
      * does: the tool calls it made and what they returned, then its reply.
      * Without them a later turn can't see data a tool already fetched.
      * Calls with no stored result (turns saved before results were kept)
-     * are dropped, since providers reject a call left unanswered.
+     * are dropped, since providers reject a call left unanswered. Long
+     * results are cut to `MAX_REPLAYED_RESULT_CHARS`.
      *
      * @return array<int, Message>
      */
@@ -107,7 +115,7 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
         if ($calls->isNotEmpty()) {
             $messages[] = new AssistantMessage('', $calls->map(ToolCall::fromArray(...)));
             $messages[] = new ToolResultMessage(
-                $calls->map(fn (array $call): ToolResult => ToolResult::fromArray($results[$call['id']])),
+                $calls->map(fn (array $call): ToolResult => $this->replayedResult($results[$call['id']])),
             );
         }
 
@@ -116,5 +124,21 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
         }
 
         return $messages;
+    }
+
+    /**
+     * @param  array<string, mixed>  $stored
+     */
+    private function replayedResult(array $stored): ToolResult
+    {
+        $result = $stored['result'] ?? null;
+        $text = is_string($result) ? $result : (string) json_encode($result);
+
+        if (mb_strlen($text) > self::MAX_REPLAYED_RESULT_CHARS) {
+            $stored['result'] = mb_substr($text, 0, self::MAX_REPLAYED_RESULT_CHARS)
+                .'… [cut short in the conversation history; call the tool again if you need the rest]';
+        }
+
+        return ToolResult::fromArray($stored);
     }
 }

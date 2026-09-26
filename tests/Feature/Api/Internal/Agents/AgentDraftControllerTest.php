@@ -75,3 +75,15 @@ it('validates the prompt and model', function () {
 
     $this->postJson($url, [])->assertUnprocessable()->assertJsonValidationErrors(['prompt', 'model_catalog_id']);
 });
+
+it('answers with a clear error, and charges nothing, when the model does not submit a draft', function () {
+    [$url, $catalog] = draftEndpoint();
+
+    AgentDraftAgent::fake(['Here is your agent: ...']);
+
+    $this->postJson($url, ['prompt' => 'Anything', 'model_catalog_id' => $catalog->id])
+        ->assertStatus(502)
+        ->assertJsonPath('message', "The model didn't return a usable answer. Try again, or pick a different model.");
+
+    expect(CreditTransaction::query()->count())->toBe(0);
+});

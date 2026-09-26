@@ -2,8 +2,11 @@
 
 namespace App\Ai\Tools;
 
+use App\Authorization\WorkspaceContext;
+use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
+use App\Models\User;
 use App\Services\Agents\SkillInjector;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -21,6 +24,11 @@ use Stringable;
  * and memories `SkillInjector` adds. Models copy those back despite being
  * told not to, so any injected section is stripped before saving; otherwise
  * it would be duplicated, and outlive the skill being detached.
+ *
+ * Only when the person it's working for (or the agent's creator, for a run
+ * nobody started) may manage agents — otherwise anyone who can chat with it
+ * could permanently change it for the whole workspace, which the agent's
+ * settings page wouldn't let them do.
  *
  * The conversation the correction was made in is moved onto the new
  * version, so the change applies from the agent's next reply there rather
@@ -54,6 +62,13 @@ class UpdateInstructionsTool implements Tool
     public function handle(Request $request): Stringable|string
     {
         $agent = $this->liveAgent();
+
+        $user = User::query()->find($this->userId ?? $agent->created_by);
+
+        if ($user === null || ! WorkspaceContext::resolveRole($agent->workspace, $user)?->has(Permission::AgentManage)) {
+            return 'Not updated: the person you are working for is not allowed to change this agent. '
+                .'Tell them to ask someone who manages agents to edit your instructions.';
+        }
 
         $instructions = str_replace(
             $this->skillInjector->injectedSections($agent, $this->userId),

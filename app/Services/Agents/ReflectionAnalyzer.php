@@ -59,6 +59,19 @@ class ReflectionAnalyzer
 
     private const PAST_REFLECTIONS_LIMIT = 30;
 
+    /**
+     * The most recent sessions one review reads. The first review of a busy
+     * agent would otherwise read its whole history, overflowing the model's
+     * context so the review fails every time and the window never moves.
+     */
+    private const MAX_SESSIONS = 50;
+
+    /**
+     * Budget for all transcripts together (roughly 50k tokens), shared out
+     * evenly so a single long session can't crowd out the rest.
+     */
+    private const MAX_TRANSCRIPT_CHARS = 200_000;
+
     public function __construct(
         private readonly CreditGate $creditGate,
         private readonly NotificationDispatcher $notifications,
@@ -129,6 +142,12 @@ class ReflectionAnalyzer
     }
 
     /**
+     * The agent's own chats since the last review — at most the latest
+     * `MAX_SESSIONS`, oldest first. Conversations a subagent ran on a
+     * parent's behalf are left out: they aren't chats with a person, and the
+     * clones of one request would otherwise count as separate sessions
+     * showing the same pattern, inflating support past the auto-apply gate.
+     *
      * @return Collection<int, AgentSession>
      */
     private function sessionsSinceLastReview(Agent $agent, ReflectionSettings $settings): Collection
@@ -143,8 +162,13 @@ class ReflectionAnalyzer
             ->when($since, fn (Builder $query) => $query->where(fn (Builder $query) => $query
                 ->where('last_activity_at', '>', $since)
                 ->orWhere(fn (Builder $query) => $query->whereNull('last_activity_at')->where('created_at', '>', $since))))
-            ->orderBy('created_at')
-            ->get();
+            ->whereNull('parent_session_id')
+            ->latest()
+            ->latest('id')
+            ->limit(self::MAX_SESSIONS)
+            ->get()
+            ->reverse()
+            ->values();
     }
 
     private function skip(Agent $agent, ReflectionSettings $settings, ReflectionRun $reflectionRun, int $sessionCount): ReflectionRun
@@ -171,8 +195,10 @@ class ReflectionAnalyzer
      */
     private function minePatterns(Agent $agent, ReflectionSettings $settings, Collection $sessions): array
     {
+        $charsPerSession = intdiv(self::MAX_TRANSCRIPT_CHARS, max(1, $sessions->count()));
+
         $transcript = $sessions->values()
-            ->map(fn (AgentSession $session, int $index): string => $this->transcriptFor($session, $index + 1))
+            ->map(fn (AgentSession $session, int $index): string => Str::limit($this->transcriptFor($session, $index + 1), $charsPerSession))
             ->implode("\n\n---\n\n");
 
         $existingSkills = $agent->skills->isEmpty()

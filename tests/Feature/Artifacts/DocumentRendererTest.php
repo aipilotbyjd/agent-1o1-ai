@@ -73,3 +73,33 @@ it('builds a Word document from Markdown and drops raw HTML', function () {
 
     expect($text)->toContain('Minutes')->toContain('budget')->not->toContain('alert');
 });
+
+it('does not embed local files into a PDF, only inline images', function () {
+    $path = tempnam(sys_get_temp_dir(), 'local').'.png';
+    $image = imagecreatetruecolor(4, 4);
+    imagepng($image, $path);
+
+    try {
+        $renderer = app(DocumentRenderer::class);
+        $local = $renderer->pdf("<!doctype html><html><body><img src=\"{$path}\"><img src=\"file://{$path}\"></body></html>");
+        $inline = $renderer->pdf('<!doctype html><html><body><img src="data:image/png;base64,'.base64_encode((string) file_get_contents($path)).'"></body></html>');
+    } finally {
+        @unlink($path);
+    }
+
+    expect(substr_count($local, '/Subtype /Image'))->toBe(0);
+    expect(substr_count($inline, '/Subtype /Image'))->toBe(1);
+});
+
+it('keeps a spreadsheet value that starts with = as text, not a formula', function () {
+    $xlsx = app(DocumentRenderer::class)->xlsx(json_encode(['sheets' => [['name' => 'Data', 'rows' => [
+        ['Link', 'Total'],
+        ['=HYPERLINK("https://evil.test","Click")', 42],
+    ]]]]));
+
+    $sheet = readBack($xlsx, fn ($path) => SpreadsheetIOFactory::load($path)->getActiveSheet());
+
+    expect($sheet->getCell('A2')->getDataType())->toBe('s');
+    expect($sheet->getCell('A2')->getValue())->toBe('=HYPERLINK("https://evil.test","Click")');
+    expect($sheet->getCell('B2')->getValue())->toBe(42);
+});

@@ -346,3 +346,27 @@ it('only notifies about a skipped run when notify_on_skip is enabled', function 
 
     Notification::assertNothingSent();
 });
+
+it('leaves conversations run by subagents out of the review', function () {
+    [$agent, $owner] = reflectionAgent(sessionCount: 2);
+    $parent = $agent->sessions()->oldest()->first();
+    foreach (range(1, 3) as $i) {
+        AgentSession::factory()->forAgent($agent)->create(['parent_session_id' => $parent->id]);
+    }
+    ReflectionSettings::factory()->forAgent($agent)->create(['min_chats_threshold' => 3]);
+
+    $reflectionRun = app(ReflectionAnalyzer::class)->run($agent->fresh());
+
+    expect($reflectionRun->status)->toBe(ReflectionRunStatus::Skipped);
+    expect($reflectionRun->sessions_analyzed_count)->toBe(2);
+});
+
+it('reviews only the most recent sessions when there are too many', function () {
+    [$agent] = reflectionAgent(sessionCount: 52);
+    reviewerSubmits([]);
+
+    $reflectionRun = app(ReflectionAnalyzer::class)->run($agent);
+
+    expect($reflectionRun->status)->toBe(ReflectionRunStatus::Completed);
+    expect($reflectionRun->sessions_analyzed_count)->toBe(50);
+});

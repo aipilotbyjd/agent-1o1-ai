@@ -38,6 +38,20 @@ class ModelCatalogResolver
     }
 
     /**
+     * The provider/model to grade `$agent`'s output with. `$judgeModel` (the
+     * agent's evaluation settings `model`) is a deliberate override — grade
+     * with a specific model rather than the one that wrote the answer — and
+     * always wins. Otherwise it's the agent's own `forAgent()` model: the one
+     * model it's guaranteed to have access to.
+     *
+     * @return array{0: string|array<string, string>, 1: ?string}
+     */
+    public function forJudging(Agent $agent, ?string $judgeModel): array
+    {
+        return $judgeModel !== null ? [$agent->provider, $judgeModel] : $this->forAgent($agent);
+    }
+
+    /**
      * Whether `$provider` can actually serve requests here: it's defined in
      * `config/ai.php` and has an API key (Ollama runs locally without one).
      */

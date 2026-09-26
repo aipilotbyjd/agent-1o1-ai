@@ -305,9 +305,10 @@ return [
             'nice' => 0,
         ],
         // Subagents started by `InvokeAgentTool`. Separate from `ai-agent` so a
-        // parent waiting on its subagents never occupies the workers they need,
-        // and sized for parallel work — `InvokeAgentTool::MAX_CONCURRENT` caps
-        // how many one conversation can start.
+        // parent waiting on its subagents never occupies the workers they need
+        // (subagents can't start subagents, so nothing here waits on this
+        // queue), and sized for parallel work — `InvokeAgentTool::MAX_CONCURRENT`
+        // caps how many one conversation can start.
         'supervisor-ai-subagent' => [
             'connection' => 'redis',
             'queue' => ['ai-subagent'],

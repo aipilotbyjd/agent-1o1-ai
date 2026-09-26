@@ -7,10 +7,12 @@ use App\Enums\Agents\EvalRunStatus;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvalCase;
 use App\Models\Agents\AgentEvalSuite;
+use App\Models\Agents\AgentEvaluationSettings;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Services\Agents\EvalRunner;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Responses\Data\ToolCall;
 
 /**
@@ -99,6 +101,20 @@ it('grades an llm_rubric assertion through the judge agent', function () {
 
     expect($evalRun->passed)->toBe(1);
     expect($evalRun->results()->sole()->assertions[0]['type'])->toBe('llm_rubric');
+});
+
+it('grades an llm_rubric with the judge model set in the agent\'s evaluation settings', function () {
+    EmbeddedAgent::fake(['Some answer.']);
+    EvalJudgeAgent::fake([new ToolCall('call_1', SubmitVerdictTool::NAME, ['passed' => true, 'reason' => 'Fine.'])]);
+
+    [$suite, $agent, $owner] = evalSuiteFor([
+        ['name' => 'rubric', 'input' => 'q', 'assertions' => [['type' => 'llm_rubric', 'value' => 'Anything']]],
+    ]);
+    AgentEvaluationSettings::factory()->forAgent($agent)->create(['model' => 'judge-model']);
+
+    app(EvalRunner::class)->run($suite, $owner);
+
+    EvalJudgeAgent::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->model === 'judge-model');
 });
 
 it('fails an llm_rubric assertion the judge rejects', function () {

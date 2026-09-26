@@ -2,9 +2,9 @@
 
 namespace App\Ai;
 
+use App\Exceptions\ModelSubmissionException;
 use Laravel\Ai\Responses\Data\ToolCall;
 use Laravel\Ai\Responses\TextResponse;
-use RuntimeException;
 
 /**
  * Reads the arguments of the tool an agent was forced to call to hand back
@@ -22,7 +22,7 @@ final class ToolSubmission
         $call = $response->toolCalls->first(fn (ToolCall $call): bool => $call->name === $toolName);
 
         if ($call === null) {
-            throw new RuntimeException("The model did not call {$toolName}. It may not support tool calling.");
+            throw ModelSubmissionException::missingToolCall($toolName);
         }
 
         return $call->arguments;

@@ -9,31 +9,44 @@ use Illuminate\Support\Facades\DB;
  * Notifications store their text when sent, so failed-run notices sent before
  * `RunFailedNotification` named what failed still read "Run <uuid> failed".
  * This rewrites them with the current wording.
+ *
+ * The stored `type` is matched as a literal, and the wording comes from the
+ * app's own classes only while they still offer it: if either is renamed or
+ * reworked later, this becomes a no-op on a fresh database rather than
+ * breaking `migrate`.
  */
 return new class extends Migration
 {
+    private const NOTIFICATION_TYPE = 'App\Notifications\Workspace\RunFailedNotification';
+
     public function up(): void
     {
+        if (! class_exists(Run::class)
+            || ! method_exists(RunFailedNotification::class, 'titleFor')
+            || ! method_exists(RunFailedNotification::class, 'bodyFor')) {
+            return;
+        }
+
         DB::table('notifications')
-            ->where('type', RunFailedNotification::class)
+            ->where('type', self::NOTIFICATION_TYPE)
             ->orderBy('id')
             ->chunk(200, function ($notifications): void {
-                foreach ($notifications as $notification) {
-                    $payload = json_decode($notification->data, true);
+                $payloads = $notifications
+                    ->mapWithKeys(fn ($notification) => [$notification->id => json_decode($notification->data, true)])
+                    ->filter(fn ($payload) => is_array($payload));
 
-                    if (! is_array($payload)) {
-                        continue;
-                    }
+                $runs = Run::query()
+                    ->with('runnable')
+                    ->findMany($payloads->pluck('data.run_id')->filter()->unique()->values())
+                    ->keyBy('id');
 
-                    $runId = $payload['data']['run_id'] ?? null;
-                    $run = $runId !== null ? Run::query()->find($runId) : null;
+                foreach ($payloads as $id => $payload) {
+                    $run = $runs->get($payload['data']['run_id'] ?? null);
 
                     $payload['title'] = $run !== null ? RunFailedNotification::titleFor($run) : 'A run failed';
                     $payload['body'] = RunFailedNotification::bodyFor($run?->error ?? $payload['data']['error'] ?? null);
 
-                    DB::table('notifications')
-                        ->where('id', $notification->id)
-                        ->update(['data' => json_encode($payload)]);
+                    DB::table('notifications')->where('id', $id)->update(['data' => json_encode($payload)]);
                 }
             });
     }

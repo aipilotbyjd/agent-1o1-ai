@@ -5,6 +5,7 @@ use App\Ai\Agents\WorkspaceAgent;
 use App\Ai\Tools\InvokeAgentTool;
 use App\Ai\Tools\WaitForSubagentsTool;
 use App\Enums\Agents\SubagentTaskStatus;
+use App\Enums\RunStatus;
 use App\Jobs\Agents\RunSubagentTaskJob;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
@@ -138,32 +139,62 @@ it('offers a clone of itself and its attached subagents', function () {
     expect(subagentTargets($coordinator->fresh(), $session))->toBe(['Researcher']);
 });
 
-it('does not let a clone clone itself again', function () {
-    [$owner, $coordinator, , $session] = coordinatorSetup();
+it('does not let a subagent start subagents of its own', function () {
+    [$owner, $coordinator, $researcher, $session] = coordinatorSetup();
+    $researcher->subagents()->attach(Agent::factory()->forWorkspace($coordinator->workspace)->create()->id);
+
     $clone = app(CreateAgentSessionAction::class)->execute($coordinator, $owner);
     $clone->forceFill(['parent_session_id' => $session->id])->save();
-
-    expect(subagentTargets($coordinator, $clone->fresh()))->toBe(['Researcher']);
-});
-
-it('never calls an agent that is already in the chain', function () {
-    [$owner, $coordinator, $researcher, $session] = coordinatorSetup();
-    $researcher->subagents()->attach($coordinator->id);
     $researcherSession = app(CreateAgentSessionAction::class)->execute($researcher, $owner);
     $researcherSession->forceFill(['parent_session_id' => $session->id])->save();
 
-    expect(subagentTargets($researcher->fresh(), $researcherSession->fresh()))->toBe(['Me']);
+    expect(subagentTargets($coordinator, $clone->fresh()))->toBe([]);
+    expect(subagentTargets($researcher->fresh(), $researcherSession->fresh()))->toBe([]);
 });
 
-it('stops delegating once the chain is as deep as allowed', function () {
-    [$owner, $coordinator, , $session] = coordinatorSetup();
-    $parent = $session;
-    foreach (range(1, InvokeAgentTool::MAX_DEPTH) as $level) {
-        $agent = Agent::factory()->forWorkspace($coordinator->workspace)->create();
-        $child = app(CreateAgentSessionAction::class)->execute($agent, $owner);
-        $child->forceFill(['parent_session_id' => $parent->id])->save();
-        $parent = $child;
+it('gives a subagent whose name clashes with another target a distinct name', function () {
+    [, $coordinator, , $session] = coordinatorSetup();
+    $coordinator->subagents()->attach([
+        Agent::factory()->forWorkspace($coordinator->workspace)->create(['name' => 'researcher'])->id,
+        Agent::factory()->forWorkspace($coordinator->workspace)->create(['name' => 'Me'])->id,
+    ]);
+
+    expect(subagentTargets($coordinator->fresh(), $session))
+        ->toEqualCanonicalizing(['Me', 'Researcher', 'researcher (2)', 'Me (2)']);
+});
+
+it('gives up on a subagent that never finished and frees its slot', function () {
+    Queue::fake();
+    [, , $researcher, $session] = coordinatorSetup();
+    $tool = new InvokeAgentTool($session, ['Researcher' => $researcher]);
+
+    foreach (range(1, InvokeAgentTool::MAX_CONCURRENT) as $i) {
+        $tool->handle(new Request(['agent' => 'Researcher', 'task' => "Task {$i}"]));
     }
 
-    expect(subagentTargets($parent->agent, $parent->fresh()))->toBe([]);
+    $this->travel(SubagentTask::STALE_AFTER_MINUTES + 1)->minutes();
+
+    $result = json_decode((string) (new WaitForSubagentsTool($session, waitSeconds: 0, pollMilliseconds: 1))->handle(new Request([])), true);
+
+    expect($result['results'])->toHaveCount(InvokeAgentTool::MAX_CONCURRENT);
+    expect($result['results'][0])->toMatchArray(['status' => 'failed', 'error' => 'The subagent never finished.']);
+    expect(json_decode((string) $tool->handle(new Request(['agent' => 'Researcher', 'task' => 'One more'])), true))
+        ->toHaveKey('task_id');
+});
+
+it('fails the subagent turn left running when its job is given up on', function () {
+    Queue::fake();
+    [, , $researcher, $session] = coordinatorSetup();
+    (new InvokeAgentTool($session, ['Researcher' => $researcher]))
+        ->handle(new Request(['agent' => 'Researcher', 'task' => 'Research Acme.']));
+    $task = SubagentTask::query()->sole();
+    $task->forceFill(['status' => SubagentTaskStatus::Running])->save();
+    $run = $task->session->runs()->create(['workspace_id' => $task->workspace_id, 'trigger_type' => 'subagent']);
+    $run->forceFill(['status' => RunStatus::Running, 'started_at' => now()])->save();
+
+    (new RunSubagentTaskJob($task->id))->failed(new RuntimeException('Job timed out.'));
+
+    expect($task->fresh()->status)->toBe(SubagentTaskStatus::Failed);
+    expect($task->fresh()->error)->toBe('Job timed out.');
+    expect($run->fresh()->status)->toBe(RunStatus::Failed);
 });

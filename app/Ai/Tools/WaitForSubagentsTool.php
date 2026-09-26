@@ -15,6 +15,11 @@ use Stringable;
  * `InvokeAgentTool`. Waits until they have all finished, up to
  * `$waitSeconds`; anything still running is reported as such so the model
  * can wait again. A result is only reported once (`collected_at`).
+ *
+ * The wait is kept short because a chat turn usually runs inside the HTTP
+ * request that sent the message: a long sleep here would hold a web worker
+ * and could outlast the request's own timeout. The model calls again for
+ * whatever is still running, and each call is a separate step.
  */
 class WaitForSubagentsTool implements Tool
 {
@@ -22,7 +27,7 @@ class WaitForSubagentsTool implements Tool
 
     public function __construct(
         private readonly AgentSession $session,
-        private readonly int $waitSeconds = 240,
+        private readonly int $waitSeconds = 25,
         private readonly int $pollMilliseconds = 1000,
     ) {}
 
@@ -39,6 +44,8 @@ class WaitForSubagentsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
+        SubagentTask::failStale($this->session->id);
+
         $deadline = microtime(true) + $this->waitSeconds;
 
         do {
