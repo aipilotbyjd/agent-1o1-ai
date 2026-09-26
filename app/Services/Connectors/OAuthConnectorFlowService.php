@@ -78,7 +78,7 @@ class OAuthConnectorFlowService
 
         $connector = $pending->connector;
 
-        $response = Http::asForm()->post($connector->oauth['token_url'], [
+        $response = Http::acceptJson()->asForm()->timeout(30)->connectTimeout(10)->post($connector->oauth['token_url'], [
             'client_id' => $this->clientId($connector),
             'client_secret' => $this->clientSecret($connector),
             'code' => $code,
@@ -90,14 +90,16 @@ class OAuthConnectorFlowService
             throw new ConnectorException("Failed to exchange OAuth code for connector [{$connector->key}]: {$response->body()}");
         }
 
+        $body = $this->validatedTokenBody($response->json());
+
         $credential = ConnectorCredential::create([
             'workspace_id' => $pending->workspace_id,
             'connector_id' => $connector->id,
             'created_by' => $pending->user_id,
             'scope' => $pending->scope,
             'name' => $pending->name,
-            'data' => $this->tokenData($response->json()),
-            'expires_at' => $this->expiresAt($response->json()),
+            'data' => $this->tokenData($body),
+            'expires_at' => $this->expiresAt($body),
         ]);
 
         $pending->delete();
@@ -114,7 +116,7 @@ class OAuthConnectorFlowService
             throw new ConnectorException("Connector credential [{$credential->id}] has no refresh_token to refresh with.");
         }
 
-        $response = Http::asForm()->post($connector->oauth['token_url'], [
+        $response = Http::acceptJson()->asForm()->timeout(30)->connectTimeout(10)->post($connector->oauth['token_url'], [
             'client_id' => $this->clientId($connector),
             'client_secret' => $this->clientSecret($connector),
             'refresh_token' => $refreshToken,
@@ -125,7 +127,7 @@ class OAuthConnectorFlowService
             throw new ConnectorException("Failed to refresh connector credential [{$credential->id}]: {$response->body()}");
         }
 
-        $body = $response->json();
+        $body = $this->validatedTokenBody($response->json());
 
         $credential->update([
             'data' => [...$credential->data, ...$this->tokenData($body)],
@@ -133,6 +135,18 @@ class OAuthConnectorFlowService
         ]);
 
         return $credential->fresh();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedTokenBody(mixed $body): array
+    {
+        if (! is_array($body) || isset($body['error']) || ! is_string($body['access_token'] ?? null) || trim($body['access_token']) === '') {
+            throw new ConnectorException('OAuth provider did not return a valid access token. Please reconnect the connector.');
+        }
+
+        return $body;
     }
 
     private function clientId(Connector $connector): string
