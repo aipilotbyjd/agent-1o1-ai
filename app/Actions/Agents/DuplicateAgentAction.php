@@ -42,6 +42,8 @@ class DuplicateAgentAction
                 'temperature' => $agent->temperature,
                 'settings' => $agent->settings,
                 'allow_self_updates' => $agent->allow_self_updates,
+                'allow_skill_editing' => $agent->allow_skill_editing,
+                'allow_self_clone' => $agent->allow_self_clone,
                 'created_by' => $creator?->id,
             ]);
 
@@ -54,6 +56,7 @@ class DuplicateAgentAction
             }
 
             $copy->skills()->sync($agent->skills->pluck('id'));
+            $copy->subagents()->sync($agent->subagents->pluck('id'));
             $copy->workflows()->sync($agent->workflows->pluck('id'));
 
             foreach ($agent->knowledge as $entry) {

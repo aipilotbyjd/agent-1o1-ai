@@ -4,12 +4,17 @@ namespace App\Services\Agents;
 
 use App\Actions\Artifacts\StoreArtifactAction;
 use App\Actions\Workflows\StartWorkflowRunAction;
+use App\Ai\Tools\CreateSkillTool;
 use App\Ai\Tools\ExportArtifactTool;
+use App\Ai\Tools\InvokeAgentTool;
 use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\ReadKnowledgeDocumentTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\SearchKnowledgeTool;
 use App\Ai\Tools\UpdateInstructionsTool;
+use App\Ai\Tools\UpdateSkillTool;
+use App\Ai\Tools\UseSkillTool;
+use App\Ai\Tools\WaitForSubagentsTool;
 use App\Ai\Tools\WorkflowTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
@@ -17,6 +22,7 @@ use App\Models\Agents\AgentToolBinding;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Runs\Run;
 use App\Services\Ai\ModelCatalogResolver;
+use App\Services\Artifacts\DocumentRenderer;
 use App\Services\Workflows\NodeRegistry;
 use Laravel\Ai\AiManager;
 use Laravel\Ai\Contracts\Providers\SupportsWebFetch;
@@ -29,8 +35,8 @@ use Laravel\Ai\Providers\Tools\WebSearch;
  * time — one `NodeTool` per attached `agent_node` row (types no longer in
  * `NodeRegistry`, e.g. a removed custom node, are silently skipped rather
  * than erroring the whole turn), one `WorkflowTool` per attached `Workflow`,
- * and a `RememberTool` attached unconditionally so every agent can save
- * durable facts. See docs/AGENTS_PLAN.md's "Models & tool binding" and
+ * a `UseSkillTool` when the agent has skills attached, and a `RememberTool`
+ * attached unconditionally so every agent can save durable facts. See docs/AGENTS_PLAN.md's "Models & tool binding" and
  * "Knowledge / RAG" sections.
  *
  * Knowledge tools (`SearchKnowledgeTool`/`ReadKnowledgeDocumentTool`) follow
@@ -44,6 +50,9 @@ use Laravel\Ai\Providers\Tools\WebSearch;
  * skip it, same as before. `UpdateInstructionsTool` has the same session
  * requirement, so a stateless eval case can never rewrite the agent under
  * test, and is only attached when the agent has `allow_self_updates` on.
+ * `CreateSkillTool`/`UpdateSkillTool` follow the same rule, gated on
+ * `allow_skill_editing` instead. `InvokeAgentTool` also needs a session —
+ * see `subagentTools()`.
  *
  * Web search and page fetching are the SDK's provider-native `WebSearch`/
  * `WebFetch`, run by the model provider itself — see `webTools()`.
@@ -58,10 +67,11 @@ class ToolRegistry
         private readonly SkillInjector $skillInjector,
         private readonly ModelCatalogResolver $modelCatalog,
         private readonly AiManager $ai,
+        private readonly DocumentRenderer $documentRenderer,
     ) {}
 
     /**
-     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool|WebSearch|WebFetch>
+     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|UseSkillTool|CreateSkillTool|UpdateSkillTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool|InvokeAgentTool|WaitForSubagentsTool|WebSearch|WebFetch>
      */
     public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null): array
     {
@@ -76,27 +86,78 @@ class ToolRegistry
 
         $knowledgeTools = $this->knowledgeTools($agent);
 
+        $skillTools = $agent->skills->isNotEmpty() ? [new UseSkillTool($agent)] : [];
+
         $memoryTools = [new RememberTool($agent, $run->triggered_by)];
 
         $session ??= $run->runnable instanceof AgentSession ? $run->runnable : null;
 
         $artifactTools = $session !== null
-            ? [new ExportArtifactTool($agent, $session, $run, $this->storeArtifact)]
+            ? [new ExportArtifactTool($agent, $session, $run, $this->storeArtifact, $this->documentRenderer)]
+            : [];
+
+        $skillEditingTools = $session !== null && $agent->allow_skill_editing
+            ? array_values(array_filter([
+                new CreateSkillTool($agent, $run->triggered_by),
+                $agent->skills->isNotEmpty() ? new UpdateSkillTool($agent, $run->triggered_by) : null,
+            ]))
             : [];
 
         $selfUpdateTools = $session !== null && $agent->allow_self_updates
             ? [new UpdateInstructionsTool($agent, $this->skillInjector, $run->triggered_by, $session)]
             : [];
 
+        $subagentTools = $session !== null ? $this->subagentTools($agent, $session) : [];
+
         return [
             ...$nodeTools->values()->all(),
             ...$workflowTools->values()->all(),
             ...$knowledgeTools,
+            ...$skillTools,
+            ...$skillEditingTools,
             ...$memoryTools,
             ...$artifactTools,
             ...$selfUpdateTools,
+            ...$subagentTools,
             ...$this->webTools($agent),
         ];
+    }
+
+    /**
+     * `InvokeAgentTool` with only the targets that are safe from this point
+     * in a delegation chain: "Me" unless this conversation is already a
+     * clone, attached subagents not already in the chain, and nothing once
+     * the chain is `InvokeAgentTool::MAX_DEPTH` deep.
+     *
+     * @return array<int, InvokeAgentTool|WaitForSubagentsTool>
+     */
+    private function subagentTools(Agent $agent, AgentSession $session): array
+    {
+        $chain = [];
+        for ($current = $session; $current !== null && count($chain) <= InvokeAgentTool::MAX_DEPTH; $current = $current->parentSession) {
+            $chain[] = $current;
+        }
+
+        if (count($chain) > InvokeAgentTool::MAX_DEPTH) {
+            return [];
+        }
+
+        $isClone = $session->parentSession?->agent_id === $session->agent_id;
+        $agentsInChain = collect($chain)->pluck('agent_id')->all();
+
+        $targets = [];
+
+        if ($agent->allow_self_clone && ! $isClone) {
+            $targets[InvokeAgentTool::SELF] = $agent;
+        }
+
+        foreach ($agent->subagents as $subagent) {
+            if (! in_array($subagent->id, $agentsInChain, true)) {
+                $targets[$subagent->name] = $subagent;
+            }
+        }
+
+        return $targets === [] ? [] : [new InvokeAgentTool($session, $targets), new WaitForSubagentsTool($session)];
     }
 
     /**

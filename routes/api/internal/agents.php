@@ -14,12 +14,14 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionEvaluationController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionStreamController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSkillController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentSubagentController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentToolBindingController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentVersionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentWorkflowToolController;
 use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionRunController;
 use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionSettingsController;
+use App\Http\Controllers\Api\Internal\V1\Agents\SubagentTaskController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\TagController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +52,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::patch('{agent}/sessions/{session}', [AgentSessionController::class, 'update'])->name('sessions.update');
         Route::delete('{agent}/sessions/{session}', [AgentSessionController::class, 'destroy'])->name('sessions.destroy');
         Route::get('{agent}/sessions/{session}/messages', [AgentSessionController::class, 'messages'])->name('sessions.messages.index');
+        Route::get('{agent}/sessions/{session}/subagent-tasks', [SubagentTaskController::class, 'index'])->name('sessions.subagent-tasks.index');
         Route::post('{agent}/sessions/{session}/messages', [AgentSessionController::class, 'sendMessage'])->name('sessions.messages.store');
 
         // The same turn as above, delivered as server-sent events — see
@@ -67,6 +70,10 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{agent}/skills', [AgentSkillController::class, 'index'])->name('skills.index');
         Route::post('{agent}/skills/{skill}', [AgentSkillController::class, 'store'])->name('skills.store');
         Route::delete('{agent}/skills/{skill}', [AgentSkillController::class, 'destroy'])->name('skills.destroy');
+
+        Route::get('{agent}/subagents', [AgentSubagentController::class, 'index'])->name('subagents.index');
+        Route::post('{agent}/subagents/{subagent}', [AgentSubagentController::class, 'store'])->name('subagents.store');
+        Route::delete('{agent}/subagents/{subagent}', [AgentSubagentController::class, 'destroy'])->name('subagents.destroy');
 
         Route::get('{agent}/knowledge', [AgentKnowledgeController::class, 'index'])->name('knowledge.index');
         Route::post('{agent}/knowledge', [AgentKnowledgeController::class, 'store'])->name('knowledge.store');

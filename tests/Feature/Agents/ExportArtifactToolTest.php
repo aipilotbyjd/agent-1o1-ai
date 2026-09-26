@@ -147,3 +147,44 @@ it('returns an error when required fields are missing', function () {
     expect($result['error'])->not->toBeNull();
     expect(Artifact::count())->toBe(0);
 });
+
+it('builds a real PDF when asked for format pdf, whatever filename and type the model gave', function () {
+    Storage::fake('local');
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
+    $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
+    $result = json_decode($tool->handle(new Request([
+        'filename' => 'action-items.md',
+        'mime_type' => 'text/markdown',
+        'content' => "# Action items\n\n- Ravi: Q4 budget",
+        'format' => 'pdf',
+    ])), true);
+
+    $artifact = Artifact::sole();
+    expect($result['filename'])->toBe('action-items.pdf');
+    expect($artifact->mime_type)->toBe('application/pdf');
+    expect(Storage::disk('local')->get($artifact->path))->toStartWith('%PDF-');
+});
+
+it('rejects a format it cannot build', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
+    $run = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+
+    $tool = new ExportArtifactTool($agent, $session, $run, app(StoreArtifactAction::class));
+    $result = json_decode($tool->handle(new Request([
+        'filename' => 'deck',
+        'mime_type' => 'x',
+        'content' => 'slides',
+        'format' => 'pptx',
+    ])), true);
+
+    expect($result['error'])->toBe('format must be one of: pdf, xlsx, docx.');
+    expect(Artifact::count())->toBe(0);
+});

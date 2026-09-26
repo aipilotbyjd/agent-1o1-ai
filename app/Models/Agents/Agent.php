@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * (not `AgentModel`) per project convention; registered in
  * `AppServiceProvider::configureMorphMap()` as `TriggerTargetType::Agent`.
  */
-#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'icon', 'color', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'allow_self_updates', 'created_by'])]
+#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'icon', 'color', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'allow_self_updates', 'allow_skill_editing', 'allow_self_clone', 'created_by'])]
 class Agent extends Model
 {
     /** @use HasFactory<AgentFactory> */
@@ -45,6 +45,8 @@ class Agent extends Model
     protected $attributes = [
         'provider' => 'anthropic',
         'allow_self_updates' => false,
+        'allow_skill_editing' => true,
+        'allow_self_clone' => true,
     ];
 
     /**
@@ -56,6 +58,8 @@ class Agent extends Model
             'temperature' => 'decimal:2',
             'settings' => 'array',
             'allow_self_updates' => 'boolean',
+            'allow_skill_editing' => 'boolean',
+            'allow_self_clone' => 'boolean',
         ];
     }
 
@@ -129,6 +133,14 @@ class Agent extends Model
      * Reusable instruction snippets injected into the system prompt
      * alongside `instructions()` — see `Services\Agents\SkillInjector`.
      */
+    /**
+     * Other agents this one may hand work to through `InvokeAgentTool`.
+     */
+    public function subagents(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'agent_subagents', 'agent_id', 'subagent_id')->withTimestamps();
+    }
+
     public function skills(): BelongsToMany
     {
         return $this->belongsToMany(Skill::class, 'agent_skill')->withTimestamps();

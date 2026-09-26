@@ -112,6 +112,9 @@ class AgentRunner
             'workspace_id' => $session->workspace_id,
             'trigger_type' => $triggerType,
             'input' => ['message' => $message],
+            // Whose turn this is: tools act on this person's behalf (memories,
+            // skill permissions, personal connector credentials).
+            'triggered_by' => $session->user_id,
         ]);
 
         $run->forceFill(['status' => RunStatus::Running, 'started_at' => now()])->save();

@@ -34,7 +34,7 @@ it('tells a self-updating agent it may rewrite its instructions', function () {
         ->not->toContain('You cannot change your own instructions');
 });
 
-it('appends attached skills and active knowledge, but skips inactive knowledge', function () {
+it('lists attached skills without their instructions, and appends active knowledge but not inactive', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $agent = Agent::factory()->forWorkspace($workspace)->create(['instructions' => 'Be helpful.']);
@@ -42,6 +42,7 @@ it('appends attached skills and active knowledge, but skips inactive knowledge',
     $skill = $agent->workspace->skills()->create([
         'name' => 'Refund Policy',
         'slug' => 'refund-policy',
+        'description' => 'How to handle refund requests.',
         'instructions' => 'Offer store credit before a cash refund.',
     ]);
     $agent->skills()->attach($skill->id);
@@ -52,8 +53,10 @@ it('appends attached skills and active knowledge, but skips inactive knowledge',
     $instructions = app(SkillInjector::class)->instructionsFor($agent);
 
     expect($instructions)->toContain('Be helpful.');
-    expect($instructions)->toContain('## Skill: Refund Policy');
-    expect($instructions)->toContain('Offer store credit before a cash refund.');
+    expect($instructions)->toContain('## Skills');
+    expect($instructions)->toContain('call `use_skill`');
+    expect($instructions)->toContain('- Refund Policy: How to handle refund requests.');
+    expect($instructions)->not->toContain('Offer store credit before a cash refund.');
     expect($instructions)->toContain('## Knowledge: Hours');
     expect($instructions)->toContain('We are open 9-5.');
     expect($instructions)->not->toContain('Hidden');

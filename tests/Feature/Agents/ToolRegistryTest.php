@@ -57,7 +57,7 @@ it('silently skips a binding whose node type is no longer registered', function 
 it('attaches ExportArtifactTool only for a session-backed run', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $agent = Agent::factory()->forWorkspace($workspace)->create(['provider' => 'mistral']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['provider' => 'mistral', 'allow_skill_editing' => false, 'allow_self_clone' => false]);
     $session = $agent->sessions()->create(['workspace_id' => $workspace->id, 'user_id' => $owner->id]);
     $sessionRun = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
 

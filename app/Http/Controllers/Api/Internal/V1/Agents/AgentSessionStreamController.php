@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
+use App\Ai\Tools\InvokeAgentTool;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\SendAgentMessageRequest;
@@ -68,10 +69,14 @@ class AgentSessionStreamController extends Controller
                         'name' => $event->toolCall->name,
                         'arguments' => $event->toolCall->arguments,
                     ]),
-                    $event instanceof ToolResult => new StreamedEvent('tool-result', [
+                    $event instanceof ToolResult => new StreamedEvent('tool-result', array_filter([
                         'id' => $event->toolResult->id,
                         'name' => $event->toolResult->name,
-                    ]),
+                        // A started subagent's task id, so the chat can track it live.
+                        'result' => $event->toolResult->name === InvokeAgentTool::NAME
+                            ? json_decode((string) $event->toolResult->result, true)
+                            : null,
+                    ], fn ($value) => $value !== null)),
                     default => null,
                 };
 

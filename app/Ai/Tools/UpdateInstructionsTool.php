@@ -47,7 +47,7 @@ class UpdateInstructionsTool implements Tool
         return 'Permanently updates your own base instructions. Use it only when the user corrects you or tells you a rule, '
             .'preference or fact that should apply to all future conversations, not for one-off requests. '
             .'Pass the COMPLETE revised base instructions: they replace the current ones, so keep everything that still applies. '
-            .'Do not include "## Skill:", "## Knowledge:" or memory sections; those are managed separately. '
+            .'Do not include "## Skills", "## Knowledge:" or memory sections; those are managed separately. '
             ."Your current base instructions are:\n\n".($this->liveAgent()->instructions ?? '(none yet)');
     }
 

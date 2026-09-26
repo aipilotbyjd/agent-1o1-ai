@@ -32,6 +32,8 @@ class StoreAgentRequest extends FormRequest
             'temperature' => ['nullable', 'numeric', 'between:0,1'],
             'settings' => ['nullable', 'array'],
             'allow_self_updates' => ['sometimes', 'boolean'],
+            'allow_skill_editing' => ['sometimes', 'boolean'],
+            'allow_self_clone' => ['sometimes', 'boolean'],
         ];
     }
 }

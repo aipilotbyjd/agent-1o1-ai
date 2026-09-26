@@ -133,6 +133,21 @@ it('saves and returns an agent\'s icon, color and self-update setting', function
         ->assertJsonPath('data.agent.allow_self_updates', true);
 });
 
+it('turns an agent\'s skill editing off and back on', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}")
+        ->assertJsonPath('data.agent.allow_skill_editing', true);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}", ['allow_skill_editing' => false])
+        ->assertOk()
+        ->assertJsonPath('data.agent.allow_skill_editing', false);
+});
+
 it('rejects an icon or color the frontend cannot render', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
@@ -184,6 +199,20 @@ it('lists agents with their tags, chat count and last use', function () {
     expect($agents[$busy->id]['last_used_at'])->not->toBeNull();
     expect($agents[$idle->id]['sessions_count'])->toBe(0);
     expect($agents[$idle->id]['last_used_at'])->toBeNull();
+});
+
+it('returns an agent\'s tags when reading it', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $agent->tags()->attach(Tag::factory()->forWorkspace($workspace)->create(['name' => 'Sales'])->id);
+
+    Passport::actingAs($owner);
+
+    $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}");
+
+    $response->assertOk();
+    expect($response->json('data.agent.tags.*.name'))->toBe(['Sales']);
 });
 
 it('lists an agent\'s chats with their message counts', function () {

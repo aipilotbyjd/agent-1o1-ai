@@ -59,11 +59,13 @@ it('shows the model its live base instructions, not the pinned snapshot', functi
 
 it('strips attached skills a model copies back into its instructions', function () {
     $agent = selfUpdatingAgent();
-    $skill = Skill::factory()->create(['workspace_id' => $agent->workspace_id, 'name' => 'Tone', 'instructions' => 'Be concise.']);
+    $skill = Skill::factory()->create(['workspace_id' => $agent->workspace_id, 'name' => 'Tone', 'description' => 'Keep replies short.']);
     $agent->skills()->attach($skill->id);
+    $skillsSection = collect(app(SkillInjector::class)->injectedSections($agent->fresh()))
+        ->first(fn (string $section): bool => str_starts_with($section, '## Skills'));
 
-    (new UpdateInstructionsTool($agent, app(SkillInjector::class)))->handle(new Request([
-        'instructions' => "You help customers.\n\n## Skill: Tone\nBe concise.\n\nAlways answer in Spanish.",
+    (new UpdateInstructionsTool($agent->fresh(), app(SkillInjector::class)))->handle(new Request([
+        'instructions' => "You help customers.\n\n{$skillsSection}\n\nAlways answer in Spanish.",
     ]));
 
     expect($agent->fresh()->instructions)->toBe("You help customers.\n\nAlways answer in Spanish.");

@@ -34,6 +34,8 @@ class AgentResource extends JsonResource
             'temperature' => $this->temperature,
             'settings' => $this->settings,
             'allow_self_updates' => $this->allow_self_updates,
+            'allow_skill_editing' => $this->allow_skill_editing,
+            'allow_self_clone' => $this->allow_self_clone,
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'sessions_count' => $this->whenCounted('sessions'),
             'last_used_at' => $this->whenAggregated('sessions', 'last_activity_at', 'max'),

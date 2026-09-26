@@ -35,6 +35,7 @@ it('sends a message with no tools and completes a run', function () {
     expect($run->status)->toBe(RunStatus::Completed);
     expect($run->output['text'])->toBe('Hello there!');
     expect($run->output['message_id'])->toBe($reply->id);
+    expect($run->triggered_by)->toBe($owner->id);
 });
 
 it('excludes the just-sent user message from the prior-turn context', function () {
