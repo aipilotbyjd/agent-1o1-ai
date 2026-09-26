@@ -11,6 +11,7 @@ use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
+use App\Models\Agents\ReflectionRun;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use App\Services\Billing\CreditMeter;
@@ -74,7 +75,29 @@ class RecordRunCreditUsage implements ShouldQueue
 
         if ($run->runnable instanceof AgentSessionEvaluation) {
             $this->chargeForSessionEvaluation($run->runnable);
+
+            return;
         }
+
+        if ($run->runnable instanceof ReflectionRun) {
+            $this->chargeForReflectionRun($run->runnable);
+        }
+    }
+
+    private function chargeForReflectionRun(ReflectionRun $reflectionRun): void
+    {
+        if ($reflectionRun->usage === null) {
+            return;
+        }
+
+        $this->deductCredits->execute(
+            $reflectionRun->workspace,
+            CreditTransactionType::Reflection,
+            $reflectionRun->id,
+            $this->meter->costForReflectionRun($reflectionRun),
+            'Agent reflection',
+            allowOverdraft: true,
+        );
     }
 
     /**

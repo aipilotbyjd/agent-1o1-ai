@@ -72,7 +72,7 @@ class AgentVersioner
         $snapshot = $version->snapshot;
 
         $agent->forceFill([
-            'instructions' => $snapshot['instructions'] ?? $agent->instructions,
+            'instructions' => array_key_exists('instructions', $snapshot) ? $snapshot['instructions'] : $agent->instructions,
             'provider' => $snapshot['provider'] ?? $agent->provider,
             'model' => $snapshot['model'] ?? null,
             'temperature' => $snapshot['temperature'] ?? null,

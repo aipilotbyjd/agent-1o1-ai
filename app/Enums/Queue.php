@@ -15,6 +15,7 @@ enum Queue: string
     case WorkflowDispatch = 'workflows-dispatch';
     case WorkflowExecute = 'workflows-execute';
     case AiAgent = 'ai-agent';
+    case AiSubagent = 'ai-subagent';
     case TriggersPoll = 'triggers-poll';
     case TriggersEvent = 'triggers-event';
     case Billing = 'billing-webhook';

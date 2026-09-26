@@ -2,6 +2,7 @@
 
 namespace App\Services\Ai;
 
+use App\Models\Agents\Agent;
 use App\Models\Ai\ModelCatalog;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
@@ -18,6 +19,48 @@ use RuntimeException;
 class ModelCatalogResolver
 {
     private const int CACHE_TTL_SECONDS = 300;
+
+    /**
+     * The provider/model to prompt `$agent` with: its `provider`/`model`
+     * columns, or its catalog entry's failover chain (which carries its own
+     * model ids, so `model` is null). Anything prompting on an agent's behalf
+     * should use this rather than reading those columns directly.
+     *
+     * @return array{0: string|array<string, string>, 1: ?string}
+     */
+    public function forAgent(Agent $agent): array
+    {
+        if ($agent->model_catalog_id === null) {
+            return [$agent->provider, $agent->model];
+        }
+
+        return [$this->providerChain($agent->modelCatalog->slug), null];
+    }
+
+    /**
+     * The provider/model to grade `$agent`'s output with. `$judgeModel` (the
+     * agent's evaluation settings `model`) is a deliberate override — grade
+     * with a specific model rather than the one that wrote the answer — and
+     * always wins. Otherwise it's the agent's own `forAgent()` model: the one
+     * model it's guaranteed to have access to.
+     *
+     * @return array{0: string|array<string, string>, 1: ?string}
+     */
+    public function forJudging(Agent $agent, ?string $judgeModel): array
+    {
+        return $judgeModel !== null ? [$agent->provider, $judgeModel] : $this->forAgent($agent);
+    }
+
+    /**
+     * Whether `$provider` can actually serve requests here: it's defined in
+     * `config/ai.php` and has an API key (Ollama runs locally without one).
+     */
+    public static function providerIsConfigured(string $provider): bool
+    {
+        $config = config("ai.providers.{$provider}");
+
+        return is_array($config) && (filled($config['key'] ?? null) || ($config['driver'] ?? null) === 'ollama');
+    }
 
     /**
      * @return array<string, string> provider (a `Lab` value or custom

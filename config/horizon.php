@@ -304,9 +304,29 @@ return [
             'timeout' => 320,
             'nice' => 0,
         ],
+        // Subagents started by `InvokeAgentTool`. Separate from `ai-agent` so a
+        // parent waiting on its subagents never occupies the workers they need
+        // (subagents can't start subagents, so nothing here waits on this
+        // queue), and sized for parallel work — `InvokeAgentTool::MAX_CONCURRENT`
+        // caps how many one conversation can start.
+        'supervisor-ai-subagent' => [
+            'connection' => 'redis',
+            'queue' => ['ai-subagent'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 320,
+            'nice' => 0,
+        ],
         // RecordRunCreditUsage — money-adjacent, so it runs on its own
-        // supervisor with an elevated OS priority (`nice`) rather than queuing
-        // behind workflow load (docs/STRUCTURE.md's "Queues & Horizon" table).
+        // supervisor rather than queuing behind workflow load
+        // (docs/STRUCTURE.md's "Queues & Horizon" table). Raising its OS
+        // priority with a negative `nice` needs Horizon to run as root, so
+        // it's opt-in via HORIZON_BILLING_NICE.
         // `tries` is left to the listener's own $tries/$backoff, which retry a
         // failed charge without double-billing (charges are idempotent per
         // node run).
@@ -321,7 +341,7 @@ return [
             'memory' => 128,
             'tries' => 1,
             'timeout' => 60,
-            'nice' => -5,
+            'nice' => (int) env('HORIZON_BILLING_NICE', 0),
         ],
     ],
 
@@ -357,6 +377,9 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-ai-subagent' => [
+                'maxProcesses' => 10,
+            ],
             'supervisor-billing' => [
                 'maxProcesses' => 3,
                 'balanceMaxShift' => 1,
@@ -382,6 +405,9 @@ return [
             ],
             'supervisor-ai-agent' => [
                 'maxProcesses' => 1,
+            ],
+            'supervisor-ai-subagent' => [
+                'maxProcesses' => 5,
             ],
             'supervisor-billing' => [
                 'maxProcesses' => 1,

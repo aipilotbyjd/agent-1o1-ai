@@ -28,5 +28,6 @@ class DatabaseSeeder extends Seeder
         $this->call(AppNodeCategorySeeder::class);
         $this->call(ConnectorSeeder::class);
         $this->call(ModelCatalogSeeder::class);
+        $this->call(AgentTemplateSeeder::class);
     }
 }

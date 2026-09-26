@@ -97,6 +97,10 @@ class ModelCatalogSeeder extends Seeder
             ['execution_provider' => 'mistral', 'execution_model_id' => 'mistral-medium-3.5', 'priority' => 0, 'is_enabled' => true],
         ]);
 
+        $this->seed('mistral-small-4', 'Mistral Small 4', 'mistral', ['context_window' => 256000, 'vision' => true, 'tool_use' => true], [
+            ['execution_provider' => 'xkiro', 'execution_model_id' => 'mistralai/mistral-small-2603', 'priority' => 0, 'is_enabled' => true],
+        ]);
+
         // --- DeepSeek (has its own direct API, plus aggregator routes) -----
         $this->seed('deepseek-v4-pro', 'DeepSeek V4 Pro', 'deepseek', ['context_window' => 1040000, 'vision' => false, 'tool_use' => true], [
             ['execution_provider' => 'deepseek', 'execution_model_id' => 'deepseek-v4-pro', 'priority' => 0, 'is_enabled' => true],

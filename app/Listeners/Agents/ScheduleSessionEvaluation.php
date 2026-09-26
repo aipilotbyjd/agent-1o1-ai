@@ -34,7 +34,9 @@ class ScheduleSessionEvaluation implements ShouldQueue
     {
         $run = $event->run->loadMissing('runnable');
 
-        if (! $run->runnable instanceof AgentSession) {
+        // A subagent's conversation is part of its parent's work, not a chat
+        // with a person; grading each one would bill a judge call per clone.
+        if (! $run->runnable instanceof AgentSession || $run->runnable->parent_session_id !== null) {
             return;
         }
 

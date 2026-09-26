@@ -12,9 +12,14 @@ use App\Http\Requests\Api\Internal\V1\Runs\RetryRunRequest;
 use App\Http\Requests\Api\Internal\V1\Runs\StartRunRequest;
 use App\Http\Resources\Api\Internal\V1\Runs\RunResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\Agents\AgentEvalRun;
+use App\Models\Agents\AgentSession;
+use App\Models\Agents\AgentSessionEvaluation;
+use App\Models\Agents\ReflectionRun;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use Illuminate\Database\Eloquent\Builder;
 
 class RunController extends Controller
 {
@@ -31,6 +36,7 @@ class RunController extends Controller
         $runs = $workspace->runs()
             ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->validated('workflow_id'), fn ($query, $workflowId) => $query->where('workflow_id', $workflowId))
+            ->when($request->validated('agent_id'), fn ($query, $agentId) => $this->forAgent($query, $agentId))
             ->when($request->validated('trigger_type'), fn ($query, $type) => $query->where('trigger_type', $type))
             ->when($request->validated('exclude_trigger_type'), fn ($query, $type) => $query->where('trigger_type', '!=', $type))
             ->with('nodeRuns.creditTransaction')
@@ -39,6 +45,23 @@ class RunController extends Controller
             ->withQueryString();
 
         return ApiResponse::paginated(RunResource::collection($runs));
+    }
+
+    /**
+     * Everything run on an agent's behalf: its chat turns, reflections, chat
+     * grading and eval suites. None of these point at the agent directly —
+     * each run belongs to the chat, review or suite — so it's matched through
+     * that runnable.
+     */
+    private function forAgent(Builder $query, string $agentId): Builder
+    {
+        return $query->whereHasMorph(
+            'runnable',
+            [AgentSession::class, ReflectionRun::class, AgentSessionEvaluation::class, AgentEvalRun::class],
+            fn (Builder $runnable, string $type) => $type === AgentEvalRun::class
+                ? $runnable->whereHas('suite', fn (Builder $suite) => $suite->where('agent_id', $agentId))
+                : $runnable->where('agent_id', $agentId),
+        );
     }
 
     public function show(Workspace $workspace, Run $run)

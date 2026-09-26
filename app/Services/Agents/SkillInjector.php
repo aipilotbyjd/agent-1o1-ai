@@ -2,11 +2,17 @@
 
 namespace App\Services\Agents;
 
+use App\Ai\Tools\CreateSkillTool;
+use App\Ai\Tools\UpdateSkillTool;
+use App\Ai\Tools\UseSkillTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentMemory;
+use App\Models\Agents\Skill;
 
 /**
- * Composes an `Agent`'s base `instructions` with its attached `Skill`s,
+ * Composes an `Agent`'s base `instructions` with a list of its attached
+ * `Skill`s (name and description only — the model loads a skill's full
+ * instructions on demand through `UseSkillTool`),
  * active `AgentKnowledge` entries, and remembered `AgentMemory` facts into
  * one final system-prompt string — see docs/AGENTS_PLAN.md's "Skills"
  * section ("no config binding, just injected as additional system-prompt
@@ -20,10 +26,24 @@ class SkillInjector
 {
     public function instructionsFor(Agent $agent, ?string $userId = null): string
     {
-        $sections = [$agent->instructions];
+        $sections = $this->injectedSections($agent, $userId);
 
-        foreach ($agent->skills as $skill) {
-            $sections[] = "## Skill: {$skill->name}\n{$skill->instructions}";
+        return implode("\n\n", array_filter([array_shift($sections), $agent->instructions, ...$sections], filled(...)));
+    }
+
+    /**
+     * Everything added to the base instructions, exactly as it appears in the
+     * final prompt — so `UpdateInstructionsTool` can strip any of it a model
+     * copies back into its own instructions.
+     *
+     * @return array<int, string>
+     */
+    public function injectedSections(Agent $agent, ?string $userId = null): array
+    {
+        $sections = [$this->aboutSection($agent)];
+
+        if ($skills = $this->skillsSection($agent)) {
+            $sections[] = $skills;
         }
 
         foreach ($agent->knowledge()->where('is_active', true)->orderBy('sort_order')->get() as $knowledge) {
@@ -36,7 +56,54 @@ class SkillInjector
             $sections[] = $memories;
         }
 
-        return implode("\n\n", $sections);
+        return $sections;
+    }
+
+    /**
+     * Who the agent is and how it should behave. Without it the model only
+     * sees the user-written instructions, which are often generic, and
+     * introduces itself as the underlying model instead of this agent.
+     */
+    private function aboutSection(Agent $agent): string
+    {
+        $lines = [
+            "# About you\nYou are \"{$agent->name}\", an AI agent built in LinkFlow.",
+        ];
+
+        if (filled($agent->description)) {
+            $lines[] = "Your purpose: {$agent->description}";
+        }
+
+        $lines[] = 'Today is '.now()->format('l, F j, Y').'.';
+        $lines[] = "When asked who you are, answer as {$agent->name}; never present yourself as the underlying language model or its provider.";
+        $lines[] = 'Act on the most likely intent of each request, and ask a clarifying question only when a wrong guess would be costly. '
+            .'When you have tools that can get real data or do the work, use them instead of guessing, and chain several calls when a task needs it.';
+        $lines[] = $agent->allow_self_updates
+            ? 'When the user corrects you or sets a rule that should apply from now on, update your own instructions.'
+            : 'You cannot change your own instructions. If the user wants a lasting change to how you behave, tell them to edit your instructions in this agent\'s settings, or to turn on self-updates there.';
+
+        if ($agent->allow_skill_editing) {
+            $lines[] = 'When the user teaches you a repeatable process, template or format, save it as a skill with `'.CreateSkillTool::NAME.'`. '
+                .'When they correct how you did something one of your skills covers, fix that skill with `'.UpdateSkillTool::NAME.'`.';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function skillsSection(Agent $agent): ?string
+    {
+        if ($agent->skills->isEmpty()) {
+            return null;
+        }
+
+        $list = $agent->skills
+            ->map(fn (Skill $skill): string => "- {$skill->name}: ".($skill->description ?: 'No description.'))
+            ->implode("\n");
+
+        return "## Skills\n"
+            .'Below are only the names and summaries of your skills; their actual instructions are not in this prompt. '
+            .'Before you answer, if any skill is relevant to the request, you must call `'.UseSkillTool::NAME.'` with its name and then follow the instructions it returns exactly. '
+            ."Never act on a skill from its summary alone.\n{$list}";
     }
 
     /**

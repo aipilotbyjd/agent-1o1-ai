@@ -3,12 +3,14 @@
 namespace App\Services\Agents;
 
 use App\Ai\Agents\SessionEvalJudgeAgent;
+use App\Ai\ResponseUsage;
+use App\Ai\Tools\SubmitEvaluationTool;
+use App\Ai\ToolSubmission;
 use App\Enums\Agents\SessionEvaluationGrade;
 use App\Enums\Agents\SessionEvaluationStatus;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
-use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentEvaluationSettings;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
@@ -17,7 +19,6 @@ use App\Notifications\Agents\SessionEvaluationNotifyNotification;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Notifications\NotificationDispatcher;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -69,7 +70,7 @@ class SessionEvaluator
         $run = $this->openRun($evaluation, $session);
 
         try {
-            $decoded = $this->judge($session, $settings);
+            [$decoded, $usage] = $this->judge($session, $settings);
 
             $criteriaResults = is_array($decoded['criteria_results'] ?? null) ? $decoded['criteria_results'] : [];
             $callSuccessful = (string) ($decoded['call_successful'] ?? 'unknown');
@@ -92,7 +93,7 @@ class SessionEvaluator
                 'criteria_results' => $criteriaResults,
                 'data_results' => is_array($decoded['data_results'] ?? null) ? $decoded['data_results'] : [],
                 'applied_tags' => is_array($decoded['tags'] ?? null) ? $decoded['tags'] : [],
-                'usage' => $decoded['_usage'] ?? null,
+                'usage' => $usage,
                 'evaluated_at' => now(),
             ])->save();
 
@@ -119,13 +120,13 @@ class SessionEvaluator
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>} the verdict and its usage
      */
     private function judge(AgentSession $session, AgentEvaluationSettings $settings): array
     {
         $agent = $session->agent;
         $transcript = $this->transcriptFor($session);
-        [$provider, $model] = $this->resolveProvider($agent, $settings);
+        [$provider, $model] = $this->modelCatalog->forJudging($agent, $settings->model);
 
         $startedAt = now();
 
@@ -135,53 +136,15 @@ class SessionEvaluator
             model: $model,
         );
 
-        $decoded = json_decode(trim($response->text), true);
-
-        if (! is_array($decoded)) {
-            throw new RuntimeException('Judge returned an unparseable response.');
-        }
-
-        // Priced like any other chat turn (see the class docblock), so
-        // `CreditMeter` needs the same extras `AgentRunner` captures: which
-        // model judged it, and how long the judge call ran.
-        $decoded['_usage'] = [
-            ...$response->usage->toArray(),
-            ...$response->meta->toArray(),
-            'tool_call_count' => $response->toolCalls->count(),
-            'duration_seconds' => $startedAt->diffInSeconds(now()),
+        return [
+            ToolSubmission::arguments($response, SubmitEvaluationTool::NAME),
+            ResponseUsage::from($response, $startedAt),
         ];
-
-        return $decoded;
-    }
-
-    /**
-     * The provider/model to judge `$agent`'s transcript with. `settings.model`
-     * is a deliberate, explicit override (grade with a specific model
-     * regardless of what generated the answer) and always wins. Otherwise
-     * this must match whatever `AgentRunner::resolveProvider()` used to
-     * generate the transcript being judged — reading `$agent->provider`/
-     * `$agent->model` directly here would silently ignore an agent's
-     * `model_catalog_id`, grading against stale columns the run itself
-     * never touched.
-     *
-     * @return array{0: string|array<string, string>, 1: ?string}
-     */
-    private function resolveProvider(AgentModel $agent, AgentEvaluationSettings $settings): array
-    {
-        if ($settings->model !== null) {
-            return [$agent->provider, $settings->model];
-        }
-
-        if ($agent->model_catalog_id === null) {
-            return [$agent->provider, $agent->model];
-        }
-
-        return [$this->modelCatalog->providerChain($agent->modelCatalog->slug), null];
     }
 
     private function transcriptFor(AgentSession $session): string
     {
-        return $session->messages
+        return $session->messages()->orderBy('created_at')->orderBy('id')->get()
             ->map(fn ($message): string => "{$message->role->value}: {$message->content}")
             ->implode("\n");
     }

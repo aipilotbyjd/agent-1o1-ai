@@ -5,6 +5,7 @@ namespace App\Services\Billing;
 use App\Models\Agents\AgentEvalCaseResult;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSessionEvaluation;
+use App\Models\Agents\ReflectionRun;
 use App\Models\Runs\NodeRun;
 
 /**
@@ -83,6 +84,19 @@ class CreditMeter
     public function costForSessionEvaluation(AgentSessionEvaluation $evaluation): int
     {
         return $this->costForChatTurn($evaluation->usage);
+    }
+
+    public function costForReflectionRun(ReflectionRun $reflectionRun): int
+    {
+        return $this->costForChatTurn($reflectionRun->usage);
+    }
+
+    /**
+     * @param  array<string, mixed>  $usage
+     */
+    public function costForAgentDraft(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
     }
 
     /**

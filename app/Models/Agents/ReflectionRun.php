@@ -42,6 +42,7 @@ class ReflectionRun extends Model
         return [
             'status' => ReflectionRunStatus::class,
             'sessions_analyzed_count' => 'integer',
+            'usage' => 'array',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];

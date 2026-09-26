@@ -33,11 +33,17 @@ class DuplicateAgentAction
                 'name' => $name ?? "{$agent->name} (copy)",
                 'slug' => Str::slug($name ?? $agent->name).'-'.Str::random(6),
                 'description' => $agent->description,
+                'icon' => $agent->icon,
+                'color' => $agent->color,
                 'instructions' => $agent->instructions,
                 'provider' => $agent->provider,
                 'model' => $agent->model,
+                'model_catalog_id' => $agent->model_catalog_id,
                 'temperature' => $agent->temperature,
                 'settings' => $agent->settings,
+                'allow_self_updates' => $agent->allow_self_updates,
+                'allow_skill_editing' => $agent->allow_skill_editing,
+                'allow_self_clone' => $agent->allow_self_clone,
                 'created_by' => $creator?->id,
             ]);
 
@@ -50,6 +56,7 @@ class DuplicateAgentAction
             }
 
             $copy->skills()->sync($agent->skills->pluck('id'));
+            $copy->subagents()->sync($agent->subagents->pluck('id'));
             $copy->workflows()->sync($agent->workflows->pluck('id'));
 
             foreach ($agent->knowledge as $entry) {

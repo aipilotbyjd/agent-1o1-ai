@@ -98,7 +98,7 @@ class AgentSession extends Model
         }
 
         return (clone $agent)->forceFill([
-            'instructions' => $snapshot['instructions'] ?? $agent->instructions,
+            'instructions' => array_key_exists('instructions', $snapshot) ? $snapshot['instructions'] : $agent->instructions,
             'provider' => $snapshot['provider'] ?? $agent->provider,
             'model' => $snapshot['model'] ?? null,
             'temperature' => $snapshot['temperature'] ?? null,
@@ -109,6 +109,22 @@ class AgentSession extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The conversation that handed this one its task, when a subagent runs it.
+     */
+    public function parentSession(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_session_id');
+    }
+
+    /**
+     * Subagents this conversation started — see `InvokeAgentTool`.
+     */
+    public function subagentTasks(): HasMany
+    {
+        return $this->hasMany(SubagentTask::class, 'parent_session_id');
     }
 
     public function messages(): HasMany

@@ -18,6 +18,7 @@ class ModelCatalogController extends Controller
     public function index()
     {
         $catalog = ModelCatalog::query()
+            ->with(['routes' => fn ($query) => $query->where('is_enabled', true)])
             ->where('is_active', true)
             ->where('is_internal', false)
             ->orderBy('sort_order')

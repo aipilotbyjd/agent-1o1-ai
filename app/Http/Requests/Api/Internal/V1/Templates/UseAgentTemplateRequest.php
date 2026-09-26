@@ -18,6 +18,7 @@ class UseAgentTemplateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id'],
         ];
     }
 }
