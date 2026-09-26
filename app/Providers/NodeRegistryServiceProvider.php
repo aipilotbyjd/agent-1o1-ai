@@ -14,6 +14,7 @@ use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubGetRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubListCommitsNode;
 use App\Nodes\Integrations\GitHub\GitHubListIssuesNode;
@@ -109,6 +110,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'gmail_list_labels' => GmailListLabelsNode::class,
             'github_get_repo' => GitHubGetRepoNode::class,
             'github_list_repos' => GitHubListReposNode::class,
+            'github_create_repo' => GitHubCreateRepoNode::class,
             'github_list_issues' => GitHubListIssuesNode::class,
             'github_create_issue' => GitHubCreateIssueNode::class,
             'github_create_comment' => GitHubCreateCommentNode::class,

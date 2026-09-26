@@ -72,6 +72,9 @@ it('exchanges the callback code for tokens and stores a connector credential', f
     ]));
 
     $response->assertCreated();
+    Http::assertSent(fn ($request) => $request->hasHeader('Accept', 'application/json')
+        && $request->hasHeader('Content-Type', 'application/x-www-form-urlencoded')
+        && $request['code'] === 'auth-code-123');
     expect($response->json('data.connector_credential'))->not->toHaveKey('data');
 
     $credential = ConnectorCredential::query()->where('workspace_id', $workspace->id)->firstOrFail();
@@ -98,3 +101,34 @@ it('rejects storing a manual credential for an oauth-only connector at the schem
     expect($connector->auth_type)->toBe(ConnectorAuthType::OAuth2);
     expect($connector->isOAuth())->toBeTrue();
 });
+
+it('rejects invalid token responses without saving a credential', function (mixed $body) {
+    [$workspace, $owner] = ownerWorkspaceForOAuth();
+    $connector = Connector::factory()->oauth()->create(['key' => 'github']);
+    config(['services.github.client_id' => 'client-123', 'services.github.client_secret' => 'secret-123']);
+    Http::fake([$connector->oauth['token_url'] => Http::response($body)]);
+
+    $state = OAuthConnectorState::create([
+        'workspace_id' => $workspace->id,
+        'user_id' => $owner->id,
+        'connector_id' => $connector->id,
+        'state' => 'invalid-token-state',
+        'name' => 'My GitHub',
+        'redirect_uri' => 'https://app.test/callback',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->getJson('/api/oauth/connectors/callback?'.http_build_query([
+        'state' => $state->state,
+        'code' => 'auth-code',
+    ]))->assertUnprocessable();
+
+    expect(ConnectorCredential::where('workspace_id', $workspace->id)->exists())->toBeFalse();
+})->with([
+    'provider error' => [['error' => 'bad_verification_code']],
+    'missing token' => [['token_type' => 'bearer']],
+    'empty token' => [['access_token' => '']],
+    'whitespace token' => [['access_token' => '  ']],
+    'non-string token' => [['access_token' => 123]],
+    'non-json response' => ['access_token=example'],
+]);
