@@ -2,6 +2,7 @@
 
 namespace App\Nodes\FlowLogic;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
@@ -13,7 +14,7 @@ use Illuminate\Support\Arr;
  * `GraphAdvancer` routes the non-matching branch to `skipped` via the edge
  * whose `condition` doesn't match this node's `result`.
  */
-class FilterNode implements NodeContract
+class FilterNode implements HasIcon, NodeContract
 {
     private const array OPERATORS = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
 
@@ -30,6 +31,11 @@ class FilterNode implements NodeContract
     public function name(): string
     {
         return 'Filter';
+    }
+
+    public function icon(): string
+    {
+        return 'filter';
     }
 
     public function description(): string

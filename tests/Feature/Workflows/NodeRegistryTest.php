@@ -1,6 +1,7 @@
 <?php
 
 use App\Contracts\NodeContract;
+use App\Models\Nodes\NodeCategory;
 use App\Nodes\AiAutomation\AskAiNode;
 use App\Nodes\DataTransform\CallApiNode;
 use App\Nodes\DataTransform\RunCodeNode;
@@ -39,3 +40,16 @@ it('throws for an unregistered node type', function () {
 it('throws for a custom node type since the executor is not built yet', function () {
     app(NodeRegistry::class)->resolve('custom:1');
 })->throws(InvalidArgumentException::class);
+
+it('gives core nodes their own icon and app nodes their category icon', function () {
+    NodeCategory::factory()->create(['slug' => 'data-transform', 'icon' => 'shuffle']);
+    NodeCategory::factory()->create(['slug' => 'flow-logic', 'icon' => 'git-branch']);
+    NodeCategory::factory()->create(['slug' => 'github', 'icon' => 'github']);
+
+    $icons = collect(app(NodeRegistry::class)->catalog())->pluck('icon', 'type');
+
+    expect($icons['call_api'])->toBe('api')
+        ->and($icons['run_code'])->toBe('source-code')
+        ->and($icons['loop'])->toBe('repeat')
+        ->and($icons['github_list_repos'])->toBe('github');
+});

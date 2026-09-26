@@ -2,6 +2,7 @@
 
 namespace App\Services\Workflows;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Nodes\NodeCategory;
@@ -112,7 +113,7 @@ class NodeRegistry
                     'name' => $node->name(),
                     'description' => $node->description(),
                     'config_schema' => $node->configSchema(),
-                    'icon' => $category?->icon,
+                    'icon' => $node instanceof HasIcon ? $node->icon() : $category?->icon,
                     'color' => $category?->color,
                     'requires_connector' => $this->usesConnectorCredential($class),
                 ];
@@ -144,6 +145,7 @@ class NodeRegistry
         $nodes = [
             [
                 'type' => FlowControlNodeType::Loop->value,
+                'icon' => 'repeat',
                 'name' => 'Loop',
                 'description' => 'Runs a child workflow once per item in a list, up to a concurrency limit.',
                 'config_schema' => [
@@ -159,12 +161,14 @@ class NodeRegistry
             ],
             [
                 'type' => FlowControlNodeType::JoinPaths->value,
+                'icon' => 'git-merge',
                 'name' => 'Join Paths',
                 'description' => 'Waits for every incoming branch to reach it before continuing.',
                 'config_schema' => ['type' => 'object', 'properties' => []],
             ],
             [
                 'type' => FlowControlNodeType::Wait->value,
+                'icon' => 'hourglass',
                 'name' => 'Wait',
                 'description' => 'Pauses the run until an external callback resumes it, or until it times out.',
                 'config_schema' => [
@@ -177,12 +181,14 @@ class NodeRegistry
             ],
             [
                 'type' => FlowControlNodeType::HumanApproval->value,
+                'icon' => 'user-check-01',
                 'name' => 'Human Approval',
                 'description' => 'Pauses the run until a workspace member approves or rejects it.',
                 'config_schema' => ['type' => 'object', 'properties' => []],
             ],
             [
                 'type' => FlowControlNodeType::SubWorkflow->value,
+                'icon' => 'workflow-square-02',
                 'name' => 'Sub-Workflow',
                 'description' => 'Runs another workflow as a child run and waits for it to complete.',
                 'config_schema' => [
@@ -199,7 +205,6 @@ class NodeRegistry
         return array_map(fn (array $node): array => [
             ...$node,
             'category' => 'flow-logic',
-            'icon' => $flowLogic?->icon,
             'color' => $flowLogic?->color,
             'requires_connector' => false,
         ], $nodes);

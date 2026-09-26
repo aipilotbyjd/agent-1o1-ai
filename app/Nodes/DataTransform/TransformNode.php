@@ -2,6 +2,7 @@
 
 namespace App\Nodes\DataTransform;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
@@ -13,7 +14,7 @@ use Illuminate\Support\Arr;
  * (`{{ node.output }}` expressions) lands in Stage 5, see
  * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md.
  */
-class TransformNode implements NodeContract
+class TransformNode implements HasIcon, NodeContract
 {
     public function type(): string
     {
@@ -28,6 +29,11 @@ class TransformNode implements NodeContract
     public function name(): string
     {
         return 'Transform';
+    }
+
+    public function icon(): string
+    {
+        return 'arrow-data-transfer-horizontal';
     }
 
     public function description(): string

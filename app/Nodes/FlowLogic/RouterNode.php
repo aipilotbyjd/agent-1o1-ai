@@ -2,6 +2,7 @@
 
 namespace App\Nodes\FlowLogic;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
@@ -12,7 +13,7 @@ use Illuminate\Support\Arr;
  * branch's `result`, falling back to `'default'`. `GraphAdvancer` (Stage 3)
  * matches each outgoing `WorkflowEdge.condition` against this `result`.
  */
-class RouterNode implements NodeContract
+class RouterNode implements HasIcon, NodeContract
 {
     private const array OPERATORS = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than'];
 
@@ -29,6 +30,11 @@ class RouterNode implements NodeContract
     public function name(): string
     {
         return 'Router';
+    }
+
+    public function icon(): string
+    {
+        return 'route-01';
     }
 
     public function description(): string

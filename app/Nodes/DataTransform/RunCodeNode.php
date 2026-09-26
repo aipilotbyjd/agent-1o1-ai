@@ -2,6 +2,7 @@
 
 namespace App\Nodes\DataTransform;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
@@ -18,7 +19,7 @@ use InvalidArgumentException;
  * the `NodeContract`/engine wiring can be proven end-to-end without opening
  * a code-execution hole.
  */
-class RunCodeNode implements NodeContract
+class RunCodeNode implements HasIcon, NodeContract
 {
     private const array ALLOWED_OPERATIONS = ['set', 'copy', 'uppercase', 'lowercase', 'concat'];
 
@@ -35,6 +36,11 @@ class RunCodeNode implements NodeContract
     public function name(): string
     {
         return 'Run Code';
+    }
+
+    public function icon(): string
+    {
+        return 'source-code';
     }
 
     public function description(): string

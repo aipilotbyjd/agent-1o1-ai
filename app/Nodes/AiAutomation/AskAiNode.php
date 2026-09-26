@@ -3,6 +3,7 @@
 namespace App\Nodes\AiAutomation;
 
 use App\Ai\Agents\AdHocPromptAgent;
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
@@ -13,7 +14,7 @@ use App\Services\Ai\ModelCatalogResolver;
  * through `laravel/ai`'s own provider abstraction (see docs/NODES_CATALOG.md's
  * "AI nodes" section).
  */
-class AskAiNode implements NodeContract
+class AskAiNode implements HasIcon, NodeContract
 {
     public function __construct(private readonly ModelCatalogResolver $modelCatalog) {}
 
@@ -30,6 +31,11 @@ class AskAiNode implements NodeContract
     public function name(): string
     {
         return 'Ask AI';
+    }
+
+    public function icon(): string
+    {
+        return 'ai-chat-02';
     }
 
     public function description(): string
