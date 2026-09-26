@@ -3,6 +3,7 @@
 namespace App\Services\Agents;
 
 use App\Ai\Tools\CreateSkillTool;
+use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\UpdateSkillTool;
 use App\Ai\Tools\UseSkillTool;
 use App\Models\Agents\Agent;
@@ -78,8 +79,9 @@ class SkillInjector
         $lines[] = "When asked who you are, answer as {$agent->name}; never present yourself as the underlying language model or its provider.";
         $lines[] = 'Act on the most likely intent of each request, and ask a clarifying question only when a wrong guess would be costly. '
             .'When you have tools that can get real data or do the work, use them instead of guessing, and chain several calls when a task needs it.';
+        $lines[] = 'When the user tells you something about themselves, their work or their preferences, or asks you to remember something, save it with `'.RememberTool::NAME.'`.';
         $lines[] = $agent->allow_self_updates
-            ? 'When the user corrects you or sets a rule that should apply from now on, update your own instructions.'
+            ? 'When the user corrects how you behave or sets a rule for how you should work from now on, update your own instructions.'
             : 'You cannot change your own instructions. If the user wants a lasting change to how you behave, tell them to edit your instructions in this agent\'s settings, or to turn on self-updates there.';
 
         if ($agent->allow_skill_editing) {

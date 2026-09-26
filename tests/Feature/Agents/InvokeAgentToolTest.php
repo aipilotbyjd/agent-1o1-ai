@@ -113,12 +113,14 @@ it('collects every finished result once, and reports what is still running', fun
 
     expect($first['results'])->toBe([['agent' => 'Researcher', 'task' => 'Research Acme.', 'status' => 'completed', 'answer' => 'Acme: 1999.']]);
     expect($first['still_running'])->toBe(['Researcher: Research Globex.']);
+    expect($first['note'])->toBe('1 subagent(s) are still working. Call wait_for_subagents again to collect them before you answer or combine anything.');
 
     SubagentTask::query()->where('task', 'Research Globex.')->update(['status' => 'failed', 'error' => 'Timed out.']);
     $second = json_decode((string) $wait->handle(new Request([])), true);
 
     expect($second['results'])->toBe([['agent' => 'Researcher', 'task' => 'Research Globex.', 'status' => 'failed', 'error' => 'Timed out.']]);
     expect($second['still_running'])->toBe([]);
+    expect($second)->not->toHaveKey('note');
 });
 
 it('refuses a subagent it was not given', function () {
@@ -197,4 +199,14 @@ it('fails the subagent turn left running when its job is given up on', function 
     expect($task->fresh()->status)->toBe(SubagentTaskStatus::Failed);
     expect($task->fresh()->error)->toBe('Job timed out.');
     expect($run->fresh()->status)->toBe(RunStatus::Failed);
+});
+
+it('tells the model to combine results itself, never through a subagent', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id]);
+
+    expect((string) (new InvokeAgentTool($session, ['Me' => $agent]))->description())
+        ->toContain('Never delegate combining, summarising or reviewing other subagents\' results');
 });

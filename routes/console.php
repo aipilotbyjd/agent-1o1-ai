@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\System\ExpireStaleWaitsJob;
+use App\Jobs\System\FailStuckAgentTurnsJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -13,6 +14,7 @@ Artisan::command('inspire', function () {
 Schedule::command('triggers:run-due')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('triggers:retry-stuck')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 Schedule::job(new ExpireStaleWaitsJob)->everyMinute()->onOneServer();
+Schedule::job(new FailStuckAgentTurnsJob)->everyFiveMinutes()->onOneServer();
 Schedule::command('billing:expire-trials')->hourly()->withoutOverlapping()->onOneServer();
 Schedule::command('billing:notify-trial-ending')->daily()->withoutOverlapping()->onOneServer();
 Schedule::command('billing:invoice-overage')->daily()->withoutOverlapping()->onOneServer();

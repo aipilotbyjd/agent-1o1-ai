@@ -97,3 +97,38 @@ it('refuses when the person chatting may chat but not manage agents', function (
     expect($result)->toStartWith('Not updated: the person you are working for is not allowed');
     expect($agent->fresh()->instructions)->toBe('You help customers.');
 });
+
+it('points facts about the user to the remember tool instead of the instructions', function () {
+    $agent = selfUpdatingAgent();
+
+    $description = (string) (new UpdateInstructionsTool($agent, app(SkillInjector::class)))->description();
+
+    expect($description)
+        ->toContain('Do not use it for facts about the user')
+        ->toContain('`remember`');
+});
+
+it('strips the about section a model copies back, even slightly reworded', function () {
+    $agent = selfUpdatingAgent();
+    $agent->update(['name' => 'Outreach', 'allow_skill_editing' => true]);
+    $aboutLines = explode("\n", app(SkillInjector::class)->injectedSections($agent->fresh())[0]);
+    array_shift($aboutLines);
+    $reworded = str_replace('how you did something', 'how they want you to do something', implode("\n", $aboutLines));
+
+    (new UpdateInstructionsTool($agent->fresh(), app(SkillInjector::class)))->handle(new Request([
+        'instructions' => "{$reworded}\nYou help customers.\nAlways end every answer with \"Cheers!\".",
+    ]));
+
+    expect($agent->fresh()->instructions)->toBe("You help customers.\nAlways end every answer with \"Cheers!\".");
+});
+
+it('keeps a base instruction that resembles injected guidance', function () {
+    $agent = selfUpdatingAgent();
+    $agent->update(['instructions' => 'When asked who you are, answer as Support Bot.']);
+
+    (new UpdateInstructionsTool($agent->fresh(), app(SkillInjector::class)))->handle(new Request([
+        'instructions' => "When asked who you are, answer as Support Bot.\nAlways answer in Spanish.",
+    ]));
+
+    expect($agent->fresh()->instructions)->toBe("When asked who you are, answer as Support Bot.\nAlways answer in Spanish.");
+});

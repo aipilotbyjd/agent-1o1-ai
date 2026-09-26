@@ -53,11 +53,11 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::delete('{agent}/sessions/{session}', [AgentSessionController::class, 'destroy'])->name('sessions.destroy');
         Route::get('{agent}/sessions/{session}/messages', [AgentSessionController::class, 'messages'])->name('sessions.messages.index');
         Route::get('{agent}/sessions/{session}/subagent-tasks', [SubagentTaskController::class, 'index'])->name('sessions.subagent-tasks.index');
-        Route::post('{agent}/sessions/{session}/messages', [AgentSessionController::class, 'sendMessage'])->name('sessions.messages.store');
+        Route::post('{agent}/sessions/{session}/messages', [AgentSessionController::class, 'sendMessage'])->middleware('long-agent-turn')->name('sessions.messages.store');
 
         // The same turn as above, delivered as server-sent events — see
         // AgentSessionStreamController for the event names.
-        Route::post('{agent}/sessions/{session}/messages/stream', [AgentSessionStreamController::class, 'store'])->name('sessions.messages.stream');
+        Route::post('{agent}/sessions/{session}/messages/stream', [AgentSessionStreamController::class, 'store'])->middleware('long-agent-turn')->name('sessions.messages.stream');
 
         Route::get('{agent}/tool-bindings', [AgentToolBindingController::class, 'index'])->name('tool-bindings.index');
         Route::post('{agent}/tool-bindings', [AgentToolBindingController::class, 'store'])->name('tool-bindings.store');

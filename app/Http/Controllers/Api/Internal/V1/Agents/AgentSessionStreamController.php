@@ -6,12 +6,14 @@ use App\Ai\Tools\InvokeAgentTool;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\SendAgentMessageRequest;
+use App\Http\Resources\Api\Internal\V1\Agents\AgentMessageResource;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\AgentRunner;
 use App\Services\Agents\StreamedTurn;
 use Illuminate\Http\StreamedEvent;
+use Illuminate\Support\Str;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall;
 use Laravel\Ai\Streaming\Events\ToolResult;
@@ -26,7 +28,7 @@ use Throwable;
  * Event names on the wire:
  * - `delta`     — a chunk of assistant text; concatenate in order received.
  * - `tool-call` — the agent decided to call a tool (name + arguments).
- * - `tool-result` — that tool returned.
+ * - `tool-result` — that tool returned, with its output and whether it succeeded.
  * - `complete`  — the turn finished; carries the persisted message id, so a
  *                 client can reconcile against the REST transcript.
  * - `error`     — the turn failed; the run is marked failed before this is
@@ -76,6 +78,8 @@ class AgentSessionStreamController extends Controller
                         'result' => $event->toolResult->name === InvokeAgentTool::NAME
                             ? json_decode((string) $event->toolResult->result, true)
                             : null,
+                        'output' => Str::limit((string) ($event->error ?? $event->toolResult->result), AgentMessageResource::TOOL_OUTPUT_LIMIT),
+                        'successful' => $event->successful,
                     ], fn ($value) => $value !== null)),
                     default => null,
                 };

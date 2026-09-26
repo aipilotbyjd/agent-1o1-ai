@@ -8,6 +8,7 @@ use App\Exceptions\ModelSubmissionException;
 use App\Exceptions\PlanLimitExceededException;
 use App\Exceptions\RunStateException;
 use App\Exceptions\WorkflowValidationException;
+use App\Http\Middleware\AllowLongAgentTurn;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\TouchAccessTokenUsage;
@@ -48,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'workspace.context' => EnsureWorkspaceScope::class,
             'api-key' => EnsureApiKeyIsValid::class,
+            'long-agent-turn' => AllowLongAgentTurn::class,
         ]);
 
         $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);

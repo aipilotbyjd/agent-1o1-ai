@@ -16,10 +16,12 @@ use Stringable;
  * `$waitSeconds`; anything still running is reported as such so the model
  * can wait again. A result is only reported once (`collected_at`).
  *
- * The wait is kept short because a chat turn usually runs inside the HTTP
- * request that sent the message: a long sleep here would hold a web worker
- * and could outlast the request's own timeout. The model calls again for
- * whatever is still running, and each call is a separate step.
+ * A chat turn usually runs inside the HTTP request that sent the message, so
+ * the wait stays well inside `AllowLongAgentTurn::SECONDS`. It is long
+ * enough for a typical batch to finish in one call: a result reported while
+ * others are still running tempts the model to answer, or to hand the
+ * combining to a subagent that can't see the results. Whatever is still
+ * running is reported with a note to call again.
  */
 class WaitForSubagentsTool implements Tool
 {
@@ -27,7 +29,7 @@ class WaitForSubagentsTool implements Tool
 
     public function __construct(
         private readonly AgentSession $session,
-        private readonly int $waitSeconds = 25,
+        private readonly int $waitSeconds = 60,
         private readonly int $pollMilliseconds = 1000,
     ) {}
 
@@ -39,7 +41,8 @@ class WaitForSubagentsTool implements Tool
     public function description(): Stringable|string
     {
         return 'Waits for the subagents you started to finish and returns their answers. '
-            .'Call it once after starting all your subtasks. If some are still running when it returns, call it again.';
+            .'Call it once after starting all your subtasks. If some are still running when it returns, call it again, '
+            .'and keep calling until all are collected before you answer or combine anything.';
     }
 
     public function handle(Request $request): Stringable|string
@@ -65,7 +68,9 @@ class WaitForSubagentsTool implements Tool
         $finished = $tasks->filter(fn (SubagentTask $task): bool => $task->status->isFinished());
         SubagentTask::query()->whereKey($finished->modelKeys())->update(['collected_at' => now()]);
 
-        return json_encode([
+        $stillRunning = $tasks->reject(fn (SubagentTask $task): bool => $task->status->isFinished());
+
+        return json_encode(array_filter([
             'results' => $finished->map(fn (SubagentTask $task): array => array_filter([
                 'agent' => $task->agent?->name,
                 'task' => $task->task,
@@ -73,11 +78,14 @@ class WaitForSubagentsTool implements Tool
                 'answer' => $task->result,
                 'error' => $task->error,
             ], fn ($value) => $value !== null))->values()->all(),
-            'still_running' => $tasks->reject(fn (SubagentTask $task): bool => $task->status->isFinished())
+            'still_running' => $stillRunning
                 ->map(fn (SubagentTask $task): string => "{$task->agent?->name}: {$task->task}")
                 ->values()
                 ->all(),
-        ]);
+            'note' => $stillRunning->isNotEmpty()
+                ? "{$stillRunning->count()} subagent(s) are still working. Call ".self::NAME.' again to collect them before you answer or combine anything.'
+                : null,
+        ], fn ($value) => $value !== null));
     }
 
     /**

@@ -34,6 +34,15 @@ it('tells a self-updating agent it may rewrite its instructions', function () {
         ->not->toContain('You cannot change your own instructions');
 });
 
+it('tells every agent to save facts about the user with the remember tool', function (bool $allowSelfUpdates) {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['allow_self_updates' => $allowSelfUpdates]);
+
+    expect(app(SkillInjector::class)->instructionsFor($agent))
+        ->toContain('asks you to remember something, save it with `remember`');
+})->with([true, false]);
+
 it('lists attached skills without their instructions, and appends active knowledge but not inactive', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);

@@ -7,6 +7,7 @@ use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Ai\Responses\Data\ToolCall;
 use Laravel\Passport\Passport;
 
 it('streams a turn as server-sent events and persists the reply', function () {
@@ -38,6 +39,38 @@ it('streams a turn as server-sent events and persists the reply', function () {
     $run = Run::where('runnable_id', $session->id)->where('runnable_type', 'agent_session')->sole();
     expect($run->status)->toBe(RunStatus::Completed);
     expect($run->output['message_id'])->toBe($reply->id);
+});
+
+it('streams each tool\'s output and keeps it on the stored reply for the timeline', function () {
+    WorkspaceAgent::fake([
+        new ToolCall('call-1', 'remember', ['key' => 'preferred_name', 'value' => 'JD']),
+        'Got it, JD!',
+    ]);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id]);
+
+    Passport::actingAs($owner);
+
+    $body = $this->post(
+        "/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/sessions/{$session->id}/messages/stream",
+        ['message' => 'Call me JD.'],
+        ['Accept' => 'text/event-stream'],
+    )->streamedContent();
+
+    expect($body)->toContain('event: tool-result')
+        ->toContain('"output":"Remembered preferred_name."')
+        ->toContain('"successful":true');
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/sessions/{$session->id}")
+        ->assertOk()
+        ->assertJsonPath('data.session.messages.1.tool_results.0', [
+            'id' => 'call-1',
+            'name' => 'remember',
+            'output' => 'Remembered preferred_name.',
+        ]);
 });
 
 it('marks the turn failed and emits an error event when the provider blows up', function () {

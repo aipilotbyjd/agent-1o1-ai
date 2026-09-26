@@ -13,6 +13,7 @@ use App\Http\Requests\Api\Internal\V1\Runs\StartRunRequest;
 use App\Http\Resources\Api\Internal\V1\Runs\RunResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\AgentEvalRun;
+use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
@@ -39,7 +40,7 @@ class RunController extends Controller
             ->when($request->validated('agent_id'), fn ($query, $agentId) => $this->forAgent($query, $agentId))
             ->when($request->validated('trigger_type'), fn ($query, $type) => $query->where('trigger_type', $type))
             ->when($request->validated('exclude_trigger_type'), fn ($query, $type) => $query->where('trigger_type', '!=', $type))
-            ->with('nodeRuns.creditTransaction')
+            ->with(['nodeRuns.creditTransaction', ...Run::runnableWithAgent()])
             ->latest()
             ->paginate($request->validated('per_page') ?? 25)
             ->withQueryString();
@@ -69,7 +70,26 @@ class RunController extends Controller
         $this->requirePermission(Permission::RunView);
         $this->ensureBelongsToWorkspace($workspace, $run);
 
-        return ApiResponse::success(['run' => RunResource::make($run->load('nodeRuns.creditTransaction'))]);
+        $run->load(['nodeRuns.creditTransaction', ...Run::runnableWithAgent()]);
+
+        if ($run->runnable instanceof AgentSession) {
+            $run->setRelation('agentReply', $this->agentReplyFor($run));
+        }
+
+        return ApiResponse::success(['run' => RunResource::make($run)]);
+    }
+
+    /**
+     * A chat turn's `Run` records the reply it produced in `output.message_id`
+     * — see `AgentRunner::completeTurn()`. A turn that failed has none.
+     */
+    private function agentReplyFor(Run $run): ?AgentMessage
+    {
+        $messageId = $run->output['message_id'] ?? null;
+
+        return $messageId
+            ? $run->runnable->messages()->with('attachments.agent')->find($messageId)
+            : null;
     }
 
     public function store(StartRunRequest $request, Workspace $workspace, Workflow $workflow)

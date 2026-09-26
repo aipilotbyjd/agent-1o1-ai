@@ -19,15 +19,24 @@ use Stringable;
  */
 class RememberTool implements Tool
 {
+    public const NAME = 'remember';
+
     public function __construct(
         private readonly Agent $agent,
         private readonly ?string $userId = null,
     ) {}
 
+    public function name(): string
+    {
+        return self::NAME;
+    }
+
     public function description(): Stringable|string
     {
-        return 'Saves or updates a durable fact you can recall in future conversations. '
-            .'Use a short, stable key (e.g. "favorite_color") so re-saving it updates the existing fact instead of duplicating it.';
+        return 'Saves or updates a durable fact you will recall in every future conversation with this user. '
+            .'Use it whenever the user tells you something about themselves, their work or their preferences, or asks you to remember something: '
+            .'their name, what to call them, their company, their ideal customer profile, a preferred tone. '
+            .'Use a short, stable snake_case key (e.g. "preferred_name") so re-saving it updates the existing fact instead of duplicating it.';
     }
 
     public function handle(Request $request): Stringable|string
