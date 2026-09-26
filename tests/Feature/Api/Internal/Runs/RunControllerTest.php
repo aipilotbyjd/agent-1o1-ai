@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Models\User;
@@ -110,4 +111,37 @@ it('filters runs to everything done on one agent\'s behalf', function () {
     $ids = collect($this->getJson("/api/v1/workspaces/{$workspace->id}/runs?agent_id={$agent->id}")->assertOk()->json('data'))->pluck('id');
 
     expect($ids->sort()->values()->all())->toBe(collect([$chatRun->id, $reviewRun->id])->sort()->values()->all());
+});
+
+it('names the agent behind a run and shows a chat turn\'s reply with its tool calls', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['name' => 'Researcher']);
+    $session = AgentSession::factory()->forAgent($agent)->create();
+
+    $reply = AgentMessage::factory()->forSession($session)->assistant()->create([
+        'content' => 'Found it.',
+        'tool_calls' => [['id' => 'call_1', 'name' => 'web_search', 'arguments' => ['query' => 'laravel']]],
+        'tool_results' => [['id' => 'call_1', 'name' => 'web_search', 'result' => '{"hits":1}']],
+    ]);
+    $run = $session->runs()->create([
+        'workspace_id' => $workspace->id,
+        'trigger_type' => 'manual',
+        'input' => ['message' => 'Look up laravel'],
+    ]);
+    $run->forceFill(['status' => 'completed', 'output' => ['text' => 'Found it.', 'message_id' => $reply->id]])->save();
+    $workflowRun = Run::factory()->create(['workspace_id' => $workspace->id]);
+
+    Passport::actingAs($owner);
+
+    $index = collect($this->getJson("/api/v1/workspaces/{$workspace->id}/runs")->assertOk()->json('data'))->keyBy('id');
+    expect($index[$run->id]['agent']['name'])->toBe('Researcher')
+        ->and($index[$workflowRun->id]['agent'])->toBeNull()
+        ->and($index[$run->id])->not->toHaveKey('agent_reply');
+
+    $show = $this->getJson("/api/v1/workspaces/{$workspace->id}/runs/{$run->id}")->assertOk();
+    expect($show->json('data.run.agent.id'))->toBe($agent->id)
+        ->and($show->json('data.run.agent_reply.content'))->toBe('Found it.')
+        ->and($show->json('data.run.agent_reply.tool_calls.0.name'))->toBe('web_search')
+        ->and($show->json('data.run.agent_reply.tool_results.0.output'))->toBe('{"hits":1}');
 });

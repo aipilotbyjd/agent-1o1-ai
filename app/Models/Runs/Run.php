@@ -4,6 +4,8 @@ namespace App\Models\Runs;
 
 use App\Enums\Billing\CreditTransactionType;
 use App\Enums\RunStatus;
+use App\Models\Agents\Agent;
+use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
@@ -12,6 +14,7 @@ use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowVersion;
 use App\Models\Workspaces\Workspace;
+use Closure;
 use Database\Factories\Runs\RunFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -116,6 +119,37 @@ class Run extends Model
     public function triggeredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'triggered_by');
+    }
+
+    /**
+     * The agent this run was done on behalf of — its chat turn, reflection,
+     * chat grading or eval suite — or null for a workflow run. Eager load
+     * `runnableWithAgent()` first to avoid a query per run.
+     */
+    public function owningAgent(): ?Agent
+    {
+        return match (true) {
+            $this->runnable instanceof AgentEvalRun => $this->runnable->suite?->agent,
+            $this->runnable instanceof AgentSession,
+            $this->runnable instanceof ReflectionRun,
+            $this->runnable instanceof AgentSessionEvaluation => $this->runnable->agent,
+            default => null,
+        };
+    }
+
+    /**
+     * The eager load `owningAgent()` needs, for `with()` or `load()`.
+     *
+     * @return array<string, Closure(MorphTo): MorphTo>
+     */
+    public static function runnableWithAgent(): array
+    {
+        return ['runnable' => fn (MorphTo $morph) => $morph->morphWith([
+            AgentSession::class => ['agent'],
+            ReflectionRun::class => ['agent'],
+            AgentSessionEvaluation::class => ['agent'],
+            AgentEvalRun::class => ['suite.agent'],
+        ])];
     }
 
     /**
