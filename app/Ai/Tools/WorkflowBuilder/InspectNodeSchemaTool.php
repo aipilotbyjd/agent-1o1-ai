@@ -2,6 +2,7 @@
 
 namespace App\Ai\Tools\WorkflowBuilder;
 
+use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -20,26 +21,25 @@ class InspectNodeSchemaTool implements Tool
 
     public function description(): Stringable|string
     {
-        return "Get the config schema for a node type, so you know exactly which fields to set in a node's 'config'. Takes the 'type' from list_available_nodes.";
+        return "Get the config schema for a node type, so you know exactly which fields to set in a node's 'config'. For flow-logic nodes it also explains how to wire them (how_to_wire). Takes the 'type' from list_available_nodes.";
     }
 
     public function handle(Request $request): Stringable|string
     {
         $type = (string) ($request->all()['type'] ?? '');
-        $registry = app(NodeRegistry::class);
+        $node = app(NodeRegistry::class)->describe($type);
 
-        if (! $registry->has($type)) {
+        if ($node === null) {
             return "No node found with type [{$type}]. Use list_available_nodes to see valid types.";
         }
 
-        $node = $registry->resolve($type);
+        // Flow-control nodes are driven by the engine itself, so how they
+        // pause, branch and fail isn't obvious from the schema alone.
+        $guide = FlowControlNodeType::tryFrom($type)?->builderGuide();
 
         return json_encode([
-            'type' => $type,
-            'name' => $node->name(),
-            'description' => $node->description(),
-            'category' => $node->category(),
-            'config_schema' => $node->configSchema(),
+            ...$node,
+            ...($guide !== null ? ['how_to_wire' => $guide] : []),
         ], JSON_THROW_ON_ERROR);
     }
 

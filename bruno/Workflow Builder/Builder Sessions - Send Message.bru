@@ -21,14 +21,33 @@ body:json {
   }
 }
 
-docs {
-  Sends a message to the workflow builder agent and returns its reply.
-  The agent edits the session's `draft_graph` through its tools, so a
-  single message can change the graph. Requires the
-  `workflow-builder.use` permission.
+script:post-response {
+  if (res.status === 202) {
+    const message = res.body.data?.message;
+    if (message && message.id) {
+      bru.setVar("builderMessageId", message.id);
+    }
+  }
+}
 
-  Synchronous — the response waits on the model, so expect this to be
-  slower than the other requests in this collection.
+docs {
+  Sends a message to the workflow builder agent. Returns 202 with the
+  pending assistant message; the reply is written by a queued job
+  (`ProcessWorkflowBuilderMessageJob`). The agent edits the session's
+  `draft_graph` through its tools, so a single message can change the
+  graph. Requires the `workflow-builder.use` permission. Stores the reply's
+  ID as `builderMessageId`.
+
+  Follow the reply live on the private channel
+  `workspaces.{workspace}.workflow-builder-sessions.{session}` (events
+  `builder.status`, `builder.delta`, `builder.tool-call`,
+  `builder.tool-result`, `builder.draft`), or poll
+  "Builder Messages - Get" until `processing_status` is `completed` or
+  `failed`. A completed reply carries `actions` (what it changed) and
+  `draft_version_id`.
+
+  409 while a previous reply is still being written, or if the session is
+  archived. 402 when the workspace is out of credits.
 
   Response is wrapped: `{ success, statusCode, message, data: { message } }`.
 }

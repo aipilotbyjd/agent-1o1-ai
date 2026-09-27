@@ -7,6 +7,7 @@ use App\Enums\Workspaces\Permission;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Models\User;
+use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Models\Workspaces\Workspace;
 
 /**
@@ -44,6 +45,15 @@ class WorkspaceChannelGate
         }
 
         return AgentSession::whereKey($sessionId)->where('workspace_id', $workspaceId)->exists();
+    }
+
+    public function workflowBuilderSession(User $user, string $workspaceId, string $sessionId): bool
+    {
+        if (! $this->allows($user, $workspaceId, Permission::WorkflowBuilderUse)) {
+            return false;
+        }
+
+        return WorkflowBuilderSession::whereKey($sessionId)->where('workspace_id', $workspaceId)->exists();
     }
 
     private function allows(User $user, string $workspaceId, Permission $permission): bool

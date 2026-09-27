@@ -100,6 +100,17 @@ class CreditMeter
     }
 
     /**
+     * A workflow-builder chat turn or assist call — priced as the chat turn
+     * it is.
+     *
+     * @param  array<string, mixed>  $usage
+     */
+    public function costForWorkflowBuilder(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
      * Gumloop's agent-chat formula: Chat & Reasoning + Tool Calls + Compute,
      * then an Orchestration Fee on top of that subtotal. Unlike a workflow
      * node run, a chat turn has no separate flat base credit — Compute's own

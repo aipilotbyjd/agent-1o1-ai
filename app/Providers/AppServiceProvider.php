@@ -152,6 +152,15 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('trigger-hooks', fn (Request $request): Limit => Limit::perMinute(
             (int) config('triggers.hook_rate_limit_per_minute'),
         )->by($request->route('token') ?? $request->ip()));
+
+        // Every builder message and assist call is a paid model call — these
+        // cap how fast one member can spend a workspace's credits by
+        // accident (a stuck retry loop in the client, a held-down Enter).
+        RateLimiter::for('workflow-builder-messages', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by($request->user()?->id ?? $request->ip()));
+
+        RateLimiter::for('workflow-builder-assist', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by($request->user()?->id ?? $request->ip()));
     }
 
     /**

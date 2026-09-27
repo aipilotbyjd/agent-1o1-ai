@@ -132,18 +132,23 @@ class Workflow extends Model
     public function replaceGraph(array $graph): void
     {
         $nodes = $graph['nodes'] ?? [];
-        $edges = $graph['edges'] ?? [];
+        $edges = GraphValidator::uniqueEdges($graph['edges'] ?? []);
 
         $registry = app(NodeRegistry::class);
         $configValidator = app(ConfigSchemaValidator::class);
-        $errors = [];
+
+        $errors = app(GraphValidator::class)->structuralErrors($nodes, $edges);
+
+        if ($errors !== []) {
+            throw new WorkflowValidationException($errors);
+        }
 
         foreach ($nodes as $node) {
-            if (! $registry->has($node['type'])) {
+            $schema = $registry->configSchemaFor($node['type']);
+
+            if ($schema === null) {
                 continue;
             }
-
-            $schema = $registry->resolve($node['type'])->configSchema();
 
             foreach ($configValidator->validate($schema, $node['config'] ?? []) as $error) {
                 $errors[] = "Node '{$node['key']}': {$error}";

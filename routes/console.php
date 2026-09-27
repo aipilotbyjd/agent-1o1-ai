@@ -19,3 +19,4 @@ Schedule::command('billing:expire-trials')->hourly()->withoutOverlapping()->onOn
 Schedule::command('billing:notify-trial-ending')->daily()->withoutOverlapping()->onOneServer();
 Schedule::command('billing:invoice-overage')->daily()->withoutOverlapping()->onOneServer();
 Schedule::command('reflections:run-due')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
+Schedule::command('workflow-builder:archive-idle')->dailyAt('03:00')->withoutOverlapping()->onOneServer();

@@ -324,6 +324,24 @@ return [
             'timeout' => 320,
             'nice' => 0,
         ],
+        // ProcessWorkflowBuilderMessageJob — one builder chat turn, which can
+        // run many tool calls against the draft. Kept off `ai-agent` so a
+        // burst of people building workflows can't hold up agent-targeted
+        // triggers (or the other way round). `timeout` must stay above the
+        // job's own $timeout.
+        'supervisor-workflow-builder' => [
+            'connection' => 'redis',
+            'queue' => ['workflow-builder'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 320,
+            'nice' => 0,
+        ],
         // RecordRunCreditUsage — money-adjacent, so it runs on its own
         // supervisor rather than queuing behind workflow load
         // (docs/STRUCTURE.md's "Queues & Horizon" table). Raising its OS
@@ -382,6 +400,11 @@ return [
             'supervisor-ai-subagent' => [
                 'maxProcesses' => 10,
             ],
+            'supervisor-workflow-builder' => [
+                'maxProcesses' => 5,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
             'supervisor-billing' => [
                 'maxProcesses' => 3,
                 'balanceMaxShift' => 1,
@@ -410,6 +433,9 @@ return [
             ],
             'supervisor-ai-subagent' => [
                 'maxProcesses' => 5,
+            ],
+            'supervisor-workflow-builder' => [
+                'maxProcesses' => 1,
             ],
             'supervisor-billing' => [
                 'maxProcesses' => 1,

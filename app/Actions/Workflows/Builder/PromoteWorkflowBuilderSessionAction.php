@@ -3,6 +3,7 @@
 namespace App\Actions\Workflows\Builder;
 
 use App\Enums\Billing\PlanLimit;
+use App\Enums\Workflows\BuilderSessionStatus;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Models\Workflows\Workflow;
@@ -21,6 +22,8 @@ class PromoteWorkflowBuilderSessionAction
 
     public function execute(WorkflowBuilderSession $session, User $by, ?string $name = null): Workflow
     {
+        $session->assertEditable();
+
         $workflow = $session->workflow;
 
         // Re-promoting into the workflow this session already owns isn't a new
@@ -37,7 +40,7 @@ class PromoteWorkflowBuilderSessionAction
 
         $workflow->replaceGraph($session->currentGraph());
 
-        $session->update(['workflow_id' => $workflow->id, 'status' => 'promoted']);
+        $session->update(['workflow_id' => $workflow->id, 'status' => BuilderSessionStatus::Promoted]);
 
         return $workflow;
     }

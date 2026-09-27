@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\Workspaces\Role;
+use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Folder;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Carbon;
 use Laravel\Passport\Passport;
 
 /**
@@ -92,6 +94,57 @@ it('rejects a draft graph with a schema-invalid node config', function () {
 
     $response->assertStatus(422);
     expect($response->json('errors'))->toContain("Node 'a': config.method is required.");
+});
+
+it('422s a draft graph that could not be stored, leaving the saved draft untouched', function (array $graph, string $error) {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph([
+        'nodes' => [['key' => 'kept', 'type' => 'transform', 'config' => ['mapping' => []]]],
+        'edges' => [],
+    ]);
+
+    Passport::actingAs($owner);
+
+    $response = $this->putJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/graph", $graph);
+
+    $response->assertUnprocessable();
+    expect($response->json('errors'))->toContain($error);
+    expect($workflow->nodes()->pluck('key')->all())->toBe(['kept']);
+})->with([
+    'edge to a missing node' => [[
+        'nodes' => [['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]]],
+        'edges' => [['from' => 'a', 'to' => 'ghost']],
+    ], "Edge references unknown target node 'ghost'."],
+    'duplicate node keys' => [[
+        'nodes' => [
+            ['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]],
+            ['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [],
+    ], "Duplicate node key 'a'."],
+]);
+
+it('stores a repeated edge once instead of refusing the save', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->putJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/graph", [
+        'nodes' => [
+            ['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]],
+            ['key' => 'b', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [
+            ['from' => 'a', 'to' => 'b'],
+            ['from' => 'a', 'to' => 'b'],
+            ['from' => 'a', 'to' => 'b', 'condition' => 'error'],
+            ['from' => 'a', 'to' => 'b', 'condition' => 'error'],
+        ],
+    ])->assertOk();
+
+    expect($workflow->edges()->pluck('condition')->sort()->values()->all())->toEqualCanonicalizing([null, 'error']);
 });
 
 it('publishes a valid draft as a new version', function () {
@@ -211,7 +264,7 @@ it('includes node counts, node types, and last run time on the list', function (
     $workflow = Workflow::factory()->forWorkspace($workspace)->create();
     $workflow->nodes()->create(['key' => 'a', 'type' => 'slack.send_message', 'config' => []]);
     $workflow->nodes()->create(['key' => 'b', 'type' => 'slack.send_message', 'config' => []]);
-    $run = \App\Models\Runs\Run::factory()->forWorkflow($workflow)->completed()->create();
+    $run = Run::factory()->forWorkflow($workflow)->completed()->create();
 
     Passport::actingAs($owner);
     $listed = collect($this->getJson("/api/v1/workspaces/{$workspace->id}/workflows")->json('data.workflows'))
@@ -220,5 +273,5 @@ it('includes node counts, node types, and last run time on the list', function (
     expect($listed['nodes_count'])->toBe(2);
     expect($listed['node_types'])->toBe(['slack.send_message']);
     expect($listed['last_run_at'])->not->toBeNull();
-    expect(\Illuminate\Support\Carbon::parse($listed['last_run_at']))->toEqual($run->finished_at);
+    expect(Carbon::parse($listed['last_run_at']))->toEqual($run->finished_at);
 });

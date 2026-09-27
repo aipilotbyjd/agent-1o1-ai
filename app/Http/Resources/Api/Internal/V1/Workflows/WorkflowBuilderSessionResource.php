@@ -27,7 +27,9 @@ class WorkflowBuilderSessionResource extends JsonResource
             'status' => $this->status,
             'last_activity_at' => $this->last_activity_at,
             'messages' => WorkflowBuilderMessageResource::collection($this->whenLoaded('messages')),
+            'messages_count' => $this->whenCounted('messages'),
             'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
     }
 }

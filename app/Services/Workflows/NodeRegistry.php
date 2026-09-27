@@ -60,6 +60,82 @@ class NodeRegistry
         return isset($this->builtins[$type]);
     }
 
+    /**
+     * Engine-driven types (loop, subflow, wait, human_approval, join_paths)
+     * — placeable on a graph, but never `resolve()`d: `WorkflowRunner`
+     * drives them itself. See `has()` for why they aren't `$builtins`.
+     */
+    public function isFlowControl(string $type): bool
+    {
+        return FlowControlNodeType::tryFrom($type) !== null;
+    }
+
+    /**
+     * Whether `$type` can be placed on a graph at all — a built-in node or
+     * a flow-control type. What authoring (the builder assistant, a canvas
+     * save) should ask; `has()` is for callers about to `resolve()`.
+     */
+    public function isPlaceable(string $type): bool
+    {
+        return $this->has($type) || $this->isFlowControl($type);
+    }
+
+    /**
+     * The config schema for any placeable type, or null for one that isn't.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function configSchemaFor(string $type): ?array
+    {
+        return $this->describe($type)['config_schema'] ?? null;
+    }
+
+    /**
+     * Name, description, category and config schema for any placeable type —
+     * the catalog entry without the display-only fields, and without the
+     * `NodeCategory` query `catalog()` needs.
+     *
+     * @return array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}|null
+     */
+    public function describe(string $type): ?array
+    {
+        if ($this->has($type)) {
+            $node = $this->resolve($type);
+
+            return [
+                'type' => $type,
+                'category' => $node->category(),
+                'name' => $node->name(),
+                'description' => $node->description(),
+                'config_schema' => $node->configSchema(),
+            ];
+        }
+
+        $definition = collect($this->flowControlDefinitions())->firstWhere('type', $type);
+
+        return $definition === null ? null : [
+            'type' => $definition['type'],
+            'category' => 'flow-logic',
+            'name' => $definition['name'],
+            'description' => $definition['description'],
+            'config_schema' => $definition['config_schema'],
+        ];
+    }
+
+    /**
+     * `describe()` for every placeable type — built-ins first, then
+     * flow-control.
+     *
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}>
+     */
+    public function placeableTypes(): array
+    {
+        return array_map(
+            fn (string $type): array => $this->describe($type),
+            [...array_keys($this->builtins), ...array_map(fn (FlowControlNodeType $case): string => $case->value, FlowControlNodeType::cases())],
+        );
+    }
+
     public function resolve(string $type): NodeContract
     {
         // Reached only from the engine's own execute path (`has()` says
@@ -142,7 +218,20 @@ class NodeRegistry
     {
         $flowLogic = $categories->get('flow-logic');
 
-        $nodes = [
+        return array_map(fn (array $node): array => [
+            ...$node,
+            'category' => 'flow-logic',
+            'color' => $flowLogic?->color,
+            'requires_connector' => false,
+        ], $this->flowControlDefinitions());
+    }
+
+    /**
+     * @return array<int, array{type: string, icon: string, name: string, description: string, config_schema: array<string, mixed>}>
+     */
+    private function flowControlDefinitions(): array
+    {
+        return [
             [
                 'type' => FlowControlNodeType::Loop->value,
                 'icon' => 'repeat',
@@ -201,12 +290,5 @@ class NodeRegistry
                 ],
             ],
         ];
-
-        return array_map(fn (array $node): array => [
-            ...$node,
-            'category' => 'flow-logic',
-            'color' => $flowLogic?->color,
-            'requires_connector' => false,
-        ], $nodes);
     }
 }
