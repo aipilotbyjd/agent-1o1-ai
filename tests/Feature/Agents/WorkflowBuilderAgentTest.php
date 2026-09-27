@@ -2,6 +2,7 @@
 
 use App\Actions\Workflows\Builder\SendWorkflowBuilderMessageAction;
 use App\Ai\Agents\WorkflowBuilderAgent;
+use App\Ai\Agents\WorkflowBuilderTitleAgent;
 use App\Ai\Tools\WorkflowBuilder\AddNodeTool;
 use App\Ai\Tools\WorkflowBuilder\ConnectNodesTool;
 use App\Ai\Tools\WorkflowBuilder\ValidateWorkflowTool;
@@ -13,7 +14,7 @@ use App\Services\Workspaces\WorkspaceService;
 use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Tools\Request as ToolRequest;
 
-it('exposes the nine builder tools bound to the session', function () {
+it('exposes the builder tools bound to the session', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
@@ -21,7 +22,7 @@ it('exposes the nine builder tools bound to the session', function () {
     $agent = new WorkflowBuilderAgent($session);
 
     expect(collect(iterator_to_array($agent->tools()))->map->name()->all())->toBe([
-        'list_available_nodes', 'inspect_node_schema', 'add_node', 'update_node',
+        'read_draft', 'list_available_nodes', 'inspect_node_schema', 'inspect_node_output', 'list_workflows', 'add_node', 'update_node',
         'remove_node', 'connect_nodes', 'disconnect_nodes', 'validate_workflow', 'dry_run_workflow',
     ]);
 });
@@ -61,6 +62,7 @@ it('runs an add_node then connect_nodes tool sequence against the draft', functi
 
 it('sends a chat message, persists both turns, and excludes the live user message from history', function () {
     WorkflowBuilderAgent::fake(['reply one', 'reply two']);
+    WorkflowBuilderTitleAgent::fake([]);
 
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
@@ -69,7 +71,7 @@ it('sends a chat message, persists both turns, and excludes the live user messag
     $reply = app(SendWorkflowBuilderMessageAction::class)->execute($session, 'first message');
 
     expect($reply->role)->toBe('assistant');
-    expect($reply->content)->toBe('reply one');
+    expect($reply->fresh()->content)->toBe('reply one');
     expect($session->fresh()->messages)->toHaveCount(2);
 
     app(SendWorkflowBuilderMessageAction::class)->execute($session, 'second message');
@@ -83,6 +85,7 @@ it('sends a chat message, persists both turns, and excludes the live user messag
 
 it('falls back to the default provider when the workflow-builder-assistant catalog entry has no route', function () {
     WorkflowBuilderAgent::fake(['reply']);
+    WorkflowBuilderTitleAgent::fake([]);
 
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
@@ -97,6 +100,7 @@ it('falls back to the default provider when the workflow-builder-assistant catal
 
 it('resolves the workflow-builder-assistant catalog chain when it has an enabled route', function () {
     WorkflowBuilderAgent::fake(['reply']);
+    WorkflowBuilderTitleAgent::fake([]);
 
     $catalog = ModelCatalog::factory()->create(['slug' => 'workflow-builder-assistant', 'is_internal' => true]);
     ModelRoute::factory()->forCatalog($catalog)->create([

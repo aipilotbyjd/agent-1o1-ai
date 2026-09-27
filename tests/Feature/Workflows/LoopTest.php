@@ -315,3 +315,30 @@ it('cancels items still in flight when fail_fast trips', function () {
     expect($parked->status)->toBe(RunStatus::Cancelled);
     expect($parked->nodeRuns()->where('key', 'hold')->sole()->callback_token)->toBeNull();
 });
+
+it('refuses to loop over a published workflow from another workspace', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $otherWorkspace = app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Victim']);
+
+    $foreignChild = Workflow::factory()->forWorkspace($otherWorkspace)->create();
+    $foreignChild->replaceGraph(['nodes' => [
+        ['key' => 'c', 'type' => 'transform', 'config' => ['mapping' => []]],
+    ], 'edges' => []]);
+    $foreignChild->publishVersion(publisher: $owner);
+
+    $parent = Workflow::factory()->forWorkspace($workspace)->create();
+    $parent->replaceGraph([
+        'nodes' => [['key' => 'loop', 'type' => 'loop', 'config' => [
+            'items_path' => 'input.items',
+            'workflow_id' => $foreignChild->id,
+        ]]],
+        'edges' => [],
+    ]);
+    $parent->publishVersion(publisher: $owner);
+
+    $run = app(StartWorkflowRunAction::class)->execute($parent->fresh(), ['items' => [1, 2]])->fresh(['nodeRuns']);
+
+    expect($run->status)->toBe(RunStatus::Failed);
+    expect(Run::where('workflow_id', $foreignChild->id)->exists())->toBeFalse();
+});

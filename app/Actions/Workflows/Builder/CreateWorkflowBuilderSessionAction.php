@@ -11,12 +11,27 @@ class CreateWorkflowBuilderSessionAction
 {
     public function execute(Workspace $workspace, User $user, ?string $title = null, ?Workflow $workflow = null): WorkflowBuilderSession
     {
-        return $workspace->builderSessions()->create([
+        $graph = $workflow ? $this->graphFrom($workflow) : ['nodes' => [], 'edges' => []];
+
+        $session = $workspace->builderSessions()->create([
             'user_id' => $user->id,
             'workflow_id' => $workflow?->id,
-            ...($title ? ['title' => $title] : []),
-            'draft_graph' => $workflow ? $this->graphFrom($workflow) : ['nodes' => [], 'edges' => []],
+            'title' => $title ?: ($workflow?->name ?? WorkflowBuilderSession::DEFAULT_TITLE),
+            'draft_graph' => $graph,
+            'last_activity_at' => now(),
         ]);
+
+        // A starting point to restore to, however far the assistant takes
+        // the draft from the workflow it was opened on.
+        if ($workflow !== null) {
+            $session->draftVersions()->create([
+                'triggered_by' => $user->id,
+                'graph_snapshot' => $graph,
+                'label' => "Loaded from {$workflow->name}",
+            ]);
+        }
+
+        return $session;
     }
 
     /**

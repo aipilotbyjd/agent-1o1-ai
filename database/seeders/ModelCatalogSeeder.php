@@ -153,7 +153,7 @@ class ModelCatalogSeeder extends Seeder
 
         // Internal-only — never shown in the public model picker (see
         // `ModelCatalog::is_internal`/`ModelCatalogController::index()`).
-        // Powers `SendWorkflowBuilderMessageAction`'s workflow-builder chat.
+        // Powers the workflow-builder chat (`ProcessWorkflowBuilderMessageJob`) and its assist helpers (`WorkflowBuilderAssistant`).
         $this->seed('workflow-builder-assistant', 'Workflow Builder Assistant', 'internal', ['tool_use' => true], [
             ['execution_provider' => 'openai', 'execution_model_id' => 'gpt-4o', 'priority' => 1, 'is_enabled' => true],
             ['execution_provider' => 'fireworks', 'execution_model_id' => 'accounts/fireworks/models/llama-v3p1-70b-instruct', 'priority' => 0, 'is_enabled' => true],

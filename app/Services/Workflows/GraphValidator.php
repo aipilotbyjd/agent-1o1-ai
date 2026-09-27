@@ -29,15 +29,11 @@ class GraphValidator
      */
     public function validate(array $nodes, array $edges): array
     {
-        if (($errors = $this->duplicateKeyErrors($nodes)) !== []) {
+        if (($errors = $this->structuralErrors($nodes, $edges)) !== []) {
             return $errors;
         }
 
         $keys = array_map(fn (array $node) => $node['key'], $nodes);
-
-        if (($errors = $this->danglingEdgeErrors($keys, $edges)) !== []) {
-            return $errors;
-        }
 
         $adjacency = $this->buildAdjacency($edges);
 
@@ -59,7 +55,58 @@ class GraphValidator
     }
 
     /**
-     * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
+     * The problems that make a graph impossible to even *store* — repeated
+     * node keys and edges to nodes that aren't there both break
+     * `workflow_nodes`/`workflow_edges` constraints. Every save path
+     * (`Workflow::replaceGraph()`, `WorkflowBuilderSession::replaceDraft()`)
+     * checks these even though a draft may otherwise be mid-edit, so a bad
+     * payload is a 422 naming the problem rather than a constraint-violation
+     * 500. A repeated edge is not an error — see `uniqueEdges()`.
+     *
+     * @param  array<int, array<string, mixed>>  $nodes
+     * @param  array<int, array<string, mixed>>  $edges
+     * @return array<int, string>
+     */
+    public function structuralErrors(array $nodes, array $edges): array
+    {
+        if (($errors = $this->duplicateKeyErrors($nodes)) !== []) {
+            return $errors;
+        }
+
+        $keys = array_map(fn (array $node) => $node['key'], $nodes);
+
+        return $this->danglingEdgeErrors($keys, $edges);
+    }
+
+    /**
+     * The edges with exact repeats — same `from`, `to` and `condition` —
+     * dropped. A repeat changes nothing about how a run moves (a node is
+     * only ever started once per run), and it sits exactly on top of its
+     * twin on the canvas where nobody can see it to delete it, so saves
+     * collapse repeats rather than refuse them. They also used to slip past
+     * the `workflow_edges` unique index, which treats NULL conditions as
+     * distinct.
+     *
+     * @param  array<int, array<string, mixed>>  $edges
+     * @return array<int, array<string, mixed>>
+     */
+    public static function uniqueEdges(array $edges): array
+    {
+        $seen = [];
+
+        return array_values(array_filter($edges, function (array $edge) use (&$seen): bool {
+            $identity = json_encode([$edge['from'], $edge['to'], $edge['condition'] ?? null]);
+
+            if (isset($seen[$identity])) {
+                return false;
+            }
+
+            return $seen[$identity] = true;
+        }));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $nodes
      * @return array<int, string>
      */
     private function duplicateKeyErrors(array $nodes): array
@@ -82,7 +129,7 @@ class GraphValidator
 
     /**
      * @param  array<int, string>  $keys
-     * @param  array<int, array{from: string, to: string, condition: string|null}>  $edges
+     * @param  array<int, array<string, mixed>>  $edges
      * @return array<int, string>
      */
     private function danglingEdgeErrors(array $keys, array $edges): array
@@ -224,16 +271,14 @@ class GraphValidator
 
         foreach ($nodes as $node) {
             // Flow-control types (loop, subflow, human_approval, wait, ...)
-            // and trigger types aren't in NodeRegistry yet — see
-            // docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 4. Nothing to
-            // schema-check for those until they exist; this is not a
-            // silent pass for genuinely unknown types once every stage
-            // lands.
-            if (! $this->registry->has($node['type'])) {
+            // are checked against their catalog schemas like any other
+            // node. Types with no schema at all — trigger types and
+            // `custom:` nodes (see `NodeRegistry::has()`) — are skipped.
+            $schema = $this->registry->configSchemaFor($node['type']);
+
+            if ($schema === null) {
                 continue;
             }
-
-            $schema = $this->registry->resolve($node['type'])->configSchema();
 
             foreach ($this->configValidator->validate($schema, $node['config']) as $error) {
                 $errors[] = "Node '{$node['key']}': {$error}";

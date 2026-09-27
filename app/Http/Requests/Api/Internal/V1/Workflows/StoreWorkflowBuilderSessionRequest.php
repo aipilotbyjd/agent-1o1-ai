@@ -19,6 +19,7 @@ class StoreWorkflowBuilderSessionRequest extends FormRequest
         return [
             'title' => ['nullable', 'string', 'max:255'],
             'workflow_id' => ['nullable', 'uuid', 'exists:workflows,id'],
+            'prompt' => ['nullable', 'string', 'max:10000'],
         ];
     }
 }

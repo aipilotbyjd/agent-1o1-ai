@@ -2,9 +2,9 @@
 
 namespace App\Ai\Tools\WorkflowBuilder;
 
+use App\Ai\Tools\WorkflowBuilder\Concerns\EditsDraft;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use InvalidArgumentException;
 use JsonException;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -12,6 +12,8 @@ use Stringable;
 
 class AddNodeTool implements Tool
 {
+    use EditsDraft;
+
     public function __construct(public readonly WorkflowBuilderSession $session) {}
 
     public function name(): string
@@ -36,18 +38,12 @@ class AddNodeTool implements Tool
             return 'config_json must be a valid JSON object string.';
         }
 
-        try {
-            $this->session->addNode(
-                key: (string) $arguments['key'],
-                type: (string) $arguments['type'],
-                config: $config ?? [],
-                by: $this->session->user,
-            );
-        } catch (InvalidArgumentException $exception) {
-            return $exception->getMessage();
-        }
-
-        return "Added node [{$arguments['key']}].";
+        return $this->attemptEdit(fn () => $this->session->addNode(
+            key: (string) $arguments['key'],
+            type: (string) $arguments['type'],
+            config: $config ?? [],
+            by: $this->session->user,
+        ), "Added node [{$arguments['key']}].");
     }
 
     /**

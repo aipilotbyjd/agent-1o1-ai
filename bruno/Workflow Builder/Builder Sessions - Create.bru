@@ -35,9 +35,11 @@ docs {
   `workflow-builder.use` permission. Stores the session ID as
   `builderSessionId`.
 
-  Both fields are optional. Pass `workflow_id` to start the session from
+  All fields are optional. Pass `workflow_id` to start the session from
   an existing workflow (it must belong to this workspace); omit it to
-  start from scratch and create a new workflow on promote.
+  start from scratch and create a new workflow on promote. Pass `prompt`
+  to send the first message straight away — `data.message` is then its
+  pending reply (see "Builder Sessions - Send Message").
 
-  Response is wrapped: `{ success, statusCode, message, data: { session } }`.
+  Response is wrapped: `{ success, statusCode, message, data: { session, message } }`.
 }

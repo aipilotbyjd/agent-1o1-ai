@@ -39,4 +39,12 @@ enum CreditTransactionType: string
      * carries an id of its own.
      */
     case AgentDraft = 'agent_draft';
+
+    /**
+     * One workflow-builder assistant turn (charged against its assistant
+     * message's id) or one builder assist call — suggest, configure,
+     * explain — which saves nothing and carries an id of its own. See
+     * `ProcessWorkflowBuilderMessageJob` and `WorkflowBuilderAssistant`.
+     */
+    case WorkflowBuilder = 'workflow_builder';
 }
