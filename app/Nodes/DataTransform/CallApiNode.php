@@ -2,6 +2,7 @@
 
 namespace App\Nodes\DataTransform;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Exceptions\Http\BlockedUrlException;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Http;
 /**
  * Generic outbound HTTP request node (Gumloop's "Call API"/`CallApiNode`).
  */
-class CallApiNode implements NodeContract
+class CallApiNode implements HasIcon, NodeContract
 {
     private const MAX_REDIRECTS = 5;
 
@@ -32,6 +33,11 @@ class CallApiNode implements NodeContract
     public function name(): string
     {
         return 'Call API';
+    }
+
+    public function icon(): string
+    {
+        return 'api';
     }
 
     public function description(): string

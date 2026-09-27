@@ -2,6 +2,7 @@
 
 namespace App\Nodes\AiAutomation;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Agents\Agent;
@@ -30,7 +31,7 @@ use InvalidArgumentException;
  * it falls back to `input.message` from the run's own input, mirroring the
  * old project's default.
  */
-class AgentNode implements NodeContract
+class AgentNode implements HasIcon, NodeContract
 {
     public function __construct(private readonly AgentRunner $runner) {}
 
@@ -47,6 +48,11 @@ class AgentNode implements NodeContract
     public function name(): string
     {
         return 'Agent';
+    }
+
+    public function icon(): string
+    {
+        return 'robot-01';
     }
 
     public function description(): string

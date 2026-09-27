@@ -27,7 +27,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'gmail',
                 'name' => 'Gmail',
-                'icon' => 'mail',
+                'icon' => 'mail-01',
                 'color' => '#EA4335',
                 'description' => 'Send, read, and organize email in Gmail.',
                 'sort_order' => 2,
@@ -43,7 +43,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_drive',
                 'name' => 'Google Drive',
-                'icon' => 'drive',
+                'icon' => 'google-drive',
                 'color' => '#0F9D58',
                 'description' => 'List, fetch, and delete files in Google Drive.',
                 'sort_order' => 4,
@@ -51,7 +51,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_sheets',
                 'name' => 'Google Sheets',
-                'icon' => 'sheets',
+                'icon' => 'google-sheet',
                 'color' => '#0F9D58',
                 'description' => 'Read, append, and update values in Google Sheets.',
                 'sort_order' => 5,
@@ -59,7 +59,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_docs',
                 'name' => 'Google Docs',
-                'icon' => 'docs',
+                'icon' => 'google-doc',
                 'color' => '#4285F4',
                 'description' => 'Create and edit Google Docs.',
                 'sort_order' => 6,
@@ -67,7 +67,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_calendar',
                 'name' => 'Google Calendar',
-                'icon' => 'calendar',
+                'icon' => 'calendar-03',
                 'color' => '#4285F4',
                 'description' => 'List, create, and delete events on Google Calendar.',
                 'sort_order' => 7,
