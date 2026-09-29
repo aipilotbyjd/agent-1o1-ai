@@ -41,14 +41,18 @@ class NodeTool implements Tool
     }
 
     /**
-     * Bound config is spread *after* the model-supplied arguments, so a
+     * Only the fields `schema()` offers are taken from the model — anything
+     * else it sends is dropped, so a field left out of `exposed_fields` can't
+     * be set just by naming it. Bound config is spread last as well, so a
      * matching key always loses to the bound value — the model can never
      * choose a credential, channel, or any other field the workspace member
      * fixed at attach time.
      */
     public function handle(Request $request): Stringable|string
     {
-        $config = [...$request->all(), ...($this->binding->config ?? [])];
+        $arguments = array_intersect_key($request->all(), array_flip($this->modelSettableKeys()));
+
+        $config = [...$arguments, ...($this->binding->config ?? [])];
 
         $output = $this->node->execute($this->run, $config, ['input' => [], 'nodes' => []]);
 
@@ -68,13 +72,12 @@ class NodeTool implements Tool
         $configSchema = $this->node->configSchema();
         $properties = $configSchema['properties'] ?? [];
         $required = $configSchema['required'] ?? [];
-        $boundKeys = array_keys($this->binding->config ?? []);
-        $exposedKeys = $this->binding->exposed_fields ?? array_values(array_diff(array_keys($properties), $boundKeys));
+        $settableKeys = $this->modelSettableKeys();
 
         $result = [];
 
         foreach ($properties as $key => $propertySchema) {
-            if (! in_array($key, $exposedKeys, true) || in_array($key, $boundKeys, true)) {
+            if (! in_array($key, $settableKeys, true)) {
                 continue;
             }
 
@@ -84,6 +87,21 @@ class NodeTool implements Tool
         }
 
         return $result;
+    }
+
+    /**
+     * The config keys the model may supply: exposed (every schema property
+     * when `exposed_fields` is unset) and not bound.
+     *
+     * @return array<int, string>
+     */
+    private function modelSettableKeys(): array
+    {
+        $properties = array_keys($this->node->configSchema()['properties'] ?? []);
+        $boundKeys = array_keys($this->binding->config ?? []);
+        $exposedKeys = $this->binding->exposed_fields ?? $properties;
+
+        return array_values(array_diff(array_intersect($properties, $exposedKeys), $boundKeys));
     }
 
     /**

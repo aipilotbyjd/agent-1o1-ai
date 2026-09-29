@@ -6,6 +6,7 @@ use App\Enums\Agents\EvalRunStatus;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
+use App\Jobs\Agents\RunAgentEvalJob;
 use App\Models\Agents\AgentEvalCase;
 use App\Models\Agents\AgentEvalCaseResult;
 use App\Models\Agents\AgentEvalRun;
@@ -30,7 +31,13 @@ use Throwable;
  *
  * The whole grading pass is recorded as one `Run` (`runnable_type =
  * AgentEvalRun`), which is what puts eval spend on the same ledger as
- * everything else — see `RecordRunCreditUsage`.
+ * everything else — see `RecordRunCreditUsage`. A case's recorded usage
+ * includes its rubric judge's tokens, so judging is billed too.
+ *
+ * `start()` is the HTTP entry point: a suite makes one model call per case
+ * (plus a judge call per rubric), too slow to run inside a request, so it
+ * queues `RunAgentEvalJob`, which calls `execute()`. `run()` does both in
+ * one go for callers that want the result inline.
  */
 class EvalRunner
 {
@@ -41,24 +48,43 @@ class EvalRunner
         private readonly CreditGate $creditGate,
     ) {}
 
+    /**
+     * Records a pending eval run and queues its execution.
+     */
+    public function start(AgentEvalSuite $suite, ?User $triggeredBy = null): AgentEvalRun
+    {
+        $evalRun = $this->createEvalRun($suite, $triggeredBy);
+
+        RunAgentEvalJob::dispatch($evalRun->id);
+
+        return $evalRun->fresh();
+    }
+
     public function run(AgentEvalSuite $suite, ?User $triggeredBy = null): AgentEvalRun
     {
-        $agent = $suite->agent;
+        return $this->execute($this->createEvalRun($suite, $triggeredBy));
+    }
 
-        $this->creditGate->assertCanStartRun($suite->workspace);
+    /**
+     * Grades every case of a pending eval run. A run that has already left
+     * `pending` is returned untouched, so a redelivered job can't grade (and
+     * bill) the same suite twice.
+     */
+    public function execute(AgentEvalRun $evalRun): AgentEvalRun
+    {
+        if ($evalRun->status !== EvalRunStatus::Pending) {
+            return $evalRun;
+        }
 
-        $evalRun = $suite->runs()->create([
-            'workspace_id' => $suite->workspace_id,
-            // Records which behavior was graded — see the migration.
-            'agent_version_id' => $this->versioner->currentVersion($agent)->id,
-            'triggered_by' => $triggeredBy?->id,
-        ]);
+        $suite = $evalRun->suite;
 
         $evalRun->forceFill(['status' => EvalRunStatus::Running, 'started_at' => now()])->save();
 
-        $run = $this->openRun($evalRun, $suite, $triggeredBy);
+        $run = null;
 
         try {
+            $run = $this->openRun($evalRun, $suite, $evalRun->triggeredBy);
+
             [$passed, $failed] = $this->gradeCases($suite, $evalRun, $run);
 
             $evalRun->forceFill([
@@ -80,12 +106,34 @@ class EvalRunner
             // single case's failure is caught per case and recorded as a
             // failing result, since one broken case shouldn't discard the
             // evidence from all the others.
-            $evalRun->forceFill([
-                'status' => EvalRunStatus::Failed,
-                'error' => $e->getMessage(),
-                'finished_at' => now(),
-            ])->save();
+            $this->fail($evalRun, $e);
+        }
 
+        return $evalRun->fresh();
+    }
+
+    /**
+     * Marks an eval run and its `Run` failed, unless already finished. Also
+     * what `RunAgentEvalJob::failed()` calls when the worker itself dies
+     * (e.g. a timeout), so the run can't be left `running`.
+     */
+    public function fail(AgentEvalRun $evalRun, Throwable $e): void
+    {
+        $evalRun->refresh();
+
+        if (in_array($evalRun->status, [EvalRunStatus::Completed, EvalRunStatus::Failed], true)) {
+            return;
+        }
+
+        $evalRun->forceFill([
+            'status' => EvalRunStatus::Failed,
+            'error' => $e->getMessage(),
+            'finished_at' => now(),
+        ])->save();
+
+        $run = $evalRun->runs()->latest('id')->first();
+
+        if ($run !== null && ! $run->status->isTerminal()) {
             $run->forceFill([
                 'status' => RunStatus::Failed,
                 'error' => $e->getMessage(),
@@ -94,8 +142,22 @@ class EvalRunner
 
             event(new RunFailed($run));
         }
+    }
 
-        return $evalRun->fresh();
+    /**
+     * The credit gate runs here, before anything is queued — a workspace out
+     * of credits is refused at request time, not discovered by the job.
+     */
+    private function createEvalRun(AgentEvalSuite $suite, ?User $triggeredBy): AgentEvalRun
+    {
+        $this->creditGate->assertCanStartRun($suite->workspace);
+
+        return $suite->runs()->create([
+            'workspace_id' => $suite->workspace_id,
+            // Records which behavior was graded — see the migration.
+            'agent_version_id' => $this->versioner->currentVersion($suite->agent)->id,
+            'triggered_by' => $triggeredBy?->id,
+        ]);
     }
 
     /**
@@ -129,14 +191,25 @@ class EvalRunner
             return $result;
         }
 
-        $graded = array_map(
-            fn (array $assertion): array => $this->grader->grade($assertion, $answer['text'], $evalRun->suite->agent),
-            $case->assertions ?? [],
-        );
+        $usage = $answer['usage'];
+        $graded = [];
+
+        foreach ($case->assertions ?? [] as $assertion) {
+            $grade = $this->grader->grade($assertion, $answer['text'], $evalRun->suite->agent);
+
+            // The judge's tokens are real spend on this case — fold them into
+            // the case's usage rather than storing them per assertion.
+            if (isset($grade['usage'])) {
+                $usage = $this->addUsage($usage, $grade['usage']);
+                unset($grade['usage']);
+            }
+
+            $graded[] = $grade;
+        }
 
         $result->forceFill([
             'output' => $answer['text'],
-            'usage' => $answer['usage'],
+            'usage' => $usage,
             'assertions' => $graded,
             // A case with no assertions can't fail, but it also proves
             // nothing — the API refuses to create one, so this only guards
@@ -145,6 +218,20 @@ class EvalRunner
         ])->save();
 
         return $result;
+    }
+
+    /**
+     * @param  array<string, mixed>  $total
+     * @param  array<string, mixed>  $extra
+     * @return array<string, mixed>
+     */
+    private function addUsage(array $total, array $extra): array
+    {
+        foreach ($extra as $key => $value) {
+            $total[$key] = (int) ($total[$key] ?? 0) + (int) $value;
+        }
+
+        return $total;
     }
 
     private function openRun(AgentEvalRun $evalRun, AgentEvalSuite $suite, ?User $triggeredBy): Run

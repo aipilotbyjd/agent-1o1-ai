@@ -37,7 +37,8 @@ use Throwable;
  *
  * The persisted transcript is written by `AgentRunner` regardless of whether
  * anyone is listening, so a dropped connection loses the live view, never
- * the conversation.
+ * the conversation: the request keeps running after a disconnect and the
+ * rest of the stream is drained server-side (`AgentRunner::drain()`).
  */
 class AgentSessionStreamController extends Controller
 {
@@ -51,6 +52,8 @@ class AgentSessionStreamController extends Controller
 
         $turn = $this->runner->stream($session, $request->validated('message'), attachments: $request->attachmentFiles());
 
+        ignore_user_abort(true);
+
         return response()->eventStream(
             fn (): iterable => $this->events($turn),
             endStreamWith: new StreamedEvent('done', '{}'),
@@ -58,12 +61,19 @@ class AgentSessionStreamController extends Controller
     }
 
     /**
+     * `eventStream()` stops pulling from this generator once the client
+     * disconnects; the `finally` below then runs as the generator is
+     * discarded and finishes the turn without a listener.
+     *
      * @return iterable<int, StreamedEvent>
      */
     private function events(StreamedTurn $turn): iterable
     {
+        $events = $turn->response->getIterator();
+        $settled = false;
+
         try {
-            foreach ($turn->response as $event) {
+            foreach ($events as $event) {
                 $streamed = match (true) {
                     $event instanceof TextDelta => new StreamedEvent('delta', ['delta' => $event->delta]),
                     $event instanceof ToolCall => new StreamedEvent('tool-call', [
@@ -89,6 +99,8 @@ class AgentSessionStreamController extends Controller
                 }
             }
 
+            $settled = true;
+
             // `AgentRunner::stream()` registered the `then()` callback that
             // persists the reply, and iteration above has now run it — so the
             // run's output holds the message id by this point.
@@ -101,11 +113,17 @@ class AgentSessionStreamController extends Controller
                 'text' => $run->output['text'] ?? null,
             ]);
         } catch (Throwable $e) {
+            $settled = true;
+
             // Nothing else will: the failure happens inside this generator,
             // not inside AgentRunner. See `AgentRunner::stream()`.
             $this->runner->failTurn($turn->run, $e);
 
             yield new StreamedEvent('error', ['message' => $e->getMessage()]);
+        } finally {
+            if (! $settled) {
+                $this->runner->drain($turn, $events);
+            }
         }
     }
 }

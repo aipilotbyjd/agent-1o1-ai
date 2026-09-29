@@ -87,3 +87,22 @@ it('marks an exposed field required only when the underlying config schema requi
 
     expect($serialized['required'] ?? [])->toBe(['method']);
 });
+
+it('drops a tool-call argument for a field that is neither bound nor exposed', function () {
+    $binding = new AgentToolBinding([
+        'node_type' => 'call_api',
+        'config' => ['url' => 'https://internal.example.com/webhook', 'method' => 'POST'],
+        'exposed_fields' => ['body'],
+    ]);
+
+    $tool = new NodeTool(new CallApiNode(new SsrfGuard(fn () => ['203.0.113.10'])), $binding, Run::factory()->create());
+
+    Http::fake(['internal.example.com/*' => Http::response(['ok' => true])]);
+
+    $tool->handle(new Request([
+        'body' => ['message' => 'hello'],
+        'headers' => ['X-Injected' => 'yes'],
+    ]));
+
+    Http::assertSent(fn ($request) => $request['message'] === 'hello' && ! $request->hasHeader('X-Injected'));
+});

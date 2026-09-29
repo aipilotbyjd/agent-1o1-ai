@@ -4,16 +4,22 @@ use App\Ai\Agents\EmbeddedAgent;
 use App\Ai\Agents\EvalJudgeAgent;
 use App\Ai\Tools\SubmitVerdictTool;
 use App\Enums\Agents\EvalRunStatus;
+use App\Jobs\Agents\RunAgentEvalJob;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvalCase;
 use App\Models\Agents\AgentEvalSuite;
 use App\Models\Agents\AgentEvaluationSettings;
 use App\Models\Runs\Run;
 use App\Models\User;
+use App\Services\Agents\AssertionGrader;
 use App\Services\Agents\EvalRunner;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Ai\Prompts\AgentPrompt;
+use Laravel\Ai\Responses\Data\Meta;
 use Laravel\Ai\Responses\Data\ToolCall;
+use Laravel\Ai\Responses\Data\Usage;
+use Laravel\Ai\Responses\TextResponse;
 
 /**
  * @return array{0: AgentEvalSuite, 1: Agent, 2: User}
@@ -208,4 +214,68 @@ it('compares string assertions case-insensitively', function () {
     ]);
 
     expect(app(EvalRunner::class)->run($suite, $owner)->passed)->toBe(1);
+});
+
+it('bills the rubric judge tokens as part of the case usage', function () {
+    EmbeddedAgent::fake([new TextResponse('Refunds within 30 days.', new Usage(100, 20), new Meta('anthropic', 'agent-model'))]);
+    $this->mock(AssertionGrader::class, fn ($mock) => $mock->shouldReceive('grade')->andReturn([
+        'type' => 'llm_rubric',
+        'value' => 'Mentions the window',
+        'passed' => true,
+        'error' => null,
+        'usage' => ['prompt_tokens' => 40, 'completion_tokens' => 1],
+    ]));
+
+    [$suite, $agent, $owner] = evalSuiteFor([
+        ['name' => 'rubric', 'input' => 'q', 'assertions' => [['type' => 'llm_rubric', 'value' => 'Mentions the window']]],
+    ]);
+
+    $result = app(EvalRunner::class)->run($suite, $owner)->results()->sole();
+
+    expect($result->usage['prompt_tokens'])->toBe(140)
+        ->and($result->usage['completion_tokens'])->toBe(21)
+        ->and($result->assertions[0])->not->toHaveKey('usage');
+});
+
+it('does not grade an eval run a second time', function () {
+    EmbeddedAgent::fake(['yes', 'yes']);
+
+    [$suite, $agent, $owner] = evalSuiteFor([
+        ['name' => 'a', 'input' => 'ok?', 'assertions' => [['type' => 'contains', 'value' => 'yes']]],
+    ]);
+
+    $evalRun = app(EvalRunner::class)->run($suite, $owner);
+    app(EvalRunner::class)->execute($evalRun);
+
+    expect($evalRun->results()->count())->toBe(1)
+        ->and($evalRun->runs()->count())->toBe(1);
+});
+
+it('queues the suite and leaves the run pending until the job executes it', function () {
+    Queue::fake();
+
+    [$suite, $agent, $owner] = evalSuiteFor([
+        ['name' => 'a', 'input' => 'ok?', 'assertions' => [['type' => 'contains', 'value' => 'yes']]],
+    ]);
+
+    $evalRun = app(EvalRunner::class)->start($suite, $owner);
+
+    expect($evalRun->status)->toBe(EvalRunStatus::Pending);
+    Queue::assertPushedOn('ai-agent', RunAgentEvalJob::class, fn (RunAgentEvalJob $job) => $job->evalRunId === $evalRun->id);
+});
+
+it('fails an eval run whose worker died mid-suite', function () {
+    EmbeddedAgent::fake(['yes']);
+
+    [$suite, $agent, $owner] = evalSuiteFor([
+        ['name' => 'a', 'input' => 'ok?', 'assertions' => [['type' => 'contains', 'value' => 'yes']]],
+    ]);
+
+    $evalRun = $suite->runs()->create(['workspace_id' => $suite->workspace_id]);
+    $evalRun->forceFill(['status' => EvalRunStatus::Running])->save();
+
+    (new RunAgentEvalJob($evalRun->id))->failed(new RuntimeException('worker timed out'));
+
+    expect($evalRun->fresh()->status)->toBe(EvalRunStatus::Failed)
+        ->and($evalRun->fresh()->error)->toBe('worker timed out');
 });

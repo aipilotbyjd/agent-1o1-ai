@@ -11,6 +11,7 @@ use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
+use App\Exceptions\RunStateException;
 use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
@@ -19,8 +20,10 @@ use App\Models\Runs\Run;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Iterator;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Throwable;
@@ -38,6 +41,13 @@ use Throwable;
  */
 class AgentRunner
 {
+    /**
+     * How long a `running` turn blocks the next message to its session. A
+     * turn older than this is treated as abandoned (a killed worker) rather
+     * than left to lock the conversation forever.
+     */
+    public const int TURN_STALE_AFTER_MINUTES = 15;
+
     public function __construct(
         private readonly ToolRegistry $tools,
         private readonly SkillInjector $skillInjector,
@@ -92,6 +102,25 @@ class AgentRunner
     }
 
     /**
+     * Finishes a streamed turn nobody is listening to any more — the client
+     * disconnected mid-reply. Pulling the rest of the provider stream is what
+     * fires the `then()` callback registered in `stream()`, so the reply is
+     * still persisted and charged instead of the run sitting in `running`.
+     *
+     * @param  Iterator<int, mixed>  $events  the partly consumed stream
+     */
+    public function drain(StreamedTurn $turn, Iterator $events): void
+    {
+        try {
+            while ($events->valid()) {
+                $events->next();
+            }
+        } catch (Throwable $e) {
+            $this->failTurn($turn->run, $e);
+        }
+    }
+
+    /**
      * Everything that happens before the provider is called: credit gate,
      * the turn's own `Run`, the user's message and its attachments, and the
      * SDK agent built from the version this conversation is pinned to.
@@ -108,41 +137,72 @@ class AgentRunner
         // refused up front rather than after the model call is paid for.
         $this->creditGate->assertCanStartRun($session->workspace);
 
-        $run = $session->runs()->create([
-            'workspace_id' => $session->workspace_id,
-            'trigger_type' => $triggerType,
-            'input' => ['message' => $message],
-            // Whose turn this is: tools act on this person's behalf (memories,
-            // skill permissions, personal connector credentials).
-            'triggered_by' => $session->user_id,
-        ]);
-
-        $run->forceFill(['status' => RunStatus::Running, 'started_at' => now()])->save();
-
-        $userMessage = $session->messages()->create([
-            'role' => AgentMessageRole::User,
-            'content' => $message,
-        ]);
+        $run = $this->claimTurn($session, $message, $triggerType);
 
         try {
+            $userMessage = $session->messages()->create([
+                'role' => AgentMessageRole::User,
+                'content' => $message,
+            ]);
+
             $storedAttachments = $this->storeAttachments($session, $run, $userMessage, $attachments);
+
+            $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
+            [$provider, $model] = $this->modelCatalog->forAgent($agent);
+
+            return new AgentTurn(
+                $session,
+                $run,
+                new WorkspaceAgent(
+                    $instructions,
+                    $session,
+                    $userMessage->id,
+                    $this->tools->toolsFor($agent, $run),
+                    GenerationSettings::fromAgent($agent),
+                ),
+                $provider,
+                $model,
+                array_map(fn (Artifact $artifact) => $artifact->toPromptAttachment(), $storedAttachments),
+            );
         } catch (Throwable $e) {
             $this->failTurn($run, $e);
 
             throw $e;
         }
+    }
 
-        $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
-        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+    /**
+     * Creates the turn's `Run`, refusing while another turn on the same
+     * session is still in flight — two interleaved turns would each build
+     * their context from a transcript the other is halfway through writing.
+     * The lock only covers check-and-create; the `running` run itself is
+     * what holds the session for the length of the turn.
+     */
+    private function claimTurn(AgentSession $session, string $message, string $triggerType): Run
+    {
+        return Cache::lock("agent-session:{$session->id}:turn", 10)->block(5, function () use ($session, $message, $triggerType): Run {
+            $busy = $session->runs()
+                ->where('status', RunStatus::Running)
+                ->where('started_at', '>', now()->subMinutes(self::TURN_STALE_AFTER_MINUTES))
+                ->exists();
 
-        return new AgentTurn(
-            $session,
-            $run,
-            new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run)),
-            $provider,
-            $model,
-            array_map(fn (Artifact $artifact) => $artifact->toPromptAttachment(), $storedAttachments),
-        );
+            if ($busy) {
+                throw RunStateException::sessionBusy();
+            }
+
+            $run = $session->runs()->create([
+                'workspace_id' => $session->workspace_id,
+                'trigger_type' => $triggerType,
+                'input' => ['message' => $message],
+                // Whose turn this is: tools act on this person's behalf (memories,
+                // skill permissions, personal connector credentials).
+                'triggered_by' => $session->user_id,
+            ]);
+
+            $run->forceFill(['status' => RunStatus::Running, 'started_at' => now()])->save();
+
+            return $run;
+        });
     }
 
     /**
@@ -256,7 +316,7 @@ class AgentRunner
 
         $startedAt = now();
 
-        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run)))
+        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run), GenerationSettings::fromAgent($agent)))
             ->prompt($prompt, provider: $provider, model: $model);
 
         return ['text' => $response->text, 'usage' => ResponseUsage::from($response, $startedAt)];
@@ -302,7 +362,7 @@ class AgentRunner
 
         $startedAt = now();
 
-        $response = (new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run, $session)))
+        $response = (new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run, $session), GenerationSettings::fromAgent($agent)))
             ->prompt($prompt, provider: $provider, model: $model);
 
         $usage = ResponseUsage::from($response, $startedAt);

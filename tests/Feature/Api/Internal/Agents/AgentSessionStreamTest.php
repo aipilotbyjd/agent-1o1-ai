@@ -3,9 +3,11 @@
 use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionStreamController;
 use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
 use App\Models\User;
+use App\Services\Agents\AgentRunner;
 use App\Services\Workspaces\WorkspaceService;
 use Laravel\Ai\Responses\Data\ToolCall;
 use Laravel\Passport\Passport;
@@ -110,4 +112,27 @@ it('404s streaming into a session that belongs to another agent', function () {
         "/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/sessions/{$session->id}/messages/stream",
         ['message' => 'Hi!'],
     )->assertNotFound();
+});
+
+it('still finishes and records the turn when the client disconnects mid-stream', function () {
+    WorkspaceAgent::fake(['Streaming hello to nobody!']);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = $agent->sessions()->create(['workspace_id' => $workspace->id]);
+
+    $turn = app(AgentRunner::class)->stream($session, 'Hi!');
+    $controller = app(AgentSessionStreamController::class);
+
+    // Take one event, then drop the generator the way `eventStream()` does
+    // once `connection_aborted()` is true.
+    $events = (fn () => $this->events($turn))->call($controller);
+    $events->current();
+    unset($events);
+
+    $run = $turn->run->fresh();
+    expect($run->status)->toBe(RunStatus::Completed);
+    expect($session->messages()->where('role', AgentMessageRole::Assistant)->sole()->content)
+        ->toBe('Streaming hello to nobody!');
 });

@@ -26,10 +26,12 @@ class AssertionGrader
     /**
      * `$agent` is the agent under test; an `llm_rubric` is judged with the
      * judge model set in its evaluation settings, falling back to its own
-     * model — see `ModelCatalogResolver::forJudging()`.
+     * model — see `ModelCatalogResolver::forJudging()`. A judged assertion
+     * also carries the judge call's token `usage`, for `EvalRunner` to bill
+     * against the case.
      *
      * @param  array<string, mixed>  $assertion  `{type, value}`
-     * @return array{type: string, value: string, passed: bool, error: string|null}
+     * @return array{type: string, value: string, passed: bool, error: string|null, usage?: array<string, int>}
      */
     public function grade(array $assertion, string $output, Agent $agent): array
     {
@@ -45,7 +47,9 @@ class AssertionGrader
         }
 
         try {
-            return $this->result($type->value, $value, $this->gradeWithJudge($value, $output, $agent), null);
+            [$passed, $usage] = $this->gradeWithJudge($value, $output, $agent);
+
+            return [...$this->result($type->value, $value, $passed, null), 'usage' => $usage];
         } catch (Throwable $e) {
             // A judge that couldn't be reached is a failed *assertion*, not a
             // failed suite: the rest of the cases still carry information, and
@@ -67,13 +71,19 @@ class AssertionGrader
         };
     }
 
-    private function gradeWithJudge(string $rubric, string $output, Agent $agent): bool
+    /**
+     * @return array{0: bool, 1: array<string, int>} the verdict and the judge call's token usage
+     */
+    private function gradeWithJudge(string $rubric, string $output, Agent $agent): array
     {
         [$provider, $model] = $this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model);
 
         $response = (new EvalJudgeAgent)->prompt(EvalJudgeAgent::promptFor($rubric, $output), provider: $provider, model: $model);
 
-        return (ToolSubmission::arguments($response, SubmitVerdictTool::NAME)['passed'] ?? false) === true;
+        return [
+            (ToolSubmission::arguments($response, SubmitVerdictTool::NAME)['passed'] ?? false) === true,
+            $response->usage->toArray(),
+        ];
     }
 
     /**

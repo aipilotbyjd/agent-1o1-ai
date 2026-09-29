@@ -1,12 +1,14 @@
 <?php
 
 use App\Ai\Agents\EmbeddedAgent;
+use App\Jobs\Agents\RunAgentEvalJob;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvalCase;
 use App\Models\Agents\AgentEvalSuite;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Passport\Passport;
 
 /**
@@ -128,4 +130,22 @@ it('lets a viewer read suites but not run them', function () {
     $this->getJson($base)->assertOk();
     $this->postJson("{$base}/{$suite->id}/runs")->assertForbidden();
     $this->postJson($base, ['name' => 'Nope'])->assertForbidden();
+});
+
+it('queues a suite run and returns it as pending', function () {
+    Queue::fake();
+
+    [$agent, $owner, $workspace] = evalApiAgent();
+    $suite = AgentEvalSuite::factory()->forAgent($agent)->create();
+    AgentEvalCase::factory()->forSuite($suite)->create([
+        'assertions' => [['type' => 'contains', 'value' => 'yes']],
+    ]);
+
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/eval-suites/{$suite->id}/runs")
+        ->assertCreated()
+        ->assertJsonPath('data.run.status', 'pending');
+
+    Queue::assertPushed(RunAgentEvalJob::class);
 });
