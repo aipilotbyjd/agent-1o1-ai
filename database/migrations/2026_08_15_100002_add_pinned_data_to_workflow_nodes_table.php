@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('workflow_nodes', function (Blueprint $table) {
             $table->json('pinned_data')->nullable()->after('position');
             $table->timestamp('pinned_at')->nullable()->after('pinned_data');
-            $table->foreignId('pinned_by')->nullable()->after('pinned_at')->constrained('users')->nullOnDelete();
+            $table->foreignUuid('pinned_by')->nullable()->after('pinned_at')->constrained('users')->nullOnDelete();
         });
     }
 

@@ -2,7 +2,12 @@
 
 namespace App\Services\Workflows;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Workflows\FlowControlNodeType;
+use App\Models\Nodes\NodeCategory;
+use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
+use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 /**
@@ -55,6 +60,82 @@ class NodeRegistry
         return isset($this->builtins[$type]);
     }
 
+    /**
+     * Engine-driven types (loop, subflow, wait, human_approval, join_paths)
+     * — placeable on a graph, but never `resolve()`d: `WorkflowRunner`
+     * drives them itself. See `has()` for why they aren't `$builtins`.
+     */
+    public function isFlowControl(string $type): bool
+    {
+        return FlowControlNodeType::tryFrom($type) !== null;
+    }
+
+    /**
+     * Whether `$type` can be placed on a graph at all — a built-in node or
+     * a flow-control type. What authoring (the builder assistant, a canvas
+     * save) should ask; `has()` is for callers about to `resolve()`.
+     */
+    public function isPlaceable(string $type): bool
+    {
+        return $this->has($type) || $this->isFlowControl($type);
+    }
+
+    /**
+     * The config schema for any placeable type, or null for one that isn't.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function configSchemaFor(string $type): ?array
+    {
+        return $this->describe($type)['config_schema'] ?? null;
+    }
+
+    /**
+     * Name, description, category and config schema for any placeable type —
+     * the catalog entry without the display-only fields, and without the
+     * `NodeCategory` query `catalog()` needs.
+     *
+     * @return array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}|null
+     */
+    public function describe(string $type): ?array
+    {
+        if ($this->has($type)) {
+            $node = $this->resolve($type);
+
+            return [
+                'type' => $type,
+                'category' => $node->category(),
+                'name' => $node->name(),
+                'description' => $node->description(),
+                'config_schema' => $node->configSchema(),
+            ];
+        }
+
+        $definition = collect($this->flowControlDefinitions())->firstWhere('type', $type);
+
+        return $definition === null ? null : [
+            'type' => $definition['type'],
+            'category' => 'flow-logic',
+            'name' => $definition['name'],
+            'description' => $definition['description'],
+            'config_schema' => $definition['config_schema'],
+        ];
+    }
+
+    /**
+     * `describe()` for every placeable type — built-ins first, then
+     * flow-control.
+     *
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}>
+     */
+    public function placeableTypes(): array
+    {
+        return array_map(
+            fn (string $type): array => $this->describe($type),
+            [...array_keys($this->builtins), ...array_map(fn (FlowControlNodeType $case): string => $case->value, FlowControlNodeType::cases())],
+        );
+    }
+
     public function resolve(string $type): NodeContract
     {
         // Reached only from the engine's own execute path (`has()` says
@@ -85,17 +166,22 @@ class NodeRegistry
     }
 
     /**
-     * Every built-in node's catalog metadata — what the node picker (and
-     * `GET /workspaces/{workspace}/nodes`) renders alongside workspace
-     * `CustomNode` rows.
+     * Every built-in node's catalog metadata, including the engine-driven
+     * flow-control types (Loop/JoinPaths/Wait/HumanApproval/SubWorkflow) —
+     * see `has()`'s docblock for why those aren't in `$builtins`. `icon`/
+     * `color` come from the node's `NodeCategory` row; `requires_connector`
+     * is derived from whether the class uses `ResolvesConnectorCredential`.
      *
-     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}>
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, icon: ?string, color: ?string, requires_connector: bool}>
      */
     public function catalog(): array
     {
-        return collect($this->builtins)
-            ->map(function (string $class, string $type): array {
+        $categories = NodeCategory::query()->get()->keyBy('slug');
+
+        $builtins = collect($this->builtins)
+            ->map(function (string $class, string $type) use ($categories): array {
                 $node = app($class);
+                $category = $categories->get($node->category());
 
                 return [
                     'type' => $type,
@@ -103,9 +189,106 @@ class NodeRegistry
                     'name' => $node->name(),
                     'description' => $node->description(),
                     'config_schema' => $node->configSchema(),
+                    'icon' => $node instanceof HasIcon ? $node->icon() : $category?->icon,
+                    'color' => $category?->color,
+                    'requires_connector' => $this->usesConnectorCredential($class),
                 ];
             })
-            ->values()
-            ->all();
+            ->values();
+
+        return $builtins->concat($this->flowControlCatalog($categories))->all();
+    }
+
+    /**
+     * @param  class-string<NodeContract>  $class
+     */
+    private function usesConnectorCredential(string $class): bool
+    {
+        return in_array(ResolvesConnectorCredential::class, class_uses_recursive($class), true);
+    }
+
+    /**
+     * Static metadata for the flow-control types — they never go through
+     * `execute()`, so there's no `NodeContract` instance to read from.
+     *
+     * @param  Collection<string, NodeCategory>  $categories  keyed by slug
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, icon: ?string, color: ?string, requires_connector: bool}>
+     */
+    private function flowControlCatalog(Collection $categories): array
+    {
+        $flowLogic = $categories->get('flow-logic');
+
+        return array_map(fn (array $node): array => [
+            ...$node,
+            'category' => 'flow-logic',
+            'color' => $flowLogic?->color,
+            'requires_connector' => false,
+        ], $this->flowControlDefinitions());
+    }
+
+    /**
+     * @return array<int, array{type: string, icon: string, name: string, description: string, config_schema: array<string, mixed>}>
+     */
+    private function flowControlDefinitions(): array
+    {
+        return [
+            [
+                'type' => FlowControlNodeType::Loop->value,
+                'icon' => 'repeat',
+                'name' => 'Loop',
+                'description' => 'Runs a child workflow once per item in a list, up to a concurrency limit.',
+                'config_schema' => [
+                    'type' => 'object',
+                    'required' => ['items_path', 'workflow_id'],
+                    'properties' => [
+                        'items_path' => ['type' => 'string'],
+                        'workflow_id' => ['type' => 'string'],
+                        'max_concurrent' => ['type' => 'integer', 'default' => 1],
+                        'on_item_error' => ['type' => 'string', 'enum' => ['fail_fast', 'continue', 'collect_errors'], 'default' => 'fail_fast'],
+                    ],
+                ],
+            ],
+            [
+                'type' => FlowControlNodeType::JoinPaths->value,
+                'icon' => 'git-merge',
+                'name' => 'Join Paths',
+                'description' => 'Waits for every incoming branch to reach it before continuing.',
+                'config_schema' => ['type' => 'object', 'properties' => []],
+            ],
+            [
+                'type' => FlowControlNodeType::Wait->value,
+                'icon' => 'hourglass',
+                'name' => 'Wait',
+                'description' => 'Pauses the run until an external callback resumes it, or until it times out.',
+                'config_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'timeout_seconds' => ['type' => ['integer', 'null']],
+                        'continue_on_timeout' => ['type' => 'boolean', 'default' => false],
+                    ],
+                ],
+            ],
+            [
+                'type' => FlowControlNodeType::HumanApproval->value,
+                'icon' => 'user-check-01',
+                'name' => 'Human Approval',
+                'description' => 'Pauses the run until a workspace member approves or rejects it.',
+                'config_schema' => ['type' => 'object', 'properties' => []],
+            ],
+            [
+                'type' => FlowControlNodeType::SubWorkflow->value,
+                'icon' => 'workflow-square-02',
+                'name' => 'Sub-Workflow',
+                'description' => 'Runs another workflow as a child run and waits for it to complete.',
+                'config_schema' => [
+                    'type' => 'object',
+                    'required' => ['workflow_id'],
+                    'properties' => [
+                        'workflow_id' => ['type' => 'string'],
+                        'input' => ['type' => ['object', 'null']],
+                    ],
+                ],
+            ],
+        ];
     }
 }

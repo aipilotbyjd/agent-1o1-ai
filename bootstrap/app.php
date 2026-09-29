@@ -1,15 +1,22 @@
 <?php
 
+use App\Exceptions\BillingAccountNotFoundException;
 use App\Exceptions\ConnectorException;
 use App\Exceptions\FeatureNotAvailableException;
 use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\ModelSubmissionException;
+use App\Exceptions\PlanLimitExceededException;
 use App\Exceptions\RunStateException;
+use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
+use App\Http\Middleware\AllowLongAgentTurn;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsureWorkspaceScope;
+use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -43,7 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'workspace.context' => EnsureWorkspaceScope::class,
             'api-key' => EnsureApiKeyIsValid::class,
+            'long-agent-turn' => AllowLongAgentTurn::class,
         ]);
+
+        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
     })
@@ -82,7 +92,31 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        $exceptions->render(function (WorkflowBuilderConflictException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 409);
+            }
+        });
+
+        $exceptions->render(function (ModelSubmissionException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error("The model didn't return a usable answer. Try again, or pick a different model.", 502);
+            }
+        });
+
         $exceptions->render(function (InsufficientCreditsException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 402);
+            }
+        });
+
+        $exceptions->render(function (BillingAccountNotFoundException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 409);
+            }
+        });
+
+        $exceptions->render(function (PlanLimitExceededException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 402);
             }

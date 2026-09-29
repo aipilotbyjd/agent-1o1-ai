@@ -74,12 +74,15 @@ class KnowledgeBase
     /**
      * The top-scoring chunks for a query, highest first.
      *
-     * @return Collection<int, array{id: int, source: string|null, text: string, score: float}>
+     * @param  string|array<int, string>|null  $collection  One collection, a
+     *                                                      list to search across (an agent's attached sources — see
+     *                                                      `ToolRegistry`), or null for every collection in the workspace.
+     * @return Collection<int, array{id: string, source: string|null, text: string, score: float}>
      */
     public function search(
         Workspace $workspace,
         string $query,
-        ?string $collection = null,
+        string|array|null $collection = null,
         int $topN = self::DEFAULT_TOP_N,
     ): Collection {
         $queryVector = Embeddings::for([$query])->generate()->embeddings[0] ?? [];
@@ -91,7 +94,9 @@ class KnowledgeBase
         $chunks = DocumentEmbedding::query()
             ->select(['id', 'source', 'chunk_text', 'embedding'])
             ->where('workspace_id', $workspace->id)
-            ->when($collection !== null, fn ($builder) => $builder->where('collection', $collection))
+            ->when($collection !== null, fn ($builder) => is_array($collection)
+                ? $builder->whereIn('collection', $collection)
+                : $builder->where('collection', $collection))
             ->lazyById(500);
 
         foreach ($chunks as $chunk) {
@@ -115,14 +120,37 @@ class KnowledgeBase
      * Highest score first; `usort` is stable, so ties keep insertion (id)
      * order.
      *
-     * @param  array<int, array{id: int, source: string|null, text: string, score: float}>  $results
-     * @return array<int, array{id: int, source: string|null, text: string, score: float}>
+     * @param  array<int, array{id: string, source: string|null, text: string, score: float}>  $results
+     * @return array<int, array{id: string, source: string|null, text: string, score: float}>
      */
     private function rank(array $results): array
     {
         usort($results, fn (array $a, array $b): int => $b['score'] <=> $a['score']);
 
         return $results;
+    }
+
+    /**
+     * The full text of one "document" — every chunk sharing a `source`
+     * (and, when given, a `collection`), reassembled in storage order.
+     * Backs `Ai\Tools\ReadKnowledgeDocumentTool`: a search hit's `source` is
+     * a chunk-level snippet, and this is what a model calls when a snippet
+     * alone isn't enough context.
+     *
+     * @param  string|array<int, string>|null  $collection
+     */
+    public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null): ?string
+    {
+        $chunks = DocumentEmbedding::query()
+            ->where('workspace_id', $workspace->id)
+            ->where('source', $source)
+            ->when($collection !== null, fn ($builder) => is_array($collection)
+                ? $builder->whereIn('collection', $collection)
+                : $builder->where('collection', $collection))
+            ->orderBy('id')
+            ->pluck('chunk_text');
+
+        return $chunks->isEmpty() ? null : $chunks->implode("\n\n");
     }
 
     /**

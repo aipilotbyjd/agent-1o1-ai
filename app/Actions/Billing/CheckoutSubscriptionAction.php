@@ -49,15 +49,25 @@ class CheckoutSubscriptionAction
 
         $builder = $workspace->newSubscription(self::SUBSCRIPTION_TYPE, $priceId);
 
+        // Cashier's trialDays() bakes the trial into an absolute `trial_end`
+        // timestamp computed when the Checkout Session is created. Stripe's
+        // Checkout page then displays "days free" as time-remaining-until-
+        // that-timestamp at render time, which is always a hair under the
+        // configured length — so a 14-day trial reads as "13 days free".
+        // Passing `trial_period_days` instead is relative to when the
+        // customer actually completes checkout, so the displayed and actual
+        // trial length always match.
+        $sessionOptions = [
+            'success_url' => $this->successUrl($workspace),
+            'cancel_url' => $this->cancelUrl($workspace),
+        ];
+
         if ($plan->trial_days > 0) {
-            $builder = $builder->trialDays($plan->trial_days);
+            $sessionOptions['subscription_data'] = ['trial_period_days' => $plan->trial_days];
         }
 
         /** @var Checkout $checkout */
-        $checkout = $builder->checkout([
-            'success_url' => $this->successUrl($workspace),
-            'cancel_url' => $this->cancelUrl($workspace),
-        ]);
+        $checkout = $builder->checkout($sessionOptions);
 
         return $checkout->asStripeCheckoutSession()->url;
     }

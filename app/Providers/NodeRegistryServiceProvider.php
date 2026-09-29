@@ -14,6 +14,7 @@ use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubGetRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubListCommitsNode;
 use App\Nodes\Integrations\GitHub\GitHubListIssuesNode;
@@ -28,6 +29,18 @@ use App\Nodes\Integrations\Gmail\GmailListMessagesNode;
 use App\Nodes\Integrations\Gmail\GmailModifyMessageNode;
 use App\Nodes\Integrations\Gmail\GmailReplyToMessageNode;
 use App\Nodes\Integrations\Gmail\GmailSendEmailNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarCreateEventNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarDeleteEventNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarListEventsNode;
+use App\Nodes\Integrations\GoogleDocs\GoogleDocsAppendTextNode;
+use App\Nodes\Integrations\GoogleDocs\GoogleDocsCreateDocumentNode;
+use App\Nodes\Integrations\GoogleDocs\GoogleDocsGetDocumentNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveDeleteFileNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveGetFileNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveListFilesNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsAppendValuesNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetValuesNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsUpdateValuesNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
 use App\Nodes\Integrations\Slack\SlackGetChannelHistoryNode;
 use App\Nodes\Integrations\Slack\SlackInviteToChannelNode;
@@ -97,12 +110,25 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'gmail_list_labels' => GmailListLabelsNode::class,
             'github_get_repo' => GitHubGetRepoNode::class,
             'github_list_repos' => GitHubListReposNode::class,
+            'github_create_repo' => GitHubCreateRepoNode::class,
             'github_list_issues' => GitHubListIssuesNode::class,
             'github_create_issue' => GitHubCreateIssueNode::class,
             'github_create_comment' => GitHubCreateCommentNode::class,
             'github_list_pull_requests' => GitHubListPullRequestsNode::class,
             'github_create_pull_request' => GitHubCreatePullRequestNode::class,
             'github_list_commits' => GitHubListCommitsNode::class,
+            'google_drive_list_files' => GoogleDriveListFilesNode::class,
+            'google_drive_get_file' => GoogleDriveGetFileNode::class,
+            'google_drive_delete_file' => GoogleDriveDeleteFileNode::class,
+            'google_sheets_get_values' => GoogleSheetsGetValuesNode::class,
+            'google_sheets_append_values' => GoogleSheetsAppendValuesNode::class,
+            'google_sheets_update_values' => GoogleSheetsUpdateValuesNode::class,
+            'google_docs_create_document' => GoogleDocsCreateDocumentNode::class,
+            'google_docs_get_document' => GoogleDocsGetDocumentNode::class,
+            'google_docs_append_text' => GoogleDocsAppendTextNode::class,
+            'google_calendar_list_events' => GoogleCalendarListEventsNode::class,
+            'google_calendar_create_event' => GoogleCalendarCreateEventNode::class,
+            'google_calendar_delete_event' => GoogleCalendarDeleteEventNode::class,
         ];
     }
 }

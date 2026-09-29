@@ -5,6 +5,7 @@ namespace App\Models\Connectors;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,9 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * flow — created by `OAuthConnectorFlowService::initiate()`, consumed and
  * deleted by `handleCallback()`. Never holds a token itself.
  */
-#[Fillable(['workspace_id', 'user_id', 'connector_id', 'state', 'name', 'redirect_uri', 'expires_at'])]
+#[Fillable(['workspace_id', 'user_id', 'connector_id', 'state', 'name', 'redirect_uri', 'scope', 'expires_at'])]
 class OAuthConnectorState extends Model
 {
+    use HasUuids;
+
     protected $table = 'oauth_connector_states';
 
     /**

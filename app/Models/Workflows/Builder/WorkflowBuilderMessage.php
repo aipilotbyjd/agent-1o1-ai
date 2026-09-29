@@ -2,8 +2,10 @@
 
 namespace App\Models\Workflows\Builder;
 
+use App\Enums\Workflows\BuilderMessageStatus;
 use Database\Factories\Workflows\Builder\WorkflowBuilderMessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkflowBuilderMessage extends Model
 {
     /** @use HasFactory<WorkflowBuilderMessageFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @var array<string, mixed>
@@ -28,6 +30,7 @@ class WorkflowBuilderMessage extends Model
     {
         return [
             'actions' => 'array',
+            'processing_status' => BuilderMessageStatus::class,
         ];
     }
 

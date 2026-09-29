@@ -20,7 +20,7 @@ class StoreWorkflowRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash'],
             'description' => ['nullable', 'string'],
-            'folder_id' => ['nullable', 'integer'],
+            'folder_id' => ['nullable', 'uuid'],
         ];
     }
 }

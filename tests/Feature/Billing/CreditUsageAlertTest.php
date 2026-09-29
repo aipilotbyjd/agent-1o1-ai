@@ -7,6 +7,8 @@ use App\Exceptions\InsufficientCreditsException;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Admin\AdminAlertNotification;
+use App\Notifications\Billing\CreditsExhaustedNotification;
+use App\Notifications\Billing\CreditsLowNotification;
 use App\Services\Billing\CreditGate;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Notification;
@@ -17,6 +19,12 @@ beforeEach(function () {
     config()->set('admin_alerts.recipients.mail', ['ops@example.com']);
     config()->set('admin_alerts.usage.threshold_percent', 80);
     config()->set('admin_alerts.throttle_seconds', 3600);
+
+    // A workspace now picks its own customer-facing thresholds (75% and 90%
+    // by default). Pinning them to the operator's single line keeps these
+    // cases about one threshold; the per-workspace behaviour has its own
+    // test in `CreditNotificationPreferencesTest`.
+    config()->set('billing.credit_notifications.default_thresholds', [80]);
 });
 
 function workspaceWithCreditLimit(?int $limit): Workspace
@@ -52,6 +60,19 @@ it('alerts admins when a charge crosses the usage threshold', function () {
                     'percent_used' => 80,
                 ];
         },
+    );
+});
+
+it('also notifies the workspace itself when a charge crosses the usage threshold', function () {
+    $workspace = workspaceWithCreditLimit(100);
+    Notification::fake();
+
+    app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 80);
+
+    Notification::assertSentTo(
+        $workspace->owner,
+        CreditsLowNotification::class,
+        fn (CreditsLowNotification $n): bool => $n->data['percent_used'] === 80,
     );
 });
 
@@ -110,6 +131,7 @@ it('raises a critical alert when the gate refuses a workspace that is out of cre
                 && $notification->context === [
                     'workspace_id' => $workspace->id,
                     'credits_available' => 0,
+                    'overage_enabled' => false,
                 ];
         },
     );
@@ -136,4 +158,29 @@ it('stays quiet at the gate while the workspace can still afford to start', func
     app(CreditGate::class)->assertCanStartRun($workspace);
 
     Notification::assertNothingSent();
+});
+
+it('also notifies the workspace when the gate refuses it for lack of credits', function () {
+    $workspace = workspaceWithCreditLimit(10);
+    spendPlanAllowance($workspace);
+
+    Notification::fake();
+
+    expect(fn () => app(CreditGate::class)->assertCanStartRun($workspace->fresh()))
+        ->toThrow(InsufficientCreditsException::class);
+
+    Notification::assertSentTo($workspace->owner, CreditsExhaustedNotification::class);
+});
+
+it('notifies the workspace of exhaustion even when admin alerting is disabled', function () {
+    config()->set('admin_alerts.enabled', false);
+    $workspace = workspaceWithCreditLimit(10);
+    spendPlanAllowance($workspace);
+
+    Notification::fake();
+
+    expect(fn () => app(CreditGate::class)->assertCanStartRun($workspace->fresh()))
+        ->toThrow(InsufficientCreditsException::class);
+
+    Notification::assertSentTo($workspace->owner, CreditsExhaustedNotification::class);
 });

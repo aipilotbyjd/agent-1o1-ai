@@ -28,7 +28,7 @@ class SlackCreateChannelNode extends AbstractSlackNode
             'required' => ['name'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'name' => ['type' => 'string'],
                 'is_private' => ['type' => 'boolean'],
             ],

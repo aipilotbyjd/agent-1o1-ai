@@ -45,7 +45,7 @@ class AgentVersioner
                 // usable. `Workflow::publishVersion()` pairs the same way.
                 return DB::transaction(fn (): AgentVersion => $this->createVersion(
                     $agent,
-                    ((int) $agent->versions()->lockForUpdate()->max('version')) + 1,
+                    ((int) $agent->versions()->lockForUpdate()->pluck('version')->max()) + 1,
                     $changedBy,
                 ));
             } catch (UniqueConstraintViolationException) {
@@ -72,7 +72,7 @@ class AgentVersioner
         $snapshot = $version->snapshot;
 
         $agent->forceFill([
-            'instructions' => $snapshot['instructions'] ?? $agent->instructions,
+            'instructions' => array_key_exists('instructions', $snapshot) ? $snapshot['instructions'] : $agent->instructions,
             'provider' => $snapshot['provider'] ?? $agent->provider,
             'model' => $snapshot['model'] ?? null,
             'temperature' => $snapshot['temperature'] ?? null,

@@ -12,9 +12,15 @@ use App\Http\Requests\Api\Internal\V1\Runs\RetryRunRequest;
 use App\Http\Requests\Api\Internal\V1\Runs\StartRunRequest;
 use App\Http\Resources\Api\Internal\V1\Runs\RunResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\Agents\AgentEvalRun;
+use App\Models\Agents\AgentMessage;
+use App\Models\Agents\AgentSession;
+use App\Models\Agents\AgentSessionEvaluation;
+use App\Models\Agents\ReflectionRun;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use Illuminate\Database\Eloquent\Builder;
 
 class RunController extends Controller
 {
@@ -31,8 +37,10 @@ class RunController extends Controller
         $runs = $workspace->runs()
             ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->validated('workflow_id'), fn ($query, $workflowId) => $query->where('workflow_id', $workflowId))
+            ->when($request->validated('agent_id'), fn ($query, $agentId) => $this->forAgent($query, $agentId))
             ->when($request->validated('trigger_type'), fn ($query, $type) => $query->where('trigger_type', $type))
             ->when($request->validated('exclude_trigger_type'), fn ($query, $type) => $query->where('trigger_type', '!=', $type))
+            ->with(['nodeRuns.creditTransaction', ...Run::runnableWithAgent()])
             ->latest()
             ->paginate($request->validated('per_page') ?? 25)
             ->withQueryString();
@@ -40,12 +48,48 @@ class RunController extends Controller
         return ApiResponse::paginated(RunResource::collection($runs));
     }
 
+    /**
+     * Everything run on an agent's behalf: its chat turns, reflections, chat
+     * grading and eval suites. None of these point at the agent directly —
+     * each run belongs to the chat, review or suite — so it's matched through
+     * that runnable.
+     */
+    private function forAgent(Builder $query, string $agentId): Builder
+    {
+        return $query->whereHasMorph(
+            'runnable',
+            [AgentSession::class, ReflectionRun::class, AgentSessionEvaluation::class, AgentEvalRun::class],
+            fn (Builder $runnable, string $type) => $type === AgentEvalRun::class
+                ? $runnable->whereHas('suite', fn (Builder $suite) => $suite->where('agent_id', $agentId))
+                : $runnable->where('agent_id', $agentId),
+        );
+    }
+
     public function show(Workspace $workspace, Run $run)
     {
         $this->requirePermission(Permission::RunView);
         $this->ensureBelongsToWorkspace($workspace, $run);
 
-        return ApiResponse::success(['run' => RunResource::make($run->load('nodeRuns'))]);
+        $run->load(['nodeRuns.creditTransaction', ...Run::runnableWithAgent()]);
+
+        if ($run->runnable instanceof AgentSession) {
+            $run->setRelation('agentReply', $this->agentReplyFor($run));
+        }
+
+        return ApiResponse::success(['run' => RunResource::make($run)]);
+    }
+
+    /**
+     * A chat turn's `Run` records the reply it produced in `output.message_id`
+     * — see `AgentRunner::completeTurn()`. A turn that failed has none.
+     */
+    private function agentReplyFor(Run $run): ?AgentMessage
+    {
+        $messageId = $run->output['message_id'] ?? null;
+
+        return $messageId
+            ? $run->runnable->messages()->with('attachments.agent')->find($messageId)
+            : null;
     }
 
     public function store(StartRunRequest $request, Workspace $workspace, Workflow $workflow)
@@ -74,7 +118,7 @@ class RunController extends Controller
 
         $cancelled = $this->cancelRun->execute($run, request()->user());
 
-        return ApiResponse::success(['run' => RunResource::make($cancelled->load('nodeRuns'))], 'Run cancelled.');
+        return ApiResponse::success(['run' => RunResource::make($cancelled->load('nodeRuns.creditTransaction'))], 'Run cancelled.');
     }
 
     public function retry(RetryRunRequest $request, Workspace $workspace, Run $run)
@@ -88,6 +132,6 @@ class RunController extends Controller
             $request->validated('from_node_key'),
         );
 
-        return ApiResponse::success(['run' => RunResource::make($retry->load('nodeRuns'))], 'Run retried.', 202);
+        return ApiResponse::success(['run' => RunResource::make($retry->load('nodeRuns.creditTransaction'))], 'Run retried.', 202);
     }
 }

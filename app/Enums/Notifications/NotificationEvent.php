@@ -7,8 +7,7 @@ namespace App\Enums\Notifications;
  * drives both `NotificationPreferenceController::upsert`'s validation and
  * the `/notifications/events` catalogue endpoint the frontend settings
  * screen reads. Ported from the old project's `NotificationEvent`, trimmed
- * to the events that already have a real trigger site in this codebase —
- * billing dunning/trial-expiry cases land once that logic exists.
+ * to the events that already have a real trigger site in this codebase.
  */
 enum NotificationEvent: string
 {
@@ -19,6 +18,16 @@ enum NotificationEvent: string
     case RunApprovalRequested = 'run.approval_requested';
     case ConnectorCredentialExpired = 'connector.credential_expired';
     case PaymentFailed = 'billing.payment_failed';
+    case PaymentRecovered = 'billing.payment_recovered';
+    case SubscriptionCanceled = 'billing.subscription_canceled';
+    case TrialEnding = 'billing.trial_ending';
+    case SubscriptionRenewed = 'billing.subscription_renewed';
+    case CreditsLow = 'billing.credits_low';
+    case CreditsExhausted = 'billing.credits_exhausted';
+    case OverageCapReached = 'billing.overage_cap_reached';
+    case RunFailed = 'run.failed';
+    case ReflectionRunCompleted = 'agent.reflection_run_completed';
+    case SessionEvaluationNotify = 'agent.session_evaluation_notify';
 
     public const DEFAULT_IN_APP = true;
 
@@ -34,6 +43,16 @@ enum NotificationEvent: string
             self::RunApprovalRequested => 'Run approval requested',
             self::ConnectorCredentialExpired => 'Connector credential expired',
             self::PaymentFailed => 'Payment failed',
+            self::PaymentRecovered => 'Payment recovered',
+            self::SubscriptionCanceled => 'Subscription canceled',
+            self::TrialEnding => 'Trial ending soon',
+            self::SubscriptionRenewed => 'Subscription renewed',
+            self::CreditsLow => 'Credits running low',
+            self::CreditsExhausted => 'Credits exhausted',
+            self::OverageCapReached => 'Overage cap reached',
+            self::RunFailed => 'Run failed',
+            self::ReflectionRunCompleted => 'Agent reflection completed',
+            self::SessionEvaluationNotify => 'Agent session needs attention',
         };
     }
 
@@ -47,6 +66,16 @@ enum NotificationEvent: string
             self::RunApprovalRequested => 'A workflow run pauses awaiting human approval.',
             self::ConnectorCredentialExpired => 'A connector credential expires and could not be automatically refreshed.',
             self::PaymentFailed => 'A subscription invoice charge fails.',
+            self::PaymentRecovered => 'A previously failed subscription charge succeeds and the plan is restored.',
+            self::SubscriptionCanceled => 'A subscription ends, including when Stripe gives up after repeated failed charges.',
+            self::TrialEnding => 'A trial is about to end and convert to a paid charge.',
+            self::SubscriptionRenewed => 'An ordinary subscription renewal charge succeeds.',
+            self::CreditsLow => 'A workspace crosses the configured percentage of its credit allowance.',
+            self::CreditsExhausted => 'A workspace runs out of credits and new runs are being refused.',
+            self::OverageCapReached => 'A workspace spends its whole overage allowance for the period and new runs are being refused.',
+            self::RunFailed => 'A workflow or agent run fails.',
+            self::ReflectionRunCompleted => 'A scheduled reflection run finishes analyzing an agent\'s recent conversations.',
+            self::SessionEvaluationNotify => 'An automatic session evaluation fails a criterion configured to notify.',
         };
     }
 

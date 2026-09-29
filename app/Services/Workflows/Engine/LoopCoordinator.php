@@ -44,7 +44,13 @@ class LoopCoordinator
     {
         $config = $nodeDefinition['config'] ?? [];
         $items = array_values((array) Arr::get($context, $config['items_path'] ?? '', []));
-        $childWorkflow = Workflow::find($config['workflow_id'] ?? null);
+        // Scoped to the run's own workspace: `workflow_id` is plain config, and
+        // an unscoped lookup would let one workspace run another's published
+        // workflow — and read its output back through this node.
+        $childWorkflow = Workflow::query()
+            ->whereKey($config['workflow_id'] ?? null)
+            ->where('workspace_id', $run->workspace_id)
+            ->first();
 
         if ($childWorkflow === null || ! $childWorkflow->isPublished()) {
             $this->fail($run, $nodeRun, 'The referenced sub-workflow does not exist or is not published.');

@@ -22,7 +22,7 @@ it('records a transaction and increments the current usage period', function () 
 
     expect($transaction->credits)->toBe(5);
     expect($transaction->source_type)->toBe(CreditTransactionType::NodeRun);
-    expect($transaction->source_id)->toBe(123);
+    expect($transaction->source_id)->toBe('123');
 
     $period = $workspace->currentUsagePeriod();
     expect($period->credits_used)->toBe(5);

@@ -32,6 +32,7 @@ class OAuthConnectorController extends Controller
             $connector,
             $request->validated('name'),
             $request->validated('redirect_uri'),
+            $request->validated('scope'),
         );
 
         return ApiResponse::success($result);

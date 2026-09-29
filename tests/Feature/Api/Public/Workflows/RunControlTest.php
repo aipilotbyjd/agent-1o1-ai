@@ -56,11 +56,13 @@ it('exposes node runs for a run', function () {
 
     $this->withToken($key)->getJson("/api/public/v1/runs/{$run->id}/node-runs")
         ->assertOk()
-        ->assertJsonPath('data.node_runs.0.key', 'a');
+        ->assertJsonPath('data.node_runs.0.key', 'a')
+        ->assertJsonPath('data.node_runs.0.credits_used', 1);
 
     $this->withToken($key)->getJson("/api/public/v1/runs/{$run->id}/node-runs/{$nodeRun->id}")
         ->assertOk()
-        ->assertJsonPath('data.node_run.output.x', 3);
+        ->assertJsonPath('data.node_run.output.x', 3)
+        ->assertJsonPath('data.node_run.credits_used', 1);
 });
 
 it('cancels and retries a run over the public api', function () {

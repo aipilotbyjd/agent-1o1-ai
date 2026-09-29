@@ -20,7 +20,7 @@ class NodeRunController extends Controller
         $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $run);
 
         return ApiResponse::success([
-            'node_runs' => NodeRunResource::collection($run->nodeRuns()->oldest('id')->get()),
+            'node_runs' => NodeRunResource::collection($run->nodeRuns()->with('creditTransaction')->oldest('id')->get()),
         ]);
     }
 
@@ -29,6 +29,6 @@ class NodeRunController extends Controller
         $this->ensureBelongsToWorkspace($this->apiKeyWorkspace($request), $run);
         abort_if($nodeRun->run_id !== $run->id, 404);
 
-        return ApiResponse::success(['node_run' => NodeRunResource::make($nodeRun)]);
+        return ApiResponse::success(['node_run' => NodeRunResource::make($nodeRun->load('creditTransaction'))]);
     }
 }

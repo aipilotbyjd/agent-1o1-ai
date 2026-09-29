@@ -18,9 +18,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_memories', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('key');
             $table->text('value');
             $table->string('type')->default('fact');

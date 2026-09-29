@@ -12,15 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('folders', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('folders')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->uuid('parent_id')->nullable();
             $table->string('name');
             $table->string('color', 7)->nullable();
             $table->unsignedInteger('position')->default(0);
             $table->timestamps();
 
             $table->index(['workspace_id', 'parent_id']);
+        });
+
+        Schema::table('folders', function (Blueprint $table) {
+            $table->foreign('parent_id')->references('id')->on('folders')->nullOnDelete();
         });
     }
 

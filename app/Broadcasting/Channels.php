@@ -4,6 +4,7 @@ namespace App\Broadcasting;
 
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
+use App\Models\Workflows\Builder\WorkflowBuilderSession;
 
 /**
  * The one place channel names are spelled out. Both halves of broadcasting —
@@ -29,12 +30,14 @@ final class Channels
 
     public const string AGENT_SESSION_PATTERN = 'workspaces.{workspaceId}.agent-sessions.{sessionId}';
 
+    public const string WORKFLOW_BUILDER_SESSION_PATTERN = 'workspaces.{workspaceId}.workflow-builder-sessions.{sessionId}';
+
     /**
      * Workspace-wide firehose of run state transitions — what a "Runs" list
      * subscribes to. Individual node steps do *not* land here; they would
      * flood a list view that only renders one row per run.
      */
-    public static function workspaceRuns(int $workspaceId): string
+    public static function workspaceRuns(string $workspaceId): string
     {
         return "workspaces.{$workspaceId}.runs";
     }
@@ -54,5 +57,14 @@ final class Channels
     public static function agentSession(AgentSession $session): string
     {
         return "workspaces.{$session->workspace_id}.agent-sessions.{$session->id}";
+    }
+
+    /**
+     * One workflow-builder session's stream — the assistant's reply as it is
+     * written, its tool calls, and each change it makes to the draft.
+     */
+    public static function workflowBuilderSession(WorkflowBuilderSession $session): string
+    {
+        return "workspaces.{$session->workspace_id}.workflow-builder-sessions.{$session->id}";
     }
 }

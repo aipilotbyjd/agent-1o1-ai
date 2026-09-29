@@ -21,10 +21,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workflow_builder_sessions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('workflow_id')->nullable()->constrained('workflows')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('workflow_id')->nullable()->constrained('workflows')->nullOnDelete();
             $table->string('conversation_id')->nullable()->index();
             $table->string('title')->default('Untitled workflow');
             $table->json('draft_graph')->nullable();

@@ -18,11 +18,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_versions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
             $table->unsignedInteger('version');
             $table->json('snapshot');
-            $table->foreignId('changed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('changed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['agent_id', 'version']);

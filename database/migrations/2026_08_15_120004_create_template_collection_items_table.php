@@ -18,10 +18,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('template_collection_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('collection_id')->constrained('template_collections')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('collection_id')->constrained('template_collections')->cascadeOnDelete();
             $table->string('templatable_type');
-            $table->unsignedBigInteger('templatable_id');
+            $table->uuid('templatable_id');
             $table->unsignedInteger('position')->default(0);
             $table->timestamps();
 

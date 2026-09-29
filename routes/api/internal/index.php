@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     require __DIR__.'/auth.php';
     require __DIR__.'/notifications.php';
+    require __DIR__.'/dashboard.php';
     require __DIR__.'/workspaces.php';
     require __DIR__.'/billing.php';
     require __DIR__.'/onboarding.php';
@@ -12,6 +13,7 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/workflows.php';
     require __DIR__.'/workflow_builder.php';
     require __DIR__.'/nodes.php';
+    require __DIR__.'/model_catalog.php';
     require __DIR__.'/connectors.php';
     require __DIR__.'/secrets.php';
     require __DIR__.'/runs.php';

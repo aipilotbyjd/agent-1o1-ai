@@ -167,6 +167,30 @@ it('does not let a viewer upload', function () {
     ])->assertForbidden();
 });
 
+it('restores a soft-deleted group and continues its version history on re-upload', function () {
+    Storage::fake('local');
+    [$workspace, $owner] = ownerWorkspaceForUploads();
+    Passport::actingAs($owner);
+
+    $first = $this->postJson("/api/v1/workspaces/{$workspace->id}/artifacts", [
+        'file' => UploadedFile::fake()->create('report.pdf', 12, 'application/pdf'),
+    ]);
+    $groupId = $first->json('data.artifact.group_id');
+
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/artifacts/{$first->json('data.artifact.id')}")
+        ->assertNoContent();
+    expect($this->getJson("/api/v1/workspaces/{$workspace->id}/artifacts")->json('data'))->toHaveCount(0);
+
+    $second = $this->postJson("/api/v1/workspaces/{$workspace->id}/artifacts", [
+        'file' => UploadedFile::fake()->create('report.pdf', 20, 'application/pdf'),
+    ]);
+
+    $second->assertCreated();
+    expect($second->json('data.artifact.group_id'))->toBe($groupId);
+    expect($second->json('data.artifact.version'))->toBe(2);
+    expect(Artifact::where('group_id', $groupId)->count())->toBe(2);
+});
+
 it('sandboxes a previewed html artifact', function () {
     Storage::fake('local');
     [$workspace, $owner] = ownerWorkspaceForUploads();

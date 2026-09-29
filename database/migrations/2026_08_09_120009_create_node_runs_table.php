@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('node_runs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('run_id')->constrained('runs')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('run_id')->constrained('runs')->cascadeOnDelete();
             $table->string('key');
             $table->string('type');
             $table->string('status')->default('pending');

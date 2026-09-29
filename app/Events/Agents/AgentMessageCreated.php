@@ -15,6 +15,11 @@ use Illuminate\Queue\SerializesModels;
  * assistant's reply, or a tool result. Lets a second tab (or a teammate
  * watching a shared session) follow along without polling; the token-by-token
  * view of the *same* reply is `AgentSessionStreamController`'s SSE stream.
+ *
+ * Only says that a message arrived, not what it says: Reverb and Pusher
+ * reject any event over 10 KB, which a long reply or its tool calls pass
+ * easily, and a rejected event is simply lost. A listener fetches the
+ * message itself.
  */
 class AgentMessageCreated implements ShouldBroadcast
 {
@@ -44,8 +49,6 @@ class AgentMessageCreated implements ShouldBroadcast
             'id' => $this->message->id,
             'agent_session_id' => $this->message->agent_session_id,
             'role' => $this->message->role->value,
-            'content' => $this->message->content,
-            'tool_calls' => $this->message->tool_calls,
             'created_at' => $this->message->created_at?->toIso8601String(),
         ];
     }

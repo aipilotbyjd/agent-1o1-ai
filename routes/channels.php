@@ -29,3 +29,8 @@ Broadcast::channel(
     Channels::AGENT_SESSION_PATTERN,
     fn (User $user, int $workspaceId, int $sessionId): bool => app(WorkspaceChannelGate::class)->agentSession($user, $workspaceId, $sessionId),
 );
+
+Broadcast::channel(
+    Channels::WORKFLOW_BUILDER_SESSION_PATTERN,
+    fn (User $user, string $workspaceId, string $sessionId): bool => app(WorkspaceChannelGate::class)->workflowBuilderSession($user, $workspaceId, $sessionId),
+);

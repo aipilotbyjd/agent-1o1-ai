@@ -19,10 +19,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('credit_transactions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->string('source_type');
-            $table->unsignedBigInteger('source_id');
+            $table->uuid('source_id');
             $table->unsignedInteger('credits');
             $table->string('reason')->nullable();
             $table->timestamps();

@@ -28,7 +28,7 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode
             'required' => ['channel'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'channel' => ['type' => 'string'],
                 'limit' => ['type' => 'integer'],
                 'oldest' => ['type' => 'string'],

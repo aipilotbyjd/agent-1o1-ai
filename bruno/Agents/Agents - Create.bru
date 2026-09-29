@@ -43,5 +43,10 @@ docs {
   when omitted. `temperature` must be between 0 and 1. `provider` and
   `model` fall back to the application defaults when omitted.
 
+  Optionally pass `model_catalog_id` (an ID from `Ai/Model Catalog -
+  List`) instead of/alongside `provider`/`model` to run this agent on
+  that catalog entry's resolved chain — see
+  `Services\Ai\ModelCatalogResolver`.
+
   Response is wrapped: `{ success, statusCode, message, data: { agent } }`.
 }

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('notification_preferences', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
             $table->string('event_key');
             $table->boolean('in_app')->default(true);
             $table->boolean('email')->default(false);

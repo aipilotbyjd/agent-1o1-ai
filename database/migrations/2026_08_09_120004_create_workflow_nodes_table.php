@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workflow_nodes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workflow_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workflow_id')->constrained()->cascadeOnDelete();
             $table->string('key');
             $table->string('type');
             $table->json('config')->nullable();

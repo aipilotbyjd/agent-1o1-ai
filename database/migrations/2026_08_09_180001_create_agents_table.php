@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agents', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('model')->nullable();
             $table->decimal('temperature', 3, 2)->nullable();
             $table->json('settings')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 

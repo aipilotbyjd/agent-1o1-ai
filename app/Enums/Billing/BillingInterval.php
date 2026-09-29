@@ -30,6 +30,23 @@ enum BillingInterval: string
         return (bool) config("billing.intervals.{$this->value}", true);
     }
 
+    /**
+     * The `plans` column holding this interval's Stripe price id. Owned by
+     * the enum so the mapping has exactly one home: `Plan::stripePriceId()`
+     * reads a price out through it and `Plan::findByStripePriceId()` searches
+     * every interval through it, which is what stops a newly added interval
+     * from being silently missing on one side of that pair.
+     */
+    public function stripePriceColumn(): string
+    {
+        return match ($this) {
+            self::Monthly => 'stripe_price_id_monthly',
+            self::Quarterly => 'stripe_price_id_quarterly',
+            self::Yearly => 'stripe_price_id_yearly',
+            self::Lifetime => 'stripe_price_id_lifetime',
+        };
+    }
+
     public function label(): string
     {
         return match ($this) {

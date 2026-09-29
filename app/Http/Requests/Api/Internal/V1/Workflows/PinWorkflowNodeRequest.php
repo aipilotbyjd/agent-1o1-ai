@@ -19,7 +19,7 @@ class PinWorkflowNodeRequest extends FormRequest
     {
         return [
             'data' => ['nullable', 'array'],
-            'node_run_id' => ['nullable', 'integer'],
+            'node_run_id' => ['nullable', 'uuid'],
         ];
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
 use App\Actions\Agents\DuplicateAgentAction;
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\DuplicateAgentRequest;
@@ -12,22 +13,35 @@ use App\Http\Resources\Api\Internal\V1\Agents\AgentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PlanLimitGate;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class AgentController extends Controller
 {
-    public function index(Workspace $workspace)
+    public function index(Request $request, Workspace $workspace)
     {
         $this->requirePermission(Permission::AgentView);
 
+        $agents = $workspace->agents()
+            ->with('tags')
+            ->withCount('sessions')
+            ->withMax('sessions', 'last_activity_at')
+            ->when($request->query('tag_id'), fn ($query, $tagId) => Str::isUuid($tagId)
+                ? $query->whereHas('tags', fn ($tags) => $tags->whereKey($tagId))
+                : $query->whereRaw('1 = 0'))
+            ->latest()
+            ->get();
+
         return ApiResponse::success([
-            'agents' => AgentResource::collection($workspace->agents()->latest()->get()),
+            'agents' => AgentResource::collection($agents),
         ]);
     }
 
-    public function store(StoreAgentRequest $request, Workspace $workspace)
+    public function store(StoreAgentRequest $request, Workspace $workspace, PlanLimitGate $limits)
     {
         $this->requirePermission(Permission::AgentManage);
+        $limits->assertCanCreate($workspace, PlanLimit::Agents);
 
         $agent = $workspace->agents()->create([
             ...$request->validated(),
@@ -43,7 +57,7 @@ class AgentController extends Controller
         $this->requirePermission(Permission::AgentView);
         $this->ensureBelongsToWorkspace($workspace, $agent);
 
-        return ApiResponse::success(['agent' => AgentResource::make($agent)]);
+        return ApiResponse::success(['agent' => AgentResource::make($agent->load('tags'))]);
     }
 
     public function update(UpdateAgentRequest $request, Workspace $workspace, Agent $agent)

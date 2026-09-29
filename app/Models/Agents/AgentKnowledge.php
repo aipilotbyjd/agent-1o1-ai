@@ -3,12 +3,15 @@
 namespace App\Models\Agents;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['agent_id', 'title', 'content', 'source_type', 'source_url', 'file_path', 'tokens', 'is_active', 'sort_order', 'metadata'])]
 class AgentKnowledge extends Model
 {
+    use HasUuids;
+
     /**
      * @var array<string, mixed>
      */

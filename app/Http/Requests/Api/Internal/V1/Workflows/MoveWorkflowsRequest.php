@@ -18,8 +18,8 @@ class MoveWorkflowsRequest extends FormRequest
     {
         return [
             'workflow_ids' => ['required', 'array', 'min:1'],
-            'workflow_ids.*' => ['integer'],
-            'folder_id' => ['nullable', 'integer', 'exists:folders,id'],
+            'workflow_ids.*' => ['uuid'],
+            'folder_id' => ['nullable', 'uuid', 'exists:folders,id'],
         ];
     }
 }

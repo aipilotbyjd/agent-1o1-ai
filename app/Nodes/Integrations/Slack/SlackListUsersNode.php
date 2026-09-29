@@ -28,7 +28,7 @@ class SlackListUsersNode extends AbstractSlackNode
             'required' => [],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'limit' => ['type' => 'integer'],
                 'cursor' => ['type' => 'string'],
             ],

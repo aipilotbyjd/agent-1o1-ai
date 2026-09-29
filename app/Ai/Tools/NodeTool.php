@@ -37,7 +37,7 @@ class NodeTool implements Tool
 
     public function description(): Stringable|string
     {
-        return "Calls the '{$this->node->type()}' node.";
+        return "{$this->node->name()}: {$this->node->description()}";
     }
 
     /**

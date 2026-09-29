@@ -195,7 +195,7 @@ class EvalRunner
         $graded = [];
 
         foreach ($case->assertions ?? [] as $assertion) {
-            $grade = $this->grader->grade($assertion, $answer['text']);
+            $grade = $this->grader->grade($assertion, $answer['text'], $evalRun->suite->agent);
 
             // The judge's tokens are real spend on this case — fold them into
             // the case's usage rather than storing them per assertion.

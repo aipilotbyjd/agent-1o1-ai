@@ -25,7 +25,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('credit_transactions', function (Blueprint $table) {
-            $table->foreignId('usage_period_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
+            $table->foreignUuid('usage_period_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
             $table->unsignedInteger('topup_credits')->default(0)->after('credits');
 
             $table->unique(['source_type', 'source_id']);

@@ -18,7 +18,7 @@ class UseWorkflowTemplateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'folder_id' => ['nullable', 'integer', 'exists:folders,id'],
+            'folder_id' => ['nullable', 'uuid', 'exists:folders,id'],
         ];
     }
 }

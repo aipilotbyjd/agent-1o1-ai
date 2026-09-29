@@ -2,7 +2,9 @@
 
 namespace App\Services\Workflows;
 
+use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Workflows\WorkflowEdge;
+use App\Models\Workspaces\Workspace;
 use App\Services\Workflows\Engine\GraphAdvancer;
 
 /**
@@ -14,20 +16,30 @@ use App\Services\Workflows\Engine\GraphAdvancer;
  * template pointing at a node that runs later, a misspelled path, wiring
  * that doesn't resolve — all without side effects. Backs
  * `Ai\Tools\WorkflowBuilder\DryRunWorkflowTool`.
+ *
+ * Each node's simulated output is shaped like its real one when that shape
+ * is known — from the node's own pinned data, else from what nodes of its
+ * type have produced in the workspace (`NodeOutputShapes`) — so a misspelled
+ * field is caught. A reference into a node whose shape is *not* known can't
+ * be judged either way; it is reported under `unverified` rather than as a
+ * warning, so a first-time graph isn't buried in false alarms.
  */
 class DryRunner
 {
     public function __construct(
         private readonly GraphValidator $validator,
         private readonly TemplateResolver $templateResolver,
+        private readonly NodeOutputShapes $outputShapes,
+        private readonly OutputSchemaInferrer $inferrer,
     ) {}
 
     /**
      * @param  array{nodes?: array<int, array<string, mixed>>, edges?: array<int, array<string, mixed>>}  $graph
      * @param  array<string, mixed>  $input
+     * @param  Workspace|null  $workspace  Whose run history supplies output shapes; without one, only pinned data does.
      * @return array<string, mixed>
      */
-    public function run(array $graph, array $input = []): array
+    public function run(array $graph, array $input = [], ?Workspace $workspace = null): array
     {
         $nodes = $graph['nodes'] ?? [];
         $edges = $graph['edges'] ?? [];
@@ -38,12 +50,14 @@ class DryRunner
         // it would only produce noise on top of problems the author must
         // fix first — same short-circuit `GraphValidator` itself uses.
         if ($issues !== []) {
-            return ['ok' => false, 'issues' => $issues, 'warnings' => [], 'steps' => []];
+            return ['ok' => false, 'issues' => $issues, 'warnings' => [], 'unverified' => [], 'steps' => []];
         }
 
         $nodesByKey = collect($nodes)->keyBy('key');
         $context = ['input' => $input, 'nodes' => []];
-        $warnings = [];
+        $unknownShapes = [];
+        $warnings = $this->alwaysAndOnErrorWarnings($edges);
+        $unverified = [];
         $trace = [];
 
         foreach ($this->topologicalOrder($nodes, $edges) as $key) {
@@ -51,11 +65,25 @@ class DryRunner
             $config = $node['config'] ?? [];
 
             foreach ($this->unresolvedPaths($config, $context) as $path) {
-                $warnings[] = "Node [{$key}] references [{$path}], which nothing provides at that point.";
+                $source = $this->referencedNodeKey($path);
+
+                if ($source !== null && isset($unknownShapes[$source])) {
+                    $unverified[] = "Node [{$key}] references [{$path}]; node [{$source}]'s output shape isn't known yet (it hasn't run or been pinned), so the field couldn't be checked.";
+                } elseif ($source !== null && isset($context['nodes'][$source])) {
+                    $known = implode(', ', array_keys($context['nodes'][$source])) ?: 'none';
+                    $warnings[] = "Node [{$key}] references [{$path}], but node [{$source}] isn't known to output that. Known fields: {$known}.";
+                } else {
+                    $warnings[] = "Node [{$key}] references [{$path}], which nothing provides at that point.";
+                }
             }
 
-            $output = $this->sampleOutput($node['type']);
-            $context['nodes'][$key] = $output;
+            $output = $this->sampleOutput($node, $workspace);
+
+            if ($output === null) {
+                $unknownShapes[$key] = true;
+            }
+
+            $context['nodes'][$key] = $output ?? [];
 
             $trace[] = [
                 'key' => $key,
@@ -69,6 +97,7 @@ class DryRunner
             'ok' => $warnings === [],
             'issues' => [],
             'warnings' => $warnings,
+            'unverified' => $unverified,
             'steps' => $trace,
         ];
     }
@@ -124,17 +153,75 @@ class DryRunner
     }
 
     /**
-     * A placeholder output — `NodeContract` has no `outputSchema()` to
-     * synthesize a richer sample from (a deliberate scope cut; see
-     * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md's WorkflowBuilderAgent plan).
-     * `router`/`filter` are special-cased since their `result` output
-     * drives edge routing and is worth modelling explicitly.
+     * A stand-in output shaped like the node's real one, or null when that
+     * shape is unknown — `NodeContract` has no `outputSchema()`, so shapes
+     * come from observed outputs (see the class docblock), or from the
+     * engine for flow-control types. `router`/`filter` always model
+     * `result`, since it drives edge routing.
      *
-     * @return array<string, mixed>
+     * @param  array<string, mixed>  $node
+     * @return array<string, mixed>|null
      */
-    private function sampleOutput(string $type): array
+    private function sampleOutput(array $node, ?Workspace $workspace): ?array
     {
-        return in_array($type, ['router', 'filter'], true) ? ['result' => 'default'] : [];
+        $pinned = $node['pinned_data'] ?? null;
+
+        $flowControl = FlowControlNodeType::tryFrom($node['type']);
+
+        // A flow-control node's output is fixed by the engine (or, for
+        // wait/subflow, set by something outside the graph), so history
+        // from other graphs says nothing about it.
+        $shaped = match (true) {
+            is_array($pinned) && $pinned !== [] => $this->inferrer->placeholder($this->inferrer->infer([$pinned])),
+            $flowControl !== null => $flowControl->sampleOutput(),
+            $workspace !== null => $this->outputShapes->placeholderFor($workspace, $node['type']),
+            default => null,
+        };
+
+        if (in_array($node['type'], ['router', 'filter'], true)) {
+            return [...($shaped ?? []), 'result' => 'default'];
+        }
+
+        return $shaped;
+    }
+
+    /**
+     * A pair joined both unconditionally and by an `error` edge is almost
+     * always a failure path that forgot to drop the original edge: the
+     * target then runs on success too, which is valid (so `GraphValidator`
+     * can't refuse it) but rarely meant.
+     *
+     * @param  array<int, array<string, mixed>>  $edges
+     * @return array<int, string>
+     */
+    private function alwaysAndOnErrorWarnings(array $edges): array
+    {
+        $conditionsByPair = [];
+
+        foreach ($edges as $edge) {
+            $conditionsByPair["{$edge['from']}\0{$edge['to']}"][] = $edge['condition'] ?? null;
+        }
+
+        $warnings = [];
+
+        foreach ($conditionsByPair as $pair => $conditions) {
+            if (in_array(null, $conditions, true) && in_array(WorkflowEdge::ERROR_CONDITION, $conditions, true)) {
+                [$from, $to] = explode("\0", $pair);
+                $warnings[] = "Node [{$from}] connects to [{$to}] both always and on error, so [{$to}] runs even when [{$from}] succeeds. Remove the unconditional edge if [{$to}] should only run when [{$from}] fails.";
+            }
+        }
+
+        return $warnings;
+    }
+
+    /**
+     * The node a `nodes.<key>...` template path reads from, if it is one.
+     */
+    private function referencedNodeKey(string $path): ?string
+    {
+        $segments = explode('.', $path);
+
+        return $segments[0] === 'nodes' && isset($segments[1]) ? $segments[1] : null;
     }
 
     /**

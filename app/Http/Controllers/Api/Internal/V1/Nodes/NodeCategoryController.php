@@ -7,16 +7,33 @@ use App\Http\Resources\Api\Internal\V1\Nodes\NodeCategoryResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Nodes\NodeCategory;
 use App\Services\Workflows\NodeRegistry;
+use Illuminate\Http\Request;
 
 class NodeCategoryController extends Controller
 {
     public function __construct(private readonly NodeRegistry $registry) {}
 
-    public function index()
+    /**
+     * `nodes_count` counts built-in nodes only, same as `show()`. Pass
+     * `?include_nodes=1` to also get each category's nodes inline.
+     */
+    public function index(Request $request)
     {
-        $categories = NodeCategory::query()->orderBy('sort_order')->get();
+        $includeNodes = $request->boolean('include_nodes');
+        $catalog = collect($this->registry->catalog())->groupBy('category');
 
-        return ApiResponse::success(['categories' => NodeCategoryResource::collection($categories)]);
+        $categories = NodeCategory::query()->orderBy('sort_order')->get()
+            ->map(function (NodeCategory $category) use ($catalog, $includeNodes): array {
+                $nodes = $catalog->get($category->slug, collect())->values();
+
+                return [
+                    ...NodeCategoryResource::make($category)->resolve(),
+                    'nodes_count' => $nodes->count(),
+                    ...($includeNodes ? ['nodes' => $nodes] : []),
+                ];
+            });
+
+        return ApiResponse::success(['categories' => $categories]);
     }
 
     /**

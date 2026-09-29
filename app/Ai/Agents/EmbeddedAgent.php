@@ -4,6 +4,7 @@ namespace App\Ai\Agents;
 
 use App\Ai\Agents\Concerns\AppliesGenerationSettings;
 use App\Services\Agents\GenerationSettings;
+use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
@@ -18,6 +19,7 @@ use Laravel\Ai\Promptable;
  * turn loop" §2. `$instructions` is pre-composed by
  * `Services\Agents\SkillInjector`, same as `WorkspaceAgent`.
  */
+#[MaxSteps(15)]
 class EmbeddedAgent implements Agent, HasTools
 {
     use AppliesGenerationSettings, Promptable;

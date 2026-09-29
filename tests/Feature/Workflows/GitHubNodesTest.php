@@ -4,6 +4,7 @@ use App\Models\Runs\Run;
 use App\Nodes\Integrations\GitHub\GitHubCreateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubGetRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubListCommitsNode;
 use App\Nodes\Integrations\GitHub\GitHubListIssuesNode;
@@ -18,6 +19,7 @@ it('registers every github node under its own type string', function () {
     $types = [
         'github_get_repo' => GitHubGetRepoNode::class,
         'github_list_repos' => GitHubListReposNode::class,
+        'github_create_repo' => GitHubCreateRepoNode::class,
         'github_list_issues' => GitHubListIssuesNode::class,
         'github_create_issue' => GitHubCreateIssueNode::class,
         'github_create_comment' => GitHubCreateCommentNode::class,
@@ -102,6 +104,36 @@ it('lists issues with a default open state', function () {
 
     expect($output['issues'])->toBe([['number' => 1]]);
     Http::assertSent(fn ($request) => $request['state'] === 'open');
+});
+
+it('creates a repository for the authenticated user', function () {
+    Http::fake(['api.github.com/user/repos' => Http::response([
+        'id' => 7, 'full_name' => 'me/widgets', 'private' => true, 'html_url' => 'https://github.com/me/widgets',
+    ], 201)]);
+
+    $node = new GitHubCreateRepoNode;
+    $run = Run::factory()->create();
+
+    $output = $node->execute($run, ['access_token' => 'gh-test', 'name' => 'widgets', 'private' => true], []);
+
+    expect($output)->toBe([
+        'id' => 7, 'full_name' => 'me/widgets', 'private' => true, 'url' => 'https://github.com/me/widgets',
+    ]);
+    Http::assertSent(fn ($request) => $request->method() === 'POST'
+        && $request['name'] === 'widgets'
+        && $request['private'] === true
+        && ! array_key_exists('description', $request->data()));
+});
+
+it('creates a repository under an organization when an owner is given', function () {
+    Http::fake(['api.github.com/orgs/acme/repos' => Http::response(['id' => 8, 'full_name' => 'acme/widgets'], 201)]);
+
+    $node = new GitHubCreateRepoNode;
+    $run = Run::factory()->create();
+
+    $node->execute($run, ['access_token' => 'gh-test', 'owner' => 'acme', 'name' => 'widgets'], []);
+
+    Http::assertSent(fn ($request) => $request->url() === 'https://api.github.com/orgs/acme/repos');
 });
 
 it('creates an issue and maps the response', function () {

@@ -10,7 +10,11 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Agents\AgentSessionEvaluation;
+use App\Models\Agents\ReflectionRun;
+use App\Models\Auth\PassportToken;
 use App\Models\Billing\Subscription as BillingSubscription;
+use App\Models\Billing\SubscriptionItem as BillingSubscriptionItem;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\Templates\AgentTemplate;
@@ -24,6 +28,7 @@ use App\Observers\AgentObserver;
 use App\Observers\NodeRunObserver;
 use App\Observers\RunObserver;
 use App\Observers\WorkspaceMemberObserver;
+use App\Services\Auth\Grants\SocialExchangeGrant;
 use App\Services\Triggers\TargetRunStarter;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -36,7 +41,9 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Cashier\Cashier;
+use Laravel\Passport\Bridge\RefreshTokenRepository;
 use Laravel\Passport\Passport;
+use League\OAuth2\Server\AuthorizationServer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -71,10 +78,33 @@ class AppServiceProvider extends ServiceProvider
     private function configurePassport(): void
     {
         Passport::enablePasswordGrant();
+        Passport::useTokenModel(PassportToken::class);
 
         Passport::tokensExpireIn(now()->addMinutes(60));
         Passport::refreshTokensExpireIn(now()->addDays(30));
         Passport::personalAccessTokensExpireIn(now()->addMonths(6));
+
+        $this->enableSocialExchangeGrant();
+    }
+
+    /**
+     * Registers the custom grant that turns a completed social sign-in into a
+     * token pair (see `SocialExchangeGrant`).
+     *
+     * `enableGrantType()` wires the access token, client and scope repositories
+     * but not the refresh token one, so that is injected here — without it the
+     * grant would issue an access token with no way to renew it, which is the
+     * whole reason the old implementation resorted to rotating passwords.
+     */
+    private function enableSocialExchangeGrant(): void
+    {
+        $this->app->resolving(AuthorizationServer::class, function (AuthorizationServer $server): void {
+            $grant = new SocialExchangeGrant;
+            $grant->setRefreshTokenRepository($this->app->make(RefreshTokenRepository::class));
+            $grant->setRefreshTokenTTL(Passport::refreshTokensExpireIn());
+
+            $server->enableGrantType($grant, Passport::tokensExpireIn());
+        });
     }
 
     private function configureAuthNotificationUrls(): void
@@ -102,7 +132,14 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
-        RateLimiter::for('auth', fn ($request) => Limit::perMinute(10)->by($request->ip()));
+        // Two limits, not one: the IP limit caps how fast a single source can
+        // work, and the email limit caps how fast one account can be worked on
+        // no matter how many sources are spread across it. `LoginThrottle`
+        // then locks the account outright once failures accumulate.
+        RateLimiter::for('auth', fn (Request $request): array => array_filter([
+            Limit::perMinute(10)->by($request->ip()),
+            $this->authEmailLimit($request),
+        ]));
 
         RateLimiter::for('public-api', function ($request) {
             $key = $request->attributes->get('api_key');
@@ -115,6 +152,32 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('trigger-hooks', fn (Request $request): Limit => Limit::perMinute(
             (int) config('triggers.hook_rate_limit_per_minute'),
         )->by($request->route('token') ?? $request->ip()));
+
+        // Every builder message and assist call is a paid model call — these
+        // cap how fast one member can spend a workspace's credits by
+        // accident (a stuck retry loop in the client, a held-down Enter).
+        RateLimiter::for('workflow-builder-messages', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by($request->user()?->id ?? $request->ip()));
+
+        RateLimiter::for('workflow-builder-assist', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by($request->user()?->id ?? $request->ip()));
+    }
+
+    /**
+     * Keyed on the address being signed in as, so credential stuffing spread
+     * across many IPs still collides on the account it is targeting. Returns
+     * null for requests that carry no email — password resets and refreshes
+     * share this limiter and have nothing to key on.
+     */
+    private function authEmailLimit(Request $request): ?Limit
+    {
+        $email = $request->input('email');
+
+        if (! is_string($email) || $email === '') {
+            return null;
+        }
+
+        return Limit::perMinute(5)->by('auth-email:'.hash('sha256', mb_strtolower($email)));
     }
 
     private function configureGate(): void
@@ -166,6 +229,8 @@ class AppServiceProvider extends ServiceProvider
             TriggerTargetType::Agent->value => Agent::class,
             'agent_session' => AgentSession::class,
             'agent_eval_run' => AgentEvalRun::class,
+            'reflection_run' => ReflectionRun::class,
+            'agent_session_evaluation' => AgentSessionEvaluation::class,
             'workflow_template' => WorkflowTemplate::class,
             'agent_template' => AgentTemplate::class,
             // Needed for Laravel\Ai\Concerns\RemembersConversations'
@@ -180,5 +245,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Cashier::useCustomerModel(Workspace::class);
         Cashier::useSubscriptionModel(BillingSubscription::class);
+        Cashier::useSubscriptionItemModel(BillingSubscriptionItem::class);
     }
 }

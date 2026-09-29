@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('usage_periods', function (Blueprint $table) {
-            $table->foreignId('plan_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
-            $table->foreignId('subscription_id')->nullable()->after('plan_id')->constrained()->nullOnDelete();
+            $table->foreignUuid('plan_id')->nullable()->after('workspace_id')->constrained()->nullOnDelete();
+            $table->foreignUuid('subscription_id')->nullable()->after('plan_id')->constrained()->nullOnDelete();
         });
     }
 

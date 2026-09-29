@@ -19,9 +19,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('credit_packs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('purchased_by')->constrained('users');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('purchased_by')->constrained('users');
             $table->string('pack_key');
             $table->unsignedInteger('credits_amount');
             $table->unsignedInteger('price_cents');

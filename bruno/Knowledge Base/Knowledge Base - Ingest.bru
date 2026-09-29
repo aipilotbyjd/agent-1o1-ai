@@ -36,19 +36,25 @@ docs {
   Chunks the text, embeds each chunk, and stores it in the workspace
   knowledge base. Requires the `agent.manage` permission.
 
-  - `text` — required, max 200,000 characters. Embedding happens inline, so
-    ingest a large corpus as several documents rather than one request.
+  - `text` — required unless `file` is given instead (see
+    `Knowledge Base - Ingest File`), max 200,000 characters. Embedding
+    happens inline, so ingest a large corpus as several documents rather
+    than one request.
   - `source` — optional; a filename, URL, or ticket id. Returned with every
     search hit so an answer can be traced back to where it came from.
   - `collection` — optional, defaults to `default`. Collections are how you
     keep unrelated corpora apart and re-ingest one without touching others.
+    They're also the unit an agent attaches (see `Agents/Knowledge Sources -
+    Attach`).
   - `metadata` — optional JSON object, copied onto every chunk.
 
   Chunking targets ~1,000 characters, splitting on paragraph then sentence
   boundaries and packing short paragraphs together.
 
-  Every agent in the workspace gains a `search_knowledge` tool as soon as
-  one chunk exists — nothing else needs attaching.
+  An agent with no explicitly attached collections (`Agents/Knowledge
+  Sources - List`) searches every collection in the workspace as soon as
+  one chunk exists anywhere — the zero-config fallback. Attach specific
+  collections to scope an agent to only those.
 
   Response is wrapped: `{ ..., data: { chunks_count, chunks } }`.
 }

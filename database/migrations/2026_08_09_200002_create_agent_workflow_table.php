@@ -18,8 +18,8 @@ return new class extends Migration
     {
         Schema::create('agent_workflow', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('workflow_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('workflow_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
 
             $table->unique(['agent_id', 'workflow_id']);

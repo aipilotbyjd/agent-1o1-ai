@@ -20,7 +20,7 @@ class UpdateWorkflowRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255', 'alpha_dash'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'folder_id' => ['sometimes', 'nullable', 'integer'],
+            'folder_id' => ['sometimes', 'nullable', 'uuid'],
         ];
     }
 }

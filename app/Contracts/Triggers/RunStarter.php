@@ -33,5 +33,5 @@ interface RunStarter
      *
      * @param  array<string, mixed>  $payload
      */
-    public function start(Trigger $trigger, array $payload): int;
+    public function start(Trigger $trigger, array $payload): string;
 }

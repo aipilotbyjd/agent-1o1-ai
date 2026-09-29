@@ -28,7 +28,7 @@ class GitHubCreateCommentNode extends AbstractGitHubNode
             'required' => ['repo', 'issue_number', 'body'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'repo' => ['type' => 'string'],
                 'issue_number' => ['type' => 'integer'],
                 'body' => ['type' => 'string'],

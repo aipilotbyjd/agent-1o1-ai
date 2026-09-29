@@ -8,9 +8,12 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workflows\ConfigSchemaValidator;
 use App\Services\Workflows\GraphValidator;
+use App\Services\Workflows\LoopModeCompiler;
 use App\Services\Workflows\NodeRegistry;
 use Database\Factories\Workflows\WorkflowFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,11 +23,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
-#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'input_schema', 'created_by'])]
+#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'input_schema', 'created_by', 'is_internal'])]
 class Workflow extends Model
 {
     /** @use HasFactory<WorkflowFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasUuids, SoftDeletes;
 
     /**
      * @var array<string, mixed>
@@ -32,6 +35,7 @@ class Workflow extends Model
     protected $attributes = [
         'status' => 'draft',
         'has_unpublished_changes' => false,
+        'is_internal' => false,
     ];
 
     /**
@@ -42,6 +46,7 @@ class Workflow extends Model
         return [
             'has_unpublished_changes' => 'boolean',
             'input_schema' => 'array',
+            'is_internal' => 'boolean',
         ];
     }
 
@@ -85,6 +90,11 @@ class Workflow extends Model
         return $this->hasMany(WorkflowEdge::class);
     }
 
+    public function favoritedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'workflow_favorites')->withTimestamps();
+    }
+
     public function runs(): HasMany
     {
         return $this->hasMany(Run::class);
@@ -93,6 +103,20 @@ class Workflow extends Model
     public function isPublished(): bool
     {
         return $this->current_version_id !== null;
+    }
+
+    /**
+     * Excludes the hidden, single-node child workflows
+     * `Services\Workflows\LoopModeCompiler` auto-manages for a looped node —
+     * a user never authored these and shouldn't see them listed, and they
+     * shouldn't count toward `PlanLimit::Workflows`.
+     *
+     * @param  Builder<Workflow>  $query
+     * @return Builder<Workflow>
+     */
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->where('is_internal', false);
     }
 
     /**
@@ -108,18 +132,23 @@ class Workflow extends Model
     public function replaceGraph(array $graph): void
     {
         $nodes = $graph['nodes'] ?? [];
-        $edges = $graph['edges'] ?? [];
+        $edges = GraphValidator::uniqueEdges($graph['edges'] ?? []);
 
         $registry = app(NodeRegistry::class);
         $configValidator = app(ConfigSchemaValidator::class);
-        $errors = [];
+
+        $errors = app(GraphValidator::class)->structuralErrors($nodes, $edges);
+
+        if ($errors !== []) {
+            throw new WorkflowValidationException($errors);
+        }
 
         foreach ($nodes as $node) {
-            if (! $registry->has($node['type'])) {
+            $schema = $registry->configSchemaFor($node['type']);
+
+            if ($schema === null) {
                 continue;
             }
-
-            $schema = $registry->resolve($node['type'])->configSchema();
 
             foreach ($configValidator->validate($schema, $node['config'] ?? []) as $error) {
                 $errors[] = "Node '{$node['key']}': {$error}";
@@ -221,6 +250,13 @@ class Workflow extends Model
             throw new WorkflowValidationException($errors);
         }
 
+        // Compiles any node carrying a `config._loop` key into a real `loop`
+        // node pointed at an auto-managed child workflow — see
+        // `LoopModeCompiler`'s docblock. Graph-shape validation above already
+        // ran against the original node (same key, same edges), so nothing
+        // about the graph's structure needs revalidating after this.
+        $nodes = app(LoopModeCompiler::class)->compile($this, $nodes);
+
         return DB::transaction(function () use ($nodes, $edges, $notes, $publisher): WorkflowVersion {
             $graph = ['nodes' => $nodes, 'edges' => $edges];
 
@@ -239,7 +275,7 @@ class Workflow extends Model
             // the outer transaction usable.
             try {
                 $version = DB::transaction(fn (): WorkflowVersion => $this->createVersion(
-                    ((int) $this->versions()->lockForUpdate()->max('version')) + 1,
+                    ((int) $this->versions()->lockForUpdate()->pluck('version')->max()) + 1,
                     $graph,
                     $notes,
                     $publisher,

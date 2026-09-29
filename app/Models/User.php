@@ -5,14 +5,17 @@ namespace App\Models;
 use App\Enums\Onboarding\DiscoverySource;
 use App\Enums\Onboarding\JobRole;
 use App\Enums\Onboarding\OnboardingStep;
+use App\Models\Auth\AuthEventLog;
 use App\Models\Credentials\OAuthConnection;
 use App\Models\Notifications\NotificationPreference;
+use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -23,12 +26,12 @@ use Laravel\Cashier\Billable;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'avatar', 'current_workspace_id', 'onboarding_current_step', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
+#[Fillable(['name', 'email', 'password', 'avatar', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use Billable, HasApiTokens, HasFactory, MustVerifyEmailTrait, Notifiable;
+    use Billable, HasApiTokens, HasFactory, HasUuids, MustVerifyEmailTrait, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -39,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'pending_email_requested_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
@@ -54,6 +58,11 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function hasTwoFactorEnabled(): bool
     {
         return $this->two_factor_confirmed_at !== null;
+    }
+
+    public function hasPendingEmailChange(): bool
+    {
+        return $this->pending_email !== null;
     }
 
     public function hasCompletedOnboarding(): bool
@@ -76,6 +85,16 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function oauthConnections(): HasMany
     {
         return $this->hasMany(OAuthConnection::class);
+    }
+
+    public function favoriteWorkflows(): BelongsToMany
+    {
+        return $this->belongsToMany(Workflow::class, 'workflow_favorites')->withTimestamps();
+    }
+
+    public function authEvents(): HasMany
+    {
+        return $this->hasMany(AuthEventLog::class);
     }
 
     public function notificationPreferences(): HasMany

@@ -28,7 +28,7 @@ class GmailDeleteMessageNode extends AbstractGmailNode
             'required' => ['message_id'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'message_id' => ['type' => 'string'],
             ],
         ];

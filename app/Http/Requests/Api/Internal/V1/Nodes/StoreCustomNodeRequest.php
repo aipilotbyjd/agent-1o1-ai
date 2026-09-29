@@ -17,7 +17,7 @@ class StoreCustomNodeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['required', 'integer', 'exists:node_categories,id'],
+            'category_id' => ['required', 'uuid', 'exists:node_categories,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'icon' => ['nullable', 'string', 'max:50'],

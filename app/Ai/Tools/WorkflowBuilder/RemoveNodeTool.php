@@ -2,15 +2,17 @@
 
 namespace App\Ai\Tools\WorkflowBuilder;
 
+use App\Ai\Tools\WorkflowBuilder\Concerns\EditsDraft;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use InvalidArgumentException;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
 class RemoveNodeTool implements Tool
 {
+    use EditsDraft;
+
     public function __construct(public readonly WorkflowBuilderSession $session) {}
 
     public function name(): string
@@ -27,13 +29,10 @@ class RemoveNodeTool implements Tool
     {
         $key = (string) ($request->all()['key'] ?? '');
 
-        try {
-            $this->session->removeNode($key, by: $this->session->user);
-        } catch (InvalidArgumentException $exception) {
-            return $exception->getMessage();
-        }
-
-        return "Removed node [{$key}].";
+        return $this->attemptEdit(
+            fn () => $this->session->removeNode($key, by: $this->session->user),
+            "Removed node [{$key}].",
+        );
     }
 
     /**

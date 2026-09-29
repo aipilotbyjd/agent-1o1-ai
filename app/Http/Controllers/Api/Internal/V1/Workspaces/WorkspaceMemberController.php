@@ -49,7 +49,7 @@ class WorkspaceMemberController extends Controller
         return ApiResponse::noContent();
     }
 
-    public function destroy(Workspace $workspace, User $member)
+    public function destroy(Request $request, Workspace $workspace, User $member)
     {
         $this->requirePermission(Permission::MemberRemove);
 

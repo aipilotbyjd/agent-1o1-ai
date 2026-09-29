@@ -24,12 +24,12 @@ class TriggerService
     public function __construct(private readonly RunStarter $runStarter) {}
 
     /**
-     * @param  array{preset_id?: int, config?: array<string, mixed>, is_active?: bool, credential_id?: int, signing_secret?: string}  $data
+     * @param  array{preset_id?: string, config?: array<string, mixed>, is_active?: bool, credential_id?: string, signing_secret?: string}  $data
      */
     public function create(
         Workspace $workspace,
         TriggerTargetType $targetType,
-        int $targetId,
+        string $targetId,
         TriggerType $type,
         array $data,
         ?User $createdBy = null,

@@ -10,6 +10,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('/', [KnowledgeBaseController::class, 'index'])->name('index');
         Route::post('/', [KnowledgeBaseController::class, 'store'])->name('store');
         Route::post('search', [KnowledgeBaseController::class, 'search'])->name('search');
+        Route::get('document', [KnowledgeBaseController::class, 'document'])->name('document');
 
         Route::get('collections', [KnowledgeBaseController::class, 'collections'])->name('collections.index');
         Route::delete('collections/{collection}', [KnowledgeBaseController::class, 'destroyCollection'])->name('collections.destroy');

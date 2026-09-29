@@ -23,10 +23,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('plan_grants', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('purchased_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('plan_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('purchased_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('source')->default('lifetime_purchase');
             $table->string('status')->default('pending');
             $table->unsignedInteger('price_cents')->default(0);

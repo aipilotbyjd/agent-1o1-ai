@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Internal\V1\Runs;
 
+use App\Http\Resources\Api\Internal\V1\Agents\AgentMessageResource;
 use App\Models\Runs\Run;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,10 +31,30 @@ class RunResource extends JsonResource
             'output' => $this->output,
             'error' => $this->error,
             'node_runs' => NodeRunResource::collection($this->whenLoaded('nodeRuns')),
+            'agent' => $this->whenLoaded('runnable', fn () => $this->agentSummary()),
+            'agent_reply' => AgentMessageResource::make($this->whenLoaded('agentReply')),
             'triggered_by' => $this->triggered_by,
+            'loop_index' => $this->loop_index,
             'started_at' => $this->started_at,
             'finished_at' => $this->finished_at,
+            'duration_ms' => $this->durationMs(),
+            'total_credits_used' => $this->totalCreditsUsed(),
             'created_at' => $this->created_at,
         ];
+    }
+
+    /**
+     * @return array{id: string, name: string, icon: ?string, color: ?string}|null
+     */
+    private function agentSummary(): ?array
+    {
+        $agent = $this->owningAgent();
+
+        return $agent ? [
+            'id' => $agent->id,
+            'name' => $agent->name,
+            'icon' => $agent->icon,
+            'color' => $agent->color,
+        ] : null;
     }
 }

@@ -17,9 +17,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workflow_builder_messages', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('session_id')->constrained('workflow_builder_sessions')->cascadeOnDelete();
-            $table->foreignId('draft_version_id')->nullable()
+            $table->uuid('id')->primary();
+            $table->foreignUuid('session_id')->constrained('workflow_builder_sessions')->cascadeOnDelete();
+            $table->foreignUuid('draft_version_id')->nullable()
                 ->constrained('workflow_builder_draft_versions')->nullOnDelete();
             $table->string('role', 20);
             $table->longText('content');

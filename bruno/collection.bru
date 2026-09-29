@@ -44,18 +44,31 @@ docs {
   `workflowId`, `versionId`, `runId`, `triggerId`, `triggerToken`,
   `builderSessionId`, `agentId`, `agentSessionId`, `toolBindingId`,
   `skillId`, `skillReferenceId`, `skillScriptId`, `folderId`, `tagId`,
-  `creditPackId`, and `planId` (set by `Billing/Plans - List`). Running a
-  folder top to bottom fills them in as it goes.
+  `creditPackId`, `secretId`, `workflowTemplateId`, `agentTemplateId`,
+  `templateCollectionId`, `templateCollectionItemId`, `evalSuiteId`,
+  `evalCaseId`, `evalRunId`, and `planId` (set by `Billing/Plans - List`).
+  Running a folder top to bottom fills them in as it goes.
 
-  Two have no `Create` to populate them and must be set by hand from a
-  response body: `approvalId` (from a run parked on an approval node) and
-  `waitToken` (from the callback URL a Wait node hands out).
+  A few have no `Create` to populate them and must be set by hand from a
+  response body: `approvalId` (from a run parked on an approval node),
+  `waitToken` (from the callback URL a Wait node hands out),
+  `workflowNodeId` (a node's ID from a workflow's graph — not the same
+  thing as `nodeId`, which is a node *catalog* entry), and the `nodeRun`
+  path params under `Runs` and `Public`.
+
+  `Artifacts - Preview` and `Webhooks/Stripe Webhook` can't be run by
+  filling in a variable at all — the first needs a signed URL taken whole
+  from an artifact response, the second a Stripe-signed payload. Both say
+  so in their own docs.
 
   ## Suggested order
 
   `Auth` → `Workspaces` (create one, then an API key) → `Workflows` →
   `Workflow Builder` (draft a graph) → `Workflows/Versions - Publish` →
-  `Runs`. `Agents`, `Skills`, and `Triggers` are independent of that
-  chain apart from needing `workspaceId` — though attaching a workflow
+  `Runs`. `Agents`, `Skills`, `Secrets`, and `Triggers` are independent of
+  that chain apart from needing `workspaceId` — though attaching a workflow
   tool or pointing a trigger at a workflow needs `workflowId` too.
+
+  `Templates` needs an existing workflow or agent before its
+  `Save From ...` requests do anything useful; its `Create` requests don't.
 }

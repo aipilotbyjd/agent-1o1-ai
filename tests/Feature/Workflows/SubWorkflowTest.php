@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Str;
 
 function childWorkflowFor(Workspace $workspace, User $owner, array $nodes, array $edges = []): Workflow
 {
@@ -80,7 +81,7 @@ it('fails immediately when the referenced workflow_id does not exist', function 
 
     $parent = Workflow::factory()->forWorkspace($workspace)->create();
     $parent->replaceGraph([
-        'nodes' => [['key' => 'sub', 'type' => 'subflow', 'config' => ['workflow_id' => 999999]]],
+        'nodes' => [['key' => 'sub', 'type' => 'subflow', 'config' => ['workflow_id' => (string) Str::uuid()]]],
         'edges' => [],
     ]);
     $parent->publishVersion(publisher: $owner);
@@ -91,4 +92,27 @@ it('fails immediately when the referenced workflow_id does not exist', function 
 
     expect($run->status)->toBe(RunStatus::Failed);
     expect($run->nodeRuns->firstWhere('key', 'sub')->error)->toContain('does not exist');
+});
+
+it('refuses to run a published workflow from another workspace as its child', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $otherWorkspace = app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Victim']);
+
+    $foreignChild = childWorkflowFor($otherWorkspace, $owner, [
+        ['key' => 'secret', 'type' => 'transform', 'config' => ['mapping' => []]],
+    ]);
+
+    $parent = Workflow::factory()->forWorkspace($workspace)->create();
+    $parent->replaceGraph([
+        'nodes' => [['key' => 'sub', 'type' => 'subflow', 'config' => ['workflow_id' => $foreignChild->id]]],
+        'edges' => [],
+    ]);
+    $parent->publishVersion(publisher: $owner);
+
+    $run = app(StartWorkflowRunAction::class)->execute($parent->fresh())->fresh(['nodeRuns']);
+
+    expect($run->status)->toBe(RunStatus::Failed);
+    expect($run->nodeRuns->firstWhere('key', 'sub')->error)->toContain('does not exist');
+    expect(Run::where('workflow_id', $foreignChild->id)->exists())->toBeFalse();
 });

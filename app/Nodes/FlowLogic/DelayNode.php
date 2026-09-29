@@ -2,6 +2,7 @@
 
 namespace App\Nodes\FlowLogic;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
@@ -13,7 +14,7 @@ use App\Models\Runs\Run;
  * *next* dispatch by that long, rather than blocking a queue worker inside
  * `execute()`.
  */
-class DelayNode implements NodeContract
+class DelayNode implements HasIcon, NodeContract
 {
     public function type(): string
     {
@@ -28,6 +29,11 @@ class DelayNode implements NodeContract
     public function name(): string
     {
         return 'Delay';
+    }
+
+    public function icon(): string
+    {
+        return 'timer-01';
     }
 
     public function description(): string

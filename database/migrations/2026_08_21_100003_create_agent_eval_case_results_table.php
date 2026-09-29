@@ -19,9 +19,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_eval_case_results', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_eval_run_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_eval_case_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_eval_run_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_eval_case_id')->constrained()->cascadeOnDelete();
             $table->longText('output')->nullable();
             $table->boolean('passed')->default(false);
             $table->json('assertions')->nullable();

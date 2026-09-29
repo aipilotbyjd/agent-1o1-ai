@@ -6,11 +6,20 @@ meta {
 
 post {
   url: {{baseUrl}}/v1/auth/2fa/recovery-codes/regenerate
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "current_password": "Password123!"
+  }
 }
 
 docs {
   Invalidates existing recovery codes and generates 8 new ones,
   returned once in this response.
+
+  `current_password` is required: this invalidates the codes the real
+  owner is holding.
 }

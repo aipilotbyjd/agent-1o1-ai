@@ -52,7 +52,7 @@ class WorkflowDiagnosticsController extends Controller
         $graph = $this->graphFrom($request, $workflow);
 
         return ApiResponse::success([
-            'dry_run' => $this->dryRunner->run($graph, $request->validated('input') ?? []),
+            'dry_run' => $this->dryRunner->run($graph, $request->validated('input') ?? [], $workspace),
         ]);
     }
 

@@ -53,3 +53,65 @@ it('refuses an expired connector credential', function () {
     expect(fn () => $node->execute($run, ['credential_id' => $credential->id, 'repo' => 'acme/widgets'], []))
         ->toThrow(RuntimeException::class, 'has expired');
 });
+
+it('falls back to the workspace\'s sole team credential when nothing is pinned', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $connector = Connector::factory()->create(['key' => 'github']);
+    ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)
+        ->create(['data' => ['access_token' => 'gh-team-default']]);
+
+    Http::fake(['api.github.com/repos/acme/widgets' => Http::response(['id' => 1])]);
+    $run = Run::factory()->create(['workspace_id' => $workspace->id]);
+
+    (new GitHubGetRepoNode)->execute($run, ['repo' => 'acme/widgets'], []);
+
+    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer gh-team-default'));
+});
+
+it('falls back to the credential explicitly marked default over an ambiguous set', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $connector = Connector::factory()->create(['key' => 'github']);
+    ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)
+        ->create(['data' => ['access_token' => 'gh-not-default']]);
+    $default = ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)
+        ->create(['data' => ['access_token' => 'gh-default']]);
+    $default->markAsDefault();
+
+    Http::fake(['api.github.com/repos/acme/widgets' => Http::response(['id' => 1])]);
+    $run = Run::factory()->create(['workspace_id' => $workspace->id]);
+
+    (new GitHubGetRepoNode)->execute($run, ['repo' => 'acme/widgets'], []);
+
+    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer gh-default'));
+});
+
+it('prefers the running user\'s personal default over the workspace\'s team credential', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $connector = Connector::factory()->create(['key' => 'github']);
+    ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)
+        ->create(['data' => ['access_token' => 'gh-team']]);
+    ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)
+        ->create(['created_by' => $owner->id, 'scope' => 'personal', 'data' => ['access_token' => 'gh-personal']]);
+
+    Http::fake(['api.github.com/repos/acme/widgets' => Http::response(['id' => 1])]);
+    $run = Run::factory()->create(['workspace_id' => $workspace->id, 'triggered_by' => $owner->id]);
+
+    (new GitHubGetRepoNode)->execute($run, ['repo' => 'acme/widgets'], []);
+
+    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer gh-personal'));
+});
+
+it('does not fall back when several team credentials exist and none is marked default', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $connector = Connector::factory()->create(['key' => 'github']);
+    ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)->count(2)->create();
+
+    $run = Run::factory()->create(['workspace_id' => $workspace->id]);
+
+    expect(fn () => (new GitHubGetRepoNode)->execute($run, ['repo' => 'acme/widgets'], []))
+        ->toThrow(RuntimeException::class, 'access_token or credential_id is required');
+});

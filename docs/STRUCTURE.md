@@ -508,7 +508,8 @@ Every queue name is a typed `Queue` enum case (`Enums/Queue.php`), never a raw s
 |---|---|---|---|
 | `WorkflowDispatch` | `workflows.dispatch` | `DispatchNextNodesJob` | `supervisor-workflows-dispatch` |
 | `WorkflowExecute` | `workflows.execute` | `ExecuteNodeJob`, `ExecuteWorkflowJob`, `ResumeWorkflowJob`, `DiagnoseFailedNodeJob` | `supervisor-workflows-execute` |
-| `AiAgent` | `ai.agent` | `RunAgentJob`, `ProcessAgentMessageJob`, `ProcessBuilderMessageJob` | `supervisor-ai-agent` |
+| `AiAgent` | `ai.agent` | `RunAgentJob`, `ProcessAgentMessageJob` | `supervisor-ai-agent` |
+| `WorkflowBuilder` | `workflow-builder` | `ProcessWorkflowBuilderMessageJob` | `supervisor-workflow-builder` |
 | `TriggersPoll` | `triggers.poll` | `PollTriggersJob`, `PollSingleTriggerJob`, `CheckScheduledTriggersJob`, `CheckScheduledAgentTriggersJob` | `supervisor-triggers-poll` |
 | `TriggersEvent` | `triggers.event` | `ProcessTriggerEventJob` | `supervisor-triggers-event` |
 | `Billing` | `billing.webhook` | Stripe webhook processing | `supervisor-billing-webhook` |

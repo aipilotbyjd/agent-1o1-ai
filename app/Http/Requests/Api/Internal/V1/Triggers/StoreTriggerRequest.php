@@ -30,17 +30,16 @@ class StoreTriggerRequest extends FormRequest
             // since a target can be moved or deleted after creation.
             'target_id' => [
                 'required',
-                'integer',
-                'min:1',
+                'uuid',
                 Rule::exists($this->targetModel(), 'id')
                     ->where('workspace_id', $this->workspace()?->id)
                     ->whereNull('deleted_at'),
             ],
             'type' => ['required', Rule::enum(TriggerType::class)],
-            'preset_id' => ['nullable', 'integer', 'exists:trigger_presets,id'],
+            'preset_id' => ['nullable', 'uuid', 'exists:trigger_presets,id'],
             'config' => ['nullable', 'array'],
             'is_active' => ['nullable', 'boolean'],
-            'credential_id' => ['nullable', 'integer'],
+            'credential_id' => ['nullable', 'uuid'],
             'signing_secret' => ['nullable', 'string'],
         ];
     }

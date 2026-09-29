@@ -16,4 +16,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{artifact}', [ArtifactController::class, 'show'])->name('show');
         Route::delete('{artifact}', [ArtifactController::class, 'destroy'])->name('destroy');
         Route::get('{artifact}/download', [ArtifactController::class, 'download'])->name('download');
+        Route::patch('{artifact}/access', [ArtifactController::class, 'updateAccess'])->name('access.update');
+        Route::post('{artifact}/shares', [ArtifactController::class, 'addShare'])->name('shares.store');
+        Route::delete('{artifact}/shares/{user}', [ArtifactController::class, 'removeShare'])->name('shares.destroy');
     });

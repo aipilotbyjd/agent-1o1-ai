@@ -14,12 +14,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('artifacts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('agent_session_id')->nullable()->constrained('agent_sessions')->nullOnDelete();
-            $table->foreignId('run_id')->nullable()->constrained('runs')->nullOnDelete();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_session_id')->nullable()->constrained('agent_sessions')->nullOnDelete();
+            $table->foreignUuid('run_id')->nullable()->constrained('runs')->nullOnDelete();
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->uuid('group_id');
             $table->unsignedInteger('version')->default(1);
             $table->string('filename');

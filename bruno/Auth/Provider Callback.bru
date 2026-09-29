@@ -19,16 +19,15 @@ params:query {
   state: {{socialState}}
 }
 
-script:post-response {
-  if (res.status === 200) {
-    bru.setVar("accessToken", res.body.data?.access_token);
-  }
-}
-
 docs {
   Completes the OAuth flow for `provider` using the `code` (and optional
   `state`) returned by the provider's redirect. Normally called by the
-  browser, not directly — included for manual/CI verification.
+  browser, not directly — included for manual/CI verification. Accepts
+  POST as well as GET, for popup flows that post the code back.
 
-  Response is wrapped: `{ success, statusCode, message, data: { user, access_token } }`.
+  This does **not** return tokens. It redirects to
+  `{APP_FRONTEND_URL}/oauth/callback?code=<one-time code>` (or
+  `?error=<message>`), and the frontend trades that code via
+  `Social Exchange`. The code is valid for 60 seconds and single-use, so
+  a token never travels in a URL the browser keeps in history.
 }

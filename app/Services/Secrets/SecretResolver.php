@@ -29,7 +29,7 @@ final class SecretResolver
     /**
      * @param  array<string, mixed>  $config
      */
-    public function forConfig(int $workspaceId, array $config): ResolvedSecrets
+    public function forConfig(string $workspaceId, array $config): ResolvedSecrets
     {
         $keys = $this->referencedKeys($config);
 

@@ -2,6 +2,7 @@
 
 namespace App\Nodes\AiAutomation;
 
+use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\NodeCategory;
 use App\Models\Agents\Agent;
@@ -12,19 +13,25 @@ use InvalidArgumentException;
 
 /**
  * Embeds an `Agent` inside a workflow — the Workflow→Agent direction (Stage 7's
- * `WorkflowTool` is the reverse, Agent→Workflow). Ported design from the old
- * project's `AgentStepHandler`: resolves the `Agent` scoped to the run's
- * workspace, prompts it synchronously via `AgentRunner::ask()`, and returns
- * `{text, usage}` — `usage` lands on `NodeRun.usage` the same way
- * `AskAiNode`'s does (`WorkflowRunner::executeNodeContract()`), which is all
- * `CreditMeter` needs; no separate credit-accounting wiring for this node.
+ * `WorkflowTool` is the reverse, Agent→Workflow), and this app's version of
+ * Gumloop's Agent node (docs/gumloop/output/raw/core-concepts/agent_node.md).
+ * Ported design from the old project's `AgentStepHandler`: resolves the
+ * `Agent` scoped to the run's workspace and prompts it via
+ * `AgentRunner::askInConversation()`, which persists the turn as a real
+ * conversation (see that method's docblock for why, and for how
+ * `previous_conversation_id`/`conversation_id` continuity works) and returns
+ * `{text, usage, conversation_id, messages, attachment_names}`. `usage` lands
+ * on `NodeRun.usage` the same way `AskAiNode`'s does
+ * (`WorkflowRunner::executeNodeContract()`), which is all `CreditMeter` needs;
+ * no separate credit-accounting wiring for this node beyond its
+ * `config('billing.node_costs.agent')` surcharge.
  *
  * `config.prompt` is already `{{ }}`-resolved by the time `execute()` sees it
  * (`WorkflowRunner`'s templating pass runs before any node type) — omitting
  * it falls back to `input.message` from the run's own input, mirroring the
  * old project's default.
  */
-class AgentNode implements NodeContract
+class AgentNode implements HasIcon, NodeContract
 {
     public function __construct(private readonly AgentRunner $runner) {}
 
@@ -43,6 +50,11 @@ class AgentNode implements NodeContract
         return 'Agent';
     }
 
+    public function icon(): string
+    {
+        return 'robot-01';
+    }
+
     public function description(): string
     {
         return 'Prompts one of this workspace\'s Agents (with its instructions, skills, and tools) and returns its reply.';
@@ -54,8 +66,12 @@ class AgentNode implements NodeContract
             'type' => 'object',
             'required' => ['agent_id'],
             'properties' => [
-                'agent_id' => ['type' => 'integer'],
+                'agent_id' => ['type' => 'string'],
                 'prompt' => ['type' => 'string'],
+                // Continues a conversation started by an earlier Agent node
+                // run (its returned `conversation_id`) instead of starting a
+                // fresh one — see AgentRunner::askInConversation()'s docblock.
+                'previous_conversation_id' => ['type' => 'string'],
             ],
         ];
     }
@@ -73,6 +89,6 @@ class AgentNode implements NodeContract
 
         $prompt = $config['prompt'] ?? (string) Arr::get($context, 'input.message', '');
 
-        return $this->runner->ask($agent, $run, $prompt);
+        return $this->runner->askInConversation($agent, $run, $prompt, $config['previous_conversation_id'] ?? null);
     }
 }

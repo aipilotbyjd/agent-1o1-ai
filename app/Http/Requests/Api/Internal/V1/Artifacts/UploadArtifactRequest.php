@@ -30,7 +30,7 @@ class UploadArtifactRequest extends FormRequest
             // attributed to another tenant's agent.
             'agent_id' => [
                 'nullable',
-                'integer',
+                'uuid',
                 Rule::exists('agents', 'id')->where('workspace_id', $workspaceId)->whereNull('deleted_at'),
             ],
             // Supplied to add a version to an existing artifact group rather

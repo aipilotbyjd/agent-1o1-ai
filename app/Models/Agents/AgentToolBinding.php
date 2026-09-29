@@ -3,6 +3,7 @@
 namespace App\Models\Agents;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['agent_id', 'node_type', 'config', 'exposed_fields'])]
 class AgentToolBinding extends Model
 {
+    use HasUuids;
+
     protected $table = 'agent_node';
 
     /**

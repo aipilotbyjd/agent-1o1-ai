@@ -84,3 +84,19 @@ it('pages through a session transcript', function () {
     expect($response->json('meta.total'))->toBe(6);
     expect($response->json('data.0.content'))->toBe('a');
 });
+
+it('lists only the conversations people started, not ones subagents ran', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+    $subagentSession = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+    $subagentSession->forceFill(['parent_session_id' => $session->id])->save();
+
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/sessions")
+        ->assertOk()
+        ->assertJsonCount(1, 'data.sessions')
+        ->assertJsonPath('data.sessions.0.id', $session->id);
+});

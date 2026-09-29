@@ -5,6 +5,7 @@ use App\Models\Agents\AgentToolBinding;
 use App\Models\Runs\Run;
 use App\Nodes\DataTransform\CallApiNode;
 use App\Nodes\FlowLogic\RouterNode;
+use App\Services\Http\SsrfGuard;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Illuminate\Support\Facades\Http;
 use Laravel\Ai\Tools\Request;
@@ -23,7 +24,7 @@ it('ignores a tool-call argument that tries to override a bound config value', f
         'exposed_fields' => ['body'],
     ]);
 
-    $tool = new NodeTool(new CallApiNode, $binding, $run);
+    $tool = new NodeTool(new CallApiNode(new SsrfGuard(fn () => ['203.0.113.10'])), $binding, $run);
 
     Http::fake(['internal.example.com/*' => Http::response(['ok' => true])]);
 

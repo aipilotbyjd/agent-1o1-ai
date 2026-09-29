@@ -8,12 +8,15 @@ use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
 use App\Exceptions\RunStateException;
 use App\Models\Agents\Agent;
+use App\Models\Ai\ModelCatalog;
+use App\Models\Ai\ModelRoute;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Services\Agents\AgentRunner;
 use App\Services\Agents\SkillInjector;
 use App\Services\Agents\ToolRegistry;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Tools\Request;
 
 it('sends a message with no tools and completes a run', function () {
@@ -38,6 +41,7 @@ it('sends a message with no tools and completes a run', function () {
     expect($run->status)->toBe(RunStatus::Completed);
     expect($run->output['text'])->toBe('Hello there!');
     expect($run->output['message_id'])->toBe($reply->id);
+    expect($run->triggered_by)->toBe($owner->id);
 });
 
 it('excludes the just-sent user message from the prior-turn context', function () {
@@ -180,4 +184,31 @@ it('sends a bounded history that skips unanswered messages from failed turns', f
     expect($history)->toHaveCount(WorkspaceAgent::HISTORY_LIMIT)
         ->and($history->first()->role->value)->toBe('user')
         ->and($history->last()->content)->toBe('a40');
+});
+
+it('prompts using the resolved model catalog chain when the agent is opted in', function () {
+    WorkspaceAgent::fake(['Hello there!']);
+
+    $catalog = ModelCatalog::factory()->create(['slug' => 'claude-3-5-sonnet']);
+    ModelRoute::factory()->forCatalog($catalog)->create([
+        'execution_provider' => 'anthropic',
+        'execution_model_id' => 'claude-3-5-sonnet-latest',
+        'priority' => 0,
+    ]);
+    ModelRoute::factory()->forCatalog($catalog)->create([
+        'execution_provider' => 'openrouter',
+        'execution_model_id' => 'anthropic/claude-3.5-sonnet',
+        'priority' => 1,
+    ]);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['model_catalog_id' => $catalog->id]);
+
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+    app(SendAgentMessageAction::class)->execute($session, 'Hi!');
+
+    WorkspaceAgent::assertPrompted(function (AgentPrompt $prompt) {
+        return $prompt->provider->name() === 'anthropic' && $prompt->model === 'claude-3-5-sonnet-latest';
+    });
 });

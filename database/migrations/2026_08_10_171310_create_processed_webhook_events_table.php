@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('processed_webhook_events', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('stripe_event_id')->unique();
             $table->string('type');
             $table->timestamp('processed_at');

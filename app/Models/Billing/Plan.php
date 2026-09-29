@@ -4,8 +4,11 @@ namespace App\Models\Billing;
 
 use App\Enums\Billing\BillingInterval;
 use App\Enums\Billing\Feature;
+use App\Enums\Billing\PlanLimit;
 use Database\Factories\Billing\PlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @return array<string, string>
@@ -64,14 +67,49 @@ class Plan extends Model
         return (bool) ($this->features[$feature->value] ?? false);
     }
 
+    /**
+     * The cap this plan puts on a resource, or `null` for unlimited.
+     *
+     * A missing key reads as unlimited rather than zero, deliberately: adding
+     * a `PlanLimit` case must not retroactively cap every already-seeded plan
+     * at nothing. A negative value (the seeder's `-1`) means the same thing
+     * explicitly, so a plan can declare "unlimited" rather than omit the key.
+     */
+    public function limit(PlanLimit $limit): ?int
+    {
+        $value = $this->limits[$limit->value] ?? -1;
+
+        return $value < 0 ? null : (int) $value;
+    }
+
     public function stripePriceId(BillingInterval $interval): ?string
     {
-        return match ($interval) {
-            BillingInterval::Monthly => $this->stripe_price_id_monthly,
-            BillingInterval::Quarterly => $this->stripe_price_id_quarterly,
-            BillingInterval::Yearly => $this->stripe_price_id_yearly,
-            BillingInterval::Lifetime => $this->stripe_price_id_lifetime,
-        };
+        return $this->{$interval->stripePriceColumn()};
+    }
+
+    /**
+     * The plan selling `$stripePriceId` on any interval — the reverse of
+     * `stripePriceId()`, for when Stripe hands us a price and we have to work
+     * out which plan it belongs to.
+     *
+     * Every interval is searched rather than an enumerated few. A lookup that
+     * covered only some of them silently resolved no plan for the rest, which
+     * left a quarterly subscriber's usage period sized from the default plan
+     * instead of the one they paid for.
+     *
+     * Deliberately not filtered to `is_active`: withdrawing a plan from sale
+     * never revokes what someone already bought, so a subscription on a
+     * deactivated plan must still resolve to it.
+     */
+    public static function findByStripePriceId(string $stripePriceId): ?self
+    {
+        return self::query()
+            ->where(function (Builder $query) use ($stripePriceId): void {
+                foreach (BillingInterval::cases() as $interval) {
+                    $query->orWhere($interval->stripePriceColumn(), $stripePriceId);
+                }
+            })
+            ->first();
     }
 
     public function priceFor(BillingInterval $interval): int

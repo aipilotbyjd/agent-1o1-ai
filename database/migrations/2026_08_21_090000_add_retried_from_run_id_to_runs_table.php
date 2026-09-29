@@ -15,7 +15,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('runs', function (Blueprint $table) {
-            $table->foreignId('retried_from_run_id')->nullable()->after('parent_run_id')->constrained('runs')->nullOnDelete();
+            $table->foreignUuid('retried_from_run_id')->nullable()->after('parent_run_id')->constrained('runs')->nullOnDelete();
         });
     }
 

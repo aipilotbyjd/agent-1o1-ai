@@ -22,7 +22,7 @@ class ExecuteNodeJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public int $nodeRunId)
+    public function __construct(public string $nodeRunId)
     {
         $this->onQueue(Queue::WorkflowExecute->value);
     }

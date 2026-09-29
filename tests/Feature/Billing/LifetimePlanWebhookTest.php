@@ -27,7 +27,7 @@ function workspaceAndLifetimePlan(string $customerId): array
 /**
  * @return array<string, mixed>
  */
-function planGrantCheckoutPayload(string $eventId, string $customerId, int $grantId, string $paymentIntentId): array
+function planGrantCheckoutPayload(string $eventId, string $customerId, string $grantId, string $paymentIntentId): array
 {
     return [
         'id' => $eventId,
@@ -39,7 +39,7 @@ function planGrantCheckoutPayload(string $eventId, string $customerId, int $gran
                 'payment_intent' => $paymentIntentId,
                 'metadata' => [
                     'type' => 'plan_grant',
-                    'plan_grant_id' => (string) $grantId,
+                    'plan_grant_id' => $grantId,
                 ],
             ],
         ],

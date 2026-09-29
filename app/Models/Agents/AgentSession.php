@@ -8,10 +8,12 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\Agents\AgentSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -29,7 +31,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class AgentSession extends Model
 {
     /** @use HasFactory<AgentSessionFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @var array<string, mixed>
@@ -96,7 +98,7 @@ class AgentSession extends Model
         }
 
         return (clone $agent)->forceFill([
-            'instructions' => $snapshot['instructions'] ?? $agent->instructions,
+            'instructions' => array_key_exists('instructions', $snapshot) ? $snapshot['instructions'] : $agent->instructions,
             'provider' => $snapshot['provider'] ?? $agent->provider,
             'model' => $snapshot['model'] ?? null,
             'temperature' => $snapshot['temperature'] ?? null,
@@ -109,6 +111,22 @@ class AgentSession extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * The conversation that handed this one its task, when a subagent runs it.
+     */
+    public function parentSession(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_session_id');
+    }
+
+    /**
+     * Subagents this conversation started — see `InvokeAgentTool`.
+     */
+    public function subagentTasks(): HasMany
+    {
+        return $this->hasMany(SubagentTask::class, 'parent_session_id');
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(AgentMessage::class);
@@ -117,5 +135,16 @@ class AgentSession extends Model
     public function runs(): MorphMany
     {
         return $this->morphMany(Run::class, 'runnable');
+    }
+
+    /**
+     * The latest automatic QA grading of this conversation — see
+     * `Services\Agents\SessionEvaluator`. A `HasOne` because a session that
+     * continues and completes again replaces its evaluation rather than
+     * accumulating one per turn.
+     */
+    public function evaluation(): HasOne
+    {
+        return $this->hasOne(AgentSessionEvaluation::class);
     }
 }

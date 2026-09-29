@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workflow_approvals', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('run_id')->constrained('runs')->cascadeOnDelete();
-            $table->foreignId('node_run_id')->constrained('node_runs')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('run_id')->constrained('runs')->cascadeOnDelete();
+            $table->foreignUuid('node_run_id')->constrained('node_runs')->cascadeOnDelete();
             $table->timestamp('requested_at');
             $table->timestamp('decided_at')->nullable();
-            $table->foreignId('decided_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('decided_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('decision')->nullable();
             $table->text('message')->nullable();
             $table->timestamps();

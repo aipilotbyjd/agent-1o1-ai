@@ -21,8 +21,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('document_embeddings', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->string('collection')->default('default');
             $table->string('source')->nullable();
             $table->longText('chunk_text');

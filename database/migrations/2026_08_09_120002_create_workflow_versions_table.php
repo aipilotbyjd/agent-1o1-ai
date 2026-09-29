@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('workflow_versions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('workflow_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('workflow_id')->constrained()->cascadeOnDelete();
             $table->unsignedInteger('version');
             $table->json('graph');
             $table->string('notes', 500)->nullable();
-            $table->foreignId('published_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('published_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['workflow_id', 'version']);

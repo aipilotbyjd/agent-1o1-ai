@@ -7,11 +7,15 @@ use App\Actions\Billing\ActivatePlanGrantAction;
 use App\Actions\Billing\OpenUsagePeriodForSubscriptionAction;
 use App\Actions\Billing\RevokePlanGrantAction;
 use App\Models\Billing\CreditPack;
-use App\Models\Billing\PlanGrant;
 use App\Models\Billing\Plan;
+use App\Models\Billing\PlanGrant;
 use App\Models\Billing\ProcessedWebhookEvent;
 use App\Notifications\Billing\PaymentFailedNotification;
+use App\Notifications\Billing\PaymentRecoveredNotification;
+use App\Notifications\Billing\SubscriptionCanceledNotification;
+use App\Notifications\Billing\SubscriptionRenewedNotification;
 use App\Services\Notifications\NotificationDispatcher;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Cashier\Cashier;
@@ -174,14 +178,20 @@ class StripeWebhookController extends CashierWebhookController
     }
 
     /**
-     * Stripe fires this on every failed invoice charge attempt (including
-     * retries) — the underlying subscription's status transitions (e.g. to
-     * `past_due`) are synced by Cashier's own handler; this only notifies
-     * the workspace owner.
+     * Stripe fires this on every failed invoice charge attempt, including each
+     * automatic retry. The subscription's own status transition (to
+     * `past_due`) is synced by Cashier's handler; this records the dunning
+     * cycle and tells the workspace what happened.
+     *
+     * No grace period is granted here or anywhere else: `past_due` stops
+     * entitling the moment Stripe reports it, because every workflow run and
+     * agent turn costs real model spend. The state recorded below exists to
+     * *explain* that in-product, not to soften it.
      */
     protected function handleInvoicePaymentFailed(array $payload): Response
     {
-        $customerId = $payload['data']['object']['customer'] ?? null;
+        $invoice = $payload['data']['object'] ?? [];
+        $customerId = $invoice['customer'] ?? null;
 
         if ($customerId === null) {
             return new Response('Webhook Handled');
@@ -189,16 +199,105 @@ class StripeWebhookController extends CashierWebhookController
 
         $workspace = Cashier::findBillable($customerId);
 
+        if ($workspace === null) {
+            return new Response('Webhook Handled');
+        }
+
+        $attempts = max((int) ($invoice['attempt_count'] ?? 1), 1);
+        $nextAttemptAt = isset($invoice['next_payment_attempt'])
+            ? Carbon::createFromTimestampUTC($invoice['next_payment_attempt'])
+            : null;
+
+        // Resolved through the workspace rather than the invoice's own
+        // subscription field, whose shape has moved between Stripe API
+        // versions. Null for a one-off charge (a credit pack), which has no
+        // dunning cycle to record but still warrants telling someone.
+        $workspace->subscription('default')?->markDunning(
+            $invoice['id'] ?? null,
+            $attempts,
+        );
+
+        $dispatcher = app(NotificationDispatcher::class);
+
+        $dispatcher->dispatch(
+            $dispatcher->ownersAndAdmins($workspace),
+            new PaymentFailedNotification($workspace, $attempts, $invoice['id'] ?? null, $nextAttemptAt),
+        );
+
+        return new Response('Webhook Handled');
+    }
+
+    /**
+     * Collection succeeded. Closes any open dunning cycle and says so — but
+     * only if there was one, so an ordinary monthly renewal doesn't generate a
+     * "payment recovered" notification nobody was waiting for. An ordinary
+     * renewal (Stripe's `billing_reason: subscription_cycle`, with no
+     * dunning cycle to close) gets its own quieter notification instead — the
+     * first charge on checkout (`subscription_create`) stays silent, since
+     * the checkout response already confirmed it.
+     */
+    protected function handleInvoicePaymentSucceeded(array $payload)
+    {
+        $response = parent::handleInvoicePaymentSucceeded($payload);
+
+        $invoice = $payload['data']['object'] ?? [];
+        $customerId = $invoice['customer'] ?? null;
+
+        if ($customerId === null) {
+            return $response;
+        }
+
+        $workspace = Cashier::findBillable($customerId);
+        $recovered = $workspace?->subscription('default')?->clearDunning() ?? false;
+
+        if ($workspace === null) {
+            return $response;
+        }
+
+        $dispatcher = app(NotificationDispatcher::class);
+
+        if ($recovered) {
+            $dispatcher->dispatch(
+                $dispatcher->ownersAndAdmins($workspace),
+                new PaymentRecoveredNotification($workspace),
+            );
+        } elseif (($invoice['billing_reason'] ?? null) === 'subscription_cycle') {
+            $dispatcher->dispatch(
+                $dispatcher->ownersAndAdmins($workspace),
+                new SubscriptionRenewedNotification($workspace, $invoice['id'] ?? null),
+            );
+        }
+
+        return $response;
+    }
+
+    /**
+     * The end of the line. Stripe deletes a subscription both when a customer
+     * cancels and when it gives up after exhausting its retry schedule — an
+     * open dunning cycle is what separates the two, so it's read before
+     * Cashier's handler clears the row's status.
+     */
+    protected function handleCustomerSubscriptionDeleted(array $payload)
+    {
+        $customerId = $payload['data']['object']['customer'] ?? null;
+        $workspace = $customerId !== null ? Cashier::findBillable($customerId) : null;
+        $subscription = $workspace?->subscription('default');
+        $afterFailedPayments = $subscription?->inDunning() ?? false;
+
+        $response = parent::handleCustomerSubscriptionDeleted($payload);
+
         if ($workspace !== null) {
+            $subscription?->clearDunning();
+
             $dispatcher = app(NotificationDispatcher::class);
 
             $dispatcher->dispatch(
                 $dispatcher->ownersAndAdmins($workspace),
-                new PaymentFailedNotification($workspace),
+                new SubscriptionCanceledNotification($workspace, $afterFailedPayments),
             );
         }
 
-        return new Response('Webhook Handled');
+        return $response;
     }
 
     private function syncPlanAndUsagePeriod(array $payload): void
@@ -218,10 +317,7 @@ class StripeWebhookController extends CashierWebhookController
         }
 
         $plan = $stripePriceId !== null
-            ? Plan::query()
-                ->where('stripe_price_id_monthly', $stripePriceId)
-                ->orWhere('stripe_price_id_yearly', $stripePriceId)
-                ->first()
+            ? Plan::findByStripePriceId($stripePriceId)
             : null;
 
         if ($plan !== null) {

@@ -17,8 +17,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('skill_scripts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('skill_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('skill_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('language');

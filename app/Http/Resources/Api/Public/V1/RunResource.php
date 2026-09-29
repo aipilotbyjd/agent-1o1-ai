@@ -24,8 +24,11 @@ class RunResource extends JsonResource
             'input' => $this->input,
             'output' => $this->output,
             'error' => $this->error,
+            'loop_index' => $this->loop_index,
             'started_at' => $this->started_at,
             'finished_at' => $this->finished_at,
+            'duration_ms' => $this->durationMs(),
+            'total_credits_used' => $this->totalCreditsUsed(),
             'created_at' => $this->created_at,
         ];
     }

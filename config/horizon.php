@@ -205,13 +205,15 @@ return [
     */
 
     'defaults' => [
-        // Also drains `system-notification`: every notification in the app
-        // (`WorkspaceEventNotification` for tenants, `AdminAlertNotification`
-        // for operators) is queued there, and without a supervisor consuming
-        // it those jobs would sit unprocessed forever.
+        // Also drains `system-notification` and `system-maintenance`: every
+        // notification in the app (`WorkspaceEventNotification` for tenants,
+        // `AdminAlertNotification` for operators) and the housekeeping jobs
+        // (`ExpireStaleWaitsJob`, `RefreshConnectorCredentialJob`) are queued
+        // there, and without a supervisor consuming them those jobs would sit
+        // unprocessed forever.
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['default', 'system-notification'],
+            'queue' => ['default', 'system-notification', 'system-maintenance'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
@@ -304,9 +306,47 @@ return [
             'timeout' => 320,
             'nice' => 0,
         ],
+        // Subagents started by `InvokeAgentTool`. Separate from `ai-agent` so a
+        // parent waiting on its subagents never occupies the workers they need
+        // (subagents can't start subagents, so nothing here waits on this
+        // queue), and sized for parallel work — `InvokeAgentTool::MAX_CONCURRENT`
+        // caps how many one conversation can start.
+        'supervisor-ai-subagent' => [
+            'connection' => 'redis',
+            'queue' => ['ai-subagent'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 320,
+            'nice' => 0,
+        ],
+        // ProcessWorkflowBuilderMessageJob — one builder chat turn, which can
+        // run many tool calls against the draft. Kept off `ai-agent` so a
+        // burst of people building workflows can't hold up agent-targeted
+        // triggers (or the other way round). `timeout` must stay above the
+        // job's own $timeout.
+        'supervisor-workflow-builder' => [
+            'connection' => 'redis',
+            'queue' => ['workflow-builder'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 320,
+            'nice' => 0,
+        ],
         // RecordRunCreditUsage — money-adjacent, so it runs on its own
-        // supervisor with an elevated OS priority (`nice`) rather than queuing
-        // behind workflow load (docs/STRUCTURE.md's "Queues & Horizon" table).
+        // supervisor rather than queuing behind workflow load
+        // (docs/STRUCTURE.md's "Queues & Horizon" table). Raising its OS
+        // priority with a negative `nice` needs Horizon to run as root, so
+        // it's opt-in via HORIZON_BILLING_NICE.
         // `tries` is left to the listener's own $tries/$backoff, which retry a
         // failed charge without double-billing (charges are idempotent per
         // node run).
@@ -321,7 +361,7 @@ return [
             'memory' => 128,
             'tries' => 1,
             'timeout' => 60,
-            'nice' => -5,
+            'nice' => (int) env('HORIZON_BILLING_NICE', 0),
         ],
     ],
 
@@ -357,6 +397,14 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-ai-subagent' => [
+                'maxProcesses' => 10,
+            ],
+            'supervisor-workflow-builder' => [
+                'maxProcesses' => 5,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
             'supervisor-billing' => [
                 'maxProcesses' => 3,
                 'balanceMaxShift' => 1,
@@ -381,6 +429,12 @@ return [
                 'maxProcesses' => 3,
             ],
             'supervisor-ai-agent' => [
+                'maxProcesses' => 1,
+            ],
+            'supervisor-ai-subagent' => [
+                'maxProcesses' => 5,
+            ],
+            'supervisor-workflow-builder' => [
                 'maxProcesses' => 1,
             ],
             'supervisor-billing' => [

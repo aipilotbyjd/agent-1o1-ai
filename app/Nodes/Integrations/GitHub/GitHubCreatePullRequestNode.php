@@ -28,7 +28,7 @@ class GitHubCreatePullRequestNode extends AbstractGitHubNode
             'required' => ['repo', 'title', 'head', 'base'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'repo' => ['type' => 'string'],
                 'title' => ['type' => 'string'],
                 'head' => ['type' => 'string'],

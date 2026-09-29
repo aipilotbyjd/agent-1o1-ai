@@ -4,22 +4,28 @@ namespace App\Models\Billing;
 
 use App\Models\Workspaces\Workspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * `credits_used` is engine-managed (incremented by
- * `DeductCreditsAction` via `increment()`, never mass-assigned) — only the
- * window bounds and an optional limit are user/system-set at creation time.
+ * `credits_used` and the two `overage_*` counters are engine-managed
+ * (incremented by `DeductCreditsAction`/`BillOverageCreditsAction` via
+ * `increment()`, never mass-assigned) — only the window bounds and an
+ * optional limit are user/system-set at creation time.
  */
 #[Fillable(['workspace_id', 'plan_id', 'subscription_id', 'starts_at', 'ends_at', 'credits_limit'])]
 class UsagePeriod extends Model
 {
+    use HasUuids;
+
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
         'credits_used' => 0,
+        'overage_credits_used' => 0,
+        'overage_credits_billed' => 0,
     ];
 
     /**
@@ -32,6 +38,8 @@ class UsagePeriod extends Model
             'ends_at' => 'datetime',
             'credits_used' => 'integer',
             'credits_limit' => 'integer',
+            'overage_credits_used' => 'integer',
+            'overage_credits_billed' => 'integer',
         ];
     }
 
@@ -69,5 +77,17 @@ class UsagePeriod extends Model
         }
 
         return max(0, $this->credits_limit - $this->credits_used);
+    }
+
+    /**
+     * Overage this period that hasn't been invoiced yet — what
+     * `BillOverageCreditsAction` turns into a Stripe invoice line. Charges
+     * only ever add to `overage_credits_used` and billing only ever adds to
+     * `overage_credits_billed`, so this can't go negative in practice; the
+     * clamp guards a period whose counters were adjusted by hand.
+     */
+    public function unbilledOverageCredits(): int
+    {
+        return max(0, $this->overage_credits_used - $this->overage_credits_billed);
     }
 }

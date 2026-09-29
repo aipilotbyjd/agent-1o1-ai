@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Agents\Agent;
+use App\Models\Ai\ModelCatalog;
 use App\Models\Templates\AgentTemplate;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
+use Database\Seeders\AgentTemplateSeeder;
 use Laravel\Passport\Passport;
 
 /**
@@ -107,4 +109,42 @@ it('404s using a private agent template that belongs to a different workspace', 
 
     $this->postJson("/api/v1/workspaces/{$workspace->id}/agent-templates/{$foreign->id}/use", ['name' => 'x'])
         ->assertNotFound();
+});
+
+it('carries a template\'s look and the chosen model onto the new agent', function () {
+    [$workspace, $owner] = ownerWorkspaceForAgentTemplate();
+    $catalog = ModelCatalog::factory()->create();
+    $template = AgentTemplate::factory()->create([
+        'workspace_id' => $workspace->id,
+        'icon' => 'megaphone',
+        'color' => 'teal',
+        'config' => ['instructions' => 'You do outreach.'],
+    ]);
+
+    Passport::actingAs($owner);
+
+    $agent = Agent::find($this->postJson("/api/v1/workspaces/{$workspace->id}/agent-templates/{$template->id}/use", [
+        'name' => 'Outreach',
+        'model_catalog_id' => $catalog->id,
+    ])->assertCreated()->json('data.agent.id'));
+
+    expect($agent->icon)->toBe('megaphone');
+    expect($agent->color)->toBe('teal');
+    expect($agent->model_catalog_id)->toBe($catalog->id);
+    expect($agent->instructions)->toBe('You do outreach.');
+});
+
+it('seeds global starter templates every workspace can see', function () {
+    $this->seed(AgentTemplateSeeder::class);
+    $this->seed(AgentTemplateSeeder::class);
+
+    [$workspace, $owner] = ownerWorkspaceForAgentTemplate();
+    Passport::actingAs($owner);
+
+    $templates = $this->getJson("/api/v1/workspaces/{$workspace->id}/agent-templates")->assertOk()->json('data.agent_templates');
+
+    expect($templates)->toHaveCount(6);
+    expect(collect($templates)->every(fn (array $template): bool => in_array($template['icon'], Agent::ICONS, true)
+        && in_array($template['color'], Agent::COLORS, true)
+        && filled($template['config']['instructions'])))->toBeTrue();
 });

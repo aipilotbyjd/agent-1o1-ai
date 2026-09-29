@@ -1,0 +1,53 @@
+meta {
+  name: Sessions - Send Message (Stream)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/sessions/:session/messages/stream
+  body: json
+  auth: inherit
+}
+
+params:path {
+  workspace: {{workspaceId}}
+  agent: {{agentId}}
+  session: {{agentSessionId}}
+}
+
+headers {
+  Accept: text/event-stream
+}
+
+body:json {
+  {
+    "message": "A customer says their invoice is wrong. What should I do?"
+  }
+}
+
+docs {
+  The same turn `Sessions - Send Message` runs, delivered as server-sent
+  events token by token instead of one reply at the end. Requires the
+  `agent.chat` permission.
+
+  Event names on the wire:
+
+  - `delta` — a chunk of assistant text; concatenate in the order received.
+  - `tool-call` — the agent decided to call a tool (`id`, `name`,
+    `arguments`).
+  - `tool-result` — that tool returned (`id`, `name`).
+  - `complete` — the turn finished; carries `run_id`, `status`,
+    `message_id` and `text` so a client can reconcile against the REST
+    transcript.
+  - `error` — the turn failed. The run is marked failed before this is
+    sent, so no client cleanup is needed.
+  - `done` — always last, whether the turn succeeded or failed.
+
+  The transcript is persisted by the runner whether or not anyone is
+  listening, so a dropped connection loses the live view, never the
+  conversation.
+
+  Bruno renders the stream as the raw event text rather than a JSON body —
+  this response is not wrapped in the usual envelope.
+}

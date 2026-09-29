@@ -11,5 +11,8 @@ get {
 }
 
 docs {
-  Lists the authenticated user's active token sessions.
+  Lists the authenticated user's active token sessions, each with the IP
+  address, user agent and `last_used_at` it was last seen on, plus
+  `is_current` so the caller can label — and warn before revoking — the
+  session it is holding.
 }

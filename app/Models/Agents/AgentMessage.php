@@ -3,22 +3,28 @@
 namespace App\Models\Agents;
 
 use App\Enums\Agents\AgentMessageRole;
+use App\Enums\Billing\CreditTransactionType;
+use App\Models\Artifacts\Artifact;
+use App\Models\Billing\CreditTransaction;
 use Database\Factories\Agents\AgentMessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * `usage` (token/credit accounting, same shape as `node_runs.usage`) is
  * engine-managed — not in `#[Fillable]`, written via `forceFill()` after
  * create(), mirroring `NodeRun`'s own convention.
  */
-#[Fillable(['agent_session_id', 'role', 'content', 'tool_calls', 'tool_call_id'])]
+#[Fillable(['agent_session_id', 'role', 'content', 'tool_calls', 'tool_results', 'tool_call_id'])]
 class AgentMessage extends Model
 {
     /** @use HasFactory<AgentMessageFactory> */
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     /**
      * @return array<string, string>
@@ -28,6 +34,7 @@ class AgentMessage extends Model
         return [
             'role' => AgentMessageRole::class,
             'tool_calls' => 'array',
+            'tool_results' => 'array',
             'usage' => 'array',
         ];
     }
@@ -35,5 +42,26 @@ class AgentMessage extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(AgentSession::class, 'agent_session_id');
+    }
+
+    /**
+     * Files a member sent along with this (user) message. Stored as
+     * `Artifact`s and handed to the model with the message on every turn —
+     * see `AgentRunner::openTurn()` and `WorkspaceAgent::messages()`.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Artifact::class);
+    }
+
+    /**
+     * The `CreditTransaction` this turn was billed under — see
+     * `NodeRun::creditTransaction()`'s docblock for why this isn't a real
+     * `morphOne`.
+     */
+    public function creditTransaction(): HasOne
+    {
+        return $this->hasOne(CreditTransaction::class, 'source_id')
+            ->where('source_type', CreditTransactionType::AgentStep);
     }
 }

@@ -27,7 +27,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'gmail',
                 'name' => 'Gmail',
-                'icon' => 'mail',
+                'icon' => 'mail-01',
                 'color' => '#EA4335',
                 'description' => 'Send, read, and organize email in Gmail.',
                 'sort_order' => 2,
@@ -39,6 +39,38 @@ class AppNodeCategorySeeder extends Seeder
                 'color' => '#24292E',
                 'description' => 'Manage repositories, issues, pull requests, and commits on GitHub.',
                 'sort_order' => 3,
+            ],
+            [
+                'slug' => 'google_drive',
+                'name' => 'Google Drive',
+                'icon' => 'google-drive',
+                'color' => '#0F9D58',
+                'description' => 'List, fetch, and delete files in Google Drive.',
+                'sort_order' => 4,
+            ],
+            [
+                'slug' => 'google_sheets',
+                'name' => 'Google Sheets',
+                'icon' => 'google-sheet',
+                'color' => '#0F9D58',
+                'description' => 'Read, append, and update values in Google Sheets.',
+                'sort_order' => 5,
+            ],
+            [
+                'slug' => 'google_docs',
+                'name' => 'Google Docs',
+                'icon' => 'google-doc',
+                'color' => '#4285F4',
+                'description' => 'Create and edit Google Docs.',
+                'sort_order' => 6,
+            ],
+            [
+                'slug' => 'google_calendar',
+                'name' => 'Google Calendar',
+                'icon' => 'calendar-03',
+                'color' => '#4285F4',
+                'description' => 'List, create, and delete events on Google Calendar.',
+                'sort_order' => 7,
             ],
         ];
 

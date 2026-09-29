@@ -6,6 +6,7 @@ use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['run_id', 'node_run_id', 'requested_at'])]
 class WorkflowApproval extends Model
 {
+    use HasUuids;
+
     /**
      * @return array<string, string>
      */

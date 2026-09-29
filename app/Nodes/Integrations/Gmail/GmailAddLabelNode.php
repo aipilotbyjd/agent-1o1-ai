@@ -28,7 +28,7 @@ class GmailAddLabelNode extends AbstractGmailNode
             'required' => ['message_id', 'label_ids'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'message_id' => ['type' => 'string'],
                 'label_ids' => ['type' => 'array'],
             ],

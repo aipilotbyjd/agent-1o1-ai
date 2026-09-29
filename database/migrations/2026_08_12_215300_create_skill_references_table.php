@@ -16,8 +16,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('skill_references', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('skill_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('skill_id')->constrained()->cascadeOnDelete();
             $table->string('title');
             $table->longText('content');
             $table->unsignedInteger('sort_order')->default(0);

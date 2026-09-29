@@ -24,7 +24,7 @@ class NodeRunController extends Controller
 
         return ApiResponse::success([
             'node_runs' => NodeRunDetailResource::collection(
-                $run->nodeRuns()->oldest('id')->get(),
+                $run->nodeRuns()->with('creditTransaction')->oldest('id')->get(),
             ),
         ]);
     }
@@ -36,7 +36,7 @@ class NodeRunController extends Controller
         abort_if($nodeRun->run_id !== $run->id, 404);
 
         return ApiResponse::success([
-            'node_run' => NodeRunDetailResource::make($nodeRun->load('childRuns')),
+            'node_run' => NodeRunDetailResource::make($nodeRun->load(['childRuns', 'creditTransaction'])),
         ]);
     }
 }

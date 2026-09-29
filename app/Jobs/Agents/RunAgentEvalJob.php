@@ -26,7 +26,7 @@ class RunAgentEvalJob implements ShouldQueue
      */
     public int $timeout = 300;
 
-    public function __construct(public readonly int $evalRunId)
+    public function __construct(public readonly string $evalRunId)
     {
         $this->onQueue(Queue::AiAgent->value);
     }

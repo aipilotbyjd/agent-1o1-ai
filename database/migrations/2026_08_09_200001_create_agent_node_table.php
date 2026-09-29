@@ -26,8 +26,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('agent_node', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
             $table->string('node_type');
             $table->json('config')->nullable();
             $table->json('exposed_fields')->nullable();

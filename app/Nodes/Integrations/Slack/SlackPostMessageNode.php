@@ -28,7 +28,7 @@ class SlackPostMessageNode extends AbstractSlackNode
             'required' => ['channel', 'text'],
             'properties' => [
                 'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'integer'],
+                'credential_id' => ['type' => 'string'],
                 'channel' => ['type' => 'string'],
                 'text' => ['type' => 'string'],
                 'thread_ts' => ['type' => 'string'],
