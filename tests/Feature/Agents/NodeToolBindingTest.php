@@ -95,7 +95,7 @@ it('drops a tool-call argument for a field that is neither bound nor exposed', f
         'exposed_fields' => ['body'],
     ]);
 
-    $tool = new NodeTool(new CallApiNode, $binding, Run::factory()->create());
+    $tool = new NodeTool(new CallApiNode(new SsrfGuard(fn () => ['203.0.113.10'])), $binding, Run::factory()->create());
 
     Http::fake(['internal.example.com/*' => Http::response(['ok' => true])]);
 
