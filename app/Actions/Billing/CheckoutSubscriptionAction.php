@@ -5,11 +5,14 @@ namespace App\Actions\Billing;
 use App\Enums\Billing\BillingInterval;
 use App\Models\Billing\Plan;
 use App\Models\Workspaces\Workspace;
+use App\Services\Referrals\ReferralTrialBonus;
 use Laravel\Cashier\Checkout;
 
 class CheckoutSubscriptionAction
 {
     private const SUBSCRIPTION_TYPE = 'default';
+
+    public function __construct(private readonly ReferralTrialBonus $referralTrialBonus) {}
 
     /**
      * Returns a Stripe Checkout URL for a workspace with no subscription yet,
@@ -62,8 +65,12 @@ class CheckoutSubscriptionAction
             'cancel_url' => $this->cancelUrl($workspace),
         ];
 
-        if ($plan->trial_days > 0) {
-            $sessionOptions['subscription_data'] = ['trial_period_days' => $plan->trial_days];
+        // Referral `trial_extension` rewards lengthen the plan's own trial —
+        // or grant one on a plan that has none.
+        $trialDays = $plan->trial_days + $this->referralTrialBonus->daysFor($workspace);
+
+        if ($trialDays > 0) {
+            $sessionOptions['subscription_data'] = ['trial_period_days' => $trialDays];
         }
 
         /** @var Checkout $checkout */

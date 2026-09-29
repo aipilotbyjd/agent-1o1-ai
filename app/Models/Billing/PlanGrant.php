@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'stripe_payment_intent_id',
     'granted_at',
     'expires_at',
+    'expiry_notified_at',
 ])]
 class PlanGrant extends Model
 {
@@ -58,6 +59,7 @@ class PlanGrant extends Model
             'price_cents' => 'integer',
             'granted_at' => 'datetime',
             'expires_at' => 'datetime',
+            'expiry_notified_at' => 'datetime',
         ];
     }
 

@@ -6,21 +6,28 @@ use App\Actions\Billing\ActivateCreditPackAction;
 use App\Actions\Billing\ActivatePlanGrantAction;
 use App\Actions\Billing\OpenUsagePeriodForSubscriptionAction;
 use App\Actions\Billing\RevokePlanGrantAction;
+use App\Enums\Billing\BillingInterval;
+use App\Enums\Referrals\ReferralPaymentSource;
+use App\Jobs\Referrals\ProcessReferralPaymentJob;
+use App\Jobs\Referrals\ProcessReferralRefundJob;
 use App\Models\Billing\CreditPack;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
 use App\Models\Billing\ProcessedWebhookEvent;
+use App\Models\Workspaces\Workspace;
 use App\Notifications\Billing\PaymentFailedNotification;
 use App\Notifications\Billing\PaymentRecoveredNotification;
 use App\Notifications\Billing\SubscriptionCanceledNotification;
 use App\Notifications\Billing\SubscriptionRenewedNotification;
 use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Referrals\ReferralPaymentData;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class StripeWebhookController extends CashierWebhookController
 {
@@ -96,6 +103,8 @@ class StripeWebhookController extends CashierWebhookController
             default => null,
         };
 
+        $this->recordReferralCheckoutPayment($session, $metadata, $paymentIntentId);
+
         return new Response('Webhook Handled');
     }
 
@@ -146,7 +155,14 @@ class StripeWebhookController extends CashierWebhookController
      */
     protected function handleChargeRefunded(array $payload): Response
     {
-        $this->revokeGrantForPaymentIntent($payload['data']['object']['payment_intent'] ?? null);
+        $charge = $payload['data']['object'] ?? [];
+
+        $this->revokeGrantForPaymentIntent($charge['payment_intent'] ?? null);
+
+        $fullyRefunded = ($charge['refunded'] ?? false) === true
+            || (isset($charge['amount'], $charge['amount_refunded']) && $charge['amount_refunded'] >= $charge['amount']);
+
+        $this->withdrawReferralRewards($charge['payment_intent'] ?? null, $fullyRefunded, 'Payment refunded');
 
         return new Response('Webhook Handled');
     }
@@ -157,7 +173,10 @@ class StripeWebhookController extends CashierWebhookController
      */
     protected function handleChargeDisputeCreated(array $payload): Response
     {
-        $this->revokeGrantForPaymentIntent($payload['data']['object']['payment_intent'] ?? null);
+        $paymentIntentId = $payload['data']['object']['payment_intent'] ?? null;
+
+        $this->revokeGrantForPaymentIntent($paymentIntentId);
+        $this->withdrawReferralRewards($paymentIntentId, true, 'Payment disputed');
 
         return new Response('Webhook Handled');
     }
@@ -268,6 +287,8 @@ class StripeWebhookController extends CashierWebhookController
             );
         }
 
+        $this->recordReferralInvoicePayment($workspace, $invoice);
+
         return $response;
     }
 
@@ -327,5 +348,101 @@ class StripeWebhookController extends CashierWebhookController
         }
 
         app(OpenUsagePeriodForSubscriptionAction::class)->execute($workspace, $plan, $stripeSubscriptionId);
+    }
+
+    /**
+     * Hands a paid subscription invoice to the referral program. Tax is
+     * taken out (Stripe's `total` minus `total_excluding_tax`) and a $0
+     * invoice — a trial start — never counts as a payment. Failures are
+     * reported, never allowed to fail the webhook.
+     *
+     * @param  array<string, mixed>  $invoice
+     */
+    private function recordReferralInvoicePayment(Workspace $workspace, array $invoice): void
+    {
+        $this->safelyForReferrals(function () use ($workspace, $invoice): void {
+            $tax = max(0, (int) ($invoice['total'] ?? 0) - (int) ($invoice['total_excluding_tax'] ?? $invoice['total'] ?? 0));
+            $amount = max(0, (int) ($invoice['amount_paid'] ?? 0) - $tax);
+
+            if ($amount <= 0 || ! isset($invoice['id'])) {
+                return;
+            }
+
+            $line = $invoice['lines']['data'][0] ?? [];
+            $priceId = $line['price']['id'] ?? $line['pricing']['price_details']['price'] ?? null;
+            $plan = $priceId !== null ? Plan::findByStripePriceId($priceId) : null;
+            $interval = $plan !== null
+                ? collect(BillingInterval::cases())->first(fn (BillingInterval $interval): bool => $plan->stripePriceId($interval) === $priceId)
+                : null;
+
+            ProcessReferralPaymentJob::dispatch(new ReferralPaymentData(
+                workspaceId: $workspace->id,
+                reference: $invoice['id'],
+                // Newer Stripe API versions moved the intent under `payments`.
+                paymentIntentId: $invoice['payment_intent'] ?? $invoice['payments']['data'][0]['payment']['payment_intent'] ?? null,
+                source: ReferralPaymentSource::Subscription,
+                amountCents: $amount,
+                currency: $invoice['currency'] ?? 'usd',
+                planId: $plan?->id,
+                interval: $interval,
+            ));
+        });
+    }
+
+    /**
+     * Hands a one-off Checkout purchase (credit pack or lifetime plan) to
+     * the referral program, keyed by its payment intent.
+     *
+     * @param  array<string, mixed>  $session
+     * @param  array<string, mixed>  $metadata
+     */
+    private function recordReferralCheckoutPayment(array $session, array $metadata, ?string $paymentIntentId): void
+    {
+        $this->safelyForReferrals(function () use ($session, $metadata, $paymentIntentId): void {
+            $purchase = match ($metadata['type'] ?? null) {
+                'credit_pack' => isset($metadata['credit_pack_id']) ? CreditPack::find($metadata['credit_pack_id']) : null,
+                'plan_grant' => isset($metadata['plan_grant_id']) ? PlanGrant::find($metadata['plan_grant_id']) : null,
+                default => null,
+            };
+
+            $amount = max(0, (int) ($session['amount_total'] ?? 0) - (int) ($session['total_details']['amount_tax'] ?? 0));
+
+            if ($purchase === null || $paymentIntentId === null || $amount <= 0) {
+                return;
+            }
+
+            ProcessReferralPaymentJob::dispatch(new ReferralPaymentData(
+                workspaceId: $purchase->workspace_id,
+                reference: $paymentIntentId,
+                paymentIntentId: $paymentIntentId,
+                source: $purchase instanceof PlanGrant ? ReferralPaymentSource::Lifetime : ReferralPaymentSource::CreditPack,
+                amountCents: $amount,
+                currency: $session['currency'] ?? 'usd',
+                planId: $purchase instanceof PlanGrant ? $purchase->plan_id : null,
+                interval: $purchase instanceof PlanGrant ? BillingInterval::Lifetime : null,
+            ));
+        });
+    }
+
+    private function withdrawReferralRewards(?string $paymentIntentId, bool $fullyRefunded, string $reason): void
+    {
+        if ($paymentIntentId === null) {
+            return;
+        }
+
+        $this->safelyForReferrals(fn () => ProcessReferralRefundJob::dispatch($paymentIntentId, $fullyRefunded, $reason));
+    }
+
+    /**
+     * The referral program rides along on billing webhooks; a bug in it
+     * must never turn a Stripe delivery into a 5xx and a retry storm.
+     */
+    private function safelyForReferrals(callable $callback): void
+    {
+        try {
+            $callback();
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 }

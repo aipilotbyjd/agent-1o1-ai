@@ -22,4 +22,6 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/knowledge_base.php';
     require __DIR__.'/templates.php';
     require __DIR__.'/artifacts.php';
+    require __DIR__.'/referrals.php';
+    require __DIR__.'/admin.php';
 });

@@ -21,6 +21,8 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            'referral_code' => ['nullable', 'string', 'max:64'],
+            'referral_visitor_id' => ['nullable', 'uuid'],
         ];
     }
 }
