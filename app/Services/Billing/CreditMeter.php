@@ -111,6 +111,29 @@ class CreditMeter
     }
 
     /**
+     * A node an agent called as a tool. Its turn already bills one credit
+     * for the call itself (`CREDITS_PER_TOOL_CALL`), which stands in for the
+     * base credit a workflow node run would carry — so this is only what the
+     * node costs on top: its fixed surcharge and its own tokens.
+     *
+     * @param  array<string, mixed>|null  $usage
+     */
+    public function costForAgentToolNode(string $type, ?array $usage): int
+    {
+        return $this->fixedNodeCost($type) + $this->tokenCost($usage);
+    }
+
+    /**
+     * Embedding text for the knowledge base, priced by its input tokens.
+     *
+     * @param  array{prompt_tokens: int, provider?: string|null, model?: string|null}  $usage
+     */
+    public function costForEmbeddings(array $usage): int
+    {
+        return $this->tokenCost($usage);
+    }
+
+    /**
      * Gumloop's agent-chat formula: Chat & Reasoning + Tool Calls + Compute,
      * then an Orchestration Fee on top of that subtotal. Unlike a workflow
      * node run, a chat turn has no separate flat base credit — Compute's own

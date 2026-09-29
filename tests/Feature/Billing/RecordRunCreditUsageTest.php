@@ -2,10 +2,12 @@
 
 use App\Actions\Agents\CreateAgentSessionAction;
 use App\Actions\Agents\SendAgentMessageAction;
+use App\Actions\Workflows\CancelRunAction;
 use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Ai\Agents\AdHocPromptAgent;
 use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Billing\CreditTransactionType;
+use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Listeners\Workflows\RecordRunCreditUsage;
 use App\Models\Agents\Agent;
@@ -176,4 +178,60 @@ it('bills a run that overruns the remaining balance rather than losing the recor
     expect(CreditTransaction::where('workspace_id', $workspace->id)->count())->toBe(2);
     expect($workspace->currentUsagePeriod()->credits_used)->toBe(2);
     expect($workspace->fresh()->availableCredits())->toBe(0);
+});
+
+it('bills the node runs a failed run got through', function () {
+    AdHocPromptAgent::fake(['a canned reply']);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    $workflow->replaceGraph([
+        'nodes' => [
+            ['key' => 'ask', 'type' => 'ask_ai', 'config' => ['prompt' => 'hi']],
+            ['key' => 'call', 'type' => 'call_api', 'config' => ['method' => 'GET', 'url' => 'http://127.0.0.1:1/unreachable', 'timeout_seconds' => 1]],
+            ['key' => 'never', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [['from' => 'ask', 'to' => 'call'], ['from' => 'call', 'to' => 'never']],
+    ]);
+    $workflow->publishVersion(publisher: $owner);
+
+    $run = app(StartWorkflowRunAction::class)->execute($workflow->fresh())->fresh(['nodeRuns']);
+
+    expect($run->status)->toBe(RunStatus::Failed);
+
+    $charged = CreditTransaction::where('source_type', CreditTransactionType::NodeRun)->pluck('source_id')->all();
+
+    expect($charged)->toEqualCanonicalizing([
+        $run->nodeRuns->firstWhere('key', 'ask')->id,
+        $run->nodeRuns->firstWhere('key', 'call')->id,
+    ]);
+    expect($workspace->currentUsagePeriod()->credits_used)->toBe($run->totalCreditsUsed());
+});
+
+it('bills the node runs a cancelled run got through, but not the one it was waiting on', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    $workflow->replaceGraph([
+        'nodes' => [
+            ['key' => 'before', 'type' => 'transform', 'config' => ['mapping' => []]],
+            ['key' => 'gate', 'type' => 'human_approval', 'config' => []],
+        ],
+        'edges' => [['from' => 'before', 'to' => 'gate']],
+    ]);
+    $workflow->publishVersion(publisher: $owner);
+
+    $run = app(StartWorkflowRunAction::class)->execute($workflow->fresh());
+
+    expect(CreditTransaction::count())->toBe(0);
+
+    app(CancelRunAction::class)->execute($run, $owner);
+
+    $transaction = CreditTransaction::where('source_type', CreditTransactionType::NodeRun)->sole();
+
+    expect($transaction->source_id)->toBe($run->fresh(['nodeRuns'])->nodeRuns->firstWhere('key', 'before')->id);
+    expect($workspace->currentUsagePeriod()->credits_used)->toBe(1);
 });

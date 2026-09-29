@@ -2,9 +2,13 @@
 
 namespace App\Services\Agents;
 
+use App\Actions\Billing\DeductCreditsAction;
+use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\CreditMeter;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Laravel\Ai\Embeddings;
 
 /**
@@ -37,7 +41,8 @@ class KnowledgeBase
     private const int EMBED_BATCH = 64;
 
     /**
-     * Split text into chunks, embed them, and store one row per chunk.
+     * Split text into chunks, embed them, and store one row per chunk. The
+     * embedding tokens are charged to `$workspace` — see `chargeForEmbeddings()`.
      *
      * @param  array<string, mixed>|null  $metadata
      * @return Collection<int, DocumentEmbedding>
@@ -56,12 +61,20 @@ class KnowledgeBase
         }
 
         $vectors = [];
+        $usage = ['prompt_tokens' => 0, 'provider' => null, 'model' => null];
 
         foreach (array_chunk($chunks, self::EMBED_BATCH) as $batch) {
-            $vectors = [...$vectors, ...Embeddings::for($batch)->generate()->embeddings];
+            $response = Embeddings::for($batch)->generate();
+
+            $vectors = [...$vectors, ...$response->embeddings];
+            $usage = [
+                'prompt_tokens' => $usage['prompt_tokens'] + $response->tokens,
+                'provider' => $response->meta->provider,
+                'model' => $response->meta->model,
+            ];
         }
 
-        return collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
+        $stored = collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
             'workspace_id' => $workspace->id,
             'collection' => $collection,
             'source' => $source,
@@ -69,6 +82,37 @@ class KnowledgeBase
             'embedding' => $vectors[$index] ?? [],
             'metadata' => $metadata,
         ]));
+
+        $this->chargeForEmbeddings($workspace, $stored->first(), $usage);
+
+        return $stored;
+    }
+
+    /**
+     * Bills the ingestion's embedding tokens against its first stored chunk.
+     * With overdraft: the provider has already been paid by the time the
+     * chunks exist. Retrieval (`search()`) isn't charged — one short query's
+     * embedding rounds to nothing, and an agent's search is already billed
+     * as the tool call it is.
+     *
+     * @param  array{prompt_tokens: int, provider: string|null, model: string|null}  $usage
+     */
+    private function chargeForEmbeddings(Workspace $workspace, DocumentEmbedding $firstChunk, array $usage): void
+    {
+        $credits = app(CreditMeter::class)->costForEmbeddings($usage);
+
+        if ($credits === 0) {
+            return;
+        }
+
+        app(DeductCreditsAction::class)->execute(
+            $workspace,
+            CreditTransactionType::KnowledgeIngestion,
+            $firstChunk->id,
+            $credits,
+            $firstChunk->source !== null ? 'Knowledge ingestion ('.Str::limit($firstChunk->source, 200).')' : 'Knowledge ingestion',
+            allowOverdraft: true,
+        );
     }
 
     /**
