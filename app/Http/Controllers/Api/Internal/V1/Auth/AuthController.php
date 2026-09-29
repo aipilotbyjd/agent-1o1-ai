@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Auth;
 
+use App\Actions\Referrals\AttributeReferralAction;
 use App\Enums\Auth\AuthEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Auth\ChangePasswordRequest;
@@ -15,6 +16,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\User;
 use App\Services\Auth\AuthEventRecorder;
 use App\Services\Auth\AuthService;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Validation\Rules\Password;
@@ -30,11 +32,14 @@ class AuthController extends Controller
     public function __construct(
         private readonly AuthService $auth,
         private readonly AuthEventRecorder $events,
+        private readonly AttributeReferralAction $attributeReferral,
     ) {}
 
     public function register(RegisterRequest $request)
     {
         $result = $this->auth->register($request->validated());
+
+        $this->attributeSignupToReferrer($request, $result['user']);
 
         return $this->respondWithTokens($result['user'], $result['tokens'], 'Registered successfully.', 201);
     }
@@ -152,6 +157,8 @@ class AuthController extends Controller
 
         $this->events->record(AuthEvent::EmailVerified, $user);
 
+        event(new Verified($user));
+
         return $this->redirectToFrontend('/verify-email', ['status' => 'verified']);
     }
 
@@ -245,6 +252,26 @@ class AuthController extends Controller
             ->paginate(perPage: max(1, min($request->integer('per_page', 25), 100)));
 
         return ApiResponse::paginated(AuthEventResource::collection($events));
+    }
+
+    /**
+     * Credits the signup to whoever's `?ref=` link brought it in. The
+     * account already exists by now, so a referral failure is reported and
+     * swallowed rather than failing the registration.
+     */
+    private function attributeSignupToReferrer(RegisterRequest $request, User $user): void
+    {
+        $code = $request->validated('referral_code');
+
+        if ($code === null) {
+            return;
+        }
+
+        try {
+            $this->attributeReferral->execute($user->fresh(), $code, $request->validated('referral_visitor_id'), $request->ip());
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     private function respondWithTokens(User $user, array $tokens, string $message, int $status = 200)

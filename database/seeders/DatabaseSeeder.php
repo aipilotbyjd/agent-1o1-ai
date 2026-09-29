@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(PlanSeeder::class);
+        $this->call(ReferralProgramSeeder::class);
         $this->call(TriggerPresetSeeder::class);
         $this->call(NodeCategorySeeder::class);
         $this->call(AppNodeCategorySeeder::class);

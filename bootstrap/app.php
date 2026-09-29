@@ -11,6 +11,7 @@ use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
 use App\Http\Middleware\AllowLongAgentTurn;
 use App\Http\Middleware\EnsureApiKeyIsValid;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.context' => EnsureWorkspaceScope::class,
             'api-key' => EnsureApiKeyIsValid::class,
             'long-agent-turn' => AllowLongAgentTurn::class,
+            'platform.admin' => EnsurePlatformAdmin::class,
         ]);
 
         $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);

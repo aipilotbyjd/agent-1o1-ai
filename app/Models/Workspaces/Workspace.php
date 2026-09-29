@@ -18,6 +18,7 @@ use App\Models\Connectors\ConnectorCredential;
 use App\Models\Nodes\CustomNode;
 use App\Models\Notifications\NotificationChannel;
 use App\Models\Notifications\NotificationPreference;
+use App\Models\Referrals\ReferralReward;
 use App\Models\Runs\Run;
 use App\Models\Secrets\Secret;
 use App\Models\Templates\AgentTemplate;
@@ -192,6 +193,11 @@ class Workspace extends Model
         return $this->hasMany(PlanGrant::class);
     }
 
+    public function referralRewards(): HasMany
+    {
+        return $this->hasMany(ReferralReward::class);
+    }
+
     public function usagePeriods(): HasMany
     {
         return $this->hasMany(UsagePeriod::class);
@@ -253,10 +259,12 @@ class Workspace extends Model
 
     /**
      * The workspace's non-subscription entitlement, if any — a lifetime
-     * purchase or a comped grant. The most recently granted one wins when a
-     * workspace holds several (e.g. it upgraded from a lifetime Starter to a
-     * lifetime Pro), since `currentPlan()` only weighs one grant against the
-     * subscription.
+     * purchase, a comp, or time earned through referrals. When a workspace
+     * holds several the *most generous* wins, newest breaking a tie: a
+     * lifetime Pro holder who earns a month of referral Starter must not be
+     * dropped to Starter for that month, and an upgrade from lifetime
+     * Starter to lifetime Pro still lands on Pro. `currentPlan()` only
+     * weighs this one grant against the subscription.
      */
     public function activePlanGrant(): ?PlanGrant
     {
@@ -265,6 +273,8 @@ class Workspace extends Model
             ->with('plan')
             ->orderByDesc('granted_at')
             ->orderByDesc('id')
+            ->get()
+            ->sortByDesc(fn (PlanGrant $grant): int => $grant->plan?->creditsMonthly() ?? 0)
             ->first();
     }
 

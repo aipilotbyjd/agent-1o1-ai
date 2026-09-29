@@ -8,6 +8,9 @@ use App\Enums\Onboarding\OnboardingStep;
 use App\Models\Auth\AuthEventLog;
 use App\Models\Credentials\OAuthConnection;
 use App\Models\Notifications\NotificationPreference;
+use App\Models\Referrals\Referral;
+use App\Models\Referrals\ReferralCode;
+use App\Models\Referrals\ReferralReward;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\UserFactory;
@@ -20,6 +23,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Cashier\Billable;
@@ -52,12 +56,22 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'onboarding_dismissed_at' => 'datetime',
             'job_role' => JobRole::class,
             'discovery_source' => DiscoverySource::class,
+            'is_platform_admin' => 'boolean',
         ];
     }
 
     public function hasTwoFactorEnabled(): bool
     {
         return $this->two_factor_confirmed_at !== null;
+    }
+
+    /**
+     * One of the people running the platform, allowed through the
+     * `/v1/admin/*` routes. Set only by `php artisan admin:grant`.
+     */
+    public function isPlatformAdmin(): bool
+    {
+        return $this->is_platform_admin === true;
     }
 
     public function hasPendingEmailChange(): bool
@@ -100,6 +114,32 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function notificationPreferences(): HasMany
     {
         return $this->hasMany(NotificationPreference::class);
+    }
+
+    public function referralCode(): HasOne
+    {
+        return $this->hasOne(ReferralCode::class);
+    }
+
+    /**
+     * The referral this user signed up through, if any.
+     */
+    public function referral(): HasOne
+    {
+        return $this->hasOne(Referral::class, 'referred_user_id');
+    }
+
+    public function referralsMade(): HasMany
+    {
+        return $this->hasMany(Referral::class, 'referrer_user_id');
+    }
+
+    /**
+     * Rewards this user received, as referrer or as the referred user.
+     */
+    public function referralRewards(): HasMany
+    {
+        return $this->hasMany(ReferralReward::class, 'recipient_user_id');
     }
 
     public function currentWorkspace(): BelongsTo

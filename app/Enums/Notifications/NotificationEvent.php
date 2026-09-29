@@ -28,6 +28,10 @@ enum NotificationEvent: string
     case RunFailed = 'run.failed';
     case ReflectionRunCompleted = 'agent.reflection_run_completed';
     case SessionEvaluationNotify = 'agent.session_evaluation_notify';
+    case ReferralSignedUp = 'referral.signed_up';
+    case ReferralRewardGranted = 'referral.reward_granted';
+    case ReferralMilestoneReached = 'referral.milestone_reached';
+    case ReferralPlanTimeEnding = 'referral.plan_time_ending';
 
     public const DEFAULT_IN_APP = true;
 
@@ -53,6 +57,10 @@ enum NotificationEvent: string
             self::RunFailed => 'Run failed',
             self::ReflectionRunCompleted => 'Agent reflection completed',
             self::SessionEvaluationNotify => 'Agent session needs attention',
+            self::ReferralSignedUp => 'Someone joined with your referral link',
+            self::ReferralRewardGranted => 'Referral reward received',
+            self::ReferralMilestoneReached => 'Referral milestone reached',
+            self::ReferralPlanTimeEnding => 'Free plan time ending soon',
         };
     }
 
@@ -76,6 +84,10 @@ enum NotificationEvent: string
             self::RunFailed => 'A workflow or agent run fails.',
             self::ReflectionRunCompleted => 'A scheduled reflection run finishes analyzing an agent\'s recent conversations.',
             self::SessionEvaluationNotify => 'An automatic session evaluation fails a criterion configured to notify.',
+            self::ReferralSignedUp => 'Someone signs up using your referral link.',
+            self::ReferralRewardGranted => 'Credits, plan time or an invoice credit from the referral program is added.',
+            self::ReferralMilestoneReached => 'You reach a referral milestone and earn its bonus.',
+            self::ReferralPlanTimeEnding => 'Free plan time earned through referrals is about to run out.',
         };
     }
 
