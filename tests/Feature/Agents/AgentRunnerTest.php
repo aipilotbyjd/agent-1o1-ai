@@ -3,12 +3,18 @@
 use App\Actions\Agents\CreateAgentSessionAction;
 use App\Actions\Agents\SendAgentMessageAction;
 use App\Ai\Agents\WorkspaceAgent;
+use App\Ai\Tools\RememberTool;
 use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
+use App\Exceptions\RunStateException;
 use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
 use App\Models\User;
+use App\Services\Agents\AgentRunner;
+use App\Services\Agents\SkillInjector;
+use App\Services\Agents\ToolRegistry;
 use App\Services\Workspaces\WorkspaceService;
+use Laravel\Ai\Tools\Request;
 
 it('sends a message with no tools and completes a run', function () {
     WorkspaceAgent::fake(['Hello there!']);
@@ -71,4 +77,107 @@ it('fails the run and rethrows when the provider call fails', function () {
 
     // The user's message is still recorded even though the reply failed.
     expect($session->fresh()->messages)->toHaveCount(1);
+});
+
+it('records the session user on the turn so remembered facts stay with that user', function () {
+    WorkspaceAgent::fake(['ok']);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+
+    app(SendAgentMessageAction::class)->execute($session, 'hi');
+
+    $run = $session->runs()->sole();
+    expect($run->triggered_by)->toBe($owner->id);
+
+    $remember = collect(app(ToolRegistry::class)->toolsFor($agent, $run))->first(fn ($tool) => $tool instanceof RememberTool);
+    $remember->handle(new Request(['key' => 'salary', 'value' => 'private']));
+
+    expect($agent->memories()->sole()->user_id)->toBe($owner->id);
+
+    $otherUser = User::factory()->create();
+    expect(app(SkillInjector::class)->instructionsFor($agent, $otherUser->id))->not->toContain('private');
+    expect(app(SkillInjector::class)->instructionsFor($agent, $owner->id))->toContain('salary: private');
+});
+
+it('passes the agent temperature and generation settings to the provider', function () {
+    WorkspaceAgent::fake(['ok']);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create([
+        'temperature' => 0.3,
+        'settings' => ['max_tokens' => 500, 'max_steps' => 4, 'top_p' => 0.9],
+    ]);
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+
+    app(SendAgentMessageAction::class)->execute($session, 'hi');
+
+    WorkspaceAgent::assertPrompted(fn ($prompt) => $prompt->agent->temperature() === 0.3
+        && $prompt->agent->maxTokens() === 500
+        && $prompt->agent->maxSteps() === 4
+        && $prompt->agent->topP() === 0.9);
+});
+
+it('fails the run when the turn cannot be set up', function () {
+    $this->mock(ToolRegistry::class, fn ($mock) => $mock->shouldReceive('toolsFor')->andThrow(new RuntimeException('tool setup broke')));
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+
+    expect(fn () => app(SendAgentMessageAction::class)->execute($session, 'hi'))
+        ->toThrow(RuntimeException::class, 'tool setup broke');
+
+    expect($session->runs()->sole()->status)->toBe(RunStatus::Failed);
+});
+
+it('refuses a new message while the previous turn is still running', function () {
+    WorkspaceAgent::fake(['ok']);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+
+    $inFlight = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    $inFlight->forceFill(['status' => RunStatus::Running, 'started_at' => now()])->save();
+
+    expect(fn () => app(SendAgentMessageAction::class)->execute($session, 'hi'))
+        ->toThrow(RunStateException::class);
+
+    // An abandoned turn doesn't lock the conversation forever.
+    $inFlight->forceFill(['started_at' => now()->subMinutes(AgentRunner::TURN_STALE_AFTER_MINUTES + 1)])->save();
+
+    expect(app(SendAgentMessageAction::class)->execute($session, 'hi')->content)->toBe('ok');
+});
+
+it('sends a bounded history that skips unanswered messages from failed turns', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $session = app(CreateAgentSessionAction::class)->execute($agent, $owner);
+
+    $session->messages()->create(['role' => AgentMessageRole::User, 'content' => 'first']);
+    $session->messages()->create(['role' => AgentMessageRole::Assistant, 'content' => 'answer']);
+    $session->messages()->create(['role' => AgentMessageRole::User, 'content' => 'failed turn']);
+    $current = $session->messages()->create(['role' => AgentMessageRole::User, 'content' => 'current']);
+
+    $history = (new WorkspaceAgent('', $session, $current->id))->messages();
+
+    expect(collect($history)->pluck('content')->all())->toBe(['first', 'answer']);
+
+    foreach (range(1, 40) as $i) {
+        $session->messages()->create(['role' => AgentMessageRole::User, 'content' => "q{$i}"]);
+        $session->messages()->create(['role' => AgentMessageRole::Assistant, 'content' => "a{$i}"]);
+    }
+
+    $history = collect((new WorkspaceAgent('', $session))->messages());
+
+    expect($history)->toHaveCount(WorkspaceAgent::HISTORY_LIMIT)
+        ->and($history->first()->role->value)->toBe('user')
+        ->and($history->last()->content)->toBe('a40');
 });

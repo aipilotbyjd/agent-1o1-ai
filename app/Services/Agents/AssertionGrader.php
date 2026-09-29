@@ -18,8 +18,11 @@ use Throwable;
 class AssertionGrader
 {
     /**
+     * A judged assertion also carries the judge call's token `usage`, for
+     * `EvalRunner` to bill against the case.
+     *
      * @param  array<string, mixed>  $assertion  `{type, value}`
-     * @return array{type: string, value: string, passed: bool, error: string|null}
+     * @return array{type: string, value: string, passed: bool, error: string|null, usage?: array<string, int>}
      */
     public function grade(array $assertion, string $output): array
     {
@@ -35,7 +38,12 @@ class AssertionGrader
         }
 
         try {
-            return $this->result($type->value, $value, $this->gradeWithJudge($value, $output), null);
+            $response = (new EvalJudgeAgent)->prompt(EvalJudgeAgent::promptFor($value, $output));
+
+            return [
+                ...$this->result($type->value, $value, EvalJudgeAgent::verdictFromText($response->text), null),
+                'usage' => $response->usage->toArray(),
+            ];
         } catch (Throwable $e) {
             // A judge that couldn't be reached is a failed *assertion*, not a
             // failed suite: the rest of the cases still carry information, and
@@ -55,13 +63,6 @@ class AssertionGrader
             EvalAssertionType::Equals => trim($haystack) === trim($needle),
             EvalAssertionType::LlmRubric => false,
         };
-    }
-
-    private function gradeWithJudge(string $rubric, string $output): bool
-    {
-        $response = (new EvalJudgeAgent)->prompt(EvalJudgeAgent::promptFor($rubric, $output));
-
-        return EvalJudgeAgent::verdictFromText($response->text);
     }
 
     /**

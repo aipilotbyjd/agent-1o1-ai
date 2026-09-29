@@ -8,11 +8,14 @@ use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
+use App\Exceptions\RunStateException;
 use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Services\Billing\CreditGate;
+use Illuminate\Support\Facades\Cache;
+use Iterator;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Throwable;
 
@@ -29,6 +32,13 @@ use Throwable;
  */
 class AgentRunner
 {
+    /**
+     * How long a `running` turn blocks the next message to its session. A
+     * turn older than this is treated as abandoned (a killed worker) rather
+     * than left to lock the conversation forever.
+     */
+    public const int TURN_STALE_AFTER_MINUTES = 15;
+
     public function __construct(
         private readonly ToolRegistry $tools,
         private readonly SkillInjector $skillInjector,
@@ -75,6 +85,25 @@ class AgentRunner
     }
 
     /**
+     * Finishes a streamed turn nobody is listening to any more — the client
+     * disconnected mid-reply. Pulling the rest of the provider stream is what
+     * fires the `then()` callback registered in `stream()`, so the reply is
+     * still persisted and charged instead of the run sitting in `running`.
+     *
+     * @param  Iterator<int, mixed>  $events  the partly consumed stream
+     */
+    public function drain(StreamedTurn $turn, Iterator $events): void
+    {
+        try {
+            while ($events->valid()) {
+                $events->next();
+            }
+        } catch (Throwable $e) {
+            $this->failTurn($turn->run, $e);
+        }
+    }
+
+    /**
      * Everything that happens before the provider is called: credit gate,
      * the turn's own `Run`, the user's message, and the SDK agent built from
      * the version this conversation is pinned to.
@@ -89,28 +118,69 @@ class AgentRunner
         // refused up front rather than after the model call is paid for.
         $this->creditGate->assertCanStartRun($session->workspace);
 
-        $run = $session->runs()->create([
-            'workspace_id' => $session->workspace_id,
-            'trigger_type' => $triggerType,
-            'input' => ['message' => $message],
-        ]);
+        $run = $this->claimTurn($session, $message, $triggerType);
 
-        $run->forceFill(['status' => RunStatus::Running, 'started_at' => now()])->save();
+        try {
+            $userMessage = $session->messages()->create([
+                'role' => AgentMessageRole::User,
+                'content' => $message,
+            ]);
 
-        $userMessage = $session->messages()->create([
-            'role' => AgentMessageRole::User,
-            'content' => $message,
-        ]);
+            $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
 
-        $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
+            return new AgentTurn(
+                $session,
+                $run,
+                new WorkspaceAgent(
+                    $instructions,
+                    $session,
+                    $userMessage->id,
+                    $this->tools->toolsFor($agent, $run),
+                    GenerationSettings::fromAgent($agent),
+                ),
+                $agent->provider,
+                $agent->model,
+            );
+        } catch (Throwable $e) {
+            $this->failTurn($run, $e);
 
-        return new AgentTurn(
-            $session,
-            $run,
-            new WorkspaceAgent($instructions, $session, $userMessage->id, $this->tools->toolsFor($agent, $run)),
-            $agent->provider,
-            $agent->model,
-        );
+            throw $e;
+        }
+    }
+
+    /**
+     * Creates the turn's `Run`, refusing while another turn on the same
+     * session is still in flight — two interleaved turns would each build
+     * their context from a transcript the other is halfway through writing.
+     * The lock only covers check-and-create; the `running` run itself is
+     * what holds the session for the length of the turn.
+     *
+     * `triggered_by` is the session's user, which is what scopes
+     * `RememberTool`'s writes and `SkillInjector`'s reads to that person.
+     */
+    private function claimTurn(AgentSession $session, string $message, string $triggerType): Run
+    {
+        return Cache::lock("agent-session:{$session->id}:turn", 10)->block(5, function () use ($session, $message, $triggerType): Run {
+            $busy = $session->runs()
+                ->where('status', RunStatus::Running)
+                ->where('started_at', '>', now()->subMinutes(self::TURN_STALE_AFTER_MINUTES))
+                ->exists();
+
+            if ($busy) {
+                throw RunStateException::sessionBusy();
+            }
+
+            $run = $session->runs()->create([
+                'workspace_id' => $session->workspace_id,
+                'trigger_type' => $triggerType,
+                'input' => ['message' => $message],
+                'triggered_by' => $session->user_id,
+            ]);
+
+            $run->forceFill(['status' => RunStatus::Running, 'started_at' => now()])->save();
+
+            return $run;
+        });
     }
 
     /**
@@ -175,7 +245,7 @@ class AgentRunner
     public function ask(AgentModel $agent, Run $run, string $prompt): array
     {
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
-        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run)))
+        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run), GenerationSettings::fromAgent($agent)))
             ->prompt($prompt, provider: $agent->provider, model: $agent->model);
 
         return ['text' => $response->text, 'usage' => $response->usage->toArray()];

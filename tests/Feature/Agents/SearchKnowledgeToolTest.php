@@ -3,6 +3,7 @@
 use App\Ai\Tools\SearchKnowledgeTool;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\User;
+use App\Services\Agents\KnowledgeBase;
 use App\Services\Workspaces\WorkspaceService;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Tools\Request;
@@ -58,4 +59,24 @@ it('does not leak results from another workspace', function () {
     $result = json_decode($tool->handle(new Request(['query' => 'anything'])), true);
 
     expect($result)->toBe([]);
+});
+
+it('returns only the top N chunks, best first, across more chunks than N', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    Embeddings::fake([[[1.0, 0.0]]]);
+
+    foreach (range(1, 12) as $i) {
+        DocumentEmbedding::create([
+            'workspace_id' => $workspace->id,
+            'source' => "chunk-{$i}",
+            'chunk_text' => "chunk {$i}",
+            'embedding' => [(float) $i, 12.0 - $i],
+        ]);
+    }
+
+    $results = app(KnowledgeBase::class)->search($workspace, 'anything', topN: 3);
+
+    expect($results->pluck('source')->all())->toBe(['chunk-12', 'chunk-11', 'chunk-10']);
 });

@@ -84,19 +84,45 @@ class KnowledgeBase
     ): Collection {
         $queryVector = Embeddings::for([$query])->generate()->embeddings[0] ?? [];
 
-        return DocumentEmbedding::query()
+        // Chunks are read in batches and only the running top N is kept, so
+        // memory stays flat however large the workspace's knowledge base is.
+        $best = [];
+
+        $chunks = DocumentEmbedding::query()
+            ->select(['id', 'source', 'chunk_text', 'embedding'])
             ->where('workspace_id', $workspace->id)
             ->when($collection !== null, fn ($builder) => $builder->where('collection', $collection))
-            ->get()
-            ->map(fn (DocumentEmbedding $chunk): array => [
+            ->lazyById(500);
+
+        foreach ($chunks as $chunk) {
+            $best[] = [
                 'id' => $chunk->id,
                 'source' => $chunk->source,
                 'text' => $chunk->chunk_text,
                 'score' => $this->cosineSimilarity($queryVector, $chunk->embedding ?? []),
-            ])
-            ->sortByDesc('score')
-            ->take($topN)
-            ->values();
+            ];
+
+            if (count($best) > $topN) {
+                $best = $this->rank($best);
+                array_pop($best);
+            }
+        }
+
+        return collect($this->rank($best))->values();
+    }
+
+    /**
+     * Highest score first; `usort` is stable, so ties keep insertion (id)
+     * order.
+     *
+     * @param  array<int, array{id: int, source: string|null, text: string, score: float}>  $results
+     * @return array<int, array{id: int, source: string|null, text: string, score: float}>
+     */
+    private function rank(array $results): array
+    {
+        usort($results, fn (array $a, array $b): int => $b['score'] <=> $a['score']);
+
+        return $results;
     }
 
     /**

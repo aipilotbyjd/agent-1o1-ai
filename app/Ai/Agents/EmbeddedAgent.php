@@ -2,6 +2,8 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Agents\Concerns\AppliesGenerationSettings;
+use App\Services\Agents\GenerationSettings;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
@@ -18,7 +20,7 @@ use Laravel\Ai\Promptable;
  */
 class EmbeddedAgent implements Agent, HasTools
 {
-    use Promptable;
+    use AppliesGenerationSettings, Promptable;
 
     /**
      * @param  array<int, Tool>  $tools
@@ -26,6 +28,7 @@ class EmbeddedAgent implements Agent, HasTools
     public function __construct(
         private readonly string $instructions,
         private readonly array $tools = [],
+        private readonly ?GenerationSettings $settings = null,
     ) {}
 
     public function instructions(): string

@@ -23,6 +23,11 @@ class RunStateException extends RuntimeException
         return new self('The run is still in flight — cancel it before retrying.');
     }
 
+    public static function sessionBusy(): self
+    {
+        return new self('This conversation is still answering the previous message — wait for it to finish.');
+    }
+
     public static function notRetryable(): self
     {
         return new self('Only workflow runs pinned to a published version can be retried.');

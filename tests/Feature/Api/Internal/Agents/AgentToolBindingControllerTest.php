@@ -79,3 +79,16 @@ it('404s attaching a workflow from a different workspace', function () {
     $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/workflows/{$foreignWorkflow->id}")
         ->assertNotFound();
 });
+
+it('rejects attaching the same node type to an agent twice', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $url = "/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/tool-bindings";
+
+    $this->postJson($url, ['node_type' => 'call_api'])->assertCreated();
+    $this->postJson($url, ['node_type' => 'call_api'])->assertStatus(422);
+});
