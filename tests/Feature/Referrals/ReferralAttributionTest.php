@@ -6,6 +6,7 @@ use App\Enums\Referrals\ReferralRecipient;
 use App\Enums\Referrals\ReferralRewardStatus;
 use App\Enums\Referrals\ReferralStatus;
 use App\Enums\Referrals\ReferralTrigger;
+use App\Models\Billing\Plan;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralBlockedDomain;
 use App\Models\Referrals\ReferralProgram;
@@ -14,6 +15,7 @@ use App\Models\Referrals\ReferralVisit;
 use App\Models\User;
 use App\Notifications\Referrals\ReferralSignedUpNotification;
 use App\Services\Referrals\ReferralCodes;
+use App\Services\Referrals\ReferralSettings;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Laravel\Passport\Passport;
@@ -236,4 +238,29 @@ it('refuses a claim outside the claim window', function () {
     Passport::actingAs($referred);
 
     $this->postJson('/api/v1/referrals/claim', ['code' => $code->code])->assertUnprocessable();
+});
+
+it('reads its cached settings back from a store that refuses to unserialize objects', function () {
+    // The array store used elsewhere in tests keeps live objects; the real
+    // stores serialize, and `cache.serializable_classes` is off.
+    config(['cache.default' => 'database']);
+
+    $program = ReferralProgram::factory()->asDefault()->create(['require_verified_email' => false]);
+    $pro = Plan::factory()->create(['name' => 'Pro']);
+    ReferralRewardRule::factory()->forProgram($program)->on(ReferralTrigger::SignupVerified, ReferralRecipient::Referee)->credits(500)->create();
+    ReferralRewardRule::factory()->forProgram($program)->on(ReferralTrigger::SignupVerified)->planTime($pro, 30)->create();
+
+    $settings = app(ReferralSettings::class);
+
+    foreach ([1, 2] as $read) {
+        $rules = $settings->rulesFor($settings->defaultProgram(), ReferralTrigger::SignupVerified);
+
+        expect($settings->defaultProgram()->id)->toBe($program->id)
+            ->and($rules)->toHaveCount(2)
+            ->and($rules->last()->plan->name)->toBe('Pro');
+    }
+
+    $referral = referUser(referralUser(), program: $program);
+
+    expect($referral->referredUser->currentWorkspace->topup_credits)->toBe(500);
 });
