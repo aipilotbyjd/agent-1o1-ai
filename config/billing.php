@@ -235,6 +235,12 @@ return [
         'openai:gpt-4o' => ['input' => 2.50, 'output' => 10.00],
         'openai:gpt-4o-mini' => ['input' => 0.15, 'output' => 0.60],
 
+        // OpenAI embeddings — unverified, confirm against OpenAI's current
+        // pricing. Input-only; `text-embedding-3-small` is `laravel/ai`'s
+        // default embeddings model, which `KnowledgeBase::ingest()` bills.
+        'openai:text-embedding-3-small' => ['input' => 0.02, 'output' => 0.00],
+        'openai:text-embedding-3-large' => ['input' => 0.13, 'output' => 0.00],
+
         // Anthropic — unverified, confirm against Anthropic's current
         // pricing. Keyed to Claude Haiku 4.5's primary route
         // (`ModelCatalogSeeder`'s enabled anthropic route).

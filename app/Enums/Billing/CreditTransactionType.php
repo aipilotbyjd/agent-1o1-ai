@@ -47,4 +47,19 @@ enum CreditTransactionType: string
      * `ProcessWorkflowBuilderMessageJob` and `WorkflowBuilderAssistant`.
      */
     case WorkflowBuilder = 'workflow_builder';
+
+    /**
+     * A node an agent ran as a tool (`Ai\Tools\NodeTool`) — the node's own
+     * cost beyond the one credit its tool call already adds to the turn: a
+     * fixed `billing.node_costs` surcharge, and the tokens an AI node spent
+     * on its own model call. Saves nothing, so it carries an id of its own.
+     */
+    case AgentToolNode = 'agent_tool_node';
+
+    /**
+     * Embedding text into the workspace knowledge base — see
+     * `Services\Agents\KnowledgeBase::ingest()`. Charged against the first
+     * stored chunk's id.
+     */
+    case KnowledgeIngestion = 'knowledge_ingestion';
 }

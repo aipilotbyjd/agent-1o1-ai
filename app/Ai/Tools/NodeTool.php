@@ -2,11 +2,15 @@
 
 namespace App\Ai\Tools;
 
+use App\Actions\Billing\DeductCreditsAction;
 use App\Contracts\NodeContract;
+use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\AgentToolBinding;
 use App\Models\Runs\Run;
+use App\Services\Billing\CreditMeter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -56,7 +60,40 @@ class NodeTool implements Tool
 
         $output = $this->node->execute($this->run, $config, ['input' => [], 'nodes' => []]);
 
+        $this->chargeForNode($output);
+
         return json_encode($output) ?: '{}';
+    }
+
+    /**
+     * Bills what the node itself cost — nothing for most integration nodes,
+     * a surcharge for `run_code`/`agent`, and the tokens an AI node such as
+     * `ask_ai` spent on its own model call, none of which reaches the
+     * calling turn's `usage`. Charged here rather than with the turn because
+     * a tool call runs in whatever context called the agent (a chat turn, an
+     * eval case, an Agent node in a workflow), and each of those only bills
+     * its own model call. With overdraft, like any charge for work that has
+     * already run.
+     *
+     * @param  array<string, mixed>  $output
+     */
+    private function chargeForNode(array $output): void
+    {
+        $usage = is_array($output['usage'] ?? null) ? $output['usage'] : null;
+        $credits = app(CreditMeter::class)->costForAgentToolNode($this->node->type(), $usage);
+
+        if ($credits === 0) {
+            return;
+        }
+
+        app(DeductCreditsAction::class)->execute(
+            $this->run->workspace,
+            CreditTransactionType::AgentToolNode,
+            (string) Str::uuid(),
+            $credits,
+            "Agent tool '{$this->node->type()}'",
+            allowOverdraft: true,
+        );
     }
 
     /**

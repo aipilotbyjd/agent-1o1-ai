@@ -6,7 +6,9 @@ use App\Actions\Billing\DeductCreditsAction;
 use App\Enums\Billing\CreditTransactionType;
 use App\Enums\NodeRunStatus;
 use App\Enums\Queue;
+use App\Events\Runs\RunCancelled;
 use App\Events\Runs\RunCompleted;
+use App\Events\Runs\RunFailed;
 use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
@@ -18,13 +20,18 @@ use App\Services\Billing\CreditMeter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 /**
- * Charges credits for a completed `Run` — one `CreditTransaction` per
+ * Charges credits for a finished `Run` — one `CreditTransaction` per
  * completed/failed `NodeRun` for a Workflow run (a node routed through an
  * `error` edge still consumed real work), one per turn (the assistant reply)
  * for an Agent session run, or one per graded case for an eval run. See
- * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 8. Only fires on `RunCompleted`
- * — a `Run` that ends in `RunFailed` isn't charged for partial work yet,
- * left for a later pass.
+ * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 8.
+ *
+ * A run that fails or is cancelled is billed the same way, for the work it
+ * got through: an Ask AI node that answered before a later node failed
+ * spent its tokens all the same, as did the cases an eval graded before it
+ * timed out. Nothing that never ran is charged — a failed agent turn has no
+ * reply to bill, and a node that was still pending or in flight when the
+ * run stopped is settled as cancelled, not completed/failed.
  *
  * Queued, so a charge that fails can't fail the engine job that fired
  * `RunCompleted` (`GraphAdvancer`) and send the whole run back through the
@@ -53,7 +60,22 @@ class RecordRunCreditUsage implements ShouldQueue
 
     public function handle(RunCompleted $event): void
     {
-        $run = $event->run->loadMissing('runnable');
+        $this->chargeFor($event->run);
+    }
+
+    public function handleRunFailed(RunFailed $event): void
+    {
+        $this->chargeFor($event->run);
+    }
+
+    public function handleRunCancelled(RunCancelled $event): void
+    {
+        $this->chargeFor($event->run);
+    }
+
+    private function chargeFor(Run $run): void
+    {
+        $run->loadMissing('runnable');
 
         if ($run->runnable instanceof Workflow) {
             $this->chargeForWorkflowRun($run);

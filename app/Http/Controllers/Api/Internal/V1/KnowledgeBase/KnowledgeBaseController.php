@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
+use App\Services\Billing\CreditGate;
 use Illuminate\Http\Request;
 
 /**
@@ -62,7 +63,11 @@ class KnowledgeBaseController extends Controller
         return ApiResponse::success(['collections' => $collections]);
     }
 
-    public function store(IngestKnowledgeRequest $request, Workspace $workspace)
+    /**
+     * Embedding is billed (see `KnowledgeBase::ingest()`), so a workspace out
+     * of credits is refused before the provider is called.
+     */
+    public function store(IngestKnowledgeRequest $request, Workspace $workspace, CreditGate $creditGate)
     {
         $this->requirePermission(Permission::AgentManage);
 
@@ -70,6 +75,8 @@ class KnowledgeBaseController extends Controller
         $text = $file !== null ? (string) file_get_contents($file->getRealPath()) : (string) $request->validated('text');
 
         abort_if(trim($text) === '', 422, 'The file has no readable text.');
+
+        $creditGate->assertCanStartRun($workspace);
 
         $chunks = $this->knowledgeBase->ingest(
             $workspace,
