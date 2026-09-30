@@ -21,6 +21,16 @@ class UpdateAdminReferralCodeRequest extends FormRequest
         /** @var ReferralCode $code */
         $code = $this->route('code');
 
+        return self::rulesFor($code);
+    }
+
+    /**
+     * Shared with the `referrals:code` command.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rulesFor(ReferralCode $code): array
+    {
         return [
             'code' => ['sometimes', 'string', 'min:3', 'max:32', 'regex:/^[a-z0-9][a-z0-9-]*$/i', Rule::unique('referral_codes', 'code')->ignore($code->id)],
             'program_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('referral_programs', 'id')->whereNull('deleted_at')],

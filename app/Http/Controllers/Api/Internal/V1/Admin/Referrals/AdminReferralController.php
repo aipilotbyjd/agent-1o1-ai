@@ -8,17 +8,13 @@ use App\Http\Requests\Api\Internal\V1\Admin\Referrals\ReasonRequest;
 use App\Http\Resources\Api\Internal\V1\Admin\AdminReferralResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Referrals\Referral;
-use App\Services\Admin\AdminAuditLogger;
-use App\Services\Referrals\ReferralLifecycle;
+use App\Services\Referrals\ReferralAdmin;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class AdminReferralController extends Controller
 {
-    public function __construct(
-        private readonly ReferralLifecycle $lifecycle,
-        private readonly AdminAuditLogger $audit,
-    ) {}
+    public function __construct(private readonly ReferralAdmin $admin) {}
 
     public function index(Request $request)
     {
@@ -48,26 +44,14 @@ class AdminReferralController extends Controller
      */
     public function reject(ReasonRequest $request, Referral $referral)
     {
-        abort_if($referral->isRejected(), 422, 'This referral is already rejected.');
-
-        $previous = $referral->status;
-
-        $this->lifecycle->reject($referral, $request->validated('reason'));
-
-        $this->audit->record($request->user(), 'referral.rejected', $referral, ['status' => $previous->value], ['status' => ReferralStatus::Rejected->value, 'reason' => $request->validated('reason')]);
+        $this->admin->rejectReferral($referral, $request->validated('reason'), $request->user());
 
         return ApiResponse::success(['referral' => AdminReferralResource::make($referral->refresh()->load('rewards'))], 'Referral rejected.');
     }
 
     public function restore(Request $request, Referral $referral)
     {
-        abort_unless($referral->isRejected(), 422, 'Only a rejected referral can be restored.');
-
-        $reason = $referral->rejection_reason;
-
-        $this->lifecycle->restore($referral);
-
-        $this->audit->record($request->user(), 'referral.restored', $referral, ['status' => ReferralStatus::Rejected->value, 'reason' => $reason], ['status' => $referral->status->value]);
+        $this->admin->restoreReferral($referral, $request->user());
 
         return ApiResponse::success(['referral' => AdminReferralResource::make($referral->refresh())], 'Referral restored.');
     }

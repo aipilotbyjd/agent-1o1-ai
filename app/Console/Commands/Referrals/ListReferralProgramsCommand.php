@@ -6,6 +6,7 @@ use App\Models\Referrals\ReferralProgram;
 use App\Models\Referrals\ReferralRewardRule;
 use App\Services\Referrals\ReferralRuleDescriber;
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 
 class ListReferralProgramsCommand extends Command
 {
@@ -35,8 +36,9 @@ class ListReferralProgramsCommand extends Command
             $this->line("<info>{$program->name}</info> ({$program->slug}) — ".implode(', ', $flags));
 
             $this->table(
-                ['Order', 'Rule', 'Terms', 'Active'],
+                ['Id', 'Order', 'Rule', 'Terms', 'Active'],
                 $program->rules->map(fn (ReferralRewardRule $rule): array => [
+                    Str::substr($rule->id, -8),
                     $rule->sort_order,
                     $rule->name,
                     $describer->describe($rule),
@@ -44,6 +46,9 @@ class ListReferralProgramsCommand extends Command
                 ])->all(),
             );
         }
+
+        $this->newLine();
+        $this->line('Edit with `referrals:program update <slug> --set key=value` and `referrals:rule update <id> --set key=value`.');
 
         return self::SUCCESS;
     }

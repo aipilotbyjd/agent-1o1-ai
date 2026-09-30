@@ -34,7 +34,18 @@ class ReferralRewardRuleRequest extends FormRequest
      */
     public function rules(): array
     {
-        $presence = $this->existingRule() !== null ? 'sometimes' : 'required';
+        return self::rulesFor($this->existingRule());
+    }
+
+    /**
+     * Shared with the `referrals:rule` command. `$rule` null means a create,
+     * where the trigger, recipient and reward type are required.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rulesFor(?ReferralRewardRule $rule): array
+    {
+        $presence = $rule !== null ? 'sometimes' : 'required';
 
         return [
             'name' => [$presence, 'string', 'max:255'],
@@ -81,40 +92,62 @@ class ReferralRewardRuleRequest extends FormRequest
                     return;
                 }
 
-                $rule = [...($this->existingRule()?->attributesToArray() ?? []), ...$this->validated()];
-                $type = ReferralRewardType::tryFrom((string) $this->enumValue($rule['reward_type'] ?? null));
-                $trigger = ReferralTrigger::tryFrom((string) $this->enumValue($rule['trigger'] ?? null));
-                $recipient = ReferralRecipient::tryFrom((string) $this->enumValue($rule['recipient'] ?? null));
-
-                $missing = fn (string $key): bool => ($rule[$key] ?? null) === null;
-
-                match ($type) {
-                    ReferralRewardType::Credits => $missing('credits_amount')
-                        && $validator->errors()->add('credits_amount', 'A credits reward needs an amount.'),
-                    ReferralRewardType::PlanTime => ($missing('plan_id') || $missing('duration_days'))
-                        && $validator->errors()->add('plan_id', 'A plan-time reward needs a plan and a number of days.'),
-                    ReferralRewardType::StripeBalanceCredit => $missing('amount_cents') && ($missing('amount_percent_of_plan') || $missing('plan_id'))
-                        && $validator->errors()->add('amount_cents', 'An invoice credit needs a fixed amount, or a percentage of a plan\'s monthly price.'),
-                    ReferralRewardType::TrialExtension => $missing('trial_days')
-                        && $validator->errors()->add('trial_days', 'A trial extension needs a number of days.'),
-                    default => null,
-                };
-
-                if ($type === ReferralRewardType::TrialExtension && $recipient !== ReferralRecipient::Referee) {
-                    $validator->errors()->add('recipient', 'Only the referred user can receive a trial extension.');
-                }
-
-                if ($trigger === ReferralTrigger::Milestone) {
-                    if ($missing('milestone_count')) {
-                        $validator->errors()->add('milestone_count', 'A milestone rule needs the number of converted referrals it pays out at.');
-                    }
-
-                    if ($recipient !== ReferralRecipient::Referrer) {
-                        $validator->errors()->add('recipient', 'Milestone rewards go to the referrer.');
-                    }
+                foreach (self::consistencyErrors($this->existingRule(), $this->validated()) as $field => $message) {
+                    $validator->errors()->add($field, $message);
                 }
             },
         ];
+    }
+
+    /**
+     * Checks the rule as it would be saved — `$input` merged over `$rule` —
+     * makes sense as a whole. Shared with the `referrals:rule` command.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, string> Field => message.
+     */
+    public static function consistencyErrors(?ReferralRewardRule $rule, array $input): array
+    {
+        $merged = [...($rule?->attributesToArray() ?? []), ...$input];
+        $value = fn (string $key): mixed => ($merged[$key] ?? null) instanceof BackedEnum ? $merged[$key]->value : ($merged[$key] ?? null);
+        $missing = fn (string $key): bool => ($merged[$key] ?? null) === null;
+
+        $type = ReferralRewardType::tryFrom((string) $value('reward_type'));
+        $trigger = ReferralTrigger::tryFrom((string) $value('trigger'));
+        $recipient = ReferralRecipient::tryFrom((string) $value('recipient'));
+        $errors = [];
+
+        if ($type === ReferralRewardType::Credits && $missing('credits_amount')) {
+            $errors['credits_amount'] = 'A credits reward needs an amount.';
+        }
+
+        if ($type === ReferralRewardType::PlanTime && ($missing('plan_id') || $missing('duration_days'))) {
+            $errors['plan_id'] = 'A plan-time reward needs a plan and a number of days.';
+        }
+
+        if ($type === ReferralRewardType::StripeBalanceCredit && $missing('amount_cents') && ($missing('amount_percent_of_plan') || $missing('plan_id'))) {
+            $errors['amount_cents'] = 'An invoice credit needs a fixed amount, or a percentage of a plan\'s monthly price.';
+        }
+
+        if ($type === ReferralRewardType::TrialExtension && $missing('trial_days')) {
+            $errors['trial_days'] = 'A trial extension needs a number of days.';
+        }
+
+        if ($type === ReferralRewardType::TrialExtension && $recipient !== ReferralRecipient::Referee) {
+            $errors['recipient'] = 'Only the referred user can receive a trial extension.';
+        }
+
+        if ($trigger === ReferralTrigger::Milestone) {
+            if ($missing('milestone_count')) {
+                $errors['milestone_count'] = 'A milestone rule needs the number of converted referrals it pays out at.';
+            }
+
+            if ($recipient !== ReferralRecipient::Referrer) {
+                $errors['recipient'] = 'Milestone rewards go to the referrer.';
+            }
+        }
+
+        return $errors;
     }
 
     private function existingRule(): ?ReferralRewardRule
@@ -122,10 +155,5 @@ class ReferralRewardRuleRequest extends FormRequest
         $rule = $this->route('rule');
 
         return $rule instanceof ReferralRewardRule ? $rule : null;
-    }
-
-    private function enumValue(mixed $value): mixed
-    {
-        return $value instanceof BackedEnum ? $value->value : $value;
     }
 }

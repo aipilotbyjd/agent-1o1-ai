@@ -2,10 +2,9 @@
 
 namespace App\Console\Commands\Referrals;
 
-use App\Actions\Referrals\RevokeReferralRewardAction;
 use App\Enums\Referrals\ReferralRewardStatus;
 use App\Models\Referrals\ReferralReward;
-use App\Services\Admin\AdminAuditLogger;
+use App\Services\Referrals\ReferralAdmin;
 use Illuminate\Console\Command;
 
 class RevokeReferralRewardCommand extends Command
@@ -14,7 +13,7 @@ class RevokeReferralRewardCommand extends Command
 
     protected $description = 'Revokes a referral reward, clawing back what it gave where possible.';
 
-    public function handle(RevokeReferralRewardAction $revoke, AdminAuditLogger $audit): int
+    public function handle(ReferralAdmin $admin): int
     {
         $reward = ReferralReward::query()->find($this->argument('reward'));
 
@@ -24,16 +23,13 @@ class RevokeReferralRewardCommand extends Command
             return self::FAILURE;
         }
 
-        $reason = $this->option('reason') ?? 'Revoked by an admin';
-        $previous = $reward->status;
-
-        if (! $revoke->execute($reward, $reason)) {
+        if ($reward->status === ReferralRewardStatus::Revoked) {
             $this->info('That reward is already revoked.');
 
             return self::SUCCESS;
         }
 
-        $audit->record(null, 'referral_reward.revoked', $reward, ['status' => $previous->value], ['status' => ReferralRewardStatus::Revoked->value, 'reason' => $reason]);
+        $admin->revokeReward($reward, $this->option('reason') ?? 'Revoked by an admin', null);
 
         $this->info("Revoked reward {$reward->id}.");
 

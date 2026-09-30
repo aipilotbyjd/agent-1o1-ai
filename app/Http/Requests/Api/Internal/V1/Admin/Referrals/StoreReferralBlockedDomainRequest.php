@@ -24,6 +24,17 @@ class StoreReferralBlockedDomainRequest extends FormRequest
      */
     public function rules(): array
     {
+        return self::rulesFor();
+    }
+
+    /**
+     * Shared with the `referrals:domain` command. The domain must already be
+     * lower-cased and trimmed.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rulesFor(): array
+    {
         return [
             'domain' => ['required', 'string', 'max:255', 'regex:/^([a-z0-9-]+\.)+[a-z]{2,}$/', Rule::unique('referral_blocked_domains', 'domain')],
             'reason' => ['nullable', 'string', 'max:255'],

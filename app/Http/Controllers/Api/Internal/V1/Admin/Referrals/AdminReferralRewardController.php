@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Admin\Referrals;
 
-use App\Actions\Referrals\GrantManualReferralRewardAction;
-use App\Actions\Referrals\GrantReferralRewardAction;
-use App\Actions\Referrals\RevokeReferralRewardAction;
 use App\Enums\Referrals\ReferralRewardStatus;
 use App\Enums\Referrals\ReferralRewardType;
 use App\Http\Controllers\Controller;
@@ -15,7 +12,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Referrals\ReferralReward;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
-use App\Services\Admin\AdminAuditLogger;
+use App\Services\Referrals\ReferralAdmin;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -25,11 +22,7 @@ use Illuminate\Validation\Rule;
  */
 class AdminReferralRewardController extends Controller
 {
-    public function __construct(
-        private readonly GrantReferralRewardAction $grant,
-        private readonly RevokeReferralRewardAction $revoke,
-        private readonly AdminAuditLogger $audit,
-    ) {}
+    public function __construct(private readonly ReferralAdmin $admin) {}
 
     public function index(Request $request)
     {
@@ -51,64 +44,40 @@ class AdminReferralRewardController extends Controller
     }
 
     /**
-     * Approves a reward held for manual review. It then follows its normal
-     * hold: granted now if the hold has passed, else by
-     * `referrals:grant-pending` when it does.
+     * Approves a reward held for manual review; see `ReferralAdmin::approveReward()`.
      */
     public function approve(Request $request, ReferralReward $reward)
     {
-        abort_unless($reward->status === ReferralRewardStatus::AwaitingApproval, 422, 'Only a reward awaiting approval can be approved.');
-
-        $reward->update(['status' => ReferralRewardStatus::Pending]);
-
-        if ($reward->grant_after === null || $reward->grant_after->isPast()) {
-            $this->grant->execute($reward, $request->user());
-        }
-
-        $this->audit->record($request->user(), 'referral_reward.approved', $reward, ['status' => ReferralRewardStatus::AwaitingApproval->value], ['status' => $reward->status->value]);
+        $this->admin->approveReward($reward, $request->user());
 
         return ApiResponse::success(['reward' => AdminReferralRewardResource::make($reward->refresh()->load('recipient', 'plan'))], 'Reward approved.');
     }
 
     public function grantNow(Request $request, ReferralReward $reward)
     {
-        abort_unless($reward->status->isOpen(), 422, 'Only a pending or awaiting reward can be granted.');
-
-        $previous = $reward->status;
-
-        $this->grant->execute($reward, $request->user());
-
-        $this->audit->record($request->user(), 'referral_reward.granted_early', $reward, ['status' => $previous->value], ['status' => ReferralRewardStatus::Granted->value]);
+        $this->admin->grantRewardNow($reward, $request->user());
 
         return ApiResponse::success(['reward' => AdminReferralRewardResource::make($reward->refresh()->load('recipient', 'plan'))], 'Reward granted.');
     }
 
     public function revoke(ReasonRequest $request, ReferralReward $reward)
     {
-        abort_if($reward->status === ReferralRewardStatus::Revoked, 422, 'This reward is already revoked.');
-
-        $previous = $reward->status;
-
-        $this->revoke->execute($reward, $request->validated('reason'));
-
-        $this->audit->record($request->user(), 'referral_reward.revoked', $reward, ['status' => $previous->value], ['status' => ReferralRewardStatus::Revoked->value, 'reason' => $request->validated('reason')]);
+        $this->admin->revokeReward($reward, $request->validated('reason'), $request->user());
 
         return ApiResponse::success(['reward' => AdminReferralRewardResource::make($reward->refresh()->load('recipient', 'plan'))], 'Reward revoked.');
     }
 
-    public function store(StoreManualReferralRewardRequest $request, GrantManualReferralRewardAction $grantManual)
+    public function store(StoreManualReferralRewardRequest $request)
     {
         $data = $request->validated();
 
-        $reward = $grantManual->execute(
+        $reward = $this->admin->grantManualReward(
             User::query()->findOrFail($data['user_id']),
             isset($data['workspace_id']) ? Workspace::query()->findOrFail($data['workspace_id']) : null,
             [...$data, 'reward_type' => ReferralRewardType::from($data['reward_type'])],
-            $request->user(),
             $data['notes'] ?? null,
+            $request->user(),
         );
-
-        $this->audit->record($request->user(), 'referral_reward.manual_granted', $reward, null, $reward->attributesToArray());
 
         return ApiResponse::created(['reward' => AdminReferralRewardResource::make($reward->load('recipient', 'plan'))], 'Reward granted.');
     }
