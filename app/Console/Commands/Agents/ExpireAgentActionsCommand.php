@@ -22,20 +22,26 @@ class ExpireAgentActionsCommand extends Command
 
     public function handle(ActionResumer $resumer): int
     {
-        $expired = AgentAction::query()
+        $due = AgentAction::query()
             ->with(['session', 'run'])
             ->where('status', AgentActionStatus::Pending)
             ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now())
             ->get();
 
-        foreach ($expired as $action) {
-            $action->forceFill([
+        // Expired only while still pending: a person deciding at the same
+        // moment wins, rather than having their decision overwritten.
+        $expired = $due->filter(fn (AgentAction $action): bool => AgentAction::query()
+            ->whereKey($action->id)
+            ->where('status', AgentActionStatus::Pending)
+            ->update([
                 'status' => AgentActionStatus::Expired,
                 'decided_at' => now(),
                 'decision_channel' => 'expiry',
-            ])->save();
-        }
+                'updated_at' => now(),
+            ]) === 1)
+            ->each(fn (AgentAction $action) => $action->forceFill(['status' => AgentActionStatus::Expired, 'decision_channel' => 'expiry'])->syncOriginal())
+            ->values();
 
         $expired->unique('agent_session_id')->each(function (AgentAction $action): void {
             if ($action->session !== null) {

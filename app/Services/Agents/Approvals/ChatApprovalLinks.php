@@ -38,6 +38,17 @@ class ChatApprovalLinks
                 'text' => ['type' => 'mrkdwn', 'text' => "*{$action->tool_name}*\n```{$arguments}```"],
             ];
 
+            // Whoever clicks is only known by their Slack name, which can't
+            // satisfy a rule naming who may approve.
+            if ($action->hasNamedApprovers()) {
+                $blocks[] = [
+                    'type' => 'context',
+                    'elements' => [['type' => 'mrkdwn', 'text' => 'Only its named approvers can decide this one, in the app.']],
+                ];
+
+                continue;
+            }
+
             $blocks[] = [
                 'type' => 'actions',
                 'block_id' => "agent_action_{$action->id}",

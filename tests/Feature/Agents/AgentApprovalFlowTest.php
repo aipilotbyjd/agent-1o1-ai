@@ -247,3 +247,61 @@ it('refuses to decide for someone who may not approve', function () {
 
     Http::assertNothingSent();
 });
+
+it('does not expire an action someone decided while the expiry was running', function () {
+    WorkspaceAgent::fake([new ToolCall('call-1', 'call_api', ['body' => ['text' => 'hi']]), 'Posted it.']);
+
+    app(AgentRunner::class)->run($this->session, 'Post it.');
+    $this->travel(2)->days();
+
+    // The decision lands between the expiry reading the action and writing it.
+    AgentAction::retrieved(function (AgentAction $action): void {
+        AgentAction::query()->whereKey($action->id)->where('status', AgentActionStatus::Pending)->update(['status' => AgentActionStatus::Approved]);
+    });
+
+    $this->artisan('agents:expire-actions')->expectsOutput('Expired 0 action(s).')->assertSuccessful();
+
+    expect(AgentAction::query()->sole()->status)->toBe(AgentActionStatus::Approved);
+});
+
+it('cancels an approved action that never ran when the person writes again', function () {
+    WorkspaceAgent::fake([new ToolCall('call-1', 'call_api', ['body' => ['n' => 1]]), 'Never mind then.']);
+
+    app(AgentRunner::class)->run($this->session, 'Post twice.');
+    $first = AgentAction::query()->sole();
+
+    $second = AgentAction::factory()->forSession($this->session)->create([
+        'run_id' => $first->run_id,
+        'agent_message_id' => $first->agent_message_id,
+        'tool_call_id' => 'call-2',
+        'tool_name' => 'call_api',
+    ]);
+    $message = $second->message;
+    $message->forceFill(['paused_state' => [...$message->paused_state, 'pending_tool_call_ids' => ['call-1', 'call-2']]])->save();
+
+    app(ResolveAgentActionsAction::class)->execute($this->owner, [['action_id' => $first->id, 'decision' => 'approve']]);
+    app(AgentRunner::class)->run($this->session, 'Actually, forget it.');
+
+    expect($first->fresh()->status)->toBe(AgentActionStatus::Cancelled);
+    expect($second->fresh()->status)->toBe(AgentActionStatus::Cancelled);
+    Http::assertNothingSent();
+});
+
+it('leaves a paused turn that is being resumed to finish when the person writes again', function () {
+    WorkspaceAgent::fake([new ToolCall('call-1', 'call_api', ['body' => ['text' => 'hi']]), 'Posted it.']);
+
+    app(AgentRunner::class)->run($this->session, 'Post it.');
+    $pausedRun = Run::query()->where('runnable_id', $this->session->id)->sole();
+
+    // A resume claims the turn between the new message reading it and closing it.
+    Run::retrieved(function (Run $run) use ($pausedRun): void {
+        if ($run->id === $pausedRun->id) {
+            Run::query()->whereKey($run->id)->where('status', RunStatus::AwaitingApproval)->update(['status' => RunStatus::Running]);
+        }
+    });
+
+    app(AgentRunner::class)->abandonPausedTurns($this->session);
+
+    expect($pausedRun->fresh()->status)->toBe(RunStatus::Running);
+    expect(AgentAction::query()->sole()->status)->toBe(AgentActionStatus::Pending);
+});

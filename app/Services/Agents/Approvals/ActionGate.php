@@ -22,7 +22,9 @@ use Illuminate\Support\Str;
  * 1. Read-only mode refuses every write outright. Nothing loosens it.
  * 2. The tool's own rule: the first of its `conditions` that matches, else
  *    its `mode` (`allow`/`ask`/`deny`). Either replaces the mode's verdict,
- *    which is how "always allow this tool" works.
+ *    which is how "always allow this tool" works — except that a rule can't
+ *    let a write run more freely than the workspace's `max_autonomy_mode`
+ *    would (`ceilingVerdict()`).
  * 3. Otherwise the mode decides — see `modeVerdict()`.
  * 4. The tool's `rate_limit`, then the workspace's guardrails. These only
  *    ever make the verdict stricter: no agent setting can get past them.
@@ -65,7 +67,8 @@ class ActionGate
             return $this->verdict(ActionVerdict::Deny, 'mode', 'This agent is read-only: it can look things up but not change anything.');
         }
 
-        $decision = $this->ruleVerdict($call) ?? $this->modeVerdict($context, $call);
+        $rule = $this->ruleVerdict($call);
+        $decision = $rule === null ? $this->modeVerdict($context, $call) : $this->tighten($rule, $this->ceilingVerdict($context, $call, $rule));
 
         $decision = $this->tighten($decision, $this->rateLimitVerdict($context, $call));
 
@@ -114,6 +117,40 @@ class ActionGate
             ActionVerdict::Ask => 'This tool is set to always ask first.',
             default => 'This tool is set to never run.',
         });
+    }
+
+    /**
+     * What the workspace's `max_autonomy_mode` would make of a write a tool
+     * rule lets run without asking — the admin's cap is a ceiling no agent
+     * setting gets past, "always allow" included. Null when there is no cap
+     * or the rule doesn't loosen anything.
+     *
+     * @param  array{verdict: ActionVerdict}  $rule
+     * @return array{verdict: ActionVerdict, reason: array<string, mixed>, risk?: ActionRisk|null, review?: array<string, mixed>|null, plan_id?: string|null}|null
+     */
+    private function ceilingVerdict(ActionContext $context, ToolCall $call, array $rule): ?array
+    {
+        $cap = $context->policy->max_autonomy_mode;
+
+        if ($cap === null || $call->effect->isRead() || $rule['verdict'] !== ActionVerdict::Allow) {
+            return null;
+        }
+
+        // A Plan cap on a conversation not in Plan mode (a stricter mode won)
+        // has no `submit_plan` to offer, so the call asks instead.
+        if ($cap === AutonomyMode::Plan && $context->mode !== AutonomyMode::Plan) {
+            $cap = AutonomyMode::Ask;
+        }
+
+        return $this->modeVerdict(new ActionContext(
+            agent: $context->agent,
+            run: $context->run,
+            session: $context->session,
+            mode: $cap,
+            testMode: $context->testMode,
+            canPause: $context->canPause,
+            policy: $context->policy,
+        ), $call);
     }
 
     /**
@@ -171,12 +208,24 @@ class ActionGate
      * match the call — compared loosely (trimmed, case-insensitive), since
      * the model restates them rather than copying them.
      *
+     * A step already taken by a call that is running or ran doesn't count
+     * as pending: a step is ticked off only once its call finishes, and
+     * without this, two calls made in the same turn could both run on the
+     * strength of one approved step.
+     *
      * @return array<string, mixed>|null
      */
     private function matchingStep(AgentPlan $plan, ToolCall $call): ?array
     {
+        $taken = $plan->actions()
+            ->whereIn('status', [AgentActionStatus::Running, AgentActionStatus::Executed])
+            ->get()
+            ->map(fn (AgentAction $action): ?string => $action->reason['step_id'] ?? null)
+            ->filter()
+            ->all();
+
         foreach ($plan->pendingSteps() as $step) {
-            if (($step['tool'] ?? null) !== $call->toolName) {
+            if (($step['tool'] ?? null) !== $call->toolName || in_array($step['id'], $taken, true)) {
                 continue;
             }
 

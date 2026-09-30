@@ -529,6 +529,17 @@ class AgentRunner
             ->where('status', RunStatus::AwaitingApproval)
             ->get()
             ->each(function (Run $run) use ($session): void {
+                // Claimed like a resume (`openResume()`), so a turn a
+                // decision is resuming right now is left to finish.
+                $claimed = Run::query()
+                    ->whereKey($run->id)
+                    ->where('status', RunStatus::AwaitingApproval)
+                    ->update(['status' => RunStatus::Running, 'updated_at' => now()]);
+
+                if ($claimed === 0) {
+                    return;
+                }
+
                 AgentAction::query()
                     ->where('run_id', $run->id)
                     ->where('status', AgentActionStatus::Pending)
@@ -539,6 +550,12 @@ class AgentRunner
                         'updated_at' => now(),
                     ]);
 
+                // Approved while others in the turn still waited: never run.
+                AgentAction::query()
+                    ->where('run_id', $run->id)
+                    ->where('status', AgentActionStatus::Approved)
+                    ->update(['status' => AgentActionStatus::Cancelled, 'updated_at' => now()]);
+
                 $message = AgentMessage::query()->find($run->output['message_id'] ?? null);
                 $message?->forceFill(['paused_state' => null])->save();
 
@@ -546,6 +563,8 @@ class AgentRunner
 
                 if ($message !== null) {
                     $this->completeTurn($session, $run, $message);
+                } else {
+                    $run->forceFill(['status' => RunStatus::Cancelled, 'finished_at' => now()])->save();
                 }
             });
     }

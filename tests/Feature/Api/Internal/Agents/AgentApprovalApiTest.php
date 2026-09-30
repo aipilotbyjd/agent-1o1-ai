@@ -19,6 +19,7 @@ use App\Services\Agents\Approvals\ChatApprovalLinks;
 use App\Services\Http\SsrfGuard;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Laravel\Ai\Responses\Data\ToolCall;
 use Laravel\Passport\Passport;
@@ -282,4 +283,43 @@ it('decides from a Slack button when the workspace allows it and the request is 
     $send('shh')->assertOk();
     expect($action->fresh()->decision_channel)->toBe('slack');
     Http::assertSent(fn ($request) => str_contains($request->url(), 'hooks.acme.test'));
+});
+
+it('refuses deciding another conversation\'s actions from a chat', function () {
+    $other = AgentAction::factory()->create();
+
+    $this->postJson("{$this->sessionUrl}/actions/decisions", [
+        'decisions' => [['action_id' => $other->id, 'decision' => 'approve']],
+    ])->assertNotFound();
+
+    expect($other->fresh()->status)->toBe(AgentActionStatus::Pending);
+});
+
+it('leaves an action with named approvers to them, not to a Slack button', function () {
+    ($this->pause)();
+    $action = AgentAction::query()->sole();
+    $action->update(['approvers' => ["user:{$this->owner->id}"]]);
+
+    WorkspaceAgentPolicy::query()->create(['workspace_id' => $this->workspace->id, 'allow_chat_approvals' => true]);
+    $this->workspace->notificationChannels()->create([
+        'created_by' => $this->owner->id, 'type' => 'slack', 'name' => 'Approvals', 'config' => ['url' => 'https://hooks.slack.test/x', 'signing_secret' => 'shh'], 'is_active' => true,
+    ]);
+
+    $blocks = app(ChatApprovalLinks::class)->slackBlocks('t', collect([$action]));
+    expect(collect($blocks)->where('type', 'actions'))->toBeEmpty();
+
+    // A button minted before the rule named its approvers.
+    $value = Crypt::encryptString(json_encode(['action_id' => $action->id, 'decision' => ChatApprovalLinks::APPROVE]));
+    $payload = json_encode(['user' => ['username' => 'eve'], 'actions' => [['value' => $value]]]);
+    $body = 'payload='.urlencode($payload);
+    $timestamp = (string) time();
+
+    $this->call('POST', '/api/slack/agent-actions', ['payload' => $payload], [], [], [
+        'CONTENT_TYPE' => 'application/x-www-form-urlencoded',
+        'HTTP_X_SLACK_REQUEST_TIMESTAMP' => $timestamp,
+        'HTTP_X_SLACK_SIGNATURE' => 'v0='.hash_hmac('sha256', "v0:{$timestamp}:{$body}", 'shh'),
+    ], $body)->assertOk()->assertJsonPath('text', 'Only the approvers named for this tool can decide it, in the app.');
+
+    expect($action->fresh()->status)->toBe(AgentActionStatus::Pending);
+    Http::assertNothingSent();
 });

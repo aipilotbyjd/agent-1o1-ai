@@ -52,6 +52,10 @@ class SlackAgentActionController extends Controller
             return $this->reply("Already {$action->status->value}.");
         }
 
+        if ($action->hasNamedApprovers()) {
+            return $this->reply('Only the approvers named for this tool can decide it, in the app.');
+        }
+
         $slackUser = $payload['user']['username'] ?? $payload['user']['name'] ?? $payload['user']['id'] ?? 'unknown';
 
         $resolve->execute(null, [[

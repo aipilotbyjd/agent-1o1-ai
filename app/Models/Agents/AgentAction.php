@@ -111,6 +111,17 @@ class AgentAction extends Model
     }
 
     /**
+     * Whether a tool rule named who may decide this call. Only those people
+     * (and the workspace's owners and admins) can, so it can't be decided
+     * where the decider isn't a known account here — a chat button or an
+     * API key.
+     */
+    public function hasNamedApprovers(): bool
+    {
+        return ($this->approvers ?? []) !== [];
+    }
+
+    /**
      * Whether a person was asked about this call — decided or not. A
      * resumed turn has to hand the SDK a decision for every one of these.
      */

@@ -205,3 +205,42 @@ it('reads the tighter mode from a conversation override', function () {
 
     expect(($this->weigh)(($this->call)())->verdict)->toBe(ActionVerdict::Deny);
 });
+
+it('does not let an always-allow tool rule get past the workspace maximum mode', function () {
+    WorkspaceAgentPolicy::query()->create(['workspace_id' => $this->workspace->id, 'max_autonomy_mode' => AutonomyMode::Ask]);
+
+    $decision = ($this->weigh)(($this->call)(policy: ['mode' => 'allow']));
+
+    expect($decision->verdict)->toBe(ActionVerdict::Ask);
+    expect($decision->action->status)->toBe(AgentActionStatus::Pending);
+});
+
+it('still asks before an always-allowed destructive tool under an Autopilot cap', function () {
+    $this->agent->update(['autonomy_mode' => AutonomyMode::Autopilot]);
+    WorkspaceAgentPolicy::query()->create(['workspace_id' => $this->workspace->id, 'max_autonomy_mode' => AutonomyMode::Autopilot]);
+
+    expect(($this->weigh)(($this->call)(ActionEffect::Destructive, policy: ['mode' => 'allow'], id: 'call-delete'))->verdict)->toBe(ActionVerdict::Ask);
+    expect(($this->weigh)(($this->call)(ActionEffect::External, policy: ['mode' => 'allow'], id: 'call-send'))->verdict)->toBe(ActionVerdict::Allow);
+});
+
+it('asks rather than refers to a plan when a Plan cap meets a conversation in a stricter mode', function () {
+    WorkspaceAgentPolicy::query()->create(['workspace_id' => $this->workspace->id, 'max_autonomy_mode' => AutonomyMode::Plan]);
+
+    expect(($this->weigh)(($this->call)(policy: ['mode' => 'allow']))->verdict)->toBe(ActionVerdict::Ask);
+});
+
+it('lets one approved plan step run only one call', function () {
+    $this->agent->update(['autonomy_mode' => AutonomyMode::Plan]);
+
+    $plan = AgentPlan::factory()->forSession($this->session)->create([
+        'steps' => [['id' => 'step-1', 'tool' => 'gmail_send_email', 'summary' => 'Email Ana', 'arguments' => ['to' => 'ana@acme.com'], 'status' => AgentPlan::STEP_PENDING]],
+    ]);
+    $plan->forceFill(['status' => AgentPlanStatus::Approved])->save();
+
+    $first = ($this->weigh)(($this->call)(id: 'call-first'));
+    $second = ($this->weigh)(($this->call)(id: 'call-second'));
+
+    expect($first->verdict)->toBe(ActionVerdict::Allow);
+    expect($second->verdict)->toBe(ActionVerdict::Ask);
+    expect($second->action->reason['source'])->toBe('plan');
+});

@@ -43,6 +43,13 @@ class AgentActionStreamController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
+        // Only this conversation's actions, and its subagents' — the same
+        // set `AgentActionController::sessionIndex()` shows it.
+        $sessionIds = AgentSession::query()->where('parent_session_id', $session->id)->pluck('id')->push($session->id);
+        $decisionIds = array_column($request->decisions(), 'action_id');
+
+        abort_if(AgentAction::query()->whereKey($decisionIds)->whereIn('agent_session_id', $sessionIds)->count() !== count($decisionIds), 404);
+
         $decided = $this->resolve->execute($request->user(), $request->decisions(), resume: false);
 
         $run = $session->runs()->where('status', RunStatus::AwaitingApproval)->latest('id')->first();
