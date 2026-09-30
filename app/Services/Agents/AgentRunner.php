@@ -7,19 +7,29 @@ use App\Actions\Artifacts\StoreArtifactAction;
 use App\Ai\Agents\EmbeddedAgent;
 use App\Ai\Agents\WorkspaceAgent;
 use App\Ai\ResponseUsage;
+use App\Enums\Agents\AgentActionStatus;
 use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
+use App\Events\Agents\AgentActionsChanged;
+use App\Events\Agents\AgentActionsRequested;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
+use App\Exceptions\AgentTurnPausedException;
 use App\Exceptions\RunStateException;
 use App\Models\Agents\Agent as AgentModel;
+use App\Models\Agents\AgentAction;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Artifacts\Artifact;
 use App\Models\Runs\Run;
+use App\Services\Agents\Approvals\AgentActionExecutor;
+use App\Services\Agents\Approvals\AutonomyResolver;
+use App\Services\Agents\Approvals\PausedTurn;
+use App\Services\Agents\Approvals\Resumption;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -38,6 +48,11 @@ use Throwable;
  * agent invocations and workflow executions share one table. This turn's own
  * `Run` doubles as the execution context `NodeTool::handle()` passes to
  * `NodeContract::execute()` for any tool call made during it.
+ *
+ * A turn can stop partway on calls that need a person's approval (see
+ * `Approvals\ActionGate`): it is then paused, not completed — its `Run`
+ * waits in `awaiting_approval` — and `resume()` continues it once every
+ * waiting call is decided.
  */
 class AgentRunner
 {
@@ -55,6 +70,9 @@ class AgentRunner
         private readonly ModelCatalogResolver $modelCatalog,
         private readonly CreateAgentSessionAction $createSession,
         private readonly StoreArtifactAction $storeArtifact,
+        private readonly AutonomyResolver $autonomy,
+        private readonly AgentActionExecutor $executor,
+        private readonly SubagentTaskTracker $subagentTasks,
     ) {}
 
     /**
@@ -67,12 +85,55 @@ class AgentRunner
         try {
             $response = $turn->agent->prompt($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
-            return $this->completeTurn($turn, $response);
+            return $this->settleTurn($turn, $response);
         } catch (Throwable $e) {
             $this->failTurn($turn->run, $e);
 
             throw $e;
         }
+    }
+
+    /**
+     * Continues a turn that paused for approvals, once every waiting call
+     * has a decision (`ResolveAgentActionsAction` checks that). The decided
+     * calls are settled first — approved ones run, exactly once — then the
+     * model is handed the outcomes and carries on. It may finish, or pause
+     * again on a new call that needs approval.
+     *
+     * The reply is written onto the same assistant message the turn paused
+     * on, so one user message still gets one reply, and the turn's `Run` is
+     * the same one: it goes back to `running`, then settles as usual.
+     */
+    public function resume(Run $run): AgentMessage
+    {
+        $resumption = $this->openResume($run);
+
+        try {
+            $response = $resumption->turn->agent->prompt($resumption->decisions, provider: $resumption->turn->provider, model: $resumption->turn->model);
+
+            return $this->settleResumedTurn($resumption, $response);
+        } catch (Throwable $e) {
+            $this->failTurn($run, $e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * `resume()`, delivered as a stream — see `stream()` for who owns
+     * failure.
+     */
+    public function resumeStream(Run $run): StreamedTurn
+    {
+        $resumption = $this->openResume($run);
+
+        $response = $resumption->turn->agent->stream($resumption->decisions, provider: $resumption->turn->provider, model: $resumption->turn->model);
+
+        $response->then(function (StreamedAgentResponse $streamed) use ($resumption): void {
+            $this->settleResumedTurn($resumption, $streamed);
+        });
+
+        return new StreamedTurn($resumption->turn->run, $response);
     }
 
     /**
@@ -95,7 +156,7 @@ class AgentRunner
         $response = $turn->agent->stream($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
         $response->then(function (StreamedAgentResponse $streamed) use ($turn): void {
-            $this->completeTurn($turn, $streamed);
+            $this->settleTurn($turn, $streamed);
         });
 
         return new StreamedTurn($turn->run, $response);
@@ -147,7 +208,7 @@ class AgentRunner
 
             $storedAttachments = $this->storeAttachments($session, $run, $userMessage, $attachments);
 
-            $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
+            $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
             [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
             return new AgentTurn(
@@ -177,10 +238,16 @@ class AgentRunner
      * their context from a transcript the other is halfway through writing.
      * The lock only covers check-and-create; the `running` run itself is
      * what holds the session for the length of the turn.
+     *
+     * A turn still waiting on approvals doesn't block: writing again means
+     * the person moved on, so its waiting calls are cancelled and the turn
+     * closed out first (`abandonPausedTurns()`).
      */
     private function claimTurn(AgentSession $session, string $message, string $triggerType): Run
     {
         return Cache::lock("agent-session:{$session->id}:turn", 10)->block(5, function () use ($session, $message, $triggerType): Run {
+            $this->abandonPausedTurns($session);
+
             $busy = $session->runs()
                 ->where('status', RunStatus::Running)
                 ->where('started_at', '>', now()->subMinutes(self::TURN_STALE_AFTER_MINUTES))
@@ -241,24 +308,246 @@ class AgentRunner
         return $artifacts;
     }
 
-    private function completeTurn(AgentTurn $turn, AgentResponse $response): AgentMessage
+    /**
+     * Closes out the provider's answer: a finished reply completes the turn,
+     * one that stopped on calls needing approval pauses it.
+     */
+    private function settleTurn(AgentTurn $turn, AgentResponse $response): AgentMessage
     {
         $assistantMessage = $this->storeAssistantMessage($turn->session, $response, ResponseUsage::from($response, $turn->run->started_at));
 
-        $turn->run->forceFill([
+        if ($response->hasPendingApprovals()) {
+            return $this->pauseTurn($turn->session, $turn->run, $assistantMessage, $response);
+        }
+
+        return $this->completeTurn($turn->session, $turn->run, $assistantMessage);
+    }
+
+    private function completeTurn(AgentSession $session, Run $run, AgentMessage $assistantMessage): AgentMessage
+    {
+        $run->forceFill([
             'status' => RunStatus::Completed,
             // `message_id` lets `RecordRunCreditUsage` find the exact
             // `AgentMessage` to charge for, without guessing at "the
             // latest assistant message" for this session.
-            'output' => ['text' => $response->text, 'message_id' => $assistantMessage->id],
+            'output' => ['text' => $assistantMessage->content, 'message_id' => $assistantMessage->id],
             'finished_at' => now(),
         ])->save();
 
-        $turn->session->forceFill(['last_activity_at' => now()])->save();
+        $session->forceFill(['last_activity_at' => now()])->save();
 
-        event(new RunCompleted($turn->run));
+        event(new RunCompleted($run));
+
+        $this->subagentTasks->complete($session, $assistantMessage);
 
         return $assistantMessage;
+    }
+
+    /**
+     * Parks the turn until its waiting calls are decided: the reply so far
+     * is kept with what resuming needs (`PausedTurn`), the calls are linked
+     * to it, and the turn's `Run` waits in `awaiting_approval` — not
+     * `running`, so it neither blocks the conversation nor gets failed as
+     * stuck, and isn't billed until it finishes.
+     */
+    private function pauseTurn(AgentSession $session, Run $run, AgentMessage $assistantMessage, AgentResponse $response): AgentMessage
+    {
+        $assistantMessage->forceFill(['paused_state' => PausedTurn::stateFrom($response)])->save();
+
+        $actions = $this->linkPendingActions($run, $session, $assistantMessage);
+
+        $run->forceFill([
+            'status' => RunStatus::AwaitingApproval,
+            'output' => [
+                'text' => $assistantMessage->content,
+                'message_id' => $assistantMessage->id,
+                'pending_action_ids' => $actions->modelKeys(),
+            ],
+        ])->save();
+
+        $session->forceFill(['last_activity_at' => now()])->save();
+
+        event(new AgentActionsRequested($session, $run, $actions));
+
+        $this->subagentTasks->awaitApproval($session);
+
+        return $assistantMessage;
+    }
+
+    /**
+     * @return Collection<int, AgentAction>
+     */
+    private function linkPendingActions(Run $run, AgentSession $session, AgentMessage $assistantMessage): Collection
+    {
+        $actions = AgentAction::query()
+            ->where('run_id', $run->id)
+            ->where('agent_session_id', $session->id)
+            ->whereIn('tool_call_id', $assistantMessage->paused_state['pending_tool_call_ids'] ?? [])
+            ->get();
+
+        AgentAction::query()->whereKey($actions->modelKeys())->update(['agent_message_id' => $assistantMessage->id]);
+
+        return $actions->each(fn (AgentAction $action) => $action->setAttribute('agent_message_id', $assistantMessage->id));
+    }
+
+    /**
+     * Claims a paused turn for resuming and settles its decided calls.
+     * Claiming is a conditional update, so two resumes (a queued job and a
+     * streamed one, say) can't both continue the same turn.
+     */
+    private function openResume(Run $run): Resumption
+    {
+        $claimed = Run::query()
+            ->whereKey($run->id)
+            ->where('status', RunStatus::AwaitingApproval)
+            ->update(['status' => RunStatus::Running, 'started_at' => now(), 'updated_at' => now()]);
+
+        if ($claimed === 0) {
+            throw RunStateException::notAwaitingApproval();
+        }
+
+        $run->refresh();
+
+        try {
+            $session = $run->runnable;
+
+            if (! $session instanceof AgentSession) {
+                throw new InvalidArgumentException("Run [{$run->id}] is not an agent conversation turn.");
+            }
+
+            $message = AgentMessage::query()->findOrFail($run->output['message_id'] ?? null);
+
+            return $this->prepareResumption($session, $run, $message);
+        } catch (Throwable $e) {
+            $this->failTurn($run, $e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Everything a resumed turn needs, shared by a chat turn's resume and an
+     * embedded Agent node's: the decided calls settled, the SDK agent built
+     * to replay the paused message, and the decisions to hand it.
+     */
+    private function prepareResumption(AgentSession $session, Run $run, AgentMessage $message): Resumption
+    {
+        $agent = $session->pinnedAgent();
+
+        $actions = $this->executor->pausedActions($message);
+
+        if ($actions->contains(fn (AgentAction $action): bool => $action->status->isAwaitingDecision())) {
+            throw RunStateException::approvalsUndecided();
+        }
+
+        $tools = $this->tools->toolsFor($agent, $run, $session);
+        $settled = $this->executor->settle($actions, $tools);
+
+        $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+
+        return new Resumption(
+            new AgentTurn(
+                $session,
+                $run,
+                new WorkspaceAgent($instructions, $session, null, $tools, GenerationSettings::fromAgent($agent), $message->id),
+                $provider,
+                $model,
+            ),
+            $message,
+            $this->executor->decisionsFor($actions->each->refresh()),
+            $settled,
+            now(),
+        );
+    }
+
+    private function settleResumedTurn(Resumption $resumption, AgentResponse $response): AgentMessage
+    {
+        $message = $this->mergeResumed($resumption, $response);
+        $turn = $resumption->turn;
+
+        if ($response->hasPendingApprovals()) {
+            return $this->pauseTurn($turn->session, $turn->run, $message, $response);
+        }
+
+        event(new AgentActionsChanged($turn->session, $turn->run));
+
+        return $this->completeTurn($turn->session, $turn->run, $message);
+    }
+
+    /**
+     * Folds the resumed part of the turn into the message it paused on: the
+     * settled calls' outcomes, any new calls and results, the rest of the
+     * reply, and the combined usage. A result the SDK reports for a call
+     * this turn already settled is ignored — the settled one is what really
+     * happened.
+     */
+    private function mergeResumed(Resumption $resumption, AgentResponse $response): AgentMessage
+    {
+        $message = $resumption->message->fresh();
+
+        $calls = collect($message->tool_calls ?? [])->keyBy('id');
+
+        foreach ($response->toolCalls->toArray() as $call) {
+            $calls->put($call['id'], $calls->get($call['id'], $call));
+        }
+
+        $results = collect($message->tool_results ?? [])->keyBy('id');
+
+        foreach ($resumption->settledResults as $id => $result) {
+            $results->put($id, $result);
+        }
+
+        foreach ($response->toolResults->toArray() as $result) {
+            if (! $results->has($result['id'])) {
+                $results->put($result['id'], $result);
+            }
+        }
+
+        $content = collect([$message->content, $response->text])->map(fn (?string $text): string => trim((string) $text))->filter()->implode("\n\n");
+
+        $message->forceFill([
+            'content' => $content,
+            'tool_calls' => $calls->isNotEmpty() ? $calls->values()->all() : null,
+            'tool_results' => $results->isNotEmpty() ? $results->values()->all() : null,
+            'paused_state' => null,
+            'usage' => ResponseUsage::combine($message->usage ?? [], ResponseUsage::from($response, $resumption->startedAt)),
+        ])->save();
+
+        return $message;
+    }
+
+    /**
+     * Closes out every turn in this conversation still waiting on approvals:
+     * the waiting calls are cancelled and the turn completes with the reply
+     * it had, billed for what it used. Called when a new message arrives —
+     * the person has moved on.
+     */
+    public function abandonPausedTurns(AgentSession $session): void
+    {
+        $session->runs()
+            ->where('status', RunStatus::AwaitingApproval)
+            ->get()
+            ->each(function (Run $run) use ($session): void {
+                AgentAction::query()
+                    ->where('run_id', $run->id)
+                    ->where('status', AgentActionStatus::Pending)
+                    ->update([
+                        'status' => AgentActionStatus::Cancelled,
+                        'decided_at' => now(),
+                        'decision_note' => 'The conversation moved on before anyone decided.',
+                        'updated_at' => now(),
+                    ]);
+
+                $message = AgentMessage::query()->find($run->output['message_id'] ?? null);
+                $message?->forceFill(['paused_state' => null])->save();
+
+                event(new AgentActionsChanged($session, $run));
+
+                if ($message !== null) {
+                    $this->completeTurn($session, $run, $message);
+                }
+            });
     }
 
     /**
@@ -316,7 +605,7 @@ class AgentRunner
 
         $startedAt = now();
 
-        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run), GenerationSettings::fromAgent($agent)))
+        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run, canPause: false), GenerationSettings::fromAgent($agent)))
             ->prompt($prompt, provider: $provider, model: $model);
 
         return ['text' => $response->text, 'usage' => ResponseUsage::from($response, $startedAt)];
@@ -338,6 +627,11 @@ class AgentRunner
      * tokens. `AgentMessage.usage` is still recorded, purely so the turn's
      * cost is visible when inspecting the conversation later.
      *
+     * An action that needs approval pauses the conversation just as in a
+     * chat, then throws `AgentTurnPausedException` so the workflow engine can
+     * park the Agent node (`WorkflowRunner`); `resumeInConversation()` picks
+     * it up once decided.
+     *
      * @return array{
      *     text: string,
      *     usage: array<string, mixed>,
@@ -345,6 +639,8 @@ class AgentRunner
      *     messages: array<int, array{role: string, content: string, tool_calls: array<int, mixed>|null}>,
      *     attachment_names: string,
      * }
+     *
+     * @throws AgentTurnPausedException
      */
     public function askInConversation(AgentModel $agent, Run $run, string $prompt, ?string $previousConversationId): array
     {
@@ -352,7 +648,7 @@ class AgentRunner
             ? $this->createSession->execute($agent, $run->triggeredBy)
             : $this->conversationFor($agent, $run, $previousConversationId);
 
-        $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
+        $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
         [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
         $userMessage = $session->messages()->create([
@@ -367,13 +663,69 @@ class AgentRunner
 
         $usage = ResponseUsage::from($response, $startedAt);
 
-        $this->storeAssistantMessage($session, $response, $usage);
+        $assistantMessage = $this->storeAssistantMessage($session, $response, $usage);
 
         $session->forceFill(['last_activity_at' => now()])->save();
 
+        if ($response->hasPendingApprovals()) {
+            $this->pauseInConversation($session, $run, $assistantMessage, $response);
+        }
+
+        return $this->conversationResult($session, $run, $assistantMessage);
+    }
+
+    /**
+     * Continues an Agent node's conversation that paused for approvals —
+     * the embedded counterpart of `resume()`. `$run` is the workflow run
+     * the node belongs to, which the calls ran against. Throws
+     * `AgentTurnPausedException` again if the agent stops on another call
+     * that needs approval.
+     *
+     * @return array{text: string, usage: array<string, mixed>, conversation_id: string, messages: array<int, array{role: string, content: string, tool_calls: array<int, mixed>|null}>, attachment_names: string}
+     *
+     * @throws AgentTurnPausedException
+     */
+    public function resumeInConversation(Run $run, AgentSession $session, AgentMessage $message): array
+    {
+        $resumption = $this->prepareResumption($session, $run, $message);
+
+        $response = $resumption->turn->agent->prompt($resumption->decisions, provider: $resumption->turn->provider, model: $resumption->turn->model);
+
+        $message = $this->mergeResumed($resumption, $response);
+
+        $session->forceFill(['last_activity_at' => now()])->save();
+
+        if ($response->hasPendingApprovals()) {
+            $this->pauseInConversation($session, $run, $message, $response);
+        }
+
+        event(new AgentActionsChanged($session, $run));
+
+        return $this->conversationResult($session, $run, $message);
+    }
+
+    /**
+     * @throws AgentTurnPausedException
+     */
+    private function pauseInConversation(AgentSession $session, Run $run, AgentMessage $assistantMessage, AgentResponse $response): never
+    {
+        $assistantMessage->forceFill(['paused_state' => PausedTurn::stateFrom($response)])->save();
+
+        $actions = $this->linkPendingActions($run, $session, $assistantMessage);
+
+        event(new AgentActionsRequested($session, $run, $actions));
+
+        throw new AgentTurnPausedException($session, $assistantMessage);
+    }
+
+    /**
+     * @return array{text: string, usage: array<string, mixed>, conversation_id: string, messages: array<int, array{role: string, content: string, tool_calls: array<int, mixed>|null}>, attachment_names: string}
+     */
+    private function conversationResult(AgentSession $session, Run $run, AgentMessage $assistantMessage): array
+    {
         return [
-            'text' => $response->text,
-            'usage' => $usage,
+            'text' => (string) $assistantMessage->content,
+            'usage' => $assistantMessage->usage ?? [],
             'conversation_id' => $session->id,
             'messages' => $session->messages()->oldest()->get()
                 ->map(fn (AgentMessage $message): array => [

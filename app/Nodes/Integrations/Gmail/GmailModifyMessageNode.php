@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Gmail;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GmailModifyMessageNode extends AbstractGmailNode
@@ -19,6 +20,11 @@ class GmailModifyMessageNode extends AbstractGmailNode
     public function description(): string
     {
         return 'Adds or removes labels on a message.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

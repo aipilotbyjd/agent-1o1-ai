@@ -2,8 +2,10 @@
 
 namespace App\Nodes\DataTransform;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use Illuminate\Support\Arr;
@@ -14,7 +16,7 @@ use Illuminate\Support\Arr;
  * (`{{ node.output }}` expressions) lands in Stage 5, see
  * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md.
  */
-class TransformNode implements HasIcon, NodeContract
+class TransformNode implements DeclaresEffect, HasIcon, NodeContract
 {
     public function type(): string
     {
@@ -39,6 +41,11 @@ class TransformNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'Reshapes data by mapping output keys to dot-paths into the run context.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

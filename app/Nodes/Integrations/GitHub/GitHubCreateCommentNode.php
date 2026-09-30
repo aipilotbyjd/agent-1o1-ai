@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GitHub;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GitHubCreateCommentNode extends AbstractGitHubNode
@@ -19,6 +20,11 @@ class GitHubCreateCommentNode extends AbstractGitHubNode
     public function description(): string
     {
         return 'Adds a comment to an issue or pull request.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::External;
     }
 
     public function configSchema(): array

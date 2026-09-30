@@ -22,6 +22,7 @@ class AgentToolBindingResource extends JsonResource
             'node_type' => $this->node_type,
             'config' => $this->config,
             'exposed_fields' => $this->exposed_fields,
+            'approval_policy' => $this->approval_policy,
             'created_at' => $this->created_at,
         ];
     }

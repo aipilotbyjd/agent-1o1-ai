@@ -2,8 +2,10 @@
 
 namespace App\Nodes\FlowLogic;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use Illuminate\Support\Arr;
@@ -13,7 +15,7 @@ use Illuminate\Support\Arr;
  * branch's `result`, falling back to `'default'`. `GraphAdvancer` (Stage 3)
  * matches each outgoing `WorkflowEdge.condition` against this `result`.
  */
-class RouterNode implements HasIcon, NodeContract
+class RouterNode implements DeclaresEffect, HasIcon, NodeContract
 {
     private const array OPERATORS = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than'];
 
@@ -40,6 +42,11 @@ class RouterNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'Branches into one of several named outcomes based on evaluating conditions in order.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

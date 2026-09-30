@@ -32,13 +32,14 @@ class SubagentTask extends Model
 
     /**
      * Marks `$parentSessionId`'s subagent tasks that are still unfinished long
-     * after they were started as failed.
+     * after they were started as failed. One waiting on an approval is
+     * waiting on a person, not stuck, so it's left alone.
      */
     public static function failStale(string $parentSessionId): void
     {
         static::query()
             ->where('parent_session_id', $parentSessionId)
-            ->whereIn('status', SubagentTaskStatus::activeValues())
+            ->whereIn('status', [SubagentTaskStatus::Queued->value, SubagentTaskStatus::Running->value])
             ->where('created_at', '<', now()->subMinutes(self::STALE_AFTER_MINUTES))
             ->update([
                 'status' => SubagentTaskStatus::Failed->value,

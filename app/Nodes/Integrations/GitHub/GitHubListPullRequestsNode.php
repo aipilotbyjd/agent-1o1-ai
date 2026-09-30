@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GitHub;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GitHubListPullRequestsNode extends AbstractGitHubNode
@@ -19,6 +20,11 @@ class GitHubListPullRequestsNode extends AbstractGitHubNode
     public function description(): string
     {
         return 'Lists pull requests in a repository.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

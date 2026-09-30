@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Gmail;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\NodeContract;
 use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
@@ -15,7 +16,7 @@ use RuntimeException;
  * referenced by `config['credential_id']`, or a plain `access_token` config
  * field for nodes configured before `ConnectorCredential` existed.
  */
-abstract class AbstractGmailNode implements NodeContract
+abstract class AbstractGmailNode implements DeclaresEffect, NodeContract
 {
     use ResolvesConnectorCredential;
 

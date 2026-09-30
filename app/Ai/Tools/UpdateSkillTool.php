@@ -2,12 +2,15 @@
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\GatesActions;
 use App\Authorization\WorkspaceContext;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
 use App\Models\Agents\Skill;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -24,8 +27,10 @@ use Stringable;
  * using it behaves. That's an edit for the Skills page, where its reach is
  * visible.
  */
-class UpdateSkillTool implements Tool
+class UpdateSkillTool implements Approvable, Tool
 {
+    use GatesActions;
+
     public const NAME = 'update_skill';
 
     public function __construct(
@@ -46,6 +51,39 @@ class UpdateSkillTool implements Tool
     }
 
     public function handle(Request $request): Stringable|string
+    {
+        return $this->guarded($request, fn (array $arguments): string => (string) $this->perform(new Request($arguments, $request->toolCallId())));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function actionArguments(Request $request): array
+    {
+        return $request->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected function effectiveArguments(array $arguments): array
+    {
+        return $arguments;
+    }
+
+    /**
+     * Changing the agent itself is a write like any other: in Ask mode it
+     * waits for a person, and a read-only agent can't do it at all.
+     *
+     * @param  array<string, mixed>  $effectiveArguments
+     */
+    protected function actionEffect(array $effectiveArguments): ActionEffect
+    {
+        return ActionEffect::Write;
+    }
+
+    private function perform(Request $request): Stringable|string
     {
         $name = trim((string) $request['skill']);
         $skill = Agent::query()->findOrFail($this->agent->id)->skills

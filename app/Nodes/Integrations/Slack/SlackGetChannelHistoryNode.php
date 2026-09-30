@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class SlackGetChannelHistoryNode extends AbstractSlackNode
@@ -19,6 +20,11 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode
     public function description(): string
     {
         return 'Fetches recent messages from a Slack channel.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

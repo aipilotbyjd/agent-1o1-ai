@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Triggers;
 
+use App\Enums\Agents\AutonomyMode;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTriggerRequest extends FormRequest
 {
@@ -18,6 +20,9 @@ class UpdateTriggerRequest extends FormRequest
     {
         return [
             'config' => ['nullable', 'array'],
+            // For an agent target: the mode its triggered turns run under, overriding the agent's own.
+            'config.autonomy_mode' => ['nullable', Rule::enum(AutonomyMode::class)],
+            'config.test_mode' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Gmail;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GmailCreateDraftNode extends AbstractGmailNode
@@ -19,6 +20,11 @@ class GmailCreateDraftNode extends AbstractGmailNode
     public function description(): string
     {
         return 'Creates a draft email message.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

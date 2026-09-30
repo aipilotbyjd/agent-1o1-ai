@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Gmail;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GmailListMessagesNode extends AbstractGmailNode
@@ -19,6 +20,11 @@ class GmailListMessagesNode extends AbstractGmailNode
     public function description(): string
     {
         return 'Lists messages in the inbox matching a query.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

@@ -48,13 +48,10 @@ class RunSubagentTaskJob implements ShouldQueue
         $task->forceFill(['status' => SubagentTaskStatus::Running, 'started_at' => now()])->save();
 
         try {
-            $reply = $runner->run($task->session, $this->message($task), 'subagent');
-
-            $task->forceFill([
-                'status' => SubagentTaskStatus::Completed,
-                'result' => $reply->content,
-                'finished_at' => now(),
-            ])->save();
+            // The turn settles the task itself (`SubagentTaskTracker`):
+            // completed with the reply, or waiting while an action it
+            // took is up for approval.
+            $runner->run($task->session, $this->message($task), 'subagent');
         } catch (Throwable $e) {
             $this->markFailed($task, $e);
         }

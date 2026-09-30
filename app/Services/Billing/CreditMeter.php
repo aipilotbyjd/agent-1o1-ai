@@ -111,6 +111,17 @@ class CreditMeter
     }
 
     /**
+     * One Smart-mode review of an agent action — priced as the judge call
+     * it is.
+     *
+     * @param  array<string, mixed>  $usage
+     */
+    public function costForActionReview(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
      * A node an agent called as a tool. Its turn already bills one credit
      * for the call itself (`CREDITS_PER_TOOL_CALL`), which stands in for the
      * base credit a workflow node run would carry — so this is only what the

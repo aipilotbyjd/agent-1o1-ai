@@ -50,6 +50,7 @@ class DashboardController extends Controller
             'runs' => $this->metrics->runTotals($workspace, $window),
             'in_flight' => $this->metrics->inFlightByStatus($workspace),
             'pending_approvals' => $this->metrics->pendingApprovals($workspace)->count(),
+            'pending_agent_actions' => $this->metrics->pendingAgentActions($workspace)->count(),
             'credits' => $this->credits($request, $workspace, $window),
             'counts' => $this->counts($workspace),
             'recent_runs' => RunResource::collection(

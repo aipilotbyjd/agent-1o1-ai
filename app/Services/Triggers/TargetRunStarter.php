@@ -6,6 +6,7 @@ use App\Actions\Agents\CreateAgentSessionAction;
 use App\Actions\Agents\SendAgentMessageAction;
 use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Contracts\Triggers\RunStarter;
+use App\Enums\Agents\AutonomyMode;
 use App\Enums\RunStatus;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
@@ -114,6 +115,13 @@ class TargetRunStarter implements RunStarter
             $trigger->creator,
             "{$trigger->type->value} trigger #{$trigger->id}",
         );
+
+        // A trigger can run its agent under a different mode than chat does
+        // — typically stricter, since nobody is watching a triggered turn.
+        $session->forceFill([
+            'autonomy_mode' => AutonomyMode::tryFrom((string) ($trigger->config['autonomy_mode'] ?? '')),
+            'test_mode' => isset($trigger->config['test_mode']) ? (bool) $trigger->config['test_mode'] : null,
+        ])->save();
 
         $this->sendAgentMessage->execute($session, $this->messageFor($trigger, $payload), $trigger->type->value);
 

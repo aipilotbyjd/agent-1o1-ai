@@ -3,8 +3,10 @@
 namespace App\Nodes\AiAutomation;
 
 use App\Ai\Agents\AdHocPromptAgent;
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use App\Services\Ai\ModelCatalogResolver;
@@ -14,7 +16,7 @@ use App\Services\Ai\ModelCatalogResolver;
  * through `laravel/ai`'s own provider abstraction (see docs/NODES_CATALOG.md's
  * "AI nodes" section).
  */
-class AskAiNode implements HasIcon, NodeContract
+class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
 {
     public function __construct(private readonly ModelCatalogResolver $modelCatalog) {}
 
@@ -41,6 +43,11 @@ class AskAiNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'Prompts an LLM with a single-turn, provider-agnostic call and returns the reply text.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

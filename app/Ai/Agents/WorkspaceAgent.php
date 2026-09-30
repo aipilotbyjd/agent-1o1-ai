@@ -7,6 +7,7 @@ use App\Enums\Agents\AgentMessageRole;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Artifacts\Artifact;
+use App\Services\Agents\Approvals\PausedTurn;
 use App\Services\Agents\GenerationSettings;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Contracts\Agent;
@@ -55,6 +56,11 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
      * as the latest user message itself, so including it here would
      * duplicate it in the context sent to the provider.
      *
+     * `$resumingMessageId` is set when a paused turn is being resumed with
+     * approval decisions: that assistant message is replayed with its
+     * unanswered calls intact (`PausedTurn::replay()`) instead of the usual
+     * results-only replay, since those calls are what the decisions answer.
+     *
      * @param  array<int, Tool>  $tools
      */
     public function __construct(
@@ -63,6 +69,7 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
         private readonly ?string $beforeMessageId = null,
         private readonly array $tools = [],
         private readonly ?GenerationSettings $settings = null,
+        private readonly ?string $resumingMessageId = null,
     ) {}
 
     public function instructions(): string
@@ -116,6 +123,7 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
                 fn ($messages) => $messages->skipUntil(fn (AgentMessage $message): bool => $message->role === AgentMessageRole::User),
             )
             ->flatMap(fn (AgentMessage $message): array => match (true) {
+                $message->id === $this->resumingMessageId && $message->paused_state !== null => PausedTurn::replay($message),
                 $message->role === AgentMessageRole::Assistant => $this->assistantTurn($message),
                 $message->attachments->isNotEmpty() => [
                     new UserMessage($message->content, $message->attachments->map(fn (Artifact $artifact) => $artifact->toPromptAttachment())),

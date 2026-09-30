@@ -2,7 +2,9 @@
 
 namespace App\Models\Agents;
 
+use App\Enums\Agents\AgentActionStatus;
 use App\Enums\Agents\AgentSessionStatus;
+use App\Enums\Agents\AutonomyMode;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
@@ -27,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * unlike `Run.status`, which is engine-managed and deliberately left out of
  * its own fillable list.
  */
-#[Fillable(['workspace_id', 'agent_id', 'agent_version_id', 'user_id', 'title', 'status'])]
+#[Fillable(['workspace_id', 'agent_id', 'agent_version_id', 'user_id', 'title', 'status', 'autonomy_mode', 'test_mode'])]
 class AgentSession extends Model
 {
     /** @use HasFactory<AgentSessionFactory> */
@@ -48,6 +50,8 @@ class AgentSession extends Model
         return [
             'status' => AgentSessionStatus::class,
             'last_activity_at' => 'datetime',
+            'autonomy_mode' => AutonomyMode::class,
+            'test_mode' => 'boolean',
         ];
     }
 
@@ -146,5 +150,26 @@ class AgentSession extends Model
     public function evaluation(): HasOne
     {
         return $this->hasOne(AgentSessionEvaluation::class);
+    }
+
+    /**
+     * Tool calls made in this conversation — see `Models\Agents\AgentAction`.
+     */
+    public function actions(): HasMany
+    {
+        return $this->hasMany(AgentAction::class);
+    }
+
+    /**
+     * Actions in this conversation still waiting for someone to decide.
+     */
+    public function pendingActions(): HasMany
+    {
+        return $this->actions()->where('status', AgentActionStatus::Pending);
+    }
+
+    public function plans(): HasMany
+    {
+        return $this->hasMany(AgentPlan::class);
     }
 }

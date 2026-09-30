@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -28,6 +29,11 @@ class SlackUploadFileNode extends AbstractSlackNode
     public function description(): string
     {
         return 'Uploads a text file to one or more Slack channels.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::External;
     }
 
     public function configSchema(): array

@@ -2,6 +2,7 @@
 
 namespace App\Ai\Tools;
 
+use App\Enums\Agents\SubagentTaskStatus;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\SubagentTask;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -79,7 +80,8 @@ class WaitForSubagentsTool implements Tool
                 'error' => $task->error,
             ], fn ($value) => $value !== null))->values()->all(),
             'still_running' => $stillRunning
-                ->map(fn (SubagentTask $task): string => "{$task->agent?->name}: {$task->task}")
+                ->map(fn (SubagentTask $task): string => "{$task->agent?->name}: {$task->task}"
+                    .($task->status === SubagentTaskStatus::AwaitingApproval ? ' (waiting for a person to approve one of its actions)' : ''))
                 ->values()
                 ->all(),
             'note' => $stillRunning->isNotEmpty()

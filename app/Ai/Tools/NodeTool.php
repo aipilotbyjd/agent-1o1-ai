@@ -3,7 +3,10 @@
 namespace App\Ai\Tools;
 
 use App\Actions\Billing\DeductCreditsAction;
+use App\Ai\Tools\Concerns\GatesActions;
+use App\Contracts\DeclaresEffect;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\AgentToolBinding;
 use App\Models\Runs\Run;
@@ -11,6 +14,7 @@ use App\Services\Billing\CreditMeter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Support\Str;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -18,12 +22,16 @@ use Stringable;
 /**
  * Wraps a `NodeContract` as a `Laravel\Ai` tool for an `Agent` — the
  * bound-config/exposed-fields security boundary from `AgentToolBinding`'s
- * docblock lives entirely in `handle()`/`schema()` below. **This must never
- * regress**: a tool-call argument can never override a bound config value,
- * and the model is never even shown a schema field for one.
+ * docblock lives entirely in `effectiveArguments()`/`schema()` below. **This
+ * must never regress**: a tool-call argument can never override a bound
+ * config value, and the model is never even shown a schema field for one.
+ * That holds for a reviewer's edit too — an approved call's edited
+ * arguments go through the same filter as the model's own.
  */
-class NodeTool implements Tool
+class NodeTool implements Approvable, Tool
 {
+    use GatesActions;
+
     public function __construct(
         private readonly NodeContract $node,
         private readonly AgentToolBinding $binding,
@@ -54,15 +62,45 @@ class NodeTool implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $arguments = array_intersect_key($request->all(), array_flip($this->modelSettableKeys()));
+        return $this->guarded($request, function (array $arguments): string {
+            $output = $this->node->execute($this->run, $this->effectiveArguments($arguments), ['input' => [], 'nodes' => []]);
 
-        $config = [...$arguments, ...($this->binding->config ?? [])];
+            $this->chargeForNode($output);
 
-        $output = $this->node->execute($this->run, $config, ['input' => [], 'nodes' => []]);
+            return json_encode($output) ?: '{}';
+        });
+    }
 
-        $this->chargeForNode($output);
+    public function binding(): AgentToolBinding
+    {
+        return $this->binding;
+    }
 
-        return json_encode($output) ?: '{}';
+    /**
+     * @return array<string, mixed>
+     */
+    protected function actionArguments(Request $request): array
+    {
+        return array_intersect_key($request->all(), array_flip($this->modelSettableKeys()));
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected function effectiveArguments(array $arguments): array
+    {
+        $arguments = array_intersect_key($arguments, array_flip($this->modelSettableKeys()));
+
+        return [...$arguments, ...($this->binding->config ?? [])];
+    }
+
+    /**
+     * @param  array<string, mixed>  $effectiveArguments
+     */
+    protected function actionEffect(array $effectiveArguments): ActionEffect
+    {
+        return $this->node instanceof DeclaresEffect ? $this->node->effect($effectiveArguments) : ActionEffect::Write;
     }
 
     /**

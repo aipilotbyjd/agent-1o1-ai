@@ -11,16 +11,27 @@ use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\ReadKnowledgeDocumentTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\SearchKnowledgeTool;
+use App\Ai\Tools\SubmitPlanTool;
 use App\Ai\Tools\UpdateInstructionsTool;
 use App\Ai\Tools\UpdateSkillTool;
 use App\Ai\Tools\UseSkillTool;
 use App\Ai\Tools\WaitForSubagentsTool;
 use App\Ai\Tools\WorkflowTool;
+use App\Contracts\DeclaresEffect;
+use App\Enums\Agents\ActionEffect;
+use App\Enums\Agents\ActionToolKind;
+use App\Enums\Agents\AutonomyMode;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentToolBinding;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Runs\Run;
+use App\Models\Workflows\Workflow;
+use App\Services\Agents\Approvals\ActionContext;
+use App\Services\Agents\Approvals\ActionGate;
+use App\Services\Agents\Approvals\ActionGuard;
+use App\Services\Agents\Approvals\AutonomyResolver;
+use App\Services\Agents\Approvals\PlanTracker;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Artifacts\DocumentRenderer;
 use App\Services\Workflows\NodeRegistry;
@@ -55,7 +66,17 @@ use Laravel\Ai\Providers\Tools\WebSearch;
  * only offered in a top-level conversation — see `subagentTools()`.
  *
  * Web search and page fetching are the SDK's provider-native `WebSearch`/
- * `WebFetch`, run by the model provider itself — see `webTools()`.
+ * `WebFetch`, run by the model provider itself — see `webTools()`. Being
+ * run by the provider, they can't be gated per call; fetching is simply
+ * off for an agent with `allow_web_fetch` unset.
+ *
+ * Every tool that can change something — attached nodes and workflows, and
+ * the agent's own instruction/skill editing — is put behind an
+ * `ActionGuard` for this turn's `ActionContext`, so the agent's autonomy
+ * mode, tool rules and the workspace guardrails decide each call (see
+ * `Approvals\ActionGate`). `$canPause` is false for a stateless call with no
+ * conversation to resume. In Plan mode the agent also gets
+ * `SubmitPlanTool`.
  */
 class ToolRegistry
 {
@@ -68,21 +89,34 @@ class ToolRegistry
         private readonly ModelCatalogResolver $modelCatalog,
         private readonly AiManager $ai,
         private readonly DocumentRenderer $documentRenderer,
+        private readonly AutonomyResolver $autonomy,
+        private readonly ActionGate $gate,
+        private readonly PlanTracker $plans,
     ) {}
 
     /**
-     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|UseSkillTool|CreateSkillTool|UpdateSkillTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool|InvokeAgentTool|WaitForSubagentsTool|WebSearch|WebFetch>
+     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|UseSkillTool|CreateSkillTool|UpdateSkillTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool|InvokeAgentTool|WaitForSubagentsTool|SubmitPlanTool|WebSearch|WebFetch>
      */
-    public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null): array
+    public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null, bool $canPause = true): array
     {
+        $session ??= $run->runnable instanceof AgentSession ? $run->runnable : null;
+
+        $context = $this->autonomy->contextFor($agent, $run, $session, $canPause);
+
         $nodeTools = $agent->toolBindings()
             ->get()
             ->filter(fn (AgentToolBinding $binding) => $this->nodes->has($binding->node_type))
-            ->map(fn (AgentToolBinding $binding) => new NodeTool($this->nodes->resolve($binding->node_type), $binding, $run));
+            ->map(fn (AgentToolBinding $binding) => (new NodeTool($this->nodes->resolve($binding->node_type), $binding, $run))
+                ->guardedBy($this->guard($context, $binding->node_type, ActionToolKind::Node, $binding->approval_policy)));
 
         $workflowTools = $agent->workflows()
+            ->with('currentVersion')
             ->get()
-            ->map(fn ($workflow) => new WorkflowTool($workflow, $this->startWorkflowRun));
+            ->map(function (Workflow $workflow) use ($context): WorkflowTool {
+                $tool = new WorkflowTool($workflow, $this->startWorkflowRun, $this->workflowEffect($workflow));
+
+                return $tool->guardedBy($this->guard($context, $tool->name(), ActionToolKind::Workflow, $this->pivotPolicy($workflow)));
+            });
 
         $knowledgeTools = $this->knowledgeTools($agent);
 
@@ -90,24 +124,33 @@ class ToolRegistry
 
         $memoryTools = [new RememberTool($agent, $run->triggered_by)];
 
-        $session ??= $run->runnable instanceof AgentSession ? $run->runnable : null;
-
         $artifactTools = $session !== null
             ? [new ExportArtifactTool($agent, $session, $run, $this->storeArtifact, $this->documentRenderer)]
             : [];
 
         $skillEditingTools = $session !== null && $agent->allow_skill_editing
             ? array_values(array_filter([
-                new CreateSkillTool($agent, $run->triggered_by),
-                $agent->skills->isNotEmpty() ? new UpdateSkillTool($agent, $run->triggered_by) : null,
+                (new CreateSkillTool($agent, $run->triggered_by))->guardedBy($this->guard($context, CreateSkillTool::NAME, ActionToolKind::Builtin)),
+                $agent->skills->isNotEmpty()
+                    ? (new UpdateSkillTool($agent, $run->triggered_by))->guardedBy($this->guard($context, UpdateSkillTool::NAME, ActionToolKind::Builtin))
+                    : null,
             ]))
             : [];
 
-        $selfUpdateTools = $session !== null && $agent->allow_self_updates
-            ? [new UpdateInstructionsTool($agent, $this->skillInjector, $run->triggered_by, $session)]
-            : [];
+        $selfUpdateTools = [];
 
-        $subagentTools = $session !== null ? $this->subagentTools($agent, $session) : [];
+        if ($session !== null && $agent->allow_self_updates) {
+            $tool = new UpdateInstructionsTool($agent, $this->skillInjector, $run->triggered_by, $session);
+            $selfUpdateTools[] = $tool->guardedBy($this->guard($context, $tool->name(), ActionToolKind::Builtin));
+        }
+
+        $subagentTools = $session !== null ? $this->subagentTools($agent, $session, $context) : [];
+
+        $gatedTools = [...$nodeTools->values()->all(), ...$workflowTools->values()->all(), ...$skillEditingTools, ...$selfUpdateTools];
+
+        $planTools = $context->mode === AutonomyMode::Plan && $session !== null && $gatedTools !== []
+            ? [new SubmitPlanTool($session, $run, $this->plans, array_map(fn ($tool): string => $tool->name(), $gatedTools))]
+            : [];
 
         return [
             ...$nodeTools->values()->all(),
@@ -119,8 +162,58 @@ class ToolRegistry
             ...$artifactTools,
             ...$selfUpdateTools,
             ...$subagentTools,
+            ...$planTools,
             ...$this->webTools($agent),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $policy
+     */
+    private function guard(ActionContext $context, string $toolName, ActionToolKind $kind, ?array $policy = null): ActionGuard
+    {
+        return new ActionGuard($this->gate, $this->plans, $context, $toolName, $kind, $policy);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function pivotPolicy(Workflow $workflow): ?array
+    {
+        $policy = $workflow->pivot?->approval_policy;
+
+        return is_string($policy) ? json_decode($policy, true) : $policy;
+    }
+
+    /**
+     * The strongest effect of any node in the workflow's published graph —
+     * running the workflow does everything its nodes do. A workflow with no
+     * published graph, or a node that doesn't declare an effect, counts as a
+     * write.
+     */
+    private function workflowEffect(Workflow $workflow): ActionEffect
+    {
+        $nodes = $workflow->currentVersion?->graph['nodes'] ?? null;
+
+        if ($nodes === null) {
+            return ActionEffect::Write;
+        }
+
+        $effects = collect($nodes)
+            ->reject(fn (array $node): bool => $this->nodes->isFlowControl((string) ($node['type'] ?? '')))
+            ->map(function (array $node): ActionEffect {
+                $type = (string) ($node['type'] ?? '');
+
+                if (! $this->nodes->has($type)) {
+                    return ActionEffect::Write;
+                }
+
+                $instance = $this->nodes->resolve($type);
+
+                return $instance instanceof DeclaresEffect ? $instance->effect($node['config'] ?? []) : ActionEffect::Write;
+            });
+
+        return ActionEffect::strongest(...$effects->all());
     }
 
     /**
@@ -137,7 +230,7 @@ class ToolRegistry
      *
      * @return array<int, InvokeAgentTool|WaitForSubagentsTool>
      */
-    private function subagentTools(Agent $agent, AgentSession $session): array
+    private function subagentTools(Agent $agent, AgentSession $session, ActionContext $context): array
     {
         if ($session->parent_session_id !== null) {
             return [];
@@ -153,7 +246,7 @@ class ToolRegistry
             $targets[$this->uniqueTargetName($subagent->name, $targets)] = $subagent;
         }
 
-        return $targets === [] ? [] : [new InvokeAgentTool($session, $targets), new WaitForSubagentsTool($session)];
+        return $targets === [] ? [] : [new InvokeAgentTool($session, $targets, $context->mode, $context->testMode), new WaitForSubagentsTool($session)];
     }
 
     /**
@@ -188,7 +281,7 @@ class ToolRegistry
 
         return array_values(array_filter([
             $providers->every(fn ($instance) => $instance instanceof SupportsWebSearch) ? new WebSearch : null,
-            $providers->every(fn ($instance) => $instance instanceof SupportsWebFetch) ? new WebFetch : null,
+            $agent->allow_web_fetch && $providers->every(fn ($instance) => $instance instanceof SupportsWebFetch) ? new WebFetch : null,
         ]));
     }
 

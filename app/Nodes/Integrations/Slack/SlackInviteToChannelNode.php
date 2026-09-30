@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class SlackInviteToChannelNode extends AbstractSlackNode
@@ -19,6 +20,11 @@ class SlackInviteToChannelNode extends AbstractSlackNode
     public function description(): string
     {
         return 'Invites one or more users to a Slack channel.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::External;
     }
 
     public function configSchema(): array

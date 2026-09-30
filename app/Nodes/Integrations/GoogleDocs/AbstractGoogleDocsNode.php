@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleDocs;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\NodeContract;
 use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
@@ -14,7 +15,7 @@ use RuntimeException;
  * workspace-scoped `ConnectorCredential` (`gmail` connector, whose OAuth
  * scopes cover every Google product node) used by `AbstractGmailNode`.
  */
-abstract class AbstractGoogleDocsNode implements NodeContract
+abstract class AbstractGoogleDocsNode implements DeclaresEffect, NodeContract
 {
     use ResolvesConnectorCredential;
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Connectors\OAuthConnectorController;
+use App\Http\Controllers\Webhooks\SlackAgentActionController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\WaitCallbackController;
 use App\Http\Controllers\Webhooks\WebhookController;
@@ -26,6 +27,13 @@ Route::post('hooks/wait/{token}', WaitCallbackController::class)
 // looks up, not from this route's auth.
 Route::get('oauth/connectors/callback', [OAuthConnectorController::class, 'callback'])
     ->name('oauth.connectors.callback');
+
+// Public — Slack's interactivity callback for approve/reject buttons on
+// agent approval messages. Authenticated by Slack's request signature and
+// the button's encrypted value; see SlackAgentActionController.
+Route::post('slack/agent-actions', SlackAgentActionController::class)
+    ->middleware('throttle:trigger-hooks')
+    ->name('slack.agent-actions');
 
 // Cashier auto-registration is disabled (AppServiceProvider::configureCashier)
 // so this resolves to our own controller (idempotency guard + plan/usage-period

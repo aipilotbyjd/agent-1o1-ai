@@ -6,6 +6,8 @@ enum SubagentTaskStatus: string
 {
     case Queued = 'queued';
     case Running = 'running';
+    case AwaitingApproval = 'awaiting_approval';
+
     case Completed = 'completed';
     case Failed = 'failed';
 
@@ -19,6 +21,6 @@ enum SubagentTaskStatus: string
      */
     public static function activeValues(): array
     {
-        return [self::Queued->value, self::Running->value];
+        return [self::Queued->value, self::Running->value, self::AwaitingApproval->value];
     }
 }

@@ -62,4 +62,11 @@ enum CreditTransactionType: string
      * stored chunk's id.
      */
     case KnowledgeIngestion = 'knowledge_ingestion';
+
+    /**
+     * Smart mode's reviewer judging one agent action — see
+     * `Services\Agents\Approvals\ActionReviewer`. Charged against the
+     * action it reviewed.
+     */
+    case ActionReview = 'action_review';
 }

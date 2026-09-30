@@ -27,7 +27,7 @@ class WorkspaceWebhookChannel
             ->where('workspace_id', $payload['workspace_id'])
             ->whereIn('id', $channelIds)
             ->where('is_active', true)
-            ->each(fn (NotificationChannel $channel) => $this->deliver($channel, $payload['message']));
+            ->each(fn (NotificationChannel $channel) => $this->deliver($channel, $payload['message'], $payload['slack_blocks'] ?? null));
     }
 
     /**
@@ -39,9 +39,14 @@ class WorkspaceWebhookChannel
     }
 
     /**
+     * `$slackBlocks` is interactive content (e.g. approve/reject buttons)
+     * for a Slack channel; `$message` stays the text fallback Slack shows
+     * in notifications.
+     *
+     * @param  array<int, mixed>|null  $slackBlocks
      * @return array{ok: bool, message: string}
      */
-    private function deliver(NotificationChannel $channel, string $message): array
+    private function deliver(NotificationChannel $channel, string $message, ?array $slackBlocks = null): array
     {
         try {
             $config = $channel->config;
@@ -49,7 +54,7 @@ class WorkspaceWebhookChannel
 
             $response = match ($channel->type) {
                 'discord' => $request->post($config['url'], ['content' => $message]),
-                'slack' => $request->post($config['url'], ['text' => $message]),
+                'slack' => $request->post($config['url'], array_filter(['text' => $message, 'blocks' => $slackBlocks])),
                 'webhook' => $request->withHeaders($config['headers'] ?? [])->post($config['url'], ['message' => $message]),
             };
 

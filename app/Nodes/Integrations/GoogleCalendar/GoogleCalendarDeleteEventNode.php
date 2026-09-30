@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleCalendar;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleCalendarDeleteEventNode extends AbstractGoogleCalendarNode
@@ -19,6 +20,11 @@ class GoogleCalendarDeleteEventNode extends AbstractGoogleCalendarNode
     public function description(): string
     {
         return 'Deletes an event from a calendar.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Destructive;
     }
 
     public function configSchema(): array

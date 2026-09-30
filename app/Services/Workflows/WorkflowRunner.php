@@ -2,16 +2,22 @@
 
 namespace App\Services\Workflows;
 
+use App\Enums\Agents\AgentActionStatus;
 use App\Enums\NodeRunStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Enums\Workflows\FlowControlNodeType;
+use App\Exceptions\AgentTurnPausedException;
 use App\Jobs\Workflows\DispatchNextNodesJob;
+use App\Models\Agents\AgentAction;
+use App\Models\Agents\AgentMessage;
+use App\Models\Agents\AgentSession;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\WorkflowApproval;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Notifications\Workspace\RunApprovalRequestedNotification;
+use App\Services\Agents\AgentRunner;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Secrets\ResolvedSecrets;
 use App\Services\Secrets\SecretRedactor;
@@ -23,6 +29,7 @@ use App\Services\Workflows\Engine\SubWorkflowCoordinator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -185,6 +192,8 @@ class WorkflowRunner
             if ($delaySeconds > 0) {
                 $pending->delay(now()->addSeconds($delaySeconds));
             }
+        } catch (AgentTurnPausedException $e) {
+            $this->pauseForAgentApproval($nodeRun, $e);
         } catch (Throwable $e) {
             Log::warning('Workflow node execution failed.', [
                 'run_id' => $run->id,
@@ -208,6 +217,84 @@ class WorkflowRunner
         ])->save();
 
         DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+    }
+
+    /**
+     * An Agent node whose agent stopped on an action needing approval: the
+     * node waits (`awaiting_approval`, like a HumanApproval node) with its
+     * conversation noted in `output`, and the waiting actions are tied to
+     * it so a decision resumes the node — see `resumeAgentNode()`.
+     */
+    private function pauseForAgentApproval(NodeRun $nodeRun, AgentTurnPausedException $paused): void
+    {
+        $nodeRun->forceFill([
+            'status' => NodeRunStatus::AwaitingApproval,
+            'output' => [
+                'awaiting_approval' => true,
+                'agent_session_id' => $paused->session->id,
+                'message_id' => $paused->agentMessage->id,
+            ],
+        ])->save();
+
+        AgentAction::query()
+            ->where('agent_message_id', $paused->agentMessage->id)
+            ->where('status', AgentActionStatus::Pending)
+            ->update(['node_run_id' => $nodeRun->id]);
+    }
+
+    /**
+     * Continues an Agent node once its waiting actions are decided. Claimed
+     * with a conditional update, so a second resume of the same node is a
+     * no-op. The node then settles like any other: completed and the graph
+     * advances, paused again on a new action, or failed through the usual
+     * error handling.
+     */
+    public function resumeAgentNode(NodeRun $nodeRun): void
+    {
+        $claimed = NodeRun::query()
+            ->whereKey($nodeRun->id)
+            ->where('status', NodeRunStatus::AwaitingApproval)
+            ->update(['status' => NodeRunStatus::Running, 'updated_at' => now()]);
+
+        if ($claimed === 0) {
+            return;
+        }
+
+        $nodeRun->refresh();
+        $run = $nodeRun->run;
+
+        if ($run->status->isTerminal()) {
+            $nodeRun->forceFill(['status' => NodeRunStatus::Cancelled, 'finished_at' => now()])->save();
+
+            return;
+        }
+
+        $session = AgentSession::query()->find($nodeRun->output['agent_session_id'] ?? null);
+        $message = AgentMessage::query()->find($nodeRun->output['message_id'] ?? null);
+
+        try {
+            if ($session === null || $message === null) {
+                throw new RuntimeException('The paused agent conversation no longer exists.');
+            }
+
+            $output = app(AgentRunner::class)->resumeInConversation($run, $session, $message);
+
+            $nodeRun->forceFill([
+                'status' => NodeRunStatus::Completed,
+                'output' => $output,
+                'usage' => $output['usage'] ?? null,
+                'finished_at' => now(),
+            ])->save();
+
+            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+        } catch (AgentTurnPausedException $e) {
+            $this->pauseForAgentApproval($nodeRun, $e);
+        } catch (Throwable $e) {
+            $graph = $run->workflowVersion->graph;
+            $nodeDefinition = collect($graph['nodes'])->firstWhere('key', $nodeRun->key) ?? ['key' => $nodeRun->key, 'type' => $nodeRun->type, 'config' => []];
+
+            $this->failureHandler->handle($run, $nodeRun, $nodeDefinition, $graph, $e);
+        }
     }
 
     private function pauseForApproval(Run $run, NodeRun $nodeRun): void

@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleSheets;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleSheetsAppendValuesNode extends AbstractGoogleSheetsNode
@@ -19,6 +20,11 @@ class GoogleSheetsAppendValuesNode extends AbstractGoogleSheetsNode
     public function description(): string
     {
         return 'Appends a row of values to a spreadsheet range.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

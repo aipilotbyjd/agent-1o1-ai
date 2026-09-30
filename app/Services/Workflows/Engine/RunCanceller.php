@@ -2,9 +2,11 @@
 
 namespace App\Services\Workflows\Engine;
 
+use App\Enums\Agents\AgentActionStatus;
 use App\Enums\NodeRunStatus;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCancelled;
+use App\Models\Agents\AgentAction;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\User;
@@ -50,6 +52,18 @@ class RunCanceller
             }
 
             $this->settleInFlightNodeRuns($locked);
+
+            // An agent action still waiting on a person must not be
+            // approvable, and run, after its run has been stopped.
+            AgentAction::query()
+                ->where('run_id', $locked->id)
+                ->where('status', AgentActionStatus::Pending)
+                ->update([
+                    'status' => AgentActionStatus::Cancelled,
+                    'decided_at' => now(),
+                    'decision_note' => 'The run was cancelled.',
+                    'updated_at' => now(),
+                ]);
 
             $locked->forceFill([
                 'status' => RunStatus::Cancelled,

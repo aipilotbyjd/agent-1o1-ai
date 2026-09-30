@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class SlackListUsersNode extends AbstractSlackNode
@@ -19,6 +20,11 @@ class SlackListUsersNode extends AbstractSlackNode
     public function description(): string
     {
         return 'Lists users in the Slack workspace.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\NodeContract;
 use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
@@ -15,7 +16,7 @@ use RuntimeException;
  * referenced by `config['credential_id']`, or a plain `access_token` config
  * field for nodes configured before `ConnectorCredential` existed.
  */
-abstract class AbstractSlackNode implements NodeContract
+abstract class AbstractSlackNode implements DeclaresEffect, NodeContract
 {
     use ResolvesConnectorCredential;
 

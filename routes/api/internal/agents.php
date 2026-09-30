@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentActionController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentActionStreamController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentDraftController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalCaseController;
@@ -10,12 +12,14 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentInstructionsController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeSourceController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentPlanController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionEvaluationController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionStreamController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSkillController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSubagentController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentToolBindingController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentTrustController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentVersionController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentWorkflowToolController;
 use App\Http\Controllers\Api\Internal\V1\Agents\ReflectionController;
@@ -59,12 +63,29 @@ Route::middleware(['auth:api', 'workspace.context'])
         // AgentSessionStreamController for the event names.
         Route::post('{agent}/sessions/{session}/messages/stream', [AgentSessionStreamController::class, 'store'])->middleware('long-agent-turn')->name('sessions.messages.stream');
 
+        // Approvals: the actions an agent took or is waiting to take — see
+        // Services\Agents\Approvals\ActionGate. Deciding from the chat
+        // continues the paused turn as a stream, like sending a message.
+        Route::get('{agent}/actions', [AgentActionController::class, 'index'])->name('actions.index');
+        Route::get('{agent}/sessions/{session}/actions', [AgentActionController::class, 'sessionIndex'])->name('sessions.actions.index');
+        Route::post('{agent}/sessions/{session}/actions/decisions', [AgentActionStreamController::class, 'store'])->middleware('long-agent-turn')->name('sessions.actions.decide');
+
+        // Plan mode: plans the agent proposed, and approving/rejecting them.
+        Route::get('{agent}/sessions/{session}/plans', [AgentPlanController::class, 'index'])->name('sessions.plans.index');
+        Route::post('{agent}/sessions/{session}/plans/{plan}/approve', [AgentPlanController::class, 'approve'])->name('sessions.plans.approve');
+        Route::post('{agent}/sessions/{session}/plans/{plan}/reject', [AgentPlanController::class, 'reject'])->name('sessions.plans.reject');
+
+        Route::get('{agent}/trust-suggestions', [AgentTrustController::class, 'index'])->name('trust-suggestions.index');
+        Route::post('{agent}/trust-suggestions/apply', [AgentTrustController::class, 'apply'])->name('trust-suggestions.apply');
+
         Route::get('{agent}/tool-bindings', [AgentToolBindingController::class, 'index'])->name('tool-bindings.index');
         Route::post('{agent}/tool-bindings', [AgentToolBindingController::class, 'store'])->name('tool-bindings.store');
+        Route::patch('{agent}/tool-bindings/{toolBinding}', [AgentToolBindingController::class, 'update'])->name('tool-bindings.update');
         Route::delete('{agent}/tool-bindings/{toolBinding}', [AgentToolBindingController::class, 'destroy'])->name('tool-bindings.destroy');
 
         Route::get('{agent}/workflows', [AgentWorkflowToolController::class, 'index'])->name('workflows.index');
         Route::post('{agent}/workflows/{workflow}', [AgentWorkflowToolController::class, 'store'])->name('workflows.store');
+        Route::patch('{agent}/workflows/{workflow}', [AgentWorkflowToolController::class, 'update'])->name('workflows.update');
         Route::delete('{agent}/workflows/{workflow}', [AgentWorkflowToolController::class, 'destroy'])->name('workflows.destroy');
 
         Route::get('{agent}/skills', [AgentSkillController::class, 'index'])->name('skills.index');

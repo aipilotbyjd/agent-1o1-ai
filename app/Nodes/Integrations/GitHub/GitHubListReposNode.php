@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GitHub;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GitHubListReposNode extends AbstractGitHubNode
@@ -19,6 +20,11 @@ class GitHubListReposNode extends AbstractGitHubNode
     public function description(): string
     {
         return 'Lists repositories for the authenticated user or an organization.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

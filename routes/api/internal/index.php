@@ -18,6 +18,7 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/secrets.php';
     require __DIR__.'/runs.php';
     require __DIR__.'/agents.php';
+    require __DIR__.'/agent_actions.php';
     require __DIR__.'/skills.php';
     require __DIR__.'/knowledge_base.php';
     require __DIR__.'/templates.php';

@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Gmail;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GmailReplyToMessageNode extends AbstractGmailNode
@@ -19,6 +20,11 @@ class GmailReplyToMessageNode extends AbstractGmailNode
     public function description(): string
     {
         return 'Replies to an existing email thread.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::External;
     }
 
     public function configSchema(): array

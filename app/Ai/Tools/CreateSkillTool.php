@@ -2,12 +2,15 @@
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\GatesActions;
 use App\Authorization\WorkspaceContext;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -19,8 +22,10 @@ use Stringable;
  * agent's creator for a run nobody started), and only if that person may
  * manage skills — the same permission the Skills page requires.
  */
-class CreateSkillTool implements Tool
+class CreateSkillTool implements Approvable, Tool
 {
+    use GatesActions;
+
     public const NAME = 'create_skill';
 
     public function __construct(
@@ -41,6 +46,39 @@ class CreateSkillTool implements Tool
     }
 
     public function handle(Request $request): Stringable|string
+    {
+        return $this->guarded($request, fn (array $arguments): string => (string) $this->perform(new Request($arguments, $request->toolCallId())));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function actionArguments(Request $request): array
+    {
+        return $request->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected function effectiveArguments(array $arguments): array
+    {
+        return $arguments;
+    }
+
+    /**
+     * Changing the agent itself is a write like any other: in Ask mode it
+     * waits for a person, and a read-only agent can't do it at all.
+     *
+     * @param  array<string, mixed>  $effectiveArguments
+     */
+    protected function actionEffect(array $effectiveArguments): ActionEffect
+    {
+        return ActionEffect::Write;
+    }
+
+    private function perform(Request $request): Stringable|string
     {
         $name = trim((string) $request['name']);
         $instructions = trim((string) $request['instructions']);

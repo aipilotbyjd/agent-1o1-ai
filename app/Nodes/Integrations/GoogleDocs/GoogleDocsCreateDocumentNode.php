@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleDocs;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleDocsCreateDocumentNode extends AbstractGoogleDocsNode
@@ -19,6 +20,11 @@ class GoogleDocsCreateDocumentNode extends AbstractGoogleDocsNode
     public function description(): string
     {
         return 'Creates a new Google Doc.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

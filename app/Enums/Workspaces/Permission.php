@@ -29,6 +29,8 @@ enum Permission: string
     case AgentManage = 'agent.manage';
     case AgentChat = 'agent.chat';
     case AgentSkillManage = 'agent.skill.manage';
+    case AgentApprove = 'agent.approve';
+    case AgentPolicyManage = 'agent.policy.manage';
 
     case ConnectorView = 'connector.view';
     case ConnectorManage = 'connector.manage';
@@ -106,6 +108,7 @@ enum Permission: string
             self::NodeManage,
             self::AgentManage,
             self::AgentSkillManage,
+            self::AgentApprove,
             self::ArtifactManage,
             self::TriggerManage,
             self::TemplateManage,
@@ -127,6 +130,7 @@ enum Permission: string
             self::ApiKeyManage,
             self::BillingManage,
             self::NotificationChannelManage,
+            self::AgentPolicyManage,
         ];
     }
 
