@@ -1,0 +1,19 @@
+meta {
+  name: Rules - Delete
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/referrals/rules/:rule
+  body: none
+  auth: inherit
+}
+
+params:path {
+  rule: {{referralRuleId}}
+}
+
+docs {
+  Soft-deletes the rule; rewards it already gave are kept.
+}

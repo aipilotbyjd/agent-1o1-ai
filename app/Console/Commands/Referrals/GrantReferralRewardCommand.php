@@ -2,12 +2,11 @@
 
 namespace App\Console\Commands\Referrals;
 
-use App\Actions\Referrals\GrantManualReferralRewardAction;
 use App\Enums\Referrals\ReferralRewardType;
 use App\Models\Billing\Plan;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
-use App\Services\Admin\AdminAuditLogger;
+use App\Services\Referrals\ReferralAdmin;
 use Illuminate\Console\Command;
 
 /**
@@ -28,7 +27,7 @@ class GrantReferralRewardCommand extends Command
 
     protected $description = 'Grants a goodwill referral reward to a user.';
 
-    public function handle(GrantManualReferralRewardAction $grant, AdminAuditLogger $audit): int
+    public function handle(ReferralAdmin $admin): int
     {
         $user = User::query()->where('email', $this->argument('email'))->first();
 
@@ -52,9 +51,7 @@ class GrantReferralRewardCommand extends Command
             return self::FAILURE;
         }
 
-        $reward = $grant->execute($user, $workspace, $values, null, $this->option('reason'));
-
-        $audit->record(null, 'referral_reward.manual_granted', $reward, null, $reward->attributesToArray());
+        $reward = $admin->grantManualReward($user, $workspace, $values, $this->option('reason'), null);
 
         $this->info("Granted {$reward->reward_type->label()} to {$user->email} (reward {$reward->id}).");
 

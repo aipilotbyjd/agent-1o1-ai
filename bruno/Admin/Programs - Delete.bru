@@ -1,0 +1,23 @@
+meta {
+  name: Programs - Delete
+  type: http
+  seq: 30
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/referrals/programs/:program
+  body: none
+  auth: inherit
+}
+
+params:path {
+  program: {{referralProgramId}}
+}
+
+docs {
+  Soft-deletes a program. Its referrals keep their history. The default
+  program can't be deleted (422) — make another one the default first.
+
+  Last in the folder so a top-to-bottom run deletes the program
+  `Programs - Create` made, after the rule requests have used it.
+}

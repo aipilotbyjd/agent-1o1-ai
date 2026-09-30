@@ -1,0 +1,26 @@
+meta {
+  name: Admin
+  seq: 22
+}
+
+docs {
+  Platform-admin API for the referral program, plus the admin audit log.
+
+  ## Access
+
+  - The token must belong to a platform admin: `php artisan admin:grant you@example.com`.
+  - That account needs two-factor authentication confirmed (skippable locally
+    with `PLATFORM_ADMIN_REQUIRE_2FA=false`), so log in via `Auth/Login` then
+    `Auth/2FA - Verify`.
+  - With `PLATFORM_ADMIN_API_ENABLED=false` every request here answers 404 —
+    use the `referrals:*` and `admin:*` artisan commands instead.
+
+  Every change is written to the audit log (`Audit Log - List`).
+
+  ## Variables
+
+  List requests store the first row's id so the rest of the folder works:
+  `referralProgramId`, `referralRuleId`, `referralCodeId`, `referralId`,
+  `referralRewardId`, `blockedDomainId`. `Rewards - Grant Manual` needs
+  `userId` set by hand (a user's id, e.g. from `Referrals - List Admin`).
+}

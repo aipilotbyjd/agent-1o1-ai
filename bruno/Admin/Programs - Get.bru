@@ -1,0 +1,19 @@
+meta {
+  name: Programs - Get
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/referrals/programs/:program
+  body: none
+  auth: inherit
+}
+
+params:path {
+  program: {{referralProgramId}}
+}
+
+docs {
+  One program with every setting, its resolved fraud checks and its rules.
+}

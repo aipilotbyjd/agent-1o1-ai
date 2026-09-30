@@ -26,7 +26,19 @@ class ReferralProgramRequest extends FormRequest
     public function rules(): array
     {
         $program = $this->route('program');
-        $presence = $program instanceof ReferralProgram ? 'sometimes' : 'required';
+
+        return self::rulesFor($program instanceof ReferralProgram ? $program : null);
+    }
+
+    /**
+     * Shared with the `referrals:program` command. `$program` null means a
+     * create, where `name` is required.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rulesFor(?ReferralProgram $program): array
+    {
+        $presence = $program !== null ? 'sometimes' : 'required';
 
         return [
             'name' => [$presence, 'string', 'max:255'],
@@ -35,7 +47,7 @@ class ReferralProgramRequest extends FormRequest
                 'string',
                 'max:255',
                 'alpha_dash',
-                Rule::unique('referral_programs', 'slug')->ignore($program instanceof ReferralProgram ? $program->id : null),
+                Rule::unique('referral_programs', 'slug')->ignore($program?->id),
             ],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'is_active' => ['sometimes', 'boolean'],

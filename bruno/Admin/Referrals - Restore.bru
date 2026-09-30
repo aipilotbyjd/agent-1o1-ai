@@ -1,0 +1,20 @@
+meta {
+  name: Referrals - Restore
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/referrals/referrals/:referral/restore
+  body: none
+  auth: inherit
+}
+
+params:path {
+  referral: {{referralId}}
+}
+
+docs {
+  Undoes a rejection, back to the furthest stage it reached. Rewards the
+  rejection revoked stay revoked — re-grant with `Rewards - Grant Manual`.
+}

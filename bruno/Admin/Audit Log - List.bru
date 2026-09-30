@@ -1,0 +1,22 @@
+meta {
+  name: Audit Log - List
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/audit-log?action=&page=1
+  body: none
+  auth: inherit
+}
+
+params:query {
+  action: 
+  page: 1
+}
+
+docs {
+  Every admin change, newest first — from this API and from the artisan
+  commands (those show no admin). Filters: `action` (prefix, e.g.
+  `referral_rule`), `subject_type`, `subject_id`.
+}

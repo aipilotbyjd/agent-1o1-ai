@@ -7,7 +7,7 @@ use App\Http\Requests\Api\Internal\V1\Admin\Referrals\UpdateAdminReferralCodeReq
 use App\Http\Resources\Api\Internal\V1\Admin\AdminReferralCodeResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Referrals\ReferralCode;
-use App\Services\Admin\AdminAuditLogger;
+use App\Services\Referrals\ReferralAdmin;
 use Illuminate\Http\Request;
 
 /**
@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
  */
 class AdminReferralCodeController extends Controller
 {
-    public function __construct(private readonly AdminAuditLogger $audit) {}
+    public function __construct(private readonly ReferralAdmin $admin) {}
 
     public function index(Request $request)
     {
@@ -38,16 +38,7 @@ class AdminReferralCodeController extends Controller
 
     public function update(UpdateAdminReferralCodeRequest $request, ReferralCode $code)
     {
-        $original = $code->getAttributes();
-        $data = $request->validated();
-
-        if (isset($data['code'])) {
-            $data['code'] = mb_strtolower($data['code']);
-        }
-
-        $code->update($data);
-
-        $this->audit->recordChanges($request->user(), 'referral_code.updated', $code, $original);
+        $this->admin->updateCode($code, $request->validated(), $request->user());
 
         return ApiResponse::success(['code' => AdminReferralCodeResource::make($code->refresh()->load('user'))], 'Referral code updated.');
     }

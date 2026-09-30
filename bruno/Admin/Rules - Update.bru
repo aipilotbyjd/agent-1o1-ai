@@ -1,0 +1,26 @@
+meta {
+  name: Rules - Update
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/referrals/rules/:rule
+  body: json
+  auth: inherit
+}
+
+params:path {
+  rule: {{referralRuleId}}
+}
+
+body:json {
+  {
+    "credits_amount": 5000
+  }
+}
+
+docs {
+  Partial update, checked against the rule as it would be saved. Rewards
+  already earned keep the terms they were earned under.
+}

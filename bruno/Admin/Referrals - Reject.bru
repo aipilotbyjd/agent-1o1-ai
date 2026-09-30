@@ -1,0 +1,26 @@
+meta {
+  name: Referrals - Reject
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/referrals/referrals/:referral/reject
+  body: json
+  auth: inherit
+}
+
+params:path {
+  referral: {{referralId}}
+}
+
+body:json {
+  {
+    "reason": "Same person, two accounts"
+  }
+}
+
+docs {
+  Marks the referral ineligible (fraud, duplicate account…) and withdraws
+  every reward it produced, for both people. `reason` is required.
+}

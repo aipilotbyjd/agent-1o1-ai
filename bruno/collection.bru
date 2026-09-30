@@ -47,6 +47,10 @@ docs {
   `creditPackId`, `secretId`, `workflowTemplateId`, `agentTemplateId`,
   `templateCollectionId`, `templateCollectionItemId`, `evalSuiteId`,
   `evalCaseId`, `evalRunId`, and `planId` (set by `Billing/Plans - List`).
+  The `Referrals` and `Admin` folders store `referralCode`,
+  `referralVisitorId`, `referralProgramId`, `referralRuleId`,
+  `referralCodeId`, `referralId`, `referralRewardId` and `blockedDomainId`
+  from their `Get`/`List`/`Create` requests.
   Running a folder top to bottom fills them in as it goes.
 
   A few have no `Create` to populate them and must be set by hand from a
@@ -68,6 +72,9 @@ docs {
   `Runs`. `Agents`, `Skills`, `Secrets`, and `Triggers` are independent of
   that chain apart from needing `workspaceId` — though attaching a workflow
   tool or pointing a trigger at a workflow needs `workflowId` too.
+
+  `Admin` needs a platform-admin token (see that folder's docs); it
+  manages the referral program without any web screen.
 
   `Templates` needs an existing workflow or agent before its
   `Save From ...` requests do anything useful; its `Create` requests don't.

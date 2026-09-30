@@ -53,3 +53,11 @@ it('exposes the admin flag on the current user', function () {
 
     $this->getJson('/api/v1/user')->assertSuccessful()->assertJsonPath('data.user.is_platform_admin', true);
 });
+
+it('hides the admin API entirely when it is switched off', function () {
+    config(['platform_admin.api_enabled' => false]);
+    Passport::actingAs(platformAdmin());
+
+    $this->getJson('/api/v1/admin/referrals/programs')->assertNotFound();
+    $this->getJson('/api/v1/admin/audit-log')->assertNotFound();
+});
