@@ -233,6 +233,44 @@ class Workflow extends Model
     }
 
     /**
+     * A hash of the draft graph as an author sees it — keys, types, configs,
+     * positions and edges, independent of row order. Pins are left out:
+     * pinning sample data isn't an edit to the workflow. A builder session
+     * records it (`workflow_graph_hash`) when it loads or promotes into this
+     * workflow, so promoting can tell whether someone edited the workflow
+     * in the meantime.
+     */
+    public function graphFingerprint(): string
+    {
+        $nodes = $this->nodes()->get();
+        $nodeKeysById = $nodes->pluck('key', 'id');
+
+        $graph = [
+            'nodes' => $nodes
+                ->map(fn (WorkflowNode $node): array => [
+                    'key' => $node->key,
+                    'type' => $node->type,
+                    'config' => $node->config ?? [],
+                    'position' => $node->position,
+                ])
+                ->sortBy('key')
+                ->values()
+                ->all(),
+            'edges' => $this->edges()->get()
+                ->map(fn (WorkflowEdge $edge): array => [
+                    'from' => $nodeKeysById[$edge->from_node_id],
+                    'to' => $nodeKeysById[$edge->to_node_id],
+                    'condition' => $edge->condition,
+                ])
+                ->sortBy(fn (array $edge): string => json_encode($edge, JSON_THROW_ON_ERROR))
+                ->values()
+                ->all(),
+        ];
+
+        return hash('sha256', json_encode($graph, JSON_THROW_ON_ERROR));
+    }
+
+    /**
      * Snapshot the current draft graph as an immutable, publish-pinned
      * `WorkflowVersion` after running the full `GraphValidator` sequence —
      * see docs/WORKFLOWS_PLAN.md's `workflow_versions` section for why runs

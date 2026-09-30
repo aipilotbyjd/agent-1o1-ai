@@ -51,7 +51,7 @@ class GraphValidator
             return $errors;
         }
 
-        return $this->nodeConfigErrors($nodes);
+        return [...$this->unknownTypeErrors($nodes), ...$this->nodeConfigErrors($nodes)];
     }
 
     /**
@@ -262,6 +262,29 @@ class GraphValidator
     }
 
     /**
+     * Nodes whose type doesn't exist at all — a typo, or a node type that
+     * was since removed. `Workflow::replaceGraph()` lets a draft hold one
+     * (it only checks what it has a schema for); publishing must not, or
+     * every run fails at that node. `custom:` nodes are the exception: they
+     * publish by design and fail only at run time (see `NodeRegistry::isCustom()`).
+     *
+     * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
+     * @return array<int, string>
+     */
+    private function unknownTypeErrors(array $nodes): array
+    {
+        $errors = [];
+
+        foreach ($nodes as $node) {
+            if (! $this->registry->isPlaceable($node['type']) && ! $this->registry->isCustom($node['type'])) {
+                $errors[] = "Node '{$node['key']}': there is no node type [{$node['type']}].";
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
      * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
      * @return array<int, string>
      */
@@ -272,8 +295,8 @@ class GraphValidator
         foreach ($nodes as $node) {
             // Flow-control types (loop, subflow, human_approval, wait, ...)
             // are checked against their catalog schemas like any other
-            // node. Types with no schema at all — trigger types and
-            // `custom:` nodes (see `NodeRegistry::has()`) — are skipped.
+            // node. Types with no schema at all — `custom:` nodes and
+            // unknown types (reported by `unknownTypeErrors()`) — are skipped.
             $schema = $this->registry->configSchemaFor($node['type']);
 
             if ($schema === null) {

@@ -3,11 +3,14 @@
 namespace App\Ai\Tools;
 
 use App\Actions\Workflows\StartWorkflowRunAction;
+use App\Ai\Tools\Concerns\GatesActions;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\RunStatus;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Sleep;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -22,9 +25,15 @@ use Stringable;
  * No formal per-workflow input schema exists yet (`ContractGenerator` is
  * deferred, per docs/WORKFLOWS_PLAN.md) — the model is given a single
  * free-form `input` object.
+ *
+ * `$effect` is the strongest effect of any node in the workflow's published
+ * graph (worked out by `ToolRegistry`), so a workflow that sends email is
+ * gated like the email node itself.
  */
-class WorkflowTool implements Tool
+class WorkflowTool implements Approvable, Tool
 {
+    use GatesActions;
+
     public const int WAIT_SECONDS = 30;
 
     /**
@@ -35,6 +44,7 @@ class WorkflowTool implements Tool
     public function __construct(
         private readonly Workflow $workflow,
         private readonly StartWorkflowRunAction $startWorkflowRun,
+        private readonly ActionEffect $effect = ActionEffect::Write,
     ) {}
 
     /**
@@ -61,9 +71,47 @@ class WorkflowTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
+        return $this->guarded($request, fn (array $arguments): string => $this->start($arguments));
+    }
+
+    public function workflow(): Workflow
+    {
+        return $this->workflow;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function actionArguments(Request $request): array
+    {
+        return ['input' => (array) ($request->all('input')['input'] ?? [])];
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected function effectiveArguments(array $arguments): array
+    {
+        return ['input' => (array) ($arguments['input'] ?? [])];
+    }
+
+    /**
+     * @param  array<string, mixed>  $effectiveArguments
+     */
+    protected function actionEffect(array $effectiveArguments): ActionEffect
+    {
+        return $this->effect;
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function start(array $arguments): string
+    {
         $run = $this->awaitRun($this->startWorkflowRun->execute(
             $this->workflow,
-            (array) ($request->all('input')['input'] ?? []),
+            (array) ($arguments['input'] ?? []),
             triggerType: 'agent',
         ));
 

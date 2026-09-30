@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GitHub;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GitHubCreateRepoNode extends AbstractGitHubNode
@@ -19,6 +20,11 @@ class GitHubCreateRepoNode extends AbstractGitHubNode
     public function description(): string
     {
         return 'Creates a new repository for the authenticated user or an organization.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

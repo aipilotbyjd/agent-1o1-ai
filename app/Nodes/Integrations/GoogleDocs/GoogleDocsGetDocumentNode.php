@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleDocs;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleDocsGetDocumentNode extends AbstractGoogleDocsNode
@@ -19,6 +20,11 @@ class GoogleDocsGetDocumentNode extends AbstractGoogleDocsNode
     public function description(): string
     {
         return 'Fetches the contents of a Google Doc.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GitHub;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GitHubCreatePullRequestNode extends AbstractGitHubNode
@@ -19,6 +20,11 @@ class GitHubCreatePullRequestNode extends AbstractGitHubNode
     public function description(): string
     {
         return 'Creates a new pull request in a repository.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::External;
     }
 
     public function configSchema(): array

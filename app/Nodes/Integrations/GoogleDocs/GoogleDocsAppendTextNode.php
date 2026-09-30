@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleDocs;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleDocsAppendTextNode extends AbstractGoogleDocsNode
@@ -19,6 +20,11 @@ class GoogleDocsAppendTextNode extends AbstractGoogleDocsNode
     public function description(): string
     {
         return 'Appends text to the end of a Google Doc.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

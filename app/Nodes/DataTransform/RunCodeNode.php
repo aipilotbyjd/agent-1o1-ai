@@ -2,8 +2,10 @@
 
 namespace App\Nodes\DataTransform;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use Illuminate\Support\Arr;
@@ -19,7 +21,7 @@ use InvalidArgumentException;
  * the `NodeContract`/engine wiring can be proven end-to-end without opening
  * a code-execution hole.
  */
-class RunCodeNode implements HasIcon, NodeContract
+class RunCodeNode implements DeclaresEffect, HasIcon, NodeContract
 {
     private const array ALLOWED_OPERATIONS = ['set', 'copy', 'uppercase', 'lowercase', 'concat'];
 
@@ -46,6 +48,11 @@ class RunCodeNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'Runs a whitelisted set of pure operations (set/copy/uppercase/lowercase/concat) against the run context — not arbitrary code execution.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

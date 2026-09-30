@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleSheets;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleSheetsUpdateValuesNode extends AbstractGoogleSheetsNode
@@ -19,6 +20,11 @@ class GoogleSheetsUpdateValuesNode extends AbstractGoogleSheetsNode
     public function description(): string
     {
         return 'Overwrites the values in a spreadsheet range.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

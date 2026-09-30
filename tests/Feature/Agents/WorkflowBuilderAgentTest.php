@@ -120,3 +120,22 @@ it('resolves the workflow-builder-assistant catalog chain when it has an enabled
             && $prompt->model === 'accounts/fireworks/models/llama-v3p1-70b-instruct';
     });
 });
+
+it('sends only the latest messages as history, starting on a user turn', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+
+    foreach (range(1, WorkflowBuilderAgent::HISTORY_LIMIT / 2 + 5) as $turn) {
+        $session->messages()->create(['role' => 'user', 'content' => "ask {$turn}"]);
+        $session->messages()->create(['role' => 'assistant', 'content' => "reply {$turn}"]);
+    }
+    // One more reply, so the window's oldest message is a reply.
+    $session->messages()->create(['role' => 'assistant', 'content' => 'late reply']);
+
+    $history = collect((new WorkflowBuilderAgent($session))->messages());
+
+    expect($history)->toHaveCount(WorkflowBuilderAgent::HISTORY_LIMIT - 1);
+    expect($history->first()->role->value)->toBe('user');
+    expect($history->last()->content)->toBe('late reply');
+});

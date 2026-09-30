@@ -24,4 +24,5 @@ Schedule::command('referrals:notify-plan-time-ending')->daily()->withoutOverlapp
 Schedule::command('referrals:admin-digest')->dailyAt('08:00')->withoutOverlapping()->onOneServer();
 Schedule::command('referrals:prune-visits')->weekly()->withoutOverlapping()->onOneServer();
 Schedule::command('reflections:run-due')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
+Schedule::command('agents:expire-actions')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('workflow-builder:archive-idle')->dailyAt('03:00')->withoutOverlapping()->onOneServer();

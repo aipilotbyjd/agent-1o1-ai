@@ -31,6 +31,8 @@ class StoreNotificationChannelRequest extends FormRequest
             'config.url' => ['required', 'url'],
             'config.headers' => ['sometimes', 'array'],
             'config.headers.*' => ['string'],
+            // A Slack app's signing secret, so approve/reject buttons in its messages can be trusted.
+            'config.signing_secret' => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

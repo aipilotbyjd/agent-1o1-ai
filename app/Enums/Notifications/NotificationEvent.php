@@ -28,6 +28,7 @@ enum NotificationEvent: string
     case RunFailed = 'run.failed';
     case ReflectionRunCompleted = 'agent.reflection_run_completed';
     case SessionEvaluationNotify = 'agent.session_evaluation_notify';
+    case AgentActionApprovalRequested = 'agent.action_approval_requested';
     case ReferralSignedUp = 'referral.signed_up';
     case ReferralRewardGranted = 'referral.reward_granted';
     case ReferralMilestoneReached = 'referral.milestone_reached';
@@ -57,6 +58,7 @@ enum NotificationEvent: string
             self::RunFailed => 'Run failed',
             self::ReflectionRunCompleted => 'Agent reflection completed',
             self::SessionEvaluationNotify => 'Agent session needs attention',
+            self::AgentActionApprovalRequested => 'Agent action needs approval',
             self::ReferralSignedUp => 'Someone joined with your referral link',
             self::ReferralRewardGranted => 'Referral reward received',
             self::ReferralMilestoneReached => 'Referral milestone reached',
@@ -84,6 +86,7 @@ enum NotificationEvent: string
             self::RunFailed => 'A workflow or agent run fails.',
             self::ReflectionRunCompleted => 'A scheduled reflection run finishes analyzing an agent\'s recent conversations.',
             self::SessionEvaluationNotify => 'An automatic session evaluation fails a criterion configured to notify.',
+            self::AgentActionApprovalRequested => 'An agent pauses to ask before taking an action, such as sending an email or deleting a file.',
             self::ReferralSignedUp => 'Someone signs up using your referral link.',
             self::ReferralRewardGranted => 'Credits, plan time or an invoice credit from the referral program is added.',
             self::ReferralMilestoneReached => 'You reach a referral milestone and earn its bonus.',

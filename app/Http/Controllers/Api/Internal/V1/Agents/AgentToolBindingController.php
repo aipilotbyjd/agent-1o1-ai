@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Internal\V1\Agents;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\StoreAgentToolBindingRequest;
+use App\Http\Requests\Api\Internal\V1\Agents\UpdateAgentToolBindingRequest;
 use App\Http\Resources\Api\Internal\V1\Agents\AgentToolBindingResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
@@ -38,6 +39,21 @@ class AgentToolBindingController extends Controller
         $binding = $agent->toolBindings()->create($request->validated());
 
         return ApiResponse::created(['tool_binding' => AgentToolBindingResource::make($binding)], 'Tool attached successfully.');
+    }
+
+    /**
+     * Changes a tool's bound config or its approval rule — see
+     * `Services\Agents\Approvals\ActionGate` for how the rule is applied.
+     */
+    public function update(UpdateAgentToolBindingRequest $request, Workspace $workspace, Agent $agent, AgentToolBinding $toolBinding)
+    {
+        $this->requirePermission(Permission::AgentManage);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+        abort_if($toolBinding->agent_id !== $agent->id, 404);
+
+        $toolBinding->update($request->validated());
+
+        return ApiResponse::success(['tool_binding' => AgentToolBindingResource::make($toolBinding)], 'Tool updated successfully.');
     }
 
     public function destroy(Workspace $workspace, Agent $agent, AgentToolBinding $toolBinding)

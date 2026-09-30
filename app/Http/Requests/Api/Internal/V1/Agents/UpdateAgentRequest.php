@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
+use App\Enums\Agents\AutonomyMode;
 use App\Models\Agents\Agent;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,9 @@ class UpdateAgentRequest extends FormRequest
             'allow_self_updates' => ['sometimes', 'boolean'],
             'allow_skill_editing' => ['sometimes', 'boolean'],
             'allow_self_clone' => ['sometimes', 'boolean'],
+            'autonomy_mode' => ['sometimes', Rule::enum(AutonomyMode::class)],
+            'test_mode' => ['sometimes', 'boolean'],
+            'allow_web_fetch' => ['sometimes', 'boolean'],
         ];
     }
 }

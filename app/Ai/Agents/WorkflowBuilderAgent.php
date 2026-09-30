@@ -15,6 +15,7 @@ use App\Ai\Tools\WorkflowBuilder\RemoveNodeTool;
 use App\Ai\Tools\WorkflowBuilder\UpdateNodeTool;
 use App\Ai\Tools\WorkflowBuilder\ValidateWorkflowTool;
 use App\Enums\Workflows\BuilderMessageStatus;
+use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Attributes\Timeout;
@@ -38,6 +39,12 @@ use Laravel\Ai\Promptable;
  * tables), so `$beforeMessageId` excludes the just-persisted user turn the
  * same way `WorkspaceAgent` does. Replies that are still being written or
  * that failed are left out too — neither is something the assistant said.
+ * Only the latest `HISTORY_LIMIT` messages are sent: the draft itself is
+ * the durable state (read_draft), so a long session doesn't have to grow
+ * every turn's prompt without bound.
+ *
+ * `$actingUser` — who sent the message being answered — is who the draft
+ * edits are attributed to; see `EditsDraft`.
  *
  * Run from `ProcessWorkflowBuilderMessageJob`; the step and time limits keep
  * a confused model from looping on tool calls until the job is killed.
@@ -48,9 +55,12 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
 {
     use Promptable;
 
+    public const int HISTORY_LIMIT = 40;
+
     public function __construct(
         public readonly WorkflowBuilderSession $session,
         private readonly ?string $beforeMessageId = null,
+        public readonly ?User $actingUser = null,
     ) {}
 
     public function instructions(): string
@@ -89,7 +99,8 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
         some of them fail (and so need an "error" edge) instead of branching. subflow and
         loop need a published workflow's id from list_workflows. To repeat a single node
         once per item, give that node a "_loop" config ({"items_path": "nodes.<key>.<list>"})
-        rather than adding a loop node.
+        rather than adding a loop node. update_node merges config; to delete a field (such as
+        "_loop"), pass its name in remove_fields.
 
         If an edit is rejected because the user changed the draft, call read_draft and
         redo the edit against the current draft.
@@ -115,11 +126,11 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
             new InspectNodeSchemaTool($this->session),
             new InspectNodeOutputTool($this->session),
             new ListWorkflowsTool($this->session),
-            new AddNodeTool($this->session),
-            new UpdateNodeTool($this->session),
-            new RemoveNodeTool($this->session),
-            new ConnectNodesTool($this->session),
-            new DisconnectNodesTool($this->session),
+            new AddNodeTool($this->session, $this->actingUser),
+            new UpdateNodeTool($this->session, $this->actingUser),
+            new RemoveNodeTool($this->session, $this->actingUser),
+            new ConnectNodesTool($this->session, $this->actingUser),
+            new DisconnectNodesTool($this->session, $this->actingUser),
             new ValidateWorkflowTool($this->session),
             new DryRunWorkflowTool($this->session),
         ];
@@ -134,10 +145,16 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
             ->where('processing_status', BuilderMessageStatus::Completed)
             ->where('content', '!=', '')
             ->when($this->beforeMessageId !== null, fn ($query) => $query->where('id', '!=', $this->beforeMessageId))
-            ->oldest()
-            ->oldest('id')
+            ->latest()
+            ->latest('id')
+            ->limit(self::HISTORY_LIMIT)
             ->get()
+            ->reverse()
+            // A window cut mid-exchange would open on a reply to a message
+            // that is no longer there.
+            ->skipUntil(fn ($message) => $message->role === 'user')
             ->map(fn ($message) => new Message($message->role, $message->content))
+            ->values()
             ->all();
     }
 }

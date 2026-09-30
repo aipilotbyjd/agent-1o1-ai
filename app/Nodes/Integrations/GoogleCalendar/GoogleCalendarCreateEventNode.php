@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleCalendar;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleCalendarCreateEventNode extends AbstractGoogleCalendarNode
@@ -19,6 +20,11 @@ class GoogleCalendarCreateEventNode extends AbstractGoogleCalendarNode
     public function description(): string
     {
         return 'Creates an event on a calendar.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::External;
     }
 
     public function configSchema(): array

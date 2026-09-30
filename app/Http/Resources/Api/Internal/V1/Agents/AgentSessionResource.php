@@ -24,6 +24,10 @@ class AgentSessionResource extends JsonResource
             'user_id' => $this->user_id,
             'title' => $this->title,
             'status' => $this->status->value,
+            // The conversation's own override; null means it runs under the agent's mode.
+            'autonomy_mode' => $this->autonomy_mode?->value,
+            'test_mode' => $this->test_mode,
+            'pending_actions_count' => $this->whenCounted('pendingActions'),
             'last_activity_at' => $this->last_activity_at,
             'messages_count' => $this->whenCounted('messages'),
             'messages' => AgentMessageResource::collection($this->whenLoaded('messages')),

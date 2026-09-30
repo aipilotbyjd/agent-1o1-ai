@@ -16,6 +16,7 @@ class CreateWorkflowBuilderSessionAction
         $session = $workspace->builderSessions()->create([
             'user_id' => $user->id,
             'workflow_id' => $workflow?->id,
+            'workflow_graph_hash' => $workflow?->graphFingerprint(),
             'title' => $title ?: ($workflow?->name ?? WorkflowBuilderSession::DEFAULT_TITLE),
             'draft_graph' => $graph,
             'last_activity_at' => now(),

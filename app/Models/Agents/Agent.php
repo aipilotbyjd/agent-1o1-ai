@@ -2,6 +2,7 @@
 
 namespace App\Models\Agents;
 
+use App\Enums\Agents\AutonomyMode;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Artifacts\Artifact;
 use App\Models\User;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * (not `AgentModel`) per project convention; registered in
  * `AppServiceProvider::configureMorphMap()` as `TriggerTargetType::Agent`.
  */
-#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'icon', 'color', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'allow_self_updates', 'allow_skill_editing', 'allow_self_clone', 'created_by'])]
+#[Fillable(['workspace_id', 'folder_id', 'name', 'slug', 'description', 'icon', 'color', 'instructions', 'provider', 'model', 'model_catalog_id', 'temperature', 'settings', 'allow_self_updates', 'allow_skill_editing', 'allow_self_clone', 'autonomy_mode', 'test_mode', 'allow_web_fetch', 'created_by'])]
 class Agent extends Model
 {
     /** @use HasFactory<AgentFactory> */
@@ -47,6 +48,9 @@ class Agent extends Model
         'allow_self_updates' => false,
         'allow_skill_editing' => false,
         'allow_self_clone' => true,
+        'autonomy_mode' => 'ask',
+        'test_mode' => false,
+        'allow_web_fetch' => true,
     ];
 
     /**
@@ -60,6 +64,9 @@ class Agent extends Model
             'allow_self_updates' => 'boolean',
             'allow_skill_editing' => 'boolean',
             'allow_self_clone' => 'boolean',
+            'autonomy_mode' => AutonomyMode::class,
+            'test_mode' => 'boolean',
+            'allow_web_fetch' => 'boolean',
         ];
     }
 
@@ -126,7 +133,9 @@ class Agent extends Model
      */
     public function workflows(): BelongsToMany
     {
-        return $this->belongsToMany(Workflow::class, 'agent_workflow')->withTimestamps();
+        return $this->belongsToMany(Workflow::class, 'agent_workflow')
+            ->withPivot('approval_policy')
+            ->withTimestamps();
     }
 
     /**
@@ -224,5 +233,19 @@ class Agent extends Model
     public function reflections(): HasMany
     {
         return $this->hasMany(Reflection::class);
+    }
+
+    /**
+     * Every side-effecting tool call this agent made or tried to make —
+     * see `Services\Agents\Approvals\ActionGate`.
+     */
+    public function actions(): HasMany
+    {
+        return $this->hasMany(AgentAction::class);
+    }
+
+    public function plans(): HasMany
+    {
+        return $this->hasMany(AgentPlan::class);
     }
 }

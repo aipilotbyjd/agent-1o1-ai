@@ -3,7 +3,7 @@
 use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Agents\AgentMessageRole;
 use App\Enums\RunStatus;
-use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionStreamController;
+use App\Http\Responses\AgentTurnEvents;
 use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
 use App\Models\User;
@@ -123,11 +123,10 @@ it('still finishes and records the turn when the client disconnects mid-stream',
     $session = $agent->sessions()->create(['workspace_id' => $workspace->id]);
 
     $turn = app(AgentRunner::class)->stream($session, 'Hi!');
-    $controller = app(AgentSessionStreamController::class);
 
     // Take one event, then drop the generator the way `eventStream()` does
     // once `connection_aborted()` is true.
-    $events = (fn () => $this->events($turn))->call($controller);
+    $events = app(AgentTurnEvents::class)->stream($turn);
     $events->current();
     unset($events);
 

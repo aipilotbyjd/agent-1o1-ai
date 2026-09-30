@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleSheets;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode
@@ -19,6 +20,11 @@ class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode
     public function description(): string
     {
         return 'Reads a range of cell values from a spreadsheet.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

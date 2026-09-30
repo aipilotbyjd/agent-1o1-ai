@@ -20,6 +20,8 @@ class AgentMessageResource extends JsonResource
             'id' => $this->id,
             'role' => $this->role->value,
             'content' => $this->content,
+            // While true, the reply is on hold until its waiting actions are decided (`/actions`).
+            'awaiting_approval' => $this->paused_state !== null,
             'created_at' => $this->created_at,
         ];
     }

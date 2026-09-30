@@ -28,6 +28,16 @@ class RunStateException extends RuntimeException
         return new self('This conversation is still answering the previous message — wait for it to finish.');
     }
 
+    public static function notAwaitingApproval(): self
+    {
+        return new self('This turn is not waiting on any approvals — it may already have been resumed.');
+    }
+
+    public static function approvalsUndecided(): self
+    {
+        return new self('Some actions in this turn are still waiting for a decision.');
+    }
+
     public static function notRetryable(): self
     {
         return new self('Only workflow runs pinned to a published version can be retried.');

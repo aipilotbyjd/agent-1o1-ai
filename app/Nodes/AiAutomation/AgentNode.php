@@ -2,8 +2,10 @@
 
 namespace App\Nodes\AiAutomation;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
@@ -31,7 +33,7 @@ use InvalidArgumentException;
  * it falls back to `input.message` from the run's own input, mirroring the
  * old project's default.
  */
-class AgentNode implements HasIcon, NodeContract
+class AgentNode implements DeclaresEffect, HasIcon, NodeContract
 {
     public function __construct(private readonly AgentRunner $runner) {}
 
@@ -58,6 +60,11 @@ class AgentNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'Prompts one of this workspace\'s Agents (with its instructions, skills, and tools) and returns its reply.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

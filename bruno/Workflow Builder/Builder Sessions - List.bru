@@ -10,6 +10,11 @@ get {
   auth: inherit
 }
 
+params:query {
+  ~status: active
+  ~mine: 1
+}
+
 params:path {
   workspace: {{workspaceId}}
 }
@@ -17,6 +22,10 @@ params:path {
 docs {
   Lists the workspace's chat-based builder sessions, newest first.
   Requires the `workflow-builder.use` permission.
+
+  Archived sessions are listed only with `status=archived`; `mine=1`
+  narrows the list to sessions the caller created. Items leave out
+  `draft_graph` — fetch a session to get its graph.
 
   Response is wrapped: `{ success, statusCode, message, data: { sessions } }`.
 }

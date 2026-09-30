@@ -2,8 +2,10 @@
 
 namespace App\Nodes\DataTransform;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Exceptions\Http\BlockedUrlException;
 use App\Models\Runs\Run;
@@ -14,7 +16,7 @@ use Illuminate\Support\Facades\Http;
 /**
  * Generic outbound HTTP request node (Gumloop's "Call API"/`CallApiNode`).
  */
-class CallApiNode implements HasIcon, NodeContract
+class CallApiNode implements DeclaresEffect, HasIcon, NodeContract
 {
     private const MAX_REDIRECTS = 5;
 
@@ -43,6 +45,19 @@ class CallApiNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'Makes a generic outbound HTTP request and returns the status, headers, and body.';
+    }
+
+    /**
+     * A GET only reads; any other method may change something on a server
+     * outside the workspace, and DELETE removes it.
+     */
+    public function effect(array $config): ActionEffect
+    {
+        return match (strtoupper((string) ($config['method'] ?? 'GET'))) {
+            'GET' => ActionEffect::Read,
+            'DELETE' => ActionEffect::Destructive,
+            default => ActionEffect::External,
+        };
     }
 
     public function configSchema(): array

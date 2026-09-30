@@ -44,6 +44,9 @@ class DuplicateAgentAction
                 'allow_self_updates' => $agent->allow_self_updates,
                 'allow_skill_editing' => $agent->allow_skill_editing,
                 'allow_self_clone' => $agent->allow_self_clone,
+                'autonomy_mode' => $agent->autonomy_mode,
+                'test_mode' => $agent->test_mode,
+                'allow_web_fetch' => $agent->allow_web_fetch,
                 'created_by' => $creator?->id,
             ]);
 
@@ -52,12 +55,15 @@ class DuplicateAgentAction
                     'node_type' => $binding->node_type,
                     'config' => $binding->config,
                     'exposed_fields' => $binding->exposed_fields,
+                    'approval_policy' => $binding->approval_policy,
                 ]);
             }
 
             $copy->skills()->sync($agent->skills->pluck('id'));
             $copy->subagents()->sync($agent->subagents->pluck('id'));
-            $copy->workflows()->sync($agent->workflows->pluck('id'));
+            $copy->workflows()->sync($agent->workflows->mapWithKeys(fn ($workflow): array => [
+                $workflow->id => ['approval_policy' => $workflow->pivot->approval_policy],
+            ]));
 
             foreach ($agent->knowledge as $entry) {
                 $copy->knowledge()->create($entry->only([

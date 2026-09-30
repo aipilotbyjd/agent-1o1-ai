@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class SlackPostMessageNode extends AbstractSlackNode
@@ -19,6 +20,11 @@ class SlackPostMessageNode extends AbstractSlackNode
     public function description(): string
     {
         return 'Posts a message to a Slack channel, optionally as a thread reply.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::External;
     }
 
     public function configSchema(): array

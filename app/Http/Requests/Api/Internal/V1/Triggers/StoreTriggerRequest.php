@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Triggers;
 
+use App\Enums\Agents\AutonomyMode;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Models\Workspaces\Workspace;
@@ -38,6 +39,9 @@ class StoreTriggerRequest extends FormRequest
             'type' => ['required', Rule::enum(TriggerType::class)],
             'preset_id' => ['nullable', 'uuid', 'exists:trigger_presets,id'],
             'config' => ['nullable', 'array'],
+            // For an agent target: the mode its triggered turns run under, overriding the agent's own.
+            'config.autonomy_mode' => ['nullable', Rule::enum(AutonomyMode::class)],
+            'config.test_mode' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
             'credential_id' => ['nullable', 'uuid'],
             'signing_secret' => ['nullable', 'string'],

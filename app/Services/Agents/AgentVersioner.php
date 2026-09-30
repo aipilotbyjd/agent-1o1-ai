@@ -122,6 +122,7 @@ class AgentVersioner
                     'node_type' => $binding->node_type,
                     'config' => $binding->config,
                     'exposed_fields' => $binding->exposed_fields,
+                    'approval_policy' => $binding->approval_policy,
                 ])
                 ->all(),
             'skill_ids' => $agent->skills()->pluck('skills.id')->all(),

@@ -2,8 +2,10 @@
 
 namespace App\Nodes\FlowLogic;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use Illuminate\Support\Arr;
@@ -14,7 +16,7 @@ use Illuminate\Support\Arr;
  * `GraphAdvancer` routes the non-matching branch to `skipped` via the edge
  * whose `condition` doesn't match this node's `result`.
  */
-class FilterNode implements HasIcon, NodeContract
+class FilterNode implements DeclaresEffect, HasIcon, NodeContract
 {
     private const array OPERATORS = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
 
@@ -41,6 +43,11 @@ class FilterNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'A binary gate — passes or fails based on comparing a context value against a condition.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

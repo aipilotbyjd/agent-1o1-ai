@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class SlackCreateChannelNode extends AbstractSlackNode
@@ -19,6 +20,11 @@ class SlackCreateChannelNode extends AbstractSlackNode
     public function description(): string
     {
         return 'Creates a new Slack channel, public or private.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
     }
 
     public function configSchema(): array

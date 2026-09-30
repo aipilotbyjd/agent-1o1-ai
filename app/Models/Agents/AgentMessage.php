@@ -18,7 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * `usage` (token/credit accounting, same shape as `node_runs.usage`) is
  * engine-managed — not in `#[Fillable]`, written via `forceFill()` after
- * create(), mirroring `NodeRun`'s own convention.
+ * create(), mirroring `NodeRun`'s own convention. So is `paused_state`: set
+ * by `AgentRunner` while the turn waits on an approval, cleared when it
+ * resumes — see `Services\Agents\Approvals\PausedTurn`.
  */
 #[Fillable(['agent_session_id', 'role', 'content', 'tool_calls', 'tool_results', 'tool_call_id'])]
 class AgentMessage extends Model
@@ -35,6 +37,7 @@ class AgentMessage extends Model
             'role' => AgentMessageRole::class,
             'tool_calls' => 'array',
             'tool_results' => 'array',
+            'paused_state' => 'array',
             'usage' => 'array',
         ];
     }
@@ -52,6 +55,15 @@ class AgentMessage extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(Artifact::class);
+    }
+
+    /**
+     * The calls this (assistant) turn paused on for approval — see
+     * `Models\Agents\AgentAction`.
+     */
+    public function actions(): HasMany
+    {
+        return $this->hasMany(AgentAction::class);
     }
 
     /**

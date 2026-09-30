@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
 use App\Actions\Agents\CreateAgentSessionAction;
 use App\Actions\Agents\SendAgentMessageAction;
+use App\Enums\Agents\AutonomyMode;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\SendAgentMessageRequest;
@@ -29,7 +30,7 @@ class AgentSessionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
 
         return ApiResponse::success([
-            'sessions' => AgentSessionResource::collection($agent->sessions()->whereNull('parent_session_id')->withCount('messages')->latest()->get()),
+            'sessions' => AgentSessionResource::collection($agent->sessions()->whereNull('parent_session_id')->withCount(['messages', 'pendingActions'])->latest()->get()),
         ]);
     }
 
@@ -54,11 +55,25 @@ class AgentSessionController extends Controller
         ]);
     }
 
+    /**
+     * Anyone who can chat may make a conversation stricter than its agent
+     * (a tighter mode, or Test run on). Loosening it — a freer mode, or Test
+     * run off when the agent has it on — is an agent setting in disguise,
+     * so it takes the right to manage the agent.
+     */
     public function update(UpdateAgentSessionRequest $request, Workspace $workspace, Agent $agent, AgentSession $session)
     {
         $this->requirePermission(Permission::AgentChat);
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
+
+        $mode = AutonomyMode::tryFrom((string) $request->validated('autonomy_mode'));
+        $loosensMode = $mode !== null && $agent->autonomy_mode->isStricterThan($mode);
+        $loosensTestRun = $request->has('test_mode') && $agent->test_mode && $request->validated('test_mode') === false;
+
+        if ($loosensMode || $loosensTestRun) {
+            $this->requirePermission(Permission::AgentManage);
+        }
 
         $session->update($request->validated());
 

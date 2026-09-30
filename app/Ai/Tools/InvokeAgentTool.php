@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Actions\Agents\CreateAgentSessionAction;
+use App\Enums\Agents\AutonomyMode;
 use App\Enums\Agents\SubagentTaskStatus;
 use App\Jobs\Agents\RunSubagentTaskJob;
 use App\Models\Agents\Agent;
@@ -33,11 +34,18 @@ class InvokeAgentTool implements Tool
     public const MAX_CONCURRENT = 10;
 
     /**
+     * `$parentMode`/`$parentTestMode` are what this conversation runs under.
+     * A subagent's conversation runs under the stricter of that and its own
+     * agent's mode, and inherits Test run — so delegating can never get
+     * work done with less oversight than the parent has.
+     *
      * @param  array<string, Agent>  $targets  Keyed by the name the model uses.
      */
     public function __construct(
         private readonly AgentSession $session,
         private readonly array $targets,
+        private readonly ?AutonomyMode $parentMode = null,
+        private readonly bool $parentTestMode = false,
     ) {}
 
     public function name(): string
@@ -87,7 +95,11 @@ class InvokeAgentTool implements Tool
         }
 
         $conversation = app(CreateAgentSessionAction::class)->execute($target, $this->session->user, mb_substr($task, 0, 80));
-        $conversation->forceFill(['parent_session_id' => $this->session->id])->save();
+        $conversation->forceFill([
+            'parent_session_id' => $this->session->id,
+            'autonomy_mode' => $this->parentMode === null ? null : AutonomyMode::strictest($this->parentMode, $target->autonomy_mode),
+            'test_mode' => $this->parentTestMode ?: null,
+        ])->save();
 
         $subagentTask = SubagentTask::query()->create([
             'workspace_id' => $this->session->workspace_id,

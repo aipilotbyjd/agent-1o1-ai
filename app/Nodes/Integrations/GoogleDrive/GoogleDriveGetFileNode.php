@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleDrive;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleDriveGetFileNode extends AbstractGoogleDriveNode
@@ -19,6 +20,11 @@ class GoogleDriveGetFileNode extends AbstractGoogleDriveNode
     public function description(): string
     {
         return 'Fetches metadata for a single Google Drive file.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

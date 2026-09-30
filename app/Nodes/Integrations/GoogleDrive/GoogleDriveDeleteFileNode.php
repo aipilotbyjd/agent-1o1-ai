@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleDrive;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleDriveDeleteFileNode extends AbstractGoogleDriveNode
@@ -19,6 +20,11 @@ class GoogleDriveDeleteFileNode extends AbstractGoogleDriveNode
     public function description(): string
     {
         return 'Deletes a file from Google Drive.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Destructive;
     }
 
     public function configSchema(): array

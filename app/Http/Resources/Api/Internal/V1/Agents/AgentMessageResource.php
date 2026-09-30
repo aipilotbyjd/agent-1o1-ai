@@ -42,6 +42,10 @@ class AgentMessageResource extends JsonResource
                 ->mapWithKeys(fn (array $result): array => [$result['id'] => json_decode((string) $result['result'], true)['task_id'] ?? null])
                 ->filter()
                 ->all(),
+            // Set while the turn waits on approvals: which calls are waiting.
+            'awaiting_approval' => $this->paused_state !== null,
+            'pending_tool_call_ids' => $this->paused_state['pending_tool_call_ids'] ?? [],
+            'actions' => AgentActionResource::collection($this->whenLoaded('actions')),
             'usage' => $this->usage,
             'created_at' => $this->created_at,
         ];

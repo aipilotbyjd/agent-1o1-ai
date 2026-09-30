@@ -2,13 +2,16 @@
 
 namespace App\Ai\Tools;
 
+use App\Ai\Tools\Concerns\GatesActions;
 use App\Authorization\WorkspaceContext;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\User;
 use App\Services\Agents\SkillInjector;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -38,8 +41,10 @@ use Stringable;
  * version, so the change applies from the agent's next reply there rather
  * than only in later conversations.
  */
-class UpdateInstructionsTool implements Tool
+class UpdateInstructionsTool implements Approvable, Tool
 {
+    use GatesActions;
+
     private const INJECTED_LINE_SIMILARITY = 80;
 
     private ?Agent $liveAgent = null;
@@ -67,6 +72,39 @@ class UpdateInstructionsTool implements Tool
     }
 
     public function handle(Request $request): Stringable|string
+    {
+        return $this->guarded($request, fn (array $arguments): string => (string) $this->perform(new Request($arguments, $request->toolCallId())));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function actionArguments(Request $request): array
+    {
+        return $request->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected function effectiveArguments(array $arguments): array
+    {
+        return $arguments;
+    }
+
+    /**
+     * Changing the agent itself is a write like any other: in Ask mode it
+     * waits for a person, and a read-only agent can't do it at all.
+     *
+     * @param  array<string, mixed>  $effectiveArguments
+     */
+    protected function actionEffect(array $effectiveArguments): ActionEffect
+    {
+        return ActionEffect::Write;
+    }
+
+    private function perform(Request $request): Stringable|string
     {
         $agent = $this->liveAgent();
 

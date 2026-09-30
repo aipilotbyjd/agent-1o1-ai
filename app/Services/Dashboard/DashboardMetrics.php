@@ -2,9 +2,11 @@
 
 namespace App\Services\Dashboard;
 
+use App\Enums\Agents\AgentActionStatus;
 use App\Enums\Billing\CreditTransactionType;
 use App\Enums\RunStatus;
 use App\Models\Agents\Agent;
+use App\Models\Agents\AgentAction;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
@@ -190,6 +192,17 @@ final class DashboardMetrics
         return WorkflowApproval::query()
             ->whereNull('decided_at')
             ->whereHas('run', fn (Builder $query) => $query->where('workspace_id', $workspace->id));
+    }
+
+    /**
+     * Agent actions waiting on a person — the agent-side counterpart of
+     * `pendingApprovals()`, listed in full by `WorkspaceAgentActionController`.
+     */
+    public function pendingAgentActions(Workspace $workspace): Builder
+    {
+        return AgentAction::query()
+            ->where('workspace_id', $workspace->id)
+            ->where('status', AgentActionStatus::Pending);
     }
 
     /**

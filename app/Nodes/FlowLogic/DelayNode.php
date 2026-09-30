@@ -2,8 +2,10 @@
 
 namespace App\Nodes\FlowLogic;
 
+use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
+use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 
@@ -14,7 +16,7 @@ use App\Models\Runs\Run;
  * *next* dispatch by that long, rather than blocking a queue worker inside
  * `execute()`.
  */
-class DelayNode implements HasIcon, NodeContract
+class DelayNode implements DeclaresEffect, HasIcon, NodeContract
 {
     public function type(): string
     {
@@ -39,6 +41,11 @@ class DelayNode implements HasIcon, NodeContract
     public function description(): string
     {
         return 'Pauses before the next node runs, for a configured number of seconds.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

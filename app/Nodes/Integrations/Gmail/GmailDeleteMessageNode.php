@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\Gmail;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GmailDeleteMessageNode extends AbstractGmailNode
@@ -19,6 +20,11 @@ class GmailDeleteMessageNode extends AbstractGmailNode
     public function description(): string
     {
         return 'Moves a message to trash.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Destructive;
     }
 
     public function configSchema(): array

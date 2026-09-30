@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * with `Nodes/AiAutomation/AgentNode` (the *workflow* node type that embeds
  * an agent — a different concept entirely).
  */
-#[Fillable(['agent_id', 'node_type', 'config', 'exposed_fields'])]
+#[Fillable(['agent_id', 'node_type', 'config', 'exposed_fields', 'approval_policy'])]
 class AgentToolBinding extends Model
 {
     use HasUuids;
@@ -30,6 +30,7 @@ class AgentToolBinding extends Model
         return [
             'config' => 'array',
             'exposed_fields' => 'array',
+            'approval_policy' => 'array',
         ];
     }
 

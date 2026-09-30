@@ -2,6 +2,7 @@
 
 namespace App\Nodes\Integrations\GoogleDrive;
 
+use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 
 class GoogleDriveListFilesNode extends AbstractGoogleDriveNode
@@ -19,6 +20,11 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode
     public function description(): string
     {
         return 'Lists files in Google Drive matching a query.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Read;
     }
 
     public function configSchema(): array

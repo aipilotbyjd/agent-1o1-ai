@@ -20,6 +20,7 @@ class WorkflowBuilderMessageResource extends JsonResource
             'id' => $this->id,
             'session_id' => $this->session_id,
             'draft_version_id' => $this->draft_version_id,
+            'user_id' => $this->user_id,
             'role' => $this->role,
             'content' => $this->content,
             'actions' => $this->actions,

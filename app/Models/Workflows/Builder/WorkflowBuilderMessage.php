@@ -3,6 +3,7 @@
 namespace App\Models\Workflows\Builder;
 
 use App\Enums\Workflows\BuilderMessageStatus;
+use App\Models\User;
 use Database\Factories\Workflows\Builder\WorkflowBuilderMessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['session_id', 'draft_version_id', 'role', 'content', 'actions', 'processing_status', 'error_message'])]
+#[Fillable(['session_id', 'user_id', 'draft_version_id', 'role', 'content', 'actions', 'processing_status', 'error_message'])]
 class WorkflowBuilderMessage extends Model
 {
     /** @use HasFactory<WorkflowBuilderMessageFactory> */
@@ -37,6 +38,14 @@ class WorkflowBuilderMessage extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(WorkflowBuilderSession::class, 'session_id');
+    }
+
+    /**
+     * Who sent a user message — null on assistant messages.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function draftVersion(): BelongsTo
