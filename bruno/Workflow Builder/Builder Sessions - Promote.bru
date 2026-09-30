@@ -17,7 +17,8 @@ params:path {
 
 body:json {
   {
-    "name": "Lead intake"
+    "name": "Lead intake",
+    "overwrite": false
   }
 }
 
@@ -31,13 +32,19 @@ script:post-response {
 }
 
 docs {
-  Publishes the session's draft graph to a real, workspace-visible
-  workflow and stores its ID as `workflowId`. Requires the
+  Saves the session's draft graph as a real, workspace-visible
+  workflow's draft and stores its ID as `workflowId`. Publishing a
+  version of that workflow is a separate step. Requires the
   `workflow-builder.use` permission.
 
   Creates a new workflow unless the session was started from — or has
   already been promoted to — one, in which case that workflow is
   updated. `name` is optional.
+
+  409 if the assistant is still replying, or if the workflow was edited
+  outside this session since the session loaded (or last promoted to) it.
+  Send `"overwrite": true` to replace those edits with the draft. 422 if
+  the workflow refuses the draft — nothing is created in that case.
 
   Response is wrapped: `{ success, statusCode, message, data: { workflow } }`.
 }

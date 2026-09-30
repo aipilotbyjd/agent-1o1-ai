@@ -2,6 +2,7 @@
 
 namespace App\Ai\Tools\WorkflowBuilder;
 
+use App\Ai\Tools\WorkflowBuilder\Concerns\ReadsToolArguments;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Workflows\NodeRegistry;
@@ -12,6 +13,8 @@ use Stringable;
 
 class InspectNodeSchemaTool implements Tool
 {
+    use ReadsToolArguments;
+
     public function __construct(public readonly WorkflowBuilderSession $session) {}
 
     public function name(): string
@@ -26,21 +29,23 @@ class InspectNodeSchemaTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $type = (string) ($request->all()['type'] ?? '');
-        $node = app(NodeRegistry::class)->describe($type);
+        return $this->answer(function () use ($request): string {
+            $type = $this->stringArgument($request, 'type');
+            $node = app(NodeRegistry::class)->describe($type);
 
-        if ($node === null) {
-            return "No node found with type [{$type}]. Use list_available_nodes to see valid types.";
-        }
+            if ($node === null) {
+                return "No node found with type [{$type}]. Use list_available_nodes to see valid types.";
+            }
 
-        // Flow-control nodes are driven by the engine itself, so how they
-        // pause, branch and fail isn't obvious from the schema alone.
-        $guide = FlowControlNodeType::tryFrom($type)?->builderGuide();
+            // Flow-control nodes are driven by the engine itself, so how they
+            // pause, branch and fail isn't obvious from the schema alone.
+            $guide = FlowControlNodeType::tryFrom($type)?->builderGuide();
 
-        return json_encode([
-            ...$node,
-            ...($guide !== null ? ['how_to_wire' => $guide] : []),
-        ], JSON_THROW_ON_ERROR);
+            return json_encode([
+                ...$node,
+                ...($guide !== null ? ['how_to_wire' => $guide] : []),
+            ], JSON_THROW_ON_ERROR);
+        });
     }
 
     /**

@@ -61,6 +61,16 @@ class NodeRegistry
     }
 
     /**
+     * A workspace-defined `custom:{id}` node. Graphs may hold one — it saves
+     * and publishes, and fails only at run time (see `resolve()`) so the
+     * rest of the graph can route around it — even though `has()` is false.
+     */
+    public function isCustom(string $type): bool
+    {
+        return str_starts_with($type, self::CUSTOM_PREFIX);
+    }
+
+    /**
      * Engine-driven types (loop, subflow, wait, human_approval, join_paths)
      * — placeable on a graph, but never `resolve()`d: `WorkflowRunner`
      * drives them itself. See `has()` for why they aren't `$builtins`.

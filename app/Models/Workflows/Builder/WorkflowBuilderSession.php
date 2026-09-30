@@ -6,6 +6,7 @@ use App\Enums\Workflows\BuilderMessageStatus;
 use App\Enums\Workflows\BuilderSessionStatus;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Exceptions\WorkflowBuilderConflictException;
+use App\Jobs\Workflows\ProcessWorkflowBuilderMessageJob;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
@@ -32,12 +33,26 @@ use InvalidArgumentException;
  * a real workflow needs no adapter.
  */
 #[Fillable([
-    'workspace_id', 'user_id', 'workflow_id', 'conversation_id', 'title',
+    'workspace_id', 'user_id', 'workflow_id', 'workflow_graph_hash', 'title',
     'draft_graph', 'draft_lock_version', 'status', 'last_activity_at',
 ])]
 class WorkflowBuilderSession extends Model
 {
     public const string DEFAULT_TITLE = 'Untitled workflow';
+
+    /**
+     * Undo history kept per session. Every edit snapshots the whole graph
+     * (an assistant turn can make a couple of dozen), so older snapshots
+     * are pruned as new ones land — see `applyGraph()`.
+     */
+    public const int MAX_DRAFT_VERSIONS = 100;
+
+    /**
+     * A reply still "in flight" after this long lost its worker without the
+     * job's `failed()` hook running (a hard kill, a deploy mid-turn) — see
+     * `failStaleReplies()`. Comfortably above the job's own timeout.
+     */
+    public const int STALE_REPLY_MINUTES = 10;
 
     /** @use HasFactory<WorkflowBuilderSessionFactory> */
     use HasFactory, HasUuids;
@@ -111,16 +126,34 @@ class WorkflowBuilderSession extends Model
     }
 
     /**
+     * Merge `$config` into a node's config and delete the top-level fields
+     * named in `$removeFields` — the only way to take an optional field
+     * (such as `_loop`) off a node, since merging can't express "unset".
+     *
      * @param  array<string, mixed>  $config
+     * @param  array<int, string>  $removeFields
      */
-    public function updateNode(string $key, array $config, ?User $by = null): void
+    public function updateNode(string $key, array $config, ?User $by = null, array $removeFields = []): void
     {
+        if ($config === [] && $removeFields === []) {
+            throw new InvalidArgumentException('Nothing to update: pass config fields to set or fields to remove.');
+        }
+
+        if (($both = array_intersect($removeFields, array_keys($config))) !== []) {
+            throw new InvalidArgumentException('A field can\'t be both set and removed: '.implode(', ', $both).'.');
+        }
+
         $graph = $this->currentGraph();
         $found = false;
 
         foreach ($graph['nodes'] as &$node) {
             if ($node['key'] === $key) {
                 $node['config'] = [...($node['config'] ?? []), ...$config];
+
+                foreach ($removeFields as $field) {
+                    unset($node['config'][$field]);
+                }
+
                 $this->assertNodeIsValid($node);
                 $found = true;
                 break;
@@ -148,12 +181,19 @@ class WorkflowBuilderSession extends Model
      * published one in this workspace, which the engine would otherwise
      * only discover mid-run.
      *
+     * `$requireKnownType` is off only where a canvas sync must be able to
+     * save around a type the catalog can't check — see `replaceDraft()`.
+     *
      * @param  array<string, mixed>  $node
      */
-    private function assertNodeIsValid(array $node): void
+    private function assertNodeIsValid(array $node, bool $requireKnownType = true): void
     {
         $registry = app(NodeRegistry::class);
         $schema = $registry->configSchemaFor($node['type']);
+
+        if ($schema === null && ! $requireKnownType) {
+            return;
+        }
 
         if ($schema === null) {
             throw new InvalidArgumentException(
@@ -300,8 +340,20 @@ class WorkflowBuilderSession extends Model
             throw new InvalidArgumentException(implode(' ', $structuralErrors));
         }
 
+        // The canvas may save a type the catalog has no schema for when it
+        // is a `custom:` node (which a workflow may hold by design), or
+        // when the node is carried over unchanged from the draft — e.g. from
+        // the workflow the session was opened on, which `Workflow::replaceGraph()`
+        // accepted. A node the canvas adds or retypes to an unknown type is
+        // still refused. Publishing refuses unknown types either way
+        // (`GraphValidator::validate()`).
+        $registry = app(NodeRegistry::class);
+        $currentTypes = collect($this->currentGraph()['nodes'])->pluck('type', 'key');
+
         foreach ($normalized['nodes'] as $node) {
-            $this->assertNodeIsValid($node);
+            $isCarriedOver = $currentTypes->get($node['key']) === $node['type'];
+
+            $this->assertNodeIsValid($node, requireKnownType: ! $isCarriedOver && ! $registry->isCustom($node['type']));
         }
 
         $this->applyGraph($normalized, $by, 'Synced from canvas');
@@ -309,12 +361,21 @@ class WorkflowBuilderSession extends Model
 
     /**
      * Roll the draft back to an earlier snapshot. The restore is itself a new
-     * snapshot, so it can be undone the same way.
+     * snapshot, so it can be undone the same way. With
+     * `$expectedLockVersion`, refused when the draft moved on since the
+     * caller last loaded it — so an undo can't silently throw away
+     * assistant edits the user hasn't seen yet.
+     *
+     * @throws WorkflowBuilderConflictException
      */
-    public function restoreVersion(WorkflowBuilderDraftVersion $version, ?User $by = null): void
+    public function restoreVersion(WorkflowBuilderDraftVersion $version, ?User $by = null, ?int $expectedLockVersion = null): void
     {
         if ($version->session_id !== $this->id) {
             throw new InvalidArgumentException('That version belongs to a different session.');
+        }
+
+        if ($expectedLockVersion !== null && $expectedLockVersion !== $this->draft_lock_version) {
+            throw WorkflowBuilderConflictException::staleDraft();
         }
 
         $this->applyGraph(
@@ -332,6 +393,23 @@ class WorkflowBuilderSession extends Model
         if (! $this->status->isEditable()) {
             throw WorkflowBuilderConflictException::archived();
         }
+    }
+
+    /**
+     * Fail assistant replies that have been in flight longer than any turn
+     * can run, so a lost worker doesn't block the session forever.
+     */
+    public function failStaleReplies(): void
+    {
+        $this->messages()
+            ->where('role', 'assistant')
+            ->whereIn('processing_status', [BuilderMessageStatus::Pending, BuilderMessageStatus::Processing])
+            ->where('updated_at', '<', now()->subMinutes(self::STALE_REPLY_MINUTES))
+            ->update([
+                'processing_status' => BuilderMessageStatus::Failed,
+                'error_message' => ProcessWorkflowBuilderMessageJob::FAILURE_MESSAGE,
+                'updated_at' => now(),
+            ]);
     }
 
     public function hasReplyInFlight(): bool
@@ -357,7 +435,8 @@ class WorkflowBuilderSession extends Model
      * The write only lands if `draft_lock_version` still matches the one this
      * instance read: the agent (inside a queued turn) and the canvas (over
      * HTTP) edit the same draft, and a stale writer would otherwise silently
-     * erase the other's change.
+     * erase the other's change. It also refuses once the session is
+     * archived, so a turn still running when that happens stops editing.
      *
      * @param  array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}  $graph
      *
@@ -371,6 +450,7 @@ class WorkflowBuilderSession extends Model
             $updated = static::query()
                 ->whereKey($this->getKey())
                 ->where('draft_lock_version', $this->draft_lock_version)
+                ->where('status', '!=', BuilderSessionStatus::Archived)
                 ->update([
                     'draft_graph' => json_encode($graph, JSON_THROW_ON_ERROR),
                     'draft_lock_version' => $nextVersion,
@@ -379,7 +459,9 @@ class WorkflowBuilderSession extends Model
                 ]);
 
             if ($updated === 0) {
-                throw WorkflowBuilderConflictException::staleDraft();
+                throw static::query()->whereKey($this->getKey())->toBase()->value('status') === BuilderSessionStatus::Archived->value
+                    ? WorkflowBuilderConflictException::archived()
+                    : WorkflowBuilderConflictException::staleDraft();
             }
 
             $this->draftVersions()->create([
@@ -387,6 +469,8 @@ class WorkflowBuilderSession extends Model
                 'graph_snapshot' => $graph,
                 'label' => $label,
             ]);
+
+            $this->pruneDraftVersions();
         });
 
         $this->forceFill([
@@ -394,5 +478,23 @@ class WorkflowBuilderSession extends Model
             'draft_lock_version' => $nextVersion,
             'last_activity_at' => now(),
         ])->syncOriginal();
+    }
+
+    /**
+     * Drop the snapshots older than the newest `MAX_DRAFT_VERSIONS`. Each
+     * edit adds one, so in steady state this deletes one row per edit.
+     */
+    private function pruneDraftVersions(): void
+    {
+        $staleIds = $this->draftVersions()
+            ->latest()
+            ->latest('id')
+            ->skip(self::MAX_DRAFT_VERSIONS)
+            ->take(500)
+            ->pluck('id');
+
+        if ($staleIds->isNotEmpty()) {
+            WorkflowBuilderDraftVersion::query()->whereKey($staleIds->all())->delete();
+        }
     }
 }

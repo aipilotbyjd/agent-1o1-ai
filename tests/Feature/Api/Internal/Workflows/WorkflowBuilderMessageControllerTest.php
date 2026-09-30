@@ -1,17 +1,18 @@
 <?php
 
-use App\Actions\Workflows\Builder\SendWorkflowBuilderMessageAction;
 use App\Ai\Agents\WorkflowBuilderAgent;
 use App\Ai\Agents\WorkflowBuilderTitleAgent;
 use App\Enums\Queue as QueueName;
 use App\Enums\Workflows\BuilderMessageStatus;
 use App\Enums\Workflows\BuilderSessionStatus;
+use App\Enums\Workspaces\Role;
 use App\Jobs\Workflows\ProcessWorkflowBuilderMessageJob;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderMessage;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Queue;
+use Laravel\Ai\Tools\Request as ToolRequest;
 use Laravel\Passport\Passport;
 
 it('accepts a chat message and writes the reply in the background', function () {
@@ -84,7 +85,7 @@ it('fails a reply that has been in flight too long so the session is not stuck',
 
     $stuck = $this->postJson($url, ['message' => 'first'])->json('data.message.id');
 
-    $this->travel(SendWorkflowBuilderMessageAction::STALE_REPLY_MINUTES + 1)->minutes();
+    $this->travel(WorkflowBuilderSession::STALE_REPLY_MINUTES + 1)->minutes();
 
     $this->postJson($url, ['message' => 'second'])->assertAccepted();
 
@@ -132,4 +133,30 @@ it('404s sending a message to a session in a different workspace', function () {
     $this->postJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$foreign->id}/messages", [
         'message' => 'hi',
     ])->assertNotFound();
+});
+
+it('records who sent each message and credits their edits to them', function () {
+    Queue::fake();
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $colleague = User::factory()->create();
+    $workspace->members()->create(['user_id' => $colleague->id, 'role' => Role::Editor, 'joined_at' => now()]);
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+
+    Passport::actingAs($colleague);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}/messages", [
+        'message' => 'Add a transform step.',
+    ])->assertAccepted();
+
+    $sent = $session->messages()->where('role', 'user')->sole();
+    expect($sent->user_id)->toBe($colleague->id);
+
+    $agent = new WorkflowBuilderAgent($session, $sent->id, $sent->user);
+    collect(iterator_to_array($agent->tools()))
+        ->firstOrFail(fn ($tool) => $tool->name() === 'add_node')
+        ->handle(new ToolRequest(['key' => 'a', 'type' => 'transform', 'config_json' => '{"mapping": {}}'], 'call-1'));
+
+    expect($session->draftVersions()->value('triggered_by'))->toBe($colleague->id);
 });

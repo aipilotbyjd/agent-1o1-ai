@@ -3,9 +3,9 @@
 namespace App\Ai\Tools\WorkflowBuilder;
 
 use App\Ai\Tools\WorkflowBuilder\Concerns\EditsDraft;
+use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use JsonException;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
@@ -14,7 +14,10 @@ class UpdateNodeTool implements Tool
 {
     use EditsDraft;
 
-    public function __construct(public readonly WorkflowBuilderSession $session) {}
+    public function __construct(
+        public readonly WorkflowBuilderSession $session,
+        public readonly ?User $actingUser = null,
+    ) {}
 
     public function name(): string
     {
@@ -23,24 +26,23 @@ class UpdateNodeTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Merge new config fields into an existing node, identified by its key. Only the fields you pass are changed — everything else on the node is kept.';
+        return 'Change an existing node\'s config, identified by its key. Fields in config_json are merged in and fields named in remove_fields are deleted — everything else on the node is kept. To turn off loop mode, remove "_loop".';
     }
 
     public function handle(Request $request): Stringable|string
     {
-        $arguments = $request->all();
+        return $this->attemptEdit(function () use ($request): string {
+            $key = $this->stringArgument($request, 'key');
 
-        try {
-            $config = json_decode((string) ($arguments['config_json'] ?? '{}'), true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            return 'config_json must be a valid JSON object string.';
-        }
+            $this->session->updateNode(
+                key: $key,
+                config: $this->objectArgument($request, 'config_json'),
+                by: $this->editor(),
+                removeFields: $this->stringListArgument($request, 'remove_fields'),
+            );
 
-        return $this->attemptEdit(fn () => $this->session->updateNode(
-            key: (string) $arguments['key'],
-            config: $config ?? [],
-            by: $this->session->user,
-        ), "Updated node [{$arguments['key']}].");
+            return "Updated node [{$key}].";
+        });
     }
 
     /**
@@ -50,7 +52,8 @@ class UpdateNodeTool implements Tool
     {
         return [
             'key' => $schema->string()->description('The key of the node to update.')->required(),
-            'config_json' => $schema->string()->description('The config fields to merge in, as a JSON object string.')->required(),
+            'config_json' => $schema->string()->description('The config fields to set or replace, as a JSON object string.'),
+            'remove_fields' => $schema->array()->items($schema->string())->description('Top-level config fields to delete from the node, e.g. ["_loop"].'),
         ];
     }
 }

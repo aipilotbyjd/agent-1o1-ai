@@ -2,6 +2,7 @@
 
 namespace App\Ai\Tools\WorkflowBuilder;
 
+use App\Ai\Tools\WorkflowBuilder\Concerns\ReadsToolArguments;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Workflows\NodeOutputShapes;
@@ -18,6 +19,8 @@ use Stringable;
  */
 class InspectNodeOutputTool implements Tool
 {
+    use ReadsToolArguments;
+
     public function __construct(public readonly WorkflowBuilderSession $session) {}
 
     public function name(): string
@@ -32,44 +35,46 @@ class InspectNodeOutputTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $arguments = $request->all();
-        $type = (string) ($arguments['type'] ?? '');
+        return $this->answer(function () use ($request): string {
+            $type = $this->optionalStringArgument($request, 'type') ?? '';
+            $key = $this->optionalStringArgument($request, 'key');
 
-        if ($type === '' && isset($arguments['key'])) {
-            $node = collect($this->session->currentGraph()['nodes'])->firstWhere('key', (string) $arguments['key']);
+            if ($type === '' && $key !== null) {
+                $node = collect($this->session->currentGraph()['nodes'])->firstWhere('key', $key);
 
-            if ($node === null) {
-                return "There is no node with key [{$arguments['key']}] in the draft. Call read_draft to see the current nodes.";
+                if ($node === null) {
+                    return "There is no node with key [{$key}] in the draft. Call read_draft to see the current nodes.";
+                }
+
+                $type = $node['type'];
             }
 
-            $type = $node['type'];
-        }
+            if (! app(NodeRegistry::class)->isPlaceable($type)) {
+                return "There is no node for type [{$type}]. Use list_available_nodes to see valid types.";
+            }
 
-        if (! app(NodeRegistry::class)->isPlaceable($type)) {
-            return "There is no node for type [{$type}]. Use list_available_nodes to see valid types.";
-        }
+            $flowControl = FlowControlNodeType::tryFrom($type);
 
-        $flowControl = FlowControlNodeType::tryFrom($type);
+            if ($flowControl !== null) {
+                return json_encode([
+                    'type' => $type,
+                    'known' => $flowControl->sampleOutput() !== null,
+                    'note' => $flowControl->builderGuide(),
+                ], JSON_THROW_ON_ERROR);
+            }
 
-        if ($flowControl !== null) {
-            return json_encode([
-                'type' => $type,
-                'known' => $flowControl->sampleOutput() !== null,
-                'note' => $flowControl->builderGuide(),
-            ], JSON_THROW_ON_ERROR);
-        }
+            $schema = app(NodeOutputShapes::class)->schemaFor($this->session->workspace, $type);
 
-        $schema = app(NodeOutputShapes::class)->schemaFor($this->session->workspace, $type);
+            if ($schema === null) {
+                return json_encode([
+                    'type' => $type,
+                    'known' => false,
+                    'note' => "No {$type} node has produced output in this workspace yet, so its output fields aren't known. Use the node's description to pick fields, and expect dry_run_workflow to list those references as unverified.",
+                ], JSON_THROW_ON_ERROR);
+            }
 
-        if ($schema === null) {
-            return json_encode([
-                'type' => $type,
-                'known' => false,
-                'note' => "No {$type} node has produced output in this workspace yet, so its output fields aren't known. Use the node's description to pick fields, and expect dry_run_workflow to list those references as unverified.",
-            ], JSON_THROW_ON_ERROR);
-        }
-
-        return json_encode(['type' => $type, 'known' => true, 'fields' => $schema], JSON_THROW_ON_ERROR);
+            return json_encode(['type' => $type, 'known' => true, 'fields' => $schema], JSON_THROW_ON_ERROR);
+        });
     }
 
     /**

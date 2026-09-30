@@ -3,6 +3,7 @@
 namespace App\Ai\Tools\WorkflowBuilder;
 
 use App\Ai\Tools\WorkflowBuilder\Concerns\EditsDraft;
+use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -13,7 +14,10 @@ class RemoveNodeTool implements Tool
 {
     use EditsDraft;
 
-    public function __construct(public readonly WorkflowBuilderSession $session) {}
+    public function __construct(
+        public readonly WorkflowBuilderSession $session,
+        public readonly ?User $actingUser = null,
+    ) {}
 
     public function name(): string
     {
@@ -27,12 +31,13 @@ class RemoveNodeTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $key = (string) ($request->all()['key'] ?? '');
+        return $this->attemptEdit(function () use ($request): string {
+            $key = $this->stringArgument($request, 'key');
 
-        return $this->attemptEdit(
-            fn () => $this->session->removeNode($key, by: $this->session->user),
-            "Removed node [{$key}].",
-        );
+            $this->session->removeNode($key, by: $this->editor());
+
+            return "Removed node [{$key}].";
+        });
     }
 
     /**

@@ -44,9 +44,13 @@ class WorkflowBuilderSessionController extends Controller
 
         $request->validate([
             'status' => ['nullable', Rule::enum(BuilderSessionStatus::class)],
+            'mine' => ['nullable', 'boolean'],
         ]);
 
         $sessions = $workspace->builderSessions()
+            // A list doesn't need every session's whole graph.
+            ->select(WorkflowBuilderSessionResource::LIST_COLUMNS)
+            ->when($request->boolean('mine'), fn ($query) => $query->where('user_id', $request->user()->id))
             ->when(
                 $request->query('status'),
                 fn ($query, string $status) => $query->where('status', $status),
@@ -83,7 +87,7 @@ class WorkflowBuilderSessionController extends Controller
         $session = $this->createSession->execute($workspace, $request->user(), $request->validated('title'), $workflow);
 
         $reply = $request->validated('prompt')
-            ? $this->sendMessage->execute($session, $request->validated('prompt'))
+            ? $this->sendMessage->execute($session, $request->validated('prompt'), $request->user())
             : null;
 
         return ApiResponse::created([
@@ -163,19 +167,25 @@ class WorkflowBuilderSessionController extends Controller
     }
 
     /**
-     * Publish the draft graph to a real, workspace-visible `Workflow` — a
-     * new one unless the session was already started from (or already
-     * promoted to) one.
+     * Save the draft graph as a real, workspace-visible `Workflow`'s draft —
+     * a new workflow unless the session was already started from (or
+     * already promoted to) one. A 409 means that workflow was edited
+     * elsewhere since; `overwrite: true` replaces those edits.
      */
     public function promote(PromoteWorkflowBuilderSessionRequest $request, Workspace $workspace, WorkflowBuilderSession $session)
     {
         $this->requirePermission(Permission::WorkflowBuilderUse);
         $this->ensureBelongsToWorkspace($workspace, $session);
 
-        $workflow = $this->promoteSession->execute($session, $request->user(), $request->validated('name'));
+        $workflow = $this->promoteSession->execute(
+            $session,
+            $request->user(),
+            $request->validated('name'),
+            $request->boolean('overwrite'),
+        );
 
         return ApiResponse::success([
             'workflow' => WorkflowResource::make($workflow->fresh(['nodes', 'edges'])),
-        ], 'Workflow published.');
+        ], 'Draft saved to the workflow.');
     }
 }
