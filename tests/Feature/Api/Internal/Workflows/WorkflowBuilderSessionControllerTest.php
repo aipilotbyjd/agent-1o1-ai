@@ -1,13 +1,17 @@
 <?php
 
+use App\Enums\Workflows\BuilderMessageStatus;
 use App\Enums\Workflows\BuilderSessionStatus;
+use App\Enums\Workspaces\Role;
 use App\Jobs\Workflows\ProcessWorkflowBuilderMessageJob;
+use App\Models\Nodes\CustomNode;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Testing\TestResponse;
 use Laravel\Passport\Passport;
 
 /**
@@ -208,4 +212,150 @@ it('refuses to promote an archived session', function () {
     Passport::actingAs($owner);
 
     $this->postJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}/promote")->assertConflict();
+});
+
+function promoteBuilderSession(Workspace $workspace, WorkflowBuilderSession $session, array $payload = []): TestResponse
+{
+    return test()->postJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}/promote", $payload);
+}
+
+it('leaves no workflow behind when the workflow refuses the draft', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    // Valid when it was drafted; the node's schema has since tightened.
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create([
+        'draft_graph' => ['nodes' => [['key' => 'a', 'type' => 'transform', 'config' => []]], 'edges' => []],
+    ]);
+
+    Passport::actingAs($owner);
+
+    promoteBuilderSession($workspace, $session, ['name' => 'Broken'])->assertUnprocessable();
+    promoteBuilderSession($workspace, $session, ['name' => 'Broken'])->assertUnprocessable();
+
+    expect(Workflow::where('workspace_id', $workspace->id)->count())->toBe(0);
+    expect($session->fresh()->workflow_id)->toBeNull();
+    expect($session->fresh()->status)->toBe(BuilderSessionStatus::Active);
+});
+
+it('refuses to promote while the assistant is still editing the draft', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+    $session->messages()->create(['role' => 'assistant', 'content' => '', 'processing_status' => BuilderMessageStatus::Processing]);
+
+    Passport::actingAs($owner);
+
+    promoteBuilderSession($workspace, $session)->assertConflict()->assertJsonPath('message', 'The assistant is still replying to your last message.');
+
+    expect(Workflow::where('workspace_id', $workspace->id)->count())->toBe(0);
+});
+
+it('promotes once a reply stuck in flight has gone stale', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create([
+        'draft_graph' => ['nodes' => [['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]]], 'edges' => []],
+    ]);
+    $stuck = $session->messages()->create(['role' => 'assistant', 'content' => '', 'processing_status' => BuilderMessageStatus::Processing]);
+
+    $this->travel(WorkflowBuilderSession::STALE_REPLY_MINUTES + 1)->minutes();
+    Passport::actingAs($owner);
+
+    promoteBuilderSession($workspace, $session)->assertOk();
+
+    expect($stuck->fresh()->processing_status)->toBe(BuilderMessageStatus::Failed);
+});
+
+it('refuses to overwrite edits made to the workflow outside the session, unless told to', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph(['nodes' => [['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]]], 'edges' => []]);
+
+    Passport::actingAs($owner);
+
+    $sessionId = $this->postJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions", ['workflow_id' => $workflow->id])
+        ->assertCreated()
+        ->json('data.session.id');
+    $session = WorkflowBuilderSession::find($sessionId);
+
+    // Someone edits the workflow in the regular editor meanwhile.
+    $workflow->replaceGraph(['nodes' => [
+        ['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ['key' => 'from_editor', 'type' => 'transform', 'config' => ['mapping' => []]],
+    ], 'edges' => []]);
+
+    promoteBuilderSession($workspace, $session)->assertConflict();
+    expect($workflow->nodes()->pluck('key')->all())->toContain('from_editor');
+
+    promoteBuilderSession($workspace, $session, ['overwrite' => true])->assertOk();
+    expect($workflow->nodes()->pluck('key')->all())->toBe(['a']);
+});
+
+it('promotes again into its own workflow when nothing else changed it', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create([
+        'draft_graph' => ['nodes' => [['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]]], 'edges' => []],
+    ]);
+
+    Passport::actingAs($owner);
+
+    $workflowId = promoteBuilderSession($workspace, $session)->assertOk()->json('data.workflow.id');
+
+    $session->fresh()->addNode('b', 'transform', ['mapping' => []]);
+
+    promoteBuilderSession($workspace, $session)
+        ->assertOk()
+        ->assertJsonPath('data.workflow.id', $workflowId)
+        ->assertJsonPath('message', 'Draft saved to the workflow.');
+
+    expect(Workflow::find($workflowId)->nodes()->count())->toBe(2);
+});
+
+it('gives a workflow a usable slug whatever its name is written in', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create(['title' => '見込み客の振り分け']);
+
+    Passport::actingAs($owner);
+
+    $workflowId = promoteBuilderSession($workspace, $session)->assertOk()->json('data.workflow.id');
+
+    expect(Workflow::find($workflowId)->slug)->toMatch('/^workflow-[A-Za-z0-9]{6}$/');
+});
+
+it('lists sessions without their graphs, and only the caller\'s when asked', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $colleague = User::factory()->create();
+    $workspace->members()->create(['user_id' => $colleague->id, 'role' => Role::Editor, 'joined_at' => now()]);
+    $mine = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+    WorkflowBuilderSession::factory()->forWorkspace($workspace, $colleague)->create();
+
+    Passport::actingAs($owner);
+
+    $all = $this->getJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions")->assertOk()->json('data.sessions');
+    expect($all)->toHaveCount(2);
+    expect($all[0])->not->toHaveKey('draft_graph');
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions?mine=1")
+        ->assertOk()
+        ->assertJsonCount(1, 'data.sessions')
+        ->assertJsonPath('data.sessions.0.id', $mine->id);
+});
+
+it('syncs the canvas of a session opened on a workflow holding a custom node', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $custom = CustomNode::factory()->create(['workspace_id' => $workspace->id]);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph(['nodes' => [['key' => 'c', 'type' => "custom:{$custom->id}", 'config' => []]], 'edges' => []]);
+
+    Passport::actingAs($owner);
+
+    $session = $this->postJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions", ['workflow_id' => $workflow->id])
+        ->assertCreated()
+        ->json('data.session');
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session['id']}/draft", [
+        'draft_lock_version' => $session['draft_lock_version'],
+        'nodes' => [
+            ['key' => 'c', 'type' => "custom:{$custom->id}", 'config' => [], 'position' => ['x' => 40, 'y' => 0]],
+            ['key' => 'recovery', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [['from' => 'c', 'to' => 'recovery', 'condition' => 'error']],
+    ])->assertOk()->assertJsonCount(2, 'data.session.draft_graph.nodes');
 });

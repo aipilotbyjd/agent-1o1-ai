@@ -2,16 +2,18 @@
 
 namespace App\Ai\Tools\WorkflowBuilder;
 
+use App\Ai\Tools\WorkflowBuilder\Concerns\ReadsToolArguments;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Workflows\DryRunner;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use JsonException;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
 class DryRunWorkflowTool implements Tool
 {
+    use ReadsToolArguments;
+
     public function __construct(public readonly WorkflowBuilderSession $session) {}
 
     public function name(): string
@@ -26,15 +28,15 @@ class DryRunWorkflowTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        try {
-            $input = json_decode((string) ($request->all()['sample_input_json'] ?? '{}'), true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            return 'sample_input_json must be a valid JSON object string.';
-        }
+        return $this->answer(function () use ($request): string {
+            $result = app(DryRunner::class)->run(
+                $this->session->currentGraph(),
+                $this->objectArgument($request, 'sample_input_json'),
+                $this->session->workspace,
+            );
 
-        $result = app(DryRunner::class)->run($this->session->currentGraph(), $input ?? [], $this->session->workspace);
-
-        return json_encode($result, JSON_THROW_ON_ERROR);
+            return json_encode($result, JSON_THROW_ON_ERROR);
+        });
     }
 
     /**

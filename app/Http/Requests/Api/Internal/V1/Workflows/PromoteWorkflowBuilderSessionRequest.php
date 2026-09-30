@@ -18,6 +18,7 @@ class PromoteWorkflowBuilderSessionRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:255'],
+            'overwrite' => ['sometimes', 'boolean'],
         ];
     }
 }

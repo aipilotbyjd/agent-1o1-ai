@@ -2,6 +2,7 @@
 
 namespace App\Ai\Tools\WorkflowBuilder;
 
+use App\Ai\Tools\WorkflowBuilder\Concerns\ReadsToolArguments;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -17,6 +18,8 @@ use Stringable;
  */
 class ListWorkflowsTool implements Tool
 {
+    use ReadsToolArguments;
+
     private const int LIMIT = 50;
 
     public function __construct(public readonly WorkflowBuilderSession $session) {}
@@ -33,7 +36,11 @@ class ListWorkflowsTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $search = trim((string) ($request->all()['search'] ?? ''));
+        return $this->answer(fn (): string => $this->listWorkflows(trim($this->optionalStringArgument($request, 'search') ?? '')));
+    }
+
+    private function listWorkflows(string $search): string
+    {
 
         $workflows = $this->session->workspace->workflows()
             ->visible()

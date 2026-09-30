@@ -3,6 +3,7 @@
 namespace App\Ai\Tools\WorkflowBuilder;
 
 use App\Ai\Tools\WorkflowBuilder\Concerns\EditsDraft;
+use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -13,7 +14,10 @@ class ConnectNodesTool implements Tool
 {
     use EditsDraft;
 
-    public function __construct(public readonly WorkflowBuilderSession $session) {}
+    public function __construct(
+        public readonly WorkflowBuilderSession $session,
+        public readonly ?User $actingUser = null,
+    ) {}
 
     public function name(): string
     {
@@ -27,14 +31,19 @@ class ConnectNodesTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $arguments = $request->all();
+        return $this->attemptEdit(function () use ($request): string {
+            $from = $this->stringArgument($request, 'from');
+            $to = $this->stringArgument($request, 'to');
 
-        return $this->attemptEdit(fn () => $this->session->connect(
-            from: (string) $arguments['from'],
-            to: (string) $arguments['to'],
-            condition: isset($arguments['condition']) && $arguments['condition'] !== '' ? (string) $arguments['condition'] : null,
-            by: $this->session->user,
-        ), "Connected [{$arguments['from']}] to [{$arguments['to']}].");
+            $this->session->connect(
+                from: $from,
+                to: $to,
+                condition: $this->optionalStringArgument($request, 'condition'),
+                by: $this->editor(),
+            );
+
+            return "Connected [{$from}] to [{$to}].";
+        });
     }
 
     /**

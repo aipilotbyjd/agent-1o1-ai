@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Internal\V1\Workflows;
 
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Workflows\RestoreWorkflowBuilderDraftVersionRequest;
 use App\Http\Resources\Api\Internal\V1\Workflows\WorkflowBuilderDraftVersionResource;
 use App\Http\Resources\Api\Internal\V1\Workflows\WorkflowBuilderSessionResource;
 use App\Http\Responses\ApiResponse;
@@ -32,14 +33,16 @@ class WorkflowBuilderDraftVersionController extends Controller
         return ApiResponse::paginated(WorkflowBuilderDraftVersionResource::collection($versions));
     }
 
-    public function restore(Request $request, Workspace $workspace, WorkflowBuilderSession $session, WorkflowBuilderDraftVersion $version)
+    public function restore(RestoreWorkflowBuilderDraftVersionRequest $request, Workspace $workspace, WorkflowBuilderSession $session, WorkflowBuilderDraftVersion $version)
     {
         $this->requirePermission(Permission::WorkflowBuilderUse);
         $this->ensureBelongsToWorkspace($workspace, $session);
         abort_if($version->session_id !== $session->id, 404);
         $session->assertEditable();
 
-        $session->restoreVersion($version, $request->user());
+        $expectedLockVersion = $request->validated('draft_lock_version');
+
+        $session->restoreVersion($version, $request->user(), $expectedLockVersion !== null ? (int) $expectedLockVersion : null);
 
         return ApiResponse::success([
             'session' => WorkflowBuilderSessionResource::make($session),

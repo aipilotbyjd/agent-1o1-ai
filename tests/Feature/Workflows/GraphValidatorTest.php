@@ -101,3 +101,12 @@ it('skips config validation for a node type not yet in the registry', function (
 
     expect($errors)->toBe([]);
 });
+
+it('rejects a node type that does not exist, but lets a custom node through', function () {
+    $errors = app(GraphValidator::class)->validate(
+        [node('a', 'trasnform', []), node('b', 'custom:0197a4c2-0000-7000-8000-000000000000', [])],
+        [edge('a', 'b')],
+    );
+
+    expect($errors)->toBe(["Node 'a': there is no node type [trasnform]."]);
+});

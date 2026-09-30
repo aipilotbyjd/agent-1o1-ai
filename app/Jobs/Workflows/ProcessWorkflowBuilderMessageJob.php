@@ -147,7 +147,7 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         $finished = null;
         $lastBroadcastLockVersion = $session->draft_lock_version;
 
-        $stream = (new WorkflowBuilderAgent($session, $userMessage->id))
+        $stream = (new WorkflowBuilderAgent($session, $userMessage->id, $userMessage->user))
             ->stream($userMessage->content, provider: $this->provider($modelCatalog));
 
         $stream->then(function (StreamedAgentResponse $response) use (&$finished): void {

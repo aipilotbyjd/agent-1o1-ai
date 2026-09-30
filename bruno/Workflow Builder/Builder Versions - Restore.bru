@@ -6,7 +6,7 @@ meta {
 
 post {
   url: {{baseUrl}}/v1/workspaces/:workspace/workflow-builder-sessions/:session/versions/:version/restore
-  body: none
+  body: json
   auth: inherit
 }
 
@@ -16,9 +16,19 @@ params:path {
   version: {{builderVersionId}}
 }
 
+body:json {
+  {
+    "draft_lock_version": 0
+  }
+}
+
 docs {
   Rolls the draft back to a snapshot. The restore is itself a new snapshot,
   so it can be undone. 409 if the session is archived.
+
+  `draft_lock_version` (optional) is the one the client last loaded; when
+  sent, a restore over newer edits — the assistant's, most likely — is a
+  409 instead of silently discarding them.
 
   Response is wrapped: `{ success, statusCode, message, data: { session } }`.
 }

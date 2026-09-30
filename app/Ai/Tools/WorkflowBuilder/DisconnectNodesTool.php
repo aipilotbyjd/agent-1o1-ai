@@ -3,6 +3,7 @@
 namespace App\Ai\Tools\WorkflowBuilder;
 
 use App\Ai\Tools\WorkflowBuilder\Concerns\EditsDraft;
+use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -13,7 +14,10 @@ class DisconnectNodesTool implements Tool
 {
     use EditsDraft;
 
-    public function __construct(public readonly WorkflowBuilderSession $session) {}
+    public function __construct(
+        public readonly WorkflowBuilderSession $session,
+        public readonly ?User $actingUser = null,
+    ) {}
 
     public function name(): string
     {
@@ -27,17 +31,21 @@ class DisconnectNodesTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $arguments = $request->all();
+        return $this->attemptEdit(function () use ($request): string {
+            $from = $this->stringArgument($request, 'from');
+            $to = $this->stringArgument($request, 'to');
+            $condition = $this->optionalStringArgument($request, 'condition');
 
-        $condition = isset($arguments['condition']) && $arguments['condition'] !== '' ? (string) $arguments['condition'] : null;
+            $this->session->disconnect(
+                from: $from,
+                to: $to,
+                by: $this->editor(),
+                condition: $condition === 'none' ? null : $condition,
+                onlyCondition: $condition !== null,
+            );
 
-        return $this->attemptEdit(fn () => $this->session->disconnect(
-            from: (string) $arguments['from'],
-            to: (string) $arguments['to'],
-            by: $this->session->user,
-            condition: $condition === 'none' ? null : $condition,
-            onlyCondition: $condition !== null,
-        ), "Disconnected [{$arguments['from']}] from [{$arguments['to']}].");
+            return "Disconnected [{$from}] from [{$to}].";
+        });
     }
 
     /**

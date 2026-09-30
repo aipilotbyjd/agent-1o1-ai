@@ -38,7 +38,7 @@ class WorkflowBuilderMessageController extends Controller
         $this->requirePermission(Permission::WorkflowBuilderUse);
         $this->ensureBelongsToWorkspace($workspace, $session);
 
-        $reply = $this->sendMessage->execute($session, $request->validated('message'));
+        $reply = $this->sendMessage->execute($session, $request->validated('message'), $request->user());
 
         return ApiResponse::success(
             ['message' => WorkflowBuilderMessageResource::make($reply)],
