@@ -1,0 +1,20 @@
+meta {
+  name: Programs - Duplicate
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/referrals/programs/:program/duplicate
+  body: none
+  auth: inherit
+}
+
+params:path {
+  program: {{referralProgramId}}
+}
+
+docs {
+  Copies the program and its rules as "<name> (copy)", switched off and not
+  default — the quick way to build a campaign from the default program.
+}

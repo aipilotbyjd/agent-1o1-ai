@@ -1,0 +1,20 @@
+meta {
+  name: Rewards - Approve
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/referrals/rewards/:reward/approve
+  body: none
+  auth: inherit
+}
+
+params:path {
+  reward: {{referralRewardId}}
+}
+
+docs {
+  Approves a reward held for manual review. Granted now if its hold has
+  passed, otherwise by the hourly `referrals:grant-pending` when it does.
+}

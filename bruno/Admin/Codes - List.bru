@@ -1,0 +1,32 @@
+meta {
+  name: Codes - List
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/referrals/codes?search=&page=1
+  body: none
+  auth: inherit
+}
+
+params:query {
+  search: 
+  page: 1
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const items = res.body.data;
+    if (Array.isArray(items) && items.length > 0) {
+      bru.setVar("referralCodeId", items[0].id);
+    }
+  }
+}
+
+docs {
+  Referral codes with owner and referral/visit counts. `search` matches the
+  code or the owner's name or email; `program_id` filters by pinned program.
+
+  Stores the first code as `referralCodeId`.
+}

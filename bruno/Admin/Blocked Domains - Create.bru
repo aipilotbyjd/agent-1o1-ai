@@ -1,0 +1,33 @@
+meta {
+  name: Blocked Domains - Create
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/referrals/blocked-domains
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "domain": "spam.example",
+    "reason": "Throwaway mail"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const id = res.body.data?.domain?.id;
+    if (id) {
+      bru.setVar("blockedDomainId", id);
+    }
+  }
+}
+
+docs {
+  Blocks a domain (lower-cased; must look like `example.com`).
+
+  Stores `blockedDomainId`.
+}

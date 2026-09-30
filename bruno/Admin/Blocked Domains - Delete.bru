@@ -1,0 +1,19 @@
+meta {
+  name: Blocked Domains - Delete
+  type: http
+  seq: 28
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/referrals/blocked-domains/:domain
+  body: none
+  auth: inherit
+}
+
+params:path {
+  domain: {{blockedDomainId}}
+}
+
+docs {
+  Unblocks the domain.
+}

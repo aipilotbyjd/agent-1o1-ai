@@ -1,0 +1,34 @@
+meta {
+  name: Rewards - List
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/referrals/rewards?status=&page=1
+  body: none
+  auth: inherit
+}
+
+params:query {
+  status: 
+  page: 1
+}
+
+script:post-response {
+  if (res.status === 200) {
+    const items = res.body.data;
+    if (Array.isArray(items) && items.length > 0) {
+      bru.setVar("referralRewardId", items[0].id);
+    }
+  }
+}
+
+docs {
+  The reward ledger. Filters: `status` (`awaiting_approval`, `pending`,
+  `granted`, `revoked`), `reward_type`, `recipient_user_id`, `referral_id`.
+
+  Set `status=awaiting_approval` to see what needs your approval.
+
+  Stores the first reward as `referralRewardId`.
+}
