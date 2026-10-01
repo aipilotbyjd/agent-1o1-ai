@@ -8,26 +8,65 @@ use App\Services\Workspaces\WorkspaceService;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Tools\Request;
 
-it('ranks the closest-by-construction chunk first', function () {
+it('ranks the closest-by-construction chunk first and drops unrelated ones', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
 
     // Query vector points along the first axis; "close" shares that
-    // direction, "far" is orthogonal (cosine similarity 0), "opposite"
-    // points the other way entirely (cosine similarity -1).
+    // direction, "nearer" a little less so, "far" is orthogonal (cosine
+    // similarity 0) and "opposite" points the other way entirely (-1).
     Embeddings::fake([[[1.0, 0.0, 0.0]]]);
 
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'close', 'chunk_text' => 'close chunk', 'embedding' => [0.9, 0.1, 0.0]]);
+    DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'nearer', 'chunk_text' => 'nearer chunk', 'embedding' => [0.6, 0.4, 0.0]]);
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'far', 'chunk_text' => 'far chunk', 'embedding' => [0.0, 1.0, 0.0]]);
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'opposite', 'chunk_text' => 'opposite chunk', 'embedding' => [-1.0, 0.0, 0.0]]);
 
     $tool = new SearchKnowledgeTool($workspace);
     $result = json_decode($tool->handle(new Request(['query' => 'anything'])), true);
 
-    expect($result[0]['source'])->toBe('close');
+    expect(array_column($result, 'source'))->toBe(['close', 'nearer']);
     expect($result[0]['score'])->toBeGreaterThan($result[1]['score']);
-    expect($result[1]['score'])->toBeGreaterThan($result[2]['score']);
-    expect($result[2]['source'])->toBe('opposite');
+});
+
+it('lifts a chunk containing the exact term above a merely similar one', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    Embeddings::fake([[[1.0, 0.0]]]);
+
+    DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'similar', 'chunk_text' => 'Our invoices are sent monthly.', 'embedding' => [0.8, 0.6]]);
+    DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'exact', 'chunk_text' => 'Invoice INV-2043 was refunded on May 3.', 'embedding' => [0.5, 0.866]]);
+
+    $result = json_decode((new SearchKnowledgeTool($workspace))->handle(new Request(['query' => 'INV-2043'])), true);
+
+    expect($result[0]['source'])->toBe('exact');
+});
+
+it('keeps a chunk that shares a word with the query even when its embedding is unrelated', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    Embeddings::fake([[[1.0, 0.0]]]);
+
+    DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'sku', 'chunk_text' => 'SKU ZX-9 ships from Leeds.', 'embedding' => [0.0, 1.0]]);
+
+    $result = json_decode((new SearchKnowledgeTool($workspace))->handle(new Request(['query' => 'where does zx-9 ship from'])), true);
+
+    expect($result[0]['source'])->toBe('sku');
+});
+
+it('tells the model when nothing relevant was found', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    Embeddings::fake([[[1.0, 0.0]]]);
+
+    DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'unrelated', 'chunk_text' => 'Office plants are watered on Fridays.', 'embedding' => [0.0, 1.0]]);
+
+    $result = (new SearchKnowledgeTool($workspace))->handle(new Request(['query' => 'refund policy']));
+
+    expect($result)->toContain('Nothing in the knowledge base matches');
 });
 
 it('scopes results to the given collection', function () {
@@ -56,9 +95,9 @@ it('does not leak results from another workspace', function () {
     DocumentEmbedding::create(['workspace_id' => $otherWorkspace->id, 'source' => 'foreign', 'chunk_text' => 'c', 'embedding' => [1.0, 0.0]]);
 
     $tool = new SearchKnowledgeTool($workspace);
-    $result = json_decode($tool->handle(new Request(['query' => 'anything'])), true);
+    $result = $tool->handle(new Request(['query' => 'anything']));
 
-    expect($result)->toBe([]);
+    expect($result)->toContain('Nothing in the knowledge base matches');
 });
 
 it('returns only the top N chunks, best first, across more chunks than N', function () {

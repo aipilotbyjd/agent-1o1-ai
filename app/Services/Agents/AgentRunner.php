@@ -20,6 +20,7 @@ use App\Models\Agents\Agent as AgentModel;
 use App\Models\Agents\AgentAction;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Agents\Skill;
 use App\Models\Artifacts\Artifact;
 use App\Models\Runs\Run;
 use App\Services\Agents\Approvals\AgentActionExecutor;
@@ -34,8 +35,10 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Iterator;
+use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
+use Laravel\Ai\Tools\ToolNameResolver;
 use Throwable;
 
 /**
@@ -76,11 +79,14 @@ class AgentRunner
     ) {}
 
     /**
+     * `$skill` is one the person picked for this message; its instructions
+     * are added to this turn's prompt — see `SkillInjector::chosenSkillSection()`.
+     *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
-    public function run(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = []): AgentMessage
+    public function run(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): AgentMessage
     {
-        $turn = $this->openTurn($session, $message, $triggerType, $attachments);
+        $turn = $this->openTurn($session, $message, $triggerType, $attachments, $skill);
 
         try {
             $response = $turn->agent->prompt($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
@@ -149,9 +155,9 @@ class AgentRunner
      *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
-    public function stream(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = []): StreamedTurn
+    public function stream(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): StreamedTurn
     {
-        $turn = $this->openTurn($session, $message, $triggerType, $attachments);
+        $turn = $this->openTurn($session, $message, $triggerType, $attachments, $skill);
 
         $response = $turn->agent->stream($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
@@ -188,7 +194,7 @@ class AgentRunner
      *
      * @param  array<int, UploadedFile>  $attachments
      */
-    private function openTurn(AgentSession $session, string $message, string $triggerType, array $attachments): AgentTurn
+    private function openTurn(AgentSession $session, string $message, string $triggerType, array $attachments, ?Skill $skill = null): AgentTurn
     {
         // The version the conversation was started against, not whatever the
         // agent looks like right now — see `AgentSession::pinnedAgent()`.
@@ -204,12 +210,21 @@ class AgentRunner
             $userMessage = $session->messages()->create([
                 'role' => AgentMessageRole::User,
                 'content' => $message,
+                'skill_id' => $skill?->id,
             ]);
 
             $storedAttachments = $this->storeAttachments($session, $run, $userMessage, $attachments);
 
             $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
+
+            if ($skill !== null) {
+                $instructions .= "\n\n".$this->skillInjector->chosenSkillSection($skill);
+            }
+
             [$provider, $model] = $this->modelCatalog->forAgent($agent);
+            $tools = $this->tools->toolsFor($agent, $run);
+
+            $this->recordContext($run, $instructions, $provider, $model, $tools, $skill);
 
             return new AgentTurn(
                 $session,
@@ -218,7 +233,7 @@ class AgentRunner
                     $instructions,
                     $session,
                     $userMessage->id,
-                    $this->tools->toolsFor($agent, $run),
+                    $tools,
                     GenerationSettings::fromAgent($agent),
                 ),
                 $provider,
@@ -230,6 +245,25 @@ class AgentRunner
 
             throw $e;
         }
+    }
+
+    /**
+     * Keeps what this turn is sent on its `Run` — see the `agent_context`
+     * migration. A resumed turn is rebuilt from the same pinned version, so
+     * the context recorded when it opened still describes it.
+     *
+     * @param  string|array<string, string>  $provider
+     * @param  array<int, mixed>  $tools
+     */
+    private function recordContext(Run $run, string $instructions, string|array $provider, ?string $model, array $tools, ?Skill $skill = null): void
+    {
+        $run->forceFill(['agent_context' => [
+            'provider' => $provider,
+            'model' => $model,
+            'skill' => $skill?->name,
+            'instructions' => $instructions,
+            'tools' => array_map(fn (mixed $tool): string => $tool instanceof Tool ? ToolNameResolver::resolve($tool) : class_basename($tool), $tools),
+        ]])->save();
     }
 
     /**
@@ -615,19 +649,28 @@ class AgentRunner
      * executes against, same as a chat turn's own `Run` is for
      * `NodeTool::handle()`.
      *
-     * @return array{text: string, usage: array<string, mixed>}
+     * `$simulateActions` simulates every call that would change something,
+     * as Test run does — for runs nobody is watching, such as the eval runs
+     * `RunEvalsOnAgentChangeJob` starts. `tool_calls` lists the names of the
+     * tools the answer called, in order, so an eval can check them.
+     *
+     * @return array{text: string, usage: array<string, mixed>, tool_calls: array<int, string>}
      */
-    public function ask(AgentModel $agent, Run $run, string $prompt): array
+    public function ask(AgentModel $agent, Run $run, string $prompt, bool $simulateActions = false): array
     {
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
         [$provider, $model] = $this->modelCatalog->forAgent($agent);
 
         $startedAt = now();
 
-        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run, canPause: false), GenerationSettings::fromAgent($agent)))
+        $response = (new EmbeddedAgent($instructions, $this->tools->toolsFor($agent, $run, canPause: false, simulateActions: $simulateActions), GenerationSettings::fromAgent($agent)))
             ->prompt($prompt, provider: $provider, model: $model);
 
-        return ['text' => $response->text, 'usage' => ResponseUsage::from($response, $startedAt)];
+        return [
+            'text' => $response->text,
+            'usage' => ResponseUsage::from($response, $startedAt),
+            'tool_calls' => $response->toolCalls->pluck('name')->values()->all(),
+        ];
     }
 
     /**

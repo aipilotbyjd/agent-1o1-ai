@@ -31,15 +31,22 @@ class AssertionGrader
      * against the case.
      *
      * @param  array<string, mixed>  $assertion  `{type, value}`
+     * @param  array<int, string>  $toolCalls  names of the tools the answer called
      * @return array{type: string, value: string, passed: bool, error: string|null, usage?: array<string, int>}
      */
-    public function grade(array $assertion, string $output, Agent $agent): array
+    public function grade(array $assertion, string $output, Agent $agent, array $toolCalls = []): array
     {
         $type = EvalAssertionType::tryFrom($assertion['type'] ?? '');
         $value = (string) ($assertion['value'] ?? '');
 
         if ($type === null) {
             return $this->result($assertion['type'] ?? '', $value, false, "Unknown assertion type '".($assertion['type'] ?? '')."'.");
+        }
+
+        if ($type === EvalAssertionType::ToolCalled || $type === EvalAssertionType::ToolNotCalled) {
+            $called = in_array(mb_strtolower(trim($value)), array_map(mb_strtolower(...), $toolCalls), true);
+
+            return $this->result($type->value, $value, $type === EvalAssertionType::ToolCalled ? $called : ! $called, null);
         }
 
         if (! $type->needsJudge()) {
@@ -67,7 +74,7 @@ class AssertionGrader
             EvalAssertionType::Contains => str_contains($haystack, $needle),
             EvalAssertionType::NotContains => ! str_contains($haystack, $needle),
             EvalAssertionType::Equals => trim($haystack) === trim($needle),
-            EvalAssertionType::LlmRubric => false,
+            EvalAssertionType::ToolCalled, EvalAssertionType::ToolNotCalled, EvalAssertionType::LlmRubric => false,
         };
     }
 

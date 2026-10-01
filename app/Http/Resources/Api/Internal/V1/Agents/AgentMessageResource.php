@@ -27,6 +27,14 @@ class AgentMessageResource extends JsonResource
             'agent_session_id' => $this->agent_session_id,
             'role' => $this->role->value,
             'content' => $this->content,
+            'skill' => $this->whenLoaded('skill', fn () => $this->skill === null ? null : [
+                'id' => $this->skill->id,
+                'name' => $this->skill->name,
+                'slug' => $this->skill->slug,
+                'icon' => $this->skill->icon,
+                'color' => $this->skill->color,
+                'category' => $this->skill->category,
+            ]),
             'attachments' => ArtifactResource::collection($this->whenLoaded('attachments')),
             'tool_calls' => $this->tool_calls,
             'tool_results' => collect($this->tool_results ?? [])

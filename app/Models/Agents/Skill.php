@@ -59,6 +59,20 @@ class Skill extends Model
         return $this->belongsToMany(Agent::class, 'agent_skill')->withTimestamps();
     }
 
+    /**
+     * The skill as the model reads it: its instructions followed by every
+     * reference. Shared by `UseSkillTool` and a skill picked for a message,
+     * so both hand the model the same text.
+     */
+    public function toPrompt(): string
+    {
+        $references = $this->references
+            ->map(fn (SkillReference $reference): string => "## Reference: {$reference->title}\n{$reference->content}")
+            ->implode("\n\n");
+
+        return trim("# Skill: {$this->name}\n{$this->instructions}\n\n{$references}");
+    }
+
     public function references(): HasMany
     {
         return $this->hasMany(SkillReference::class)->orderBy('sort_order');

@@ -19,6 +19,7 @@ class UpdateAgentEvalSuiteRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
+            'run_on_change' => ['sometimes', 'boolean'],
         ];
     }
 }

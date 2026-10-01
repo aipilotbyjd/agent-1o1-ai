@@ -3,6 +3,7 @@
 namespace App\Models\Agents;
 
 use App\Enums\Agents\EvalRunStatus;
+use App\Enums\Agents\EvalRunTrigger;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
@@ -22,10 +23,10 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * else — an eval that quietly called a model twenty times without appearing
  * anywhere would be the one kind of spend nobody could account for.
  *
- * `status`/`passed`/`failed`/timestamps are written by `EvalRunner`, not
+ * `status`/`passed`/`failed`/`regressed`/timestamps are written by `EvalRunner`, not
  * mass-assigned — same convention as `Run` and `NodeRun`.
  */
-#[Fillable(['workspace_id', 'agent_eval_suite_id', 'agent_version_id', 'triggered_by'])]
+#[Fillable(['workspace_id', 'agent_eval_suite_id', 'agent_version_id', 'trigger', 'triggered_by'])]
 class AgentEvalRun extends Model
 {
     /** @use HasFactory<AgentEvalRunFactory> */
@@ -36,8 +37,10 @@ class AgentEvalRun extends Model
      */
     protected $attributes = [
         'status' => 'pending',
+        'trigger' => 'manual',
         'passed' => 0,
         'failed' => 0,
+        'regressed' => false,
     ];
 
     /**
@@ -47,6 +50,8 @@ class AgentEvalRun extends Model
     {
         return [
             'status' => EvalRunStatus::class,
+            'trigger' => EvalRunTrigger::class,
+            'regressed' => 'boolean',
             'passed' => 'integer',
             'failed' => 'integer',
             'started_at' => 'datetime',

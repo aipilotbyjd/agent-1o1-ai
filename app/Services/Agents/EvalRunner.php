@@ -3,6 +3,7 @@
 namespace App\Services\Agents;
 
 use App\Enums\Agents\EvalRunStatus;
+use App\Enums\Agents\EvalRunTrigger;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunCompleted;
 use App\Events\Runs\RunFailed;
@@ -13,7 +14,9 @@ use App\Models\Agents\AgentEvalRun;
 use App\Models\Agents\AgentEvalSuite;
 use App\Models\Runs\Run;
 use App\Models\User;
+use App\Notifications\Agents\EvalRegressionNotification;
 use App\Services\Billing\CreditGate;
+use App\Services\Notifications\NotificationDispatcher;
 use Throwable;
 
 /**
@@ -38,6 +41,11 @@ use Throwable;
  * (plus a judge call per rubric), too slow to run inside a request, so it
  * queues `RunAgentEvalJob`, which calls `execute()`. `run()` does both in
  * one go for callers that want the result inline.
+ *
+ * A completed run is compared with the suite's previous completed run; one
+ * that passes a smaller share of its cases is marked `regressed`, and when
+ * nobody started it by hand (`EvalRunTrigger::AgentChange`) the workspace's
+ * owners and admins are told.
  */
 class EvalRunner
 {
@@ -46,23 +54,24 @@ class EvalRunner
         private readonly AgentVersioner $versioner,
         private readonly AssertionGrader $grader,
         private readonly CreditGate $creditGate,
+        private readonly NotificationDispatcher $notifications,
     ) {}
 
     /**
      * Records a pending eval run and queues its execution.
      */
-    public function start(AgentEvalSuite $suite, ?User $triggeredBy = null): AgentEvalRun
+    public function start(AgentEvalSuite $suite, ?User $triggeredBy = null, EvalRunTrigger $trigger = EvalRunTrigger::Manual): AgentEvalRun
     {
-        $evalRun = $this->createEvalRun($suite, $triggeredBy);
+        $evalRun = $this->createEvalRun($suite, $triggeredBy, $trigger);
 
         RunAgentEvalJob::dispatch($evalRun->id);
 
         return $evalRun->fresh();
     }
 
-    public function run(AgentEvalSuite $suite, ?User $triggeredBy = null): AgentEvalRun
+    public function run(AgentEvalSuite $suite, ?User $triggeredBy = null, EvalRunTrigger $trigger = EvalRunTrigger::Manual): AgentEvalRun
     {
-        return $this->execute($this->createEvalRun($suite, $triggeredBy));
+        return $this->execute($this->createEvalRun($suite, $triggeredBy, $trigger));
     }
 
     /**
@@ -91,6 +100,7 @@ class EvalRunner
                 'status' => EvalRunStatus::Completed,
                 'passed' => $passed,
                 'failed' => $failed,
+                'regressed' => $this->regressed($evalRun, $passed, $failed),
                 'finished_at' => now(),
             ])->save();
 
@@ -101,6 +111,13 @@ class EvalRunner
             ])->save();
 
             event(new RunCompleted($run));
+
+            if ($evalRun->regressed && $evalRun->trigger === EvalRunTrigger::AgentChange) {
+                $this->notifications->dispatch(
+                    $this->notifications->ownersAndAdmins($suite->workspace),
+                    new EvalRegressionNotification($evalRun),
+                );
+            }
         } catch (Throwable $e) {
             // Only something outside an individual case can land here — a
             // single case's failure is caught per case and recorded as a
@@ -148,7 +165,7 @@ class EvalRunner
      * The credit gate runs here, before anything is queued — a workspace out
      * of credits is refused at request time, not discovered by the job.
      */
-    private function createEvalRun(AgentEvalSuite $suite, ?User $triggeredBy): AgentEvalRun
+    private function createEvalRun(AgentEvalSuite $suite, ?User $triggeredBy, EvalRunTrigger $trigger): AgentEvalRun
     {
         $this->creditGate->assertCanStartRun($suite->workspace);
 
@@ -156,8 +173,30 @@ class EvalRunner
             'workspace_id' => $suite->workspace_id,
             // Records which behavior was graded — see the migration.
             'agent_version_id' => $this->versioner->currentVersion($suite->agent)->id,
+            'trigger' => $trigger,
             'triggered_by' => $triggeredBy?->id,
         ]);
+    }
+
+    /**
+     * Whether this run passed a smaller share of its cases than the suite's
+     * previous completed run. Shares rather than counts, since cases may have
+     * been added or removed in between.
+     */
+    private function regressed(AgentEvalRun $evalRun, int $passed, int $failed): bool
+    {
+        $previous = AgentEvalRun::query()
+            ->where('agent_eval_suite_id', $evalRun->agent_eval_suite_id)
+            ->where('status', EvalRunStatus::Completed)
+            ->whereKeyNot($evalRun->id)
+            ->latest('finished_at')
+            ->first();
+
+        if ($previous === null || $previous->passed + $previous->failed === 0 || $passed + $failed === 0) {
+            return false;
+        }
+
+        return $passed / ($passed + $failed) < $previous->passed / ($previous->passed + $previous->failed);
     }
 
     /**
@@ -184,7 +223,7 @@ class EvalRunner
         ]);
 
         try {
-            $answer = $this->agentRunner->ask($evalRun->suite->agent, $run, $case->input);
+            $answer = $this->agentRunner->ask($evalRun->suite->agent, $run, $case->input, $evalRun->trigger->simulatesActions());
         } catch (Throwable $e) {
             $result->forceFill(['passed' => false, 'error' => $e->getMessage()])->save();
 
@@ -195,7 +234,7 @@ class EvalRunner
         $graded = [];
 
         foreach ($case->assertions ?? [] as $assertion) {
-            $grade = $this->grader->grade($assertion, $answer['text'], $evalRun->suite->agent);
+            $grade = $this->grader->grade($assertion, $answer['text'], $evalRun->suite->agent, $answer['tool_calls']);
 
             // The judge's tokens are real spend on this case — fold them into
             // the case's usage rather than storing them per assertion.

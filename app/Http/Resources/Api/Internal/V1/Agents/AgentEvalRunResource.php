@@ -22,9 +22,11 @@ class AgentEvalRunResource extends JsonResource
             // Which behavior was graded — an eval result read without this is
             // not interpretable. See the migration's docblock.
             'agent_version_id' => $this->agent_version_id,
+            'trigger' => $this->trigger->value,
             'status' => $this->status->value,
             'passed' => $this->passed,
             'failed' => $this->failed,
+            'regressed' => $this->regressed,
             'error' => $this->error,
             'results' => AgentEvalCaseResultResource::collection($this->whenLoaded('results')),
             'triggered_by' => $this->triggered_by,

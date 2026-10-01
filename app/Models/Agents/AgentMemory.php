@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['agent_id', 'user_id', 'key', 'value', 'type', 'metadata'])]
+#[Fillable(['agent_id', 'user_id', 'agent_session_id', 'key', 'value', 'type', 'metadata'])]
 class AgentMemory extends Model
 {
     /** @use HasFactory<AgentMemoryFactory> */
@@ -41,5 +41,14 @@ class AgentMemory extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The conversation this fact was saved in, when it was saved by the
+     * agent itself rather than added by hand.
+     */
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(AgentSession::class, 'agent_session_id');
     }
 }

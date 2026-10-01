@@ -58,6 +58,7 @@ class Run extends Model
             'status' => RunStatus::class,
             'input' => 'array',
             'output' => 'array',
+            'agent_context' => 'array',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];

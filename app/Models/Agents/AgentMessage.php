@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * by `AgentRunner` while the turn waits on an approval, cleared when it
  * resumes — see `Services\Agents\Approvals\PausedTurn`.
  */
-#[Fillable(['agent_session_id', 'role', 'content', 'tool_calls', 'tool_results', 'tool_call_id'])]
+#[Fillable(['agent_session_id', 'role', 'content', 'skill_id', 'tool_calls', 'tool_results', 'tool_call_id'])]
 class AgentMessage extends Model
 {
     /** @use HasFactory<AgentMessageFactory> */
@@ -45,6 +45,14 @@ class AgentMessage extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(AgentSession::class, 'agent_session_id');
+    }
+
+    /**
+     * The skill the person picked for this (user) message, if any.
+     */
+    public function skill(): BelongsTo
+    {
+        return $this->belongsTo(Skill::class);
     }
 
     /**

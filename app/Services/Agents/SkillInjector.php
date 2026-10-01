@@ -3,6 +3,8 @@
 namespace App\Services\Agents;
 
 use App\Ai\Tools\CreateSkillTool;
+use App\Ai\Tools\ForgetTool;
+use App\Ai\Tools\RecallMemoriesTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\UpdateSkillTool;
 use App\Ai\Tools\UseSkillTool;
@@ -25,6 +27,14 @@ use App\Models\Agents\Skill;
  */
 class SkillInjector
 {
+    /**
+     * How many remembered facts go into the prompt — the most recently
+     * updated ones. Every fact is resent on every turn, so an agent that has
+     * remembered hundreds would otherwise spend most of its context on them;
+     * the rest stay reachable through `RecallMemoriesTool`.
+     */
+    public const int MAX_INJECTED_MEMORIES = 40;
+
     public function instructionsFor(Agent $agent, ?string $userId = null): string
     {
         $sections = $this->injectedSections($agent, $userId);
@@ -80,6 +90,7 @@ class SkillInjector
         $lines[] = 'Act on the most likely intent of each request, and ask a clarifying question only when a wrong guess would be costly. '
             .'When you have tools that can get real data or do the work, use them instead of guessing, and chain several calls when a task needs it.';
         $lines[] = 'When the user tells you something about themselves, their work or their preferences, or asks you to remember something, save it with `'.RememberTool::NAME.'`.';
+        $lines[] = 'When the user says something you remember is wrong or asks you to forget it, delete it with `'.ForgetTool::NAME.'`.';
         $lines[] = $agent->allow_self_updates
             ? 'When the user corrects how you behave or sets a rule for how you should work from now on, update your own instructions.'
             : 'You cannot change your own instructions. If the user wants a lasting change to how you behave, tell them to edit your instructions in this agent\'s settings, or to turn on self-updates there.';
@@ -90,6 +101,19 @@ class SkillInjector
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * A skill the person picked for one message. Its full text goes straight
+     * into that turn's prompt rather than being left for the model to load
+     * with `UseSkillTool`: picking it is the person saying it applies, and
+     * smaller models often skip loading a skill they should have.
+     */
+    public function chosenSkillSection(Skill $skill): string
+    {
+        return "## Skill chosen for this request\n"
+            ."The user picked the \"{$skill->name}\" skill for their latest message. Follow its instructions below for this reply; it is already loaded, so do not call `".UseSkillTool::NAME."` for it.\n\n"
+            .$skill->toPrompt();
     }
 
     private function skillsSection(Agent $agent): ?string
@@ -109,15 +133,14 @@ class SkillInjector
     }
 
     /**
-     * Scoped to the run's user when known, plus workspace-wide (user_id
-     * null) memories — a memory tied to a specific user shouldn't leak into
-     * another user's conversation.
+     * Scoped to the run's user when known, plus workspace-wide memories —
+     * see `Agent::memoriesVisibleTo()`. Capped at `MAX_INJECTED_MEMORIES`.
      */
     private function memoriesSection(Agent $agent, ?string $userId): ?string
     {
-        $entries = $agent->memories()
-            ->where(fn ($q) => $q->whereNull('user_id')->when($userId, fn ($q) => $q->orWhere('user_id', $userId)))
-            ->orderBy('key')
+        $entries = $agent->memoriesVisibleTo($userId)
+            ->latest('updated_at')
+            ->limit(self::MAX_INJECTED_MEMORIES + 1)
             ->get();
 
         if ($entries->isEmpty()) {
@@ -125,8 +148,14 @@ class SkillInjector
         }
 
         $body = $entries
+            ->take(self::MAX_INJECTED_MEMORIES)
+            ->sortBy('key')
             ->map(fn (AgentMemory $entry): string => "- {$entry->key}: {$entry->value}")
             ->implode("\n");
+
+        if ($entries->count() > self::MAX_INJECTED_MEMORIES) {
+            $body .= "\nThese are only your most recent memories. You remember more; look them up with `".RecallMemoriesTool::NAME.'` when an older fact might matter.';
+        }
 
         return "## Things you remember\n{$body}";
     }

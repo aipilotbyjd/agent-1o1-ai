@@ -1,6 +1,7 @@
 <?php
 
 use App\Ai\Tools\ExportArtifactTool;
+use App\Ai\Tools\ForgetTool;
 use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\UpdateInstructionsTool;
@@ -33,11 +34,12 @@ it('builds one NodeTool per attached node and one WorkflowTool per attached work
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
 
-    expect($tools)->toHaveCount(3);
+    expect($tools)->toHaveCount(4);
     expect($tools[0])->toBeInstanceOf(NodeTool::class);
     expect($tools[0]->name())->toBe('call_api');
     expect($tools[1])->toBeInstanceOf(WorkflowTool::class);
     expect($tools[2])->toBeInstanceOf(RememberTool::class);
+    expect($tools[3])->toBeInstanceOf(ForgetTool::class);
 });
 
 it('silently skips a binding whose node type is no longer registered', function () {
@@ -50,8 +52,9 @@ it('silently skips a binding whose node type is no longer registered', function 
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
 
-    expect($tools)->toHaveCount(1);
+    expect($tools)->toHaveCount(2);
     expect($tools[0])->toBeInstanceOf(RememberTool::class);
+    expect($tools[1])->toBeInstanceOf(ForgetTool::class);
 });
 
 it('attaches ExportArtifactTool only for a session-backed run', function () {
@@ -62,14 +65,16 @@ it('attaches ExportArtifactTool only for a session-backed run', function () {
     $sessionRun = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $sessionRun);
-    expect($tools)->toHaveCount(2);
+    expect($tools)->toHaveCount(3);
     expect($tools[0])->toBeInstanceOf(RememberTool::class);
-    expect($tools[1])->toBeInstanceOf(ExportArtifactTool::class);
+    expect($tools[1])->toBeInstanceOf(ForgetTool::class);
+    expect($tools[2])->toBeInstanceOf(ExportArtifactTool::class);
 
     $workflowRun = Run::factory()->forWorkspace($workspace)->create();
     $tools = app(ToolRegistry::class)->toolsFor($agent, $workflowRun);
-    expect($tools)->toHaveCount(1);
+    expect($tools)->toHaveCount(2);
     expect($tools[0])->toBeInstanceOf(RememberTool::class);
+    expect($tools[1])->toBeInstanceOf(ForgetTool::class);
 });
 
 it('offers the self-update tool only in a conversation with an agent that allows it', function (bool $allowed, bool $inConversation, bool $offered) {

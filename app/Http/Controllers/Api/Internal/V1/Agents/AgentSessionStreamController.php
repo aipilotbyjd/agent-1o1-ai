@@ -35,7 +35,7 @@ class AgentSessionStreamController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
-        $turn = $this->runner->stream($session, $request->validated('message'), attachments: $request->attachmentFiles());
+        $turn = $this->runner->stream($session, $request->validated('message'), attachments: $request->attachmentFiles(), skill: $request->chosenSkill($agent));
 
         ignore_user_abort(true);
 
