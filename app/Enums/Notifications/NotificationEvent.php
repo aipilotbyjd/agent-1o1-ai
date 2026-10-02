@@ -28,6 +28,7 @@ enum NotificationEvent: string
     case RunFailed = 'run.failed';
     case ReflectionRunCompleted = 'agent.reflection_run_completed';
     case SessionEvaluationNotify = 'agent.session_evaluation_notify';
+    case EvalRegressed = 'agent.eval_regressed';
     case AgentActionApprovalRequested = 'agent.action_approval_requested';
     case ReferralSignedUp = 'referral.signed_up';
     case ReferralRewardGranted = 'referral.reward_granted';
@@ -58,6 +59,7 @@ enum NotificationEvent: string
             self::RunFailed => 'Run failed',
             self::ReflectionRunCompleted => 'Agent reflection completed',
             self::SessionEvaluationNotify => 'Agent session needs attention',
+            self::EvalRegressed => 'Agent eval got worse',
             self::AgentActionApprovalRequested => 'Agent action needs approval',
             self::ReferralSignedUp => 'Someone joined with your referral link',
             self::ReferralRewardGranted => 'Referral reward received',
@@ -86,6 +88,7 @@ enum NotificationEvent: string
             self::RunFailed => 'A workflow or agent run fails.',
             self::ReflectionRunCompleted => 'A scheduled reflection run finishes analyzing an agent\'s recent conversations.',
             self::SessionEvaluationNotify => 'An automatic session evaluation fails a criterion configured to notify.',
+            self::EvalRegressed => 'An eval suite that re-ran after an agent change passes fewer of its cases than before.',
             self::AgentActionApprovalRequested => 'An agent pauses to ask before taking an action, such as sending an email or deleting a file.',
             self::ReferralSignedUp => 'Someone signs up using your referral link.',
             self::ReferralRewardGranted => 'Credits, plan time or an invoice credit from the referral program is added.',

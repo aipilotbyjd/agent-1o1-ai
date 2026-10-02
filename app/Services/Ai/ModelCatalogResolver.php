@@ -41,14 +41,24 @@ class ModelCatalogResolver
      * The provider/model to grade `$agent`'s output with. `$judgeModel` (the
      * agent's evaluation settings `model`) is a deliberate override — grade
      * with a specific model rather than the one that wrote the answer — and
-     * always wins. Otherwise it's the agent's own `forAgent()` model: the one
+     * always wins. It is a model catalog slug, resolved through that entry's
+     * failover chain like an agent's own model; a value that matches no
+     * active catalog entry is a raw model id on the agent's own provider,
+     * which is how it was stored before catalog entries could be picked.
+     * Without an override it's the agent's own `forAgent()` model: the one
      * model it's guaranteed to have access to.
      *
      * @return array{0: string|array<string, string>, 1: ?string}
      */
     public function forJudging(Agent $agent, ?string $judgeModel): array
     {
-        return $judgeModel !== null ? [$agent->provider, $judgeModel] : $this->forAgent($agent);
+        if ($judgeModel === null) {
+            return $this->forAgent($agent);
+        }
+
+        $chain = Cache::remember($this->cacheKey($judgeModel), self::CACHE_TTL_SECONDS, fn () => $this->resolve($judgeModel));
+
+        return $chain !== [] ? [$chain, null] : [$agent->provider, $judgeModel];
     }
 
     /**

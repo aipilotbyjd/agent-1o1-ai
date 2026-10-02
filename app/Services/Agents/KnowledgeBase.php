@@ -23,10 +23,44 @@ use Laravel\Ai\Embeddings;
  * sqlite/Postgres portability. See that migration's docblock and
  * docs/AGENTS_PLAN.md's "Knowledge / RAG" section for the follow-up path to
  * a native pgvector column.
+ *
+ * Search is hybrid: a chunk's score is its cosine similarity plus a bonus for
+ * containing the query's words. Embeddings are good at meaning and poor at
+ * exact tokens — an invoice number, a product SKU, a person's surname — so a
+ * chunk that literally contains them is lifted above ones that are merely
+ * about something similar. Chunks that are neither semantically close nor
+ * share a word with the query are dropped instead of returned as the "best"
+ * of nothing, so a model searching for something the knowledge base doesn't
+ * cover gets no results rather than misleading ones.
  */
 class KnowledgeBase
 {
     public const int DEFAULT_TOP_N = 5;
+
+    /**
+     * The cosine similarity below which a chunk with no word in common with
+     * the query is treated as unrelated.
+     */
+    public const float MIN_SEMANTIC_SCORE = 0.25;
+
+    /**
+     * Added to the score for the share of query words a chunk contains.
+     */
+    private const float KEYWORD_WEIGHT = 0.4;
+
+    /**
+     * Added on top when a chunk contains a multi-word query verbatim.
+     */
+    private const float PHRASE_WEIGHT = 0.1;
+
+    /**
+     * Words too common to say anything about whether a chunk is relevant.
+     */
+    private const array STOP_WORDS = [
+        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'do', 'does', 'for', 'from', 'how', 'in', 'is', 'it',
+        'me', 'my', 'of', 'on', 'or', 'our', 'that', 'the', 'this', 'to', 'was', 'we', 'what', 'when', 'where',
+        'which', 'who', 'why', 'with', 'you', 'your',
+    ];
 
     /**
      * Target size of one stored chunk. Chunks are split on paragraph, then
@@ -143,12 +177,24 @@ class KnowledgeBase
                 : $builder->where('collection', $collection))
             ->lazyById(500);
 
+        $terms = $this->terms($query);
+        $phrase = count($terms) > 1 ? mb_strtolower(trim($query)) : null;
+
         foreach ($chunks as $chunk) {
+            $semantic = $this->cosineSimilarity($queryVector, $chunk->embedding ?? []);
+            $keyword = $this->keywordCoverage($terms, $chunk->chunk_text);
+
+            if ($semantic < self::MIN_SEMANTIC_SCORE && $keyword === 0.0) {
+                continue;
+            }
+
+            $phraseBonus = $phrase !== null && str_contains(mb_strtolower($chunk->chunk_text), $phrase) ? self::PHRASE_WEIGHT : 0.0;
+
             $best[] = [
                 'id' => $chunk->id,
                 'source' => $chunk->source,
                 'text' => $chunk->chunk_text,
-                'score' => $this->cosineSimilarity($queryVector, $chunk->embedding ?? []),
+                'score' => $semantic + self::KEYWORD_WEIGHT * $keyword + $phraseBonus,
             ];
 
             if (count($best) > $topN) {
@@ -284,6 +330,44 @@ class KnowledgeBase
      * @param  array<int, float>  $a
      * @param  array<int, float>  $b
      */
+    /**
+     * The distinct, meaningful words of a query, lowercased.
+     *
+     * @return array<int, string>
+     */
+    private function terms(string $query): array
+    {
+        $words = preg_split('/[^\p{L}\p{N}_-]+/u', mb_strtolower($query), flags: PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return array_values(array_unique(array_filter(
+            $words,
+            fn (string $word): bool => mb_strlen($word) > 1 && ! in_array($word, self::STOP_WORDS, true),
+        )));
+    }
+
+    /**
+     * The share of `$terms` that appear in `$text` as whole words, from 0 to 1.
+     *
+     * @param  array<int, string>  $terms
+     */
+    private function keywordCoverage(array $terms, string $text): float
+    {
+        if ($terms === []) {
+            return 0.0;
+        }
+
+        $haystack = mb_strtolower($text);
+        $found = 0;
+
+        foreach ($terms as $term) {
+            if (preg_match('/(?<![\p{L}\p{N}_-])'.preg_quote($term, '/').'(?![\p{L}\p{N}_-])/u', $haystack) === 1) {
+                $found++;
+            }
+        }
+
+        return $found / count($terms);
+    }
+
     private function cosineSimilarity(array $a, array $b): float
     {
         if ($a === [] || $b === [] || count($a) !== count($b)) {

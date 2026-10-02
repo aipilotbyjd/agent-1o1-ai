@@ -106,6 +106,21 @@ class Artifact extends Model
         );
     }
 
+    /**
+     * Only artifacts `$user` may open — the query form of `isAccessibleBy()`.
+     */
+    public function scopeAccessibleBy(Builder $query, User $user, bool $canManage = false): Builder
+    {
+        if ($canManage) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $access) => $access
+            ->where('general_access', '!=', ArtifactGeneralAccess::Restricted->value)
+            ->orWhere('created_by', $user->id)
+            ->orWhereHas('shares', fn (Builder $shared) => $shared->where('user_id', $user->id)));
+    }
+
     private const PREVIEWABLE_MIME_TYPES = [
         'text/html',
         'application/pdf',

@@ -25,6 +25,7 @@ class ConnectorResource extends JsonResource
             'color' => $this->color,
             'auth_type' => $this->auth_type,
             'is_oauth' => $this->isOAuth(),
+            'is_configured' => $this->isConfigured(),
             'fields' => $this->fields,
             'is_active' => $this->is_active,
         ];

@@ -22,6 +22,7 @@ class AgentEvalSuiteResource extends JsonResource
             'agent_id' => $this->agent_id,
             'name' => $this->name,
             'description' => $this->description,
+            'run_on_change' => $this->run_on_change,
             'case_count' => $this->whenCounted('cases'),
             'cases' => AgentEvalCaseResource::collection($this->whenLoaded('cases')),
             'created_by' => $this->created_by,

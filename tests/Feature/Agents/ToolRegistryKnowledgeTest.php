@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\Tools\ForgetTool;
 use App\Ai\Tools\ReadKnowledgeDocumentTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\SearchKnowledgeTool;
@@ -17,8 +18,9 @@ it('auto-attaches knowledge tools once the workspace has any embedded chunks', f
     $run = Run::factory()->create();
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
-    expect($tools)->toHaveCount(1);
+    expect($tools)->toHaveCount(2);
     expect($tools[0])->toBeInstanceOf(RememberTool::class);
+    expect($tools[1])->toBeInstanceOf(ForgetTool::class);
 
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 's', 'chunk_text' => 'x', 'embedding' => [1.0]]);
 
@@ -26,10 +28,11 @@ it('auto-attaches knowledge tools once the workspace has any embedded chunks', f
 
     // No explicit AgentKnowledgeCollection attached — falls back to every
     // collection in the workspace, the pre-attachment zero-config behavior.
-    expect($tools)->toHaveCount(3);
+    expect($tools)->toHaveCount(4);
     expect($tools[0])->toBeInstanceOf(SearchKnowledgeTool::class);
     expect($tools[1])->toBeInstanceOf(ReadKnowledgeDocumentTool::class);
     expect($tools[2])->toBeInstanceOf(RememberTool::class);
+    expect($tools[3])->toBeInstanceOf(ForgetTool::class);
 });
 
 it('scopes knowledge tools to only the agent\'s explicitly attached collections', function () {

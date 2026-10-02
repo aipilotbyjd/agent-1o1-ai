@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Models\Connectors\Connector;
 use RuntimeException;
 
 /**
@@ -10,4 +11,10 @@ use RuntimeException;
  * an expired or unresolvable credential at node-execution time. Mapped to a
  * 422 response in `bootstrap/app.php`.
  */
-class ConnectorException extends RuntimeException {}
+class ConnectorException extends RuntimeException
+{
+    public static function notConfigured(Connector $connector): self
+    {
+        return new self("{$connector->name} isn't set up on this server yet, so it can't be connected.");
+    }
+}

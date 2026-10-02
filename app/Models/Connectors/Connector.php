@@ -50,6 +50,21 @@ class Connector extends Model
         return $this->auth_type === ConnectorAuthType::OAuth2;
     }
 
+    /**
+     * Whether this server can connect it at all: an OAuth connector needs its
+     * client id and secret in `config/services.php` under its own key; the
+     * manual kinds need nothing server-side.
+     */
+    public function isConfigured(): bool
+    {
+        if (! $this->isOAuth()) {
+            return true;
+        }
+
+        return filled(config("services.{$this->key}.client_id"))
+            && filled(config("services.{$this->key}.client_secret"));
+    }
+
     public function credentials(): HasMany
     {
         return $this->hasMany(ConnectorCredential::class);

@@ -16,11 +16,28 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A saved set of test cases for one `Agent` — see docs/AGENTS_PLAN.md's
  * "Evals" section.
  */
-#[Fillable(['workspace_id', 'agent_id', 'name', 'description', 'created_by'])]
+#[Fillable(['workspace_id', 'agent_id', 'name', 'description', 'run_on_change', 'created_by'])]
 class AgentEvalSuite extends Model
 {
     /** @use HasFactory<AgentEvalSuiteFactory> */
     use HasFactory, HasUuids;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'run_on_change' => true,
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'run_on_change' => 'boolean',
+        ];
+    }
 
     public function workspace(): BelongsTo
     {

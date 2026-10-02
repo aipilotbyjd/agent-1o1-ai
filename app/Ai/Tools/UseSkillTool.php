@@ -4,7 +4,6 @@ namespace App\Ai\Tools;
 
 use App\Models\Agents\Agent;
 use App\Models\Agents\Skill;
-use App\Models\Agents\SkillReference;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -45,11 +44,7 @@ class UseSkillTool implements Tool
             return "No skill named \"{$name}\". Your skills are: ".$this->agent->skills->pluck('name')->implode(', ').'.';
         }
 
-        $references = $skill->references
-            ->map(fn (SkillReference $reference): string => "## Reference: {$reference->title}\n{$reference->content}")
-            ->implode("\n\n");
-
-        return trim("# Skill: {$skill->name}\n{$skill->instructions}\n\n{$references}");
+        return $skill->toPrompt();
     }
 
     public function schema(JsonSchema $schema): array

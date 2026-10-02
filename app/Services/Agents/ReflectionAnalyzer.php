@@ -256,7 +256,10 @@ class ReflectionAnalyzer
             each pattern. Submit an empty list if nothing qualifies.
             PROMPT;
 
-        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+        // Reviewing an agent's own sessions is grading work: a stronger
+        // model chosen as the grader catches mistakes the agent's own model
+        // would repeat.
+        [$provider, $model] = $this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model);
 
         $startedAt = now();
 

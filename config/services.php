@@ -47,4 +47,29 @@ return [
         'redirect' => env('GITHUB_REDIRECT_URI'),
     ],
 
+    'gmail' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_drive' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_sheets' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_docs' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_calendar' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
 ];

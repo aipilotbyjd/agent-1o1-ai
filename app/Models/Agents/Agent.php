@@ -195,6 +195,16 @@ class Agent extends Model
     }
 
     /**
+     * The memories a conversation with `$userId` may see: that user's own
+     * plus workspace-wide ones (user_id null) — a memory tied to one user
+     * must never reach another user's conversation.
+     */
+    public function memoriesVisibleTo(?string $userId): HasMany
+    {
+        return $this->memories()->where(fn ($query) => $query->whereNull('user_id')->when($userId, fn ($query) => $query->orWhere('user_id', $userId)));
+    }
+
+    /**
      * Saved test suites graded against this agent — see `EvalRunner`.
      */
     public function evalSuites(): HasMany

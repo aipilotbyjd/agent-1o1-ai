@@ -20,6 +20,7 @@ class AgentMemoryResource extends JsonResource
             'id' => $this->id,
             'agent_id' => $this->agent_id,
             'user_id' => $this->user_id,
+            'agent_session_id' => $this->agent_session_id,
             'key' => $this->key,
             'value' => $this->value,
             'type' => $this->type,

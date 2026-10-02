@@ -33,6 +33,9 @@ class RunResource extends JsonResource
             'node_runs' => NodeRunResource::collection($this->whenLoaded('nodeRuns')),
             'agent' => $this->whenLoaded('runnable', fn () => $this->agentSummary()),
             'agent_reply' => AgentMessageResource::make($this->whenLoaded('agentReply')),
+            // Only on the single-run view, which loads the reply: a system
+            // prompt per row would bloat every run list.
+            'agent_context' => $this->when($this->relationLoaded('agentReply'), fn () => $this->agent_context),
             'triggered_by' => $this->triggered_by,
             'loop_index' => $this->loop_index,
             'started_at' => $this->started_at,

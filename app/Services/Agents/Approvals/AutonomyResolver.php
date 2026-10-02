@@ -51,7 +51,7 @@ class AutonomyResolver
         return trim($instructions)."\n\n## How you may act\n".$note;
     }
 
-    public function contextFor(Agent $agent, Run $run, ?AgentSession $session, bool $canPause = true): ActionContext
+    public function contextFor(Agent $agent, Run $run, ?AgentSession $session, bool $canPause = true, bool $simulateActions = false): ActionContext
     {
         $policy = WorkspaceAgentPolicy::forWorkspace($agent->workspace_id);
 
@@ -60,7 +60,7 @@ class AutonomyResolver
             run: $run,
             session: $session,
             mode: $this->modeFor($agent, $session, $policy),
-            testMode: $this->testModeFor($agent, $session),
+            testMode: $simulateActions || $this->testModeFor($agent, $session),
             canPause: $canPause && $session !== null,
             policy: $policy,
         );

@@ -24,6 +24,7 @@ class RememberTool implements Tool
     public function __construct(
         private readonly Agent $agent,
         private readonly ?string $userId = null,
+        private readonly ?string $sessionId = null,
     ) {}
 
     public function name(): string
@@ -47,7 +48,7 @@ class RememberTool implements Tool
 
         $this->agent->memories()->updateOrCreate(
             ['user_id' => $this->userId, 'key' => $key],
-            ['value' => $value, 'type' => $type],
+            ['value' => $value, 'type' => $type, 'agent_session_id' => $this->sessionId],
         );
 
         return "Remembered {$key}.";

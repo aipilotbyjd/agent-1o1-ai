@@ -4,6 +4,7 @@ namespace App\Actions\Agents;
 
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
+use App\Models\Agents\Skill;
 use App\Services\Agents\AgentRunner;
 use Illuminate\Http\UploadedFile;
 
@@ -19,8 +20,8 @@ class SendAgentMessageAction
      *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
-    public function execute(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = []): AgentMessage
+    public function execute(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): AgentMessage
     {
-        return $this->runner->run($session, $message, $triggerType, $attachments);
+        return $this->runner->run($session, $message, $triggerType, $attachments, $skill);
     }
 }

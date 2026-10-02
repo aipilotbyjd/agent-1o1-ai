@@ -43,6 +43,10 @@ class SearchKnowledgeTool implements Tool
                 'score' => round($result['score'], 4),
             ]);
 
+        if ($results->isEmpty()) {
+            return 'Nothing in the knowledge base matches this query. Do not guess an answer from it; try different words, or tell the user the knowledge base does not cover this.';
+        }
+
         return json_encode($results->all()) ?: '[]';
     }
 

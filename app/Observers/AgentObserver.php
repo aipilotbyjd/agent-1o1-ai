@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Jobs\Agents\RunEvalsOnAgentChangeJob;
 use App\Models\Agents\Agent;
 use App\Models\User;
 use App\Services\Agents\AgentVersioner;
@@ -33,6 +34,10 @@ class AgentObserver
         // see `AgentVersioner::BEHAVIORAL_ATTRIBUTES`.
         if ($agent->wasChanged(AgentVersioner::BEHAVIORAL_ATTRIBUTES)) {
             $this->versioner->snapshot($agent, $this->actor());
+
+            // A behavior change is exactly what an eval suite exists to
+            // catch; the job itself skips agents with no suites to run.
+            RunEvalsOnAgentChangeJob::dispatch($agent->id);
         }
     }
 

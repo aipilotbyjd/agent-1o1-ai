@@ -6,9 +6,11 @@ use App\Actions\Artifacts\StoreArtifactAction;
 use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Ai\Tools\CreateSkillTool;
 use App\Ai\Tools\ExportArtifactTool;
+use App\Ai\Tools\ForgetTool;
 use App\Ai\Tools\InvokeAgentTool;
 use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\ReadKnowledgeDocumentTool;
+use App\Ai\Tools\RecallMemoriesTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\SearchKnowledgeTool;
 use App\Ai\Tools\SubmitPlanTool;
@@ -95,13 +97,13 @@ class ToolRegistry
     ) {}
 
     /**
-     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|UseSkillTool|CreateSkillTool|UpdateSkillTool|RememberTool|ExportArtifactTool|UpdateInstructionsTool|InvokeAgentTool|WaitForSubagentsTool|SubmitPlanTool|WebSearch|WebFetch>
+     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|UseSkillTool|CreateSkillTool|UpdateSkillTool|RememberTool|ForgetTool|RecallMemoriesTool|ExportArtifactTool|UpdateInstructionsTool|InvokeAgentTool|WaitForSubagentsTool|SubmitPlanTool|WebSearch|WebFetch>
      */
-    public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null, bool $canPause = true): array
+    public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null, bool $canPause = true, bool $simulateActions = false): array
     {
         $session ??= $run->runnable instanceof AgentSession ? $run->runnable : null;
 
-        $context = $this->autonomy->contextFor($agent, $run, $session, $canPause);
+        $context = $this->autonomy->contextFor($agent, $run, $session, $canPause, $simulateActions);
 
         $nodeTools = $agent->toolBindings()
             ->get()
@@ -122,7 +124,11 @@ class ToolRegistry
 
         $skillTools = $agent->skills->isNotEmpty() ? [new UseSkillTool($agent)] : [];
 
-        $memoryTools = [new RememberTool($agent, $run->triggered_by)];
+        $memoryTools = array_values(array_filter([
+            new RememberTool($agent, $run->triggered_by, $session?->id),
+            new ForgetTool($agent, $run->triggered_by),
+            RecallMemoriesTool::isNeededFor($agent, $run->triggered_by) ? new RecallMemoriesTool($agent, $run->triggered_by) : null,
+        ]));
 
         $artifactTools = $session !== null
             ? [new ExportArtifactTool($agent, $session, $run, $this->storeArtifact, $this->documentRenderer)]
