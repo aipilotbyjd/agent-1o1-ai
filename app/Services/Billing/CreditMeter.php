@@ -122,6 +122,16 @@ class CreditMeter
     }
 
     /**
+     * One personal-assistant turn — the same chat-turn formula as an agent's.
+     *
+     * @param  array<string, mixed>|null  $usage
+     */
+    public function costForAssistantTurn(?array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
      * A node an agent called as a tool. Its turn already bills one credit
      * for the call itself (`CREDITS_PER_TOOL_CALL`), which stands in for the
      * base credit a workflow node run would carry — so this is only what the

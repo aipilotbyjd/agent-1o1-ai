@@ -77,6 +77,20 @@ return [
             'after_commit' => false,
         ],
 
+        // Personal-assistant turns (`RunAssistantTurnJob`): a turn may take
+        // up to 100+ model steps, far longer than `redis`'s retry_after
+        // allows. Kept on its own connection so that window is long enough
+        // (it must exceed the job's timeout) without delaying the
+        // re-dispatch of genuinely stuck jobs on every other queue.
+        'redis-assistant' => [
+            'driver' => 'redis',
+            'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
+            'queue' => 'ai-assistant',
+            'retry_after' => (int) env('ASSISTANT_QUEUE_RETRY_AFTER', 1260),
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
         'deferred' => [
             'driver' => 'deferred',
         ],

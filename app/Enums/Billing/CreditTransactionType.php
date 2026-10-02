@@ -69,4 +69,10 @@ enum CreditTransactionType: string
      * action it reviewed.
      */
     case ActionReview = 'action_review';
+
+    /**
+     * One turn of a member's personal assistant (`AssistantTurn`), priced
+     * like an agent chat turn.
+     */
+    case AssistantTurn = 'assistant_turn';
 }

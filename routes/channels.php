@@ -34,3 +34,8 @@ Broadcast::channel(
     Channels::WORKFLOW_BUILDER_SESSION_PATTERN,
     fn (User $user, string $workspaceId, string $sessionId): bool => app(WorkspaceChannelGate::class)->workflowBuilderSession($user, $workspaceId, $sessionId),
 );
+
+Broadcast::channel(
+    Channels::ASSISTANT_SESSION_PATTERN,
+    fn (User $user, string $workspaceId, string $sessionId): bool => app(WorkspaceChannelGate::class)->assistantSession($user, $workspaceId, $sessionId),
+);

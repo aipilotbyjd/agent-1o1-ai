@@ -32,6 +32,8 @@ enum Permission: string
     case AgentApprove = 'agent.approve';
     case AgentPolicyManage = 'agent.policy.manage';
 
+    case AssistantUse = 'assistant.use';
+
     case ConnectorView = 'connector.view';
     case ConnectorManage = 'connector.manage';
 
@@ -90,6 +92,7 @@ enum Permission: string
     {
         return [
             self::AgentChat,
+            self::AssistantUse,
             self::WorkflowTrigger,
             self::RunTrigger,
         ];

@@ -5,6 +5,7 @@ namespace App\Broadcasting;
 use App\Authorization\WorkspaceContext;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\AgentSession;
+use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
@@ -54,6 +55,18 @@ class WorkspaceChannelGate
         }
 
         return WorkflowBuilderSession::whereKey($sessionId)->where('workspace_id', $workspaceId)->exists();
+    }
+
+    public function assistantSession(User $user, string $workspaceId, string $sessionId): bool
+    {
+        if (! $this->allows($user, $workspaceId, Permission::AssistantUse)) {
+            return false;
+        }
+
+        return AssistantSession::query()
+            ->whereKey($sessionId)
+            ->whereHas('assistant', fn ($query) => $query->where('workspace_id', $workspaceId)->where('user_id', $user->id))
+            ->exists();
     }
 
     private function allows(User $user, string $workspaceId, Permission $permission): bool

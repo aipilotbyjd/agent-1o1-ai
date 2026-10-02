@@ -158,6 +158,16 @@ class ModelCatalogSeeder extends Seeder
             ['execution_provider' => 'openai', 'execution_model_id' => 'gpt-4o', 'priority' => 1, 'is_enabled' => true],
             ['execution_provider' => 'fireworks', 'execution_model_id' => 'accounts/fireworks/models/llama-v3p1-70b-instruct', 'priority' => 0, 'is_enabled' => true],
         ], internal: true);
+
+        // Internal-only — the personal assistant's default model when its
+        // owner hasn't picked one (`TurnRunner::modelFor()`). Operator-fixed:
+        // change it with `model-catalog:add-route personal-assistant …`.
+        // Mistral Small 4 (via xkiro) for now; Claude Sonnet 5 is seeded
+        // disabled, ready to switch on once an Anthropic key is configured.
+        $this->seed('personal-assistant', 'Personal Assistant', 'internal', ['tool_use' => true], [
+            ['execution_provider' => 'xkiro', 'execution_model_id' => 'mistralai/mistral-small-2603', 'priority' => 0, 'is_enabled' => true],
+            ['execution_provider' => 'anthropic', 'execution_model_id' => 'claude-sonnet-5', 'priority' => 1, 'is_enabled' => false],
+        ], internal: true);
     }
 
     /**
