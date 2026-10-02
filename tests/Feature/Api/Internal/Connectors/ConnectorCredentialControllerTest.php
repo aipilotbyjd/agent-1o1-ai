@@ -32,6 +32,30 @@ it('lists the connector catalog', function () {
     expect(collect($response->json('data.connectors'))->pluck('key'))->toContain('slack');
 });
 
+it('flags oauth connectors the server has no client credentials for', function () {
+    Connector::factory()->create(['key' => 'notion']);
+    Connector::factory()->oauth()->create(['key' => 'github']);
+    Connector::factory()->oauth()->create(['key' => 'gmail']);
+    [, $owner] = ownerWorkspaceForConnectors();
+
+    config([
+        'services.github.client_id' => 'client-123',
+        'services.github.client_secret' => 'secret-123',
+        'services.gmail' => null,
+    ]);
+
+    Passport::actingAs($owner);
+
+    $configured = collect($this->getJson('/api/v1/connectors')->assertOk()->json('data.connectors'))
+        ->pluck('is_configured', 'key');
+
+    expect($configured->all())->toMatchArray([
+        'notion' => true,
+        'github' => true,
+        'gmail' => false,
+    ]);
+});
+
 it('creates a manual connector credential and never exposes its data', function () {
     [$workspace, $owner] = ownerWorkspaceForConnectors();
     $connector = Connector::factory()->create(['auth_type' => ConnectorAuthType::ApiKey]);

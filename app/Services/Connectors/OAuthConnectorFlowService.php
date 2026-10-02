@@ -41,6 +41,10 @@ class OAuthConnectorFlowService
             throw new ConnectorException("Connector [{$connector->key}] does not support OAuth.");
         }
 
+        if (! $connector->isConfigured()) {
+            throw ConnectorException::notConfigured($connector);
+        }
+
         $state = Str::random(40);
 
         OAuthConnectorState::create([
@@ -151,12 +155,26 @@ class OAuthConnectorFlowService
 
     private function clientId(Connector $connector): string
     {
-        return config("services.{$connector->key}.client_id");
+        return $this->clientConfig($connector, 'client_id');
     }
 
     private function clientSecret(Connector $connector): string
     {
-        return config("services.{$connector->key}.client_secret");
+        return $this->clientConfig($connector, 'client_secret');
+    }
+
+    /**
+     * A callback or refresh can still arrive after the config was removed.
+     */
+    private function clientConfig(Connector $connector, string $key): string
+    {
+        $value = config("services.{$connector->key}.{$key}");
+
+        if (! is_string($value) || $value === '') {
+            throw ConnectorException::notConfigured($connector);
+        }
+
+        return $value;
     }
 
     /**

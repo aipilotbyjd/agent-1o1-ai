@@ -25,7 +25,7 @@ it('initiates the oauth flow with a state-backed authorize url', function () {
     [$workspace, $owner] = ownerWorkspaceForOAuth();
     $connector = Connector::factory()->oauth()->create(['key' => 'github']);
 
-    config(['services.github.client_id' => 'client-123']);
+    config(['services.github.client_id' => 'client-123', 'services.github.client_secret' => 'secret-123']);
 
     Passport::actingAs($owner);
 
@@ -132,3 +132,46 @@ it('rejects invalid token responses without saving a credential', function (mixe
     'non-string token' => [['access_token' => 123]],
     'non-json response' => ['access_token=example'],
 ]);
+
+it('refuses to initiate the oauth flow for a connector the server has no client credentials for', function () {
+    [$workspace, $owner] = ownerWorkspaceForOAuth();
+    $connector = Connector::factory()->oauth()->create(['key' => 'gmail', 'name' => 'Gmail']);
+
+    config(['services.gmail' => null]);
+
+    Passport::actingAs($owner);
+
+    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/connector-credentials/oauth/initiate", [
+        'connector_id' => $connector->id,
+        'name' => 'My Gmail',
+        'redirect_uri' => 'https://app.test/callback',
+    ]);
+
+    $response->assertUnprocessable();
+    expect($response->json('message'))->toContain('Gmail');
+    expect(OAuthConnectorState::query()->exists())->toBeFalse();
+});
+
+it('fails the callback cleanly when the connector lost its client credentials', function () {
+    [$workspace, $owner] = ownerWorkspaceForOAuth();
+    $connector = Connector::factory()->oauth()->create(['key' => 'gmail', 'name' => 'Gmail']);
+
+    config(['services.gmail' => null]);
+
+    $state = OAuthConnectorState::create([
+        'workspace_id' => $workspace->id,
+        'user_id' => $owner->id,
+        'connector_id' => $connector->id,
+        'state' => 'stale-state-token',
+        'name' => 'My Gmail',
+        'redirect_uri' => 'https://app.test/callback',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $this->getJson('/api/oauth/connectors/callback?'.http_build_query([
+        'state' => $state->state,
+        'code' => 'auth-code-123',
+    ]))->assertUnprocessable();
+
+    expect(ConnectorCredential::query()->exists())->toBeFalse();
+});
