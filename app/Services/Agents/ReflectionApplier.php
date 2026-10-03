@@ -90,6 +90,7 @@ class ReflectionApplier
         $skill = $reflection->targetSkill;
 
         abort_if($skill === null, 422, 'This reflection has no target skill to update.');
+        abort_if($skill->isSynced(), 422, 'This skill is synced from GitHub. Make the change in its repository instead.');
 
         $skill->update(['instructions' => $reflection->proposed_prompt]);
         $skill->increment('version');

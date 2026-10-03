@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
+ * `skill_source_id` and `source_path` are set only by `SkillSync`: a skill
+ * with a source is synced from GitHub and read-only here (see `isSynced()`).
+ *
  * `version` is engine-managed — not in `#[Fillable]`, incremented via
  * `forceFill()`/`increment()` whenever `instructions` changes (see
  * `SkillController::update()`), same "don't let the model behind an
@@ -23,6 +26,24 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Skill extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
+
+    /**
+     * The categories, icons and colors the Skills page offers — mirrors the
+     * frontend's `skills.constants.ts`. Generated drafts pick from these.
+     *
+     * @var list<string>
+     */
+    public const CATEGORIES = ['General', 'Research', 'Data', 'Communication', 'Automation', 'Development', 'Content'];
+
+    /**
+     * @var list<string>
+     */
+    public const ICONS = ['Puzzle', 'Wrench01', 'Zap', 'Sparkles', 'AiMagic', 'Idea01', 'Tools'];
+
+    /**
+     * @var list<string>
+     */
+    public const COLORS = ['#6366F1', '#7C3AED', '#D97706', '#10A37F', '#EC4899', '#0EA5E9', '#EF4444'];
 
     /**
      * @var array<string, mixed>
@@ -52,6 +73,20 @@ class Skill extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function source(): BelongsTo
+    {
+        return $this->belongsTo(SkillSource::class, 'skill_source_id');
+    }
+
+    /**
+     * Synced from a repository, which is the source of truth: change it
+     * there, not here.
+     */
+    public function isSynced(): bool
+    {
+        return $this->skill_source_id !== null;
     }
 
     public function agents(): BelongsToMany

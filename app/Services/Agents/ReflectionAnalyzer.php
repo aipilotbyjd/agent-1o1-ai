@@ -20,6 +20,7 @@ use App\Models\Agents\AgentSession;
 use App\Models\Agents\Reflection;
 use App\Models\Agents\ReflectionRun;
 use App\Models\Agents\ReflectionSettings;
+use App\Models\Agents\Skill;
 use App\Models\Runs\Run;
 use App\Notifications\Agents\ReflectionReportNotification;
 use App\Services\Ai\ModelCatalogResolver;
@@ -308,7 +309,8 @@ class ReflectionAnalyzer
         array $candidates,
     ): int {
         $sessionIdsByNumber = $sessions->values()->mapWithKeys(fn (AgentSession $session, int $index): array => [$index + 1 => $session->id]);
-        $skillIds = $agent->skills->pluck('id')->map(fn ($id): string => (string) $id);
+        // A synced skill is changed in its repository, so no fix is proposed for it.
+        $skillIds = $agent->skills->reject(fn (Skill $skill): bool => $skill->isSynced())->pluck('id')->map(fn ($id): string => (string) $id);
         $dismissedTitles = $agent->reflections()
             ->where('status', ReflectionStatus::Dismissed->value)
             ->pluck('title')

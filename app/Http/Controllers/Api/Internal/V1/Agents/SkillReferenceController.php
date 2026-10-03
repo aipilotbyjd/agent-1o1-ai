@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
 use App\Enums\Workspaces\Permission;
+use App\Http\Controllers\Api\Internal\V1\Agents\Concerns\GuardsSyncedSkills;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\StoreSkillReferenceRequest;
 use App\Http\Requests\Api\Internal\V1\Agents\UpdateSkillReferenceRequest;
@@ -14,6 +15,8 @@ use App\Models\Workspaces\Workspace;
 
 class SkillReferenceController extends Controller
 {
+    use GuardsSyncedSkills;
+
     public function index(Workspace $workspace, Skill $skill)
     {
         $this->requirePermission(Permission::AgentView);
@@ -28,6 +31,7 @@ class SkillReferenceController extends Controller
     {
         $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $skill);
+        $this->ensureNotSynced($skill);
 
         $reference = $skill->references()->create($request->validated());
 
@@ -38,6 +42,7 @@ class SkillReferenceController extends Controller
     {
         $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $skill);
+        $this->ensureNotSynced($skill);
         $this->ensureBelongsToSkill($skill, $reference);
 
         $reference->update($request->validated());
@@ -49,6 +54,7 @@ class SkillReferenceController extends Controller
     {
         $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $skill);
+        $this->ensureNotSynced($skill);
         $this->ensureBelongsToSkill($skill, $reference);
 
         $reference->delete();

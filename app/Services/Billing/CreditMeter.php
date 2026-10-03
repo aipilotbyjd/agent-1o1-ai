@@ -100,6 +100,14 @@ class CreditMeter
     }
 
     /**
+     * @param  array<string, mixed>  $usage
+     */
+    public function costForSkillDraft(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
      * A workflow-builder chat turn or assist call — priced as the chat turn
      * it is.
      *
