@@ -30,6 +30,7 @@ class SkillReferenceController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $skill);
 
         $reference = $skill->references()->create($request->validated());
+        $skill->bumpVersion();
 
         return ApiResponse::created(['reference' => SkillReferenceResource::make($reference)], 'Reference created successfully.');
     }
@@ -42,6 +43,10 @@ class SkillReferenceController extends Controller
 
         $reference->update($request->validated());
 
+        if ($reference->wasChanged(['title', 'content', 'sort_order'])) {
+            $skill->bumpVersion();
+        }
+
         return ApiResponse::success(['reference' => SkillReferenceResource::make($reference->fresh())], 'Reference updated successfully.');
     }
 
@@ -52,6 +57,7 @@ class SkillReferenceController extends Controller
         $this->ensureBelongsToSkill($skill, $reference);
 
         $reference->delete();
+        $skill->bumpVersion();
 
         return ApiResponse::noContent();
     }

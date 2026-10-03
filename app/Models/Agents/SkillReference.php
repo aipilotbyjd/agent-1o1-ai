@@ -15,6 +15,8 @@ class SkillReference extends Model
     /** @use HasFactory<SkillReferenceFactory> */
     use HasFactory, HasUuids;
 
+    public const int CONTENT_MAX_LENGTH = 100000;
+
     /**
      * @return array<string, string>
      */

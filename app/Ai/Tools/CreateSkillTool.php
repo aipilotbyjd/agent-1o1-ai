@@ -7,6 +7,7 @@ use App\Authorization\WorkspaceContext;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\Workspaces\Permission;
 use App\Models\Agents\Agent;
+use App\Models\Agents\Skill;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
@@ -87,6 +88,10 @@ class CreateSkillTool implements Approvable, Tool
             return 'Not created: a skill needs a name and instructions.';
         }
 
+        if (mb_strlen($instructions) > Skill::INSTRUCTIONS_MAX_LENGTH) {
+            return 'Not created: the instructions are too long. Shorten them and try again.';
+        }
+
         $workspace = $this->agent->workspace;
         $user = User::query()->find($this->userId ?? $this->agent->created_by);
 
@@ -101,7 +106,7 @@ class CreateSkillTool implements Approvable, Tool
         $skill = $workspace->skills()->create([
             'name' => $name,
             'slug' => Str::slug($name).'-'.Str::random(6),
-            'description' => trim((string) ($request['description'] ?? '')) ?: null,
+            'description' => Str::limit(trim((string) ($request['description'] ?? '')), Skill::DESCRIPTION_MAX_LENGTH, '') ?: null,
             'instructions' => $instructions,
             'created_by' => $user->id,
         ]);

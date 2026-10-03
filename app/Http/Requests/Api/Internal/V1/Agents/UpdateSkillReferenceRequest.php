@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
+use App\Http\Requests\Api\Internal\V1\Agents\Concerns\ValidatesSkillFields;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateSkillReferenceRequest extends FormRequest
 {
+    use ValidatesSkillFields;
+
     public function authorize(): bool
     {
         return true;
@@ -18,8 +21,8 @@ class UpdateSkillReferenceRequest extends FormRequest
     {
         return [
             'title' => ['sometimes', 'string', 'max:255'],
-            'content' => ['sometimes', 'string'],
-            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'content' => ['sometimes', ...$this->referenceContentRules()],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
         ];
     }
 }

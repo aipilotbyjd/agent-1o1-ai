@@ -94,3 +94,38 @@ it('403s creating a reference without skill manage permission', function () {
         'content' => 'y',
     ])->assertForbidden();
 });
+
+it('bumps the skill version when a reference is added, changed or removed', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $skill = $workspace->skills()->create(['name' => 'S', 'slug' => 's', 'instructions' => 'v1']);
+
+    Passport::actingAs($owner);
+    $base = "/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}/references";
+
+    $id = $this->postJson($base, ['title' => 'A', 'content' => 'a'])->assertCreated()->json('data.reference.id');
+    expect($skill->fresh()->version)->toBe(2);
+
+    $this->patchJson("{$base}/{$id}", ['content' => 'b'])->assertOk();
+    expect($skill->fresh()->version)->toBe(3);
+
+    $this->patchJson("{$base}/{$id}", ['content' => 'b'])->assertOk();
+    expect($skill->fresh()->version)->toBe(3);
+
+    $this->deleteJson("{$base}/{$id}")->assertNoContent();
+    expect($skill->fresh()->version)->toBe(4);
+});
+
+it('rejects null sort_order and overlong content', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $skill = $workspace->skills()->create(['name' => 'S', 'slug' => 's', 'instructions' => 'v1']);
+
+    Passport::actingAs($owner);
+    $base = "/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}/references";
+
+    $this->postJson($base, ['title' => 'A', 'content' => 'a', 'sort_order' => null])
+        ->assertUnprocessable()->assertJsonValidationErrors('sort_order');
+    $this->postJson($base, ['title' => 'A', 'content' => str_repeat('a', 100001)])
+        ->assertUnprocessable()->assertJsonValidationErrors('content');
+});

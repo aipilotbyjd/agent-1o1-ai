@@ -22,7 +22,7 @@ class StoreSkillScriptRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'language' => ['required', 'string', Rule::in(['python', 'javascript', 'typescript', 'bash'])],
             'code' => ['required', 'string'],
-            'is_enabled' => ['nullable', 'boolean'],
+            'is_enabled' => ['sometimes', 'boolean'],
         ];
     }
 }

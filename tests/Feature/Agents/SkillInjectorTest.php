@@ -105,3 +105,18 @@ it('leaves out empty base instructions', function () {
 
     expect(app(SkillInjector::class)->instructionsFor($agent))->toStartWith('# About you')->not->toContain("\n\n\n");
 });
+
+it('puts a chosen skill\'s full text, references included, in its own section', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $skill = $workspace->skills()->create(['name' => 'Refund Policy', 'slug' => 'refund-policy', 'instructions' => 'Offer store credit.']);
+    $skill->references()->create(['title' => 'FAQ', 'content' => 'Credit lasts a year.', 'sort_order' => 0]);
+
+    $section = app(SkillInjector::class)->chosenSkillSection($skill->fresh());
+
+    expect($section)
+        ->toStartWith('## Skill chosen for this request')
+        ->toContain('"Refund Policy"')
+        ->toContain('Offer store credit.')
+        ->toContain("## Reference: FAQ\nCredit lasts a year.");
+});

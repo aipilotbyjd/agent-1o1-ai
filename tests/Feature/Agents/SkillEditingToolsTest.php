@@ -132,3 +132,20 @@ it('tells the agent it can save and fix skills only when skill editing is on', f
     $agent->update(['allow_skill_editing' => false]);
     expect(app(SkillInjector::class)->instructionsFor($agent->fresh()))->not->toContain('`create_skill`');
 });
+
+it('caps an overlong description and refuses overlong instructions', function () {
+    [$owner, $agent] = ownerAndAgent();
+    $tool = new CreateSkillTool($agent, $owner->id);
+
+    $result = (string) $tool->handle(new Request([
+        'name' => 'Long One', 'description' => str_repeat('d', 800), 'instructions' => 'Do it.',
+    ]));
+    expect($result)->toContain('Created the skill')
+        ->and(Skill::query()->where('name', 'Long One')->value('description'))->toHaveLength(Skill::DESCRIPTION_MAX_LENGTH);
+
+    $result = (string) $tool->handle(new Request([
+        'name' => 'Huge', 'description' => 'd', 'instructions' => str_repeat('i', Skill::INSTRUCTIONS_MAX_LENGTH + 1),
+    ]));
+    expect($result)->toStartWith('Not created')
+        ->and(Skill::query()->where('name', 'Huge')->exists())->toBeFalse();
+});
