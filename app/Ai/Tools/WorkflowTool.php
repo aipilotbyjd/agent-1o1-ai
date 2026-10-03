@@ -8,6 +8,7 @@ use App\Enums\Agents\ActionEffect;
 use App\Enums\RunStatus;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
+use App\Services\Agents\UntrustedContent;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Sleep;
 use Laravel\Ai\Contracts\Approvable;
@@ -125,7 +126,7 @@ class WorkflowTool implements Approvable, Tool
             $result['note'] = 'The workflow has not finished yet; its output is not available in this conversation turn.';
         }
 
-        return json_encode($result) ?: '{}';
+        return UntrustedContent::wrap('workflow:'.$this->workflow->id, json_encode($result) ?: '{}');
     }
 
     /**

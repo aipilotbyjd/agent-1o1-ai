@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Internal\V1\Triggers;
 
 use App\Enums\Agents\AutonomyMode;
+use App\Rules\SafeOutboundUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +24,7 @@ class UpdateTriggerRequest extends FormRequest
             // For an agent target: the mode its triggered turns run under, overriding the agent's own.
             'config.autonomy_mode' => ['nullable', Rule::enum(AutonomyMode::class)],
             'config.test_mode' => ['nullable', 'boolean'],
+            'config.url' => ['nullable', 'string', new SafeOutboundUrl],
             'is_active' => ['nullable', 'boolean'],
         ];
     }

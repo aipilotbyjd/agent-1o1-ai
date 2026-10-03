@@ -10,6 +10,7 @@ use App\Enums\Agents\ActionEffect;
 use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\AgentToolBinding;
 use App\Models\Runs\Run;
+use App\Services\Agents\UntrustedContent;
 use App\Services\Billing\CreditMeter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -67,7 +68,7 @@ class NodeTool implements Approvable, Tool
 
             $this->chargeForNode($output);
 
-            return json_encode($output) ?: '{}';
+            return UntrustedContent::wrap('tool:'.$this->node->type(), json_encode($output) ?: '{}');
         });
     }
 

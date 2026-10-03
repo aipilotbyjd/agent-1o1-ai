@@ -2,13 +2,13 @@
 
 use App\Ai\Tools\SearchKnowledgeTool;
 use App\Enums\Workspaces\Role;
+use App\Jobs\Knowledge\IngestKnowledgeJob;
+use App\Models\Agents\Agent;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
 use App\Services\Workspaces\WorkspaceService;
-use App\Jobs\Knowledge\IngestKnowledgeJob;
-use App\Models\Agents\Agent;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
 use Laravel\Ai\Embeddings;
@@ -127,7 +127,7 @@ it('searches with the same ranking an agent gets', function () {
     $toolResult = json_decode(app(SearchKnowledgeTool::class, ['workspace' => $workspace])
         ->handle(new Request(['query' => 'refunds'])), true);
 
-    expect($toolResult[0]['text'])->toStartWith('Refund window is 30 days.');
+    expect(unwrapUntrusted($toolResult[0]['text']))->toStartWith('Refund window is 30 days.');
 });
 
 it('scopes search to a collection', function () {

@@ -82,14 +82,23 @@ return [
                     'scheme' => env('REVERB_SCHEME', 'https'),
                     'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
                 ],
-                'allowed_origins' => ['*'],
+                // Browsers connecting from any other origin are refused. Defaults
+                // to the host of the frontend; set REVERB_ALLOWED_ORIGINS to a
+                // comma-separated host list to allow more (wildcards such as
+                // `*.example.com` work).
+                'allowed_origins' => array_values(array_filter(array_map('trim', explode(
+                    ',',
+                    (string) env('REVERB_ALLOWED_ORIGINS', parse_url((string) env('APP_FRONTEND_URL', 'http://localhost:5173'), PHP_URL_HOST) ?: ''),
+                )))),
                 'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
                 'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
                 'max_connections' => env('REVERB_APP_MAX_CONNECTIONS'),
                 'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
-                'accept_client_events_from' => env('REVERB_APP_ACCEPT_CLIENT_EVENTS_FROM', 'members'),
+                // Channels here are server-to-client only, so clients may not
+                // publish events (whispers) into them.
+                'accept_client_events_from' => env('REVERB_APP_ACCEPT_CLIENT_EVENTS_FROM', 'none'),
                 'rate_limiting' => [
-                    'enabled' => env('REVERB_APP_RATE_LIMITING_ENABLED', false),
+                    'enabled' => env('REVERB_APP_RATE_LIMITING_ENABLED', true),
                     'max_attempts' => env('REVERB_APP_RATE_LIMIT_MAX_ATTEMPTS', 60),
                     'decay_seconds' => env('REVERB_APP_RATE_LIMIT_DECAY_SECONDS', 60),
                     'terminate_on_limit' => env('REVERB_APP_RATE_LIMIT_TERMINATE', false),

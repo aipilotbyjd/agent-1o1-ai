@@ -144,3 +144,17 @@ it('rejects a trigger pointed at another workspace\'s workflow', function () {
         'type' => 'webhook',
     ])->assertJsonValidationErrors('target_id');
 });
+
+it('rejects a trigger endpoint that points at an internal address', function (string $url) {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->published()->create();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/triggers", [
+        'target_type' => 'workflow',
+        'target_id' => $workflow->id,
+        'type' => 'manual',
+        'config' => ['url' => $url],
+    ])->assertUnprocessable()->assertJsonValidationErrors('config.url');
+})->with(['http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1:6379/', 'file:///etc/passwd']);
