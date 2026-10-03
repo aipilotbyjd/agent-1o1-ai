@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
+use App\Services\Agents\UntrustedContent;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -50,7 +51,7 @@ class SearchKnowledgeTool implements Tool
             ->map(fn (array $result): array => [
                 'collection' => $result['collection'],
                 'source' => $result['source'],
-                'text' => $result['text'],
+                'text' => UntrustedContent::wrap('knowledge_base', $result['text']),
                 'score' => round($result['score'], 4),
             ]);
 

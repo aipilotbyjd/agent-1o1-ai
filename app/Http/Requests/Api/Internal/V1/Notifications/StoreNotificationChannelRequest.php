@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Internal\V1\Notifications;
 
 use App\Enums\Workspaces\Permission;
+use App\Rules\SafeOutboundUrl;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,7 @@ class StoreNotificationChannelRequest extends FormRequest
             'type' => ['required', 'string', Rule::in(['discord', 'slack', 'webhook'])],
             'name' => ['required', 'string', 'max:100'],
             'config' => ['required', 'array'],
-            'config.url' => ['required', 'url'],
+            'config.url' => ['required', 'url', new SafeOutboundUrl],
             'config.headers' => ['sometimes', 'array'],
             'config.headers.*' => ['string'],
             // A Slack app's signing secret, so approve/reject buttons in its messages can be trusted.

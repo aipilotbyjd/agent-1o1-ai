@@ -6,6 +6,7 @@ use App\Enums\Agents\AutonomyMode;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Models\Workspaces\Workspace;
+use App\Rules\SafeOutboundUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -42,8 +43,16 @@ class StoreTriggerRequest extends FormRequest
             // For an agent target: the mode its triggered turns run under, overriding the agent's own.
             'config.autonomy_mode' => ['nullable', Rule::enum(AutonomyMode::class)],
             'config.test_mode' => ['nullable', 'boolean'],
+            // A polling trigger's endpoint: fetched by the server, so it must be a public URL.
+            'config.url' => ['nullable', 'string', new SafeOutboundUrl],
             'is_active' => ['nullable', 'boolean'],
-            'credential_id' => ['nullable', 'uuid'],
+            'credential_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('connector_credentials', 'id')
+                    ->where('workspace_id', $this->workspace()?->id)
+                    ->whereNull('deleted_at'),
+            ],
             'signing_secret' => ['nullable', 'string'],
         ];
     }

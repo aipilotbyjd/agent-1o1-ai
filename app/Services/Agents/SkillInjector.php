@@ -109,6 +109,7 @@ class SkillInjector
 
         $lines[] = 'Today is '.now()->format('l, F j, Y').'.';
         $lines[] = "When asked who you are, answer as {$agent->name}; never present yourself as the underlying language model or its provider.";
+        $lines[] = UntrustedContent::RULE;
         $lines[] = 'Act on the most likely intent of each request, and ask a clarifying question only when a wrong guess would be costly. '
             .'When you have tools that can get real data or do the work, use them instead of guessing, and chain several calls when a task needs it.';
         $lines[] = 'When the user tells you something about themselves, their work or their preferences, or asks you to remember something, save it with `'.RememberTool::NAME.'`.';

@@ -13,6 +13,7 @@ use App\Http\Middleware\AllowLongAgentTurn;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureWorkspaceScope;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -54,6 +55,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'long-agent-turn' => AllowLongAgentTurn::class,
             'platform.admin' => EnsurePlatformAdmin::class,
         ]);
+
+        $middleware->append(SecurityHeaders::class);
 
         $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
 

@@ -25,7 +25,9 @@ class StoreFolderRequest extends FormRequest
             'parent_id' => [
                 'nullable',
                 'uuid',
-                Rule::exists('folders', 'id')->where('type', $this->input('type')),
+                Rule::exists('folders', 'id')
+                    ->where('workspace_id', $this->route('workspace')?->id)
+                    ->where('type', $this->input('type')),
             ],
             'position' => ['nullable', 'integer', 'min:0'],
         ];

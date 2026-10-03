@@ -19,7 +19,7 @@ it('starts a workflow run and reports its status back to the model', function ()
 
     $tool = new WorkflowTool($workflow, app(StartWorkflowRunAction::class));
 
-    $result = json_decode($tool->handle(new Request(['input' => ['value' => 'hi']])), true);
+    $result = json_decode(unwrapUntrusted($tool->handle(new Request(['input' => ['value' => 'hi']]))), true);
 
     expect($result['status'])->toBe('completed');
     expect($result['output'])->toBe(['a' => ['echoed' => 'hi']]);

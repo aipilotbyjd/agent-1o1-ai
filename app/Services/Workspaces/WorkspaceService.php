@@ -99,7 +99,8 @@ class WorkspaceService
             throw new AuthorizationException('Transfer ownership before leaving this workspace.');
         }
 
-        $workspace->members()->where('user_id', $user->id)->delete();
+        // Per model, not a bulk delete, so the member's observers (cache + audit) run.
+        $workspace->members()->where('user_id', $user->id)->get()->each->delete();
     }
 
     public function suggestSlug(string $name): string

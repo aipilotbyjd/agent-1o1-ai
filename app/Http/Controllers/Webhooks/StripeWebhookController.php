@@ -22,6 +22,7 @@ use App\Notifications\Billing\SubscriptionRenewedNotification;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Referrals\ReferralPaymentData;
 use Carbon\Carbon;
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Cashier\Cashier;
@@ -31,6 +32,24 @@ use Throwable;
 
 class StripeWebhookController extends CashierWebhookController
 {
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Cashier only verifies the signature when a secret is configured, so
+        // a missing one would let anyone forge events that grant credits or
+        // plans. Refuse to serve the endpoint at all rather than fail open.
+        $this->middleware(function (Request $request, Closure $next) {
+            abort_if(
+                blank(config('cashier.webhook.secret')) && ! app()->environment(['local', 'testing']),
+                503,
+                'The Stripe webhook signing secret is not configured.',
+            );
+
+            return $next($request);
+        });
+    }
+
     /**
      * Guards every event with an idempotency check before Cashier (or our own
      * handlers) process it — Stripe retries webhook delivery, and without

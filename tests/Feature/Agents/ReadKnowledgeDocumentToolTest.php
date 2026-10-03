@@ -17,7 +17,7 @@ it('reassembles a document\'s chunks in storage order', function () {
     $tool = new ReadKnowledgeDocumentTool($workspace);
     $text = (string) $tool->handle(new Request(['source' => 'handbook.md']));
 
-    expect($text)->toBe("First.\n\nSecond.");
+    expect(unwrapUntrusted($text))->toBe("First.\n\nSecond.");
 });
 
 it('reports an error for a source with no chunks', function () {
@@ -40,5 +40,5 @@ it('scopes to the given collection(s)', function () {
     $tool = new ReadKnowledgeDocumentTool($workspace, collection: ['docs']);
     $text = (string) $tool->handle(new Request(['source' => 's']));
 
-    expect($text)->toBe('in-scope');
+    expect(unwrapUntrusted($text))->toBe('in-scope');
 });

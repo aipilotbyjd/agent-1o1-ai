@@ -6,7 +6,9 @@ use App\Models\Triggers\Trigger;
 use Illuminate\Http\Request;
 
 /**
- * Per-`trigger_presets.signature_scheme` HMAC verification. Verifies against
+ * Per-`trigger_presets.signature_scheme` HMAC verification (plus a generic
+ * `X-Signature-256` scheme for triggers that have a signing secret but no
+ * provider preset). Verifies against
  * the raw request body (`payload_snippet`, not the decoded `payload`) — a
  * provider's signature is computed over exact bytes, and re-encoding JSON
  * before hashing would fail to reproduce it.
@@ -18,25 +20,42 @@ class WebhookSignatureVerifier
     public function verify(Trigger $trigger, Request $request, string $rawBody): bool
     {
         $scheme = $trigger->preset?->signature_scheme;
+        $secret = $trigger->signing_secret;
 
-        // Signing is opt-in per preset — a trigger with no scheme configured
-        // has nothing to verify against.
-        if ($scheme === null) {
+        // A preset names the provider's scheme. With none, the trigger is
+        // unsigned unless its owner set a signing secret — and then the
+        // secret must actually be enforced, not silently ignored, so it falls
+        // back to the generic scheme below.
+        if ($scheme === null && blank($secret)) {
             return true;
         }
-
-        $secret = $trigger->signing_secret;
 
         if (blank($secret)) {
             return false;
         }
 
-        return match ($scheme) {
+        return match ($scheme ?? 'generic') {
+            'generic' => $this->verifyGeneric($request, $rawBody, $secret),
             'github' => $this->verifyGithub($request, $rawBody, $secret),
             'stripe' => $this->verifyStripe($request, $rawBody, $secret),
             'slack' => $this->verifySlack($request, $rawBody, $secret),
             default => false,
         };
+    }
+
+    /**
+     * For senders with no provider scheme: `X-Signature-256: sha256=<hex>`,
+     * an HMAC-SHA256 of the raw body keyed with the trigger's signing secret.
+     */
+    private function verifyGeneric(Request $request, string $rawBody, string $secret): bool
+    {
+        $signature = (string) $request->header('X-Signature-256');
+
+        if ($signature === '') {
+            return false;
+        }
+
+        return hash_equals('sha256='.hash_hmac('sha256', $rawBody, $secret), $signature);
     }
 
     private function verifyGithub(Request $request, string $rawBody, string $secret): bool
