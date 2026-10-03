@@ -26,9 +26,11 @@ class AgentKnowledgeSourceController extends Controller
         return ApiResponse::success([
             'attached' => $agent->knowledgeCollections()->pluck('collection')->values(),
             // Every collection in the workspace, so a picker can offer what
-            // isn't attached yet.
+            // isn't attached yet. Agents' exported-artifact collections are
+            // private to the agent that wrote them, so they aren't offered.
             'available' => DocumentEmbedding::query()
                 ->where('workspace_id', $workspace->id)
+                ->where('collection', 'not like', DocumentEmbedding::ARTIFACT_COLLECTION_PREFIX.'%')
                 ->distinct()
                 ->orderBy('collection')
                 ->pluck('collection'),
@@ -39,6 +41,13 @@ class AgentKnowledgeSourceController extends Controller
     {
         $this->requirePermission(Permission::AgentManage);
         $this->ensureBelongsToWorkspace($workspace, $agent);
+
+        abort_if(
+            str_starts_with($collection, DocumentEmbedding::ARTIFACT_COLLECTION_PREFIX)
+                || ! DocumentEmbedding::query()->where('workspace_id', $workspace->id)->where('collection', $collection)->exists(),
+            404,
+            'No knowledge collection with that name exists in this workspace.',
+        );
 
         $agent->knowledgeCollections()->firstOrCreate(['collection' => $collection]);
 

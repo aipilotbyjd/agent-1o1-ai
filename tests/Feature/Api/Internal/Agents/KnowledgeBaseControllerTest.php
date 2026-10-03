@@ -5,8 +5,12 @@ use App\Enums\Workspaces\Role;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Agents\KnowledgeBase;
 use App\Services\Workspaces\WorkspaceService;
+use App\Jobs\Knowledge\IngestKnowledgeJob;
+use App\Models\Agents\Agent;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Bus;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Tools\Request;
 use Laravel\Passport\Passport;
@@ -48,7 +52,7 @@ it('ingests text as embedded chunks', function () {
     $response->assertCreated();
     expect($response->json('data.chunks_count'))->toBe(2);
 
-    $chunks = DocumentEmbedding::orderBy('id')->get();
+    $chunks = DocumentEmbedding::orderBy('chunk_index')->get();
     expect($chunks)->toHaveCount(2);
     expect($chunks[0]->chunk_text)->toStartWith('First paragraph about refunds.');
     expect($chunks[1]->chunk_text)->toStartWith('Second paragraph about shipping.');
@@ -271,4 +275,159 @@ it('404s reading a document that does not exist', function () {
 
     $this->getJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/document?source=nope.md")
         ->assertNotFound();
+});
+
+it('records each chunk\'s position and reads a document in that order', function () {
+    [$workspace] = ownerWorkspaceForKnowledgeBase();
+
+    foreach ([2 => 'third', 0 => 'first', 1 => 'second'] as $index => $text) {
+        DocumentEmbedding::factory()->forWorkspace($workspace)->create([
+            'source' => 'ordered.md',
+            'chunk_index' => $index,
+            'chunk_text' => $text,
+        ]);
+    }
+
+    expect(app(KnowledgeBase::class)->readDocument($workspace, 'ordered.md'))->toBe("first\n\nsecond\n\nthird");
+});
+
+it('replaces a re-ingested source instead of duplicating it', function () {
+    Embeddings::fake();
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    foreach (['Old revision.', 'New revision.'] as $text) {
+        $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", [
+            'text' => $text,
+            'source' => 'policy.md',
+            'collection' => 'support',
+        ])->assertCreated();
+    }
+
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'policy.md', 'collection' => 'other']);
+
+    expect(DocumentEmbedding::where('collection', 'support')->sole()->chunk_text)->toBe('New revision.');
+    expect(DocumentEmbedding::where('collection', 'other')->count())->toBe(1);
+});
+
+it('keeps the previous document when a re-ingest fails', function () {
+    Embeddings::fake(fn () => throw new RuntimeException('provider down'));
+    [$workspace] = ownerWorkspaceForKnowledgeBase();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'policy.md', 'chunk_text' => 'Old revision.']);
+
+    expect(fn () => app(KnowledgeBase::class)->ingest($workspace, 'New revision.', 'policy.md', replaceSource: true))
+        ->toThrow(RuntimeException::class);
+    expect(DocumentEmbedding::sole()->chunk_text)->toBe('Old revision.');
+});
+
+it('deletes a document by source', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->count(2)->sequence(['chunk_index' => 0], ['chunk_index' => 1])->create(['source' => 'a.md']);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'b.md']);
+    Passport::actingAs($owner);
+
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/document?source=a.md")
+        ->assertOk()
+        ->assertJsonPath('data.deleted_count', 2);
+    expect(DocumentEmbedding::pluck('source')->all())->toBe(['b.md']);
+
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/document?source=a.md")->assertNotFound();
+});
+
+it('queues a large ingest instead of embedding it inline', function () {
+    Bus::fake();
+    config(['knowledge_base.sync_ingest_max_characters' => 100]);
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['text' => str_repeat('word ', 50), 'source' => 'big.md'])
+        ->assertAccepted()
+        ->assertJsonPath('data.queued', true);
+
+    Bus::assertDispatched(IngestKnowledgeJob::class, fn (IngestKnowledgeJob $job) => $job->source === 'big.md' && $job->collection === 'default');
+    expect(DocumentEmbedding::count())->toBe(0);
+});
+
+it('rejects a non-file value for file without erroring', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['file' => 'not-a-file'])
+        ->assertJsonValidationErrors('file');
+});
+
+it('rejects an upload that is not valid UTF-8', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $file = UploadedFile::fake()->createWithContent('latin1.txt', "caf\xE9 au lait");
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['file' => $file])
+        ->assertUnprocessable();
+    expect(DocumentEmbedding::count())->toBe(0);
+});
+
+it('rejects collection names that cannot be addressed in a URL or that are reserved', function (string $collection) {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['text' => 'a', 'collection' => $collection])
+        ->assertJsonValidationErrors('collection');
+})->with(['a/b', 'a?b', 'artifacts:123', ' lead']);
+
+it('caps per_page when listing chunks', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/knowledge-base?per_page=100000")
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 100);
+});
+
+it('detaches agents when their collection is deleted', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support']);
+    $agent->knowledgeCollections()->create(['collection' => 'support']);
+    Passport::actingAs($owner);
+
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/collections/support")->assertOk();
+
+    expect($agent->knowledgeCollections()->count())->toBe(0);
+});
+
+it('hides agents\' artifact collections from the collection list', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => $agent->artifactKnowledgeCollection()]);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support']);
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/collections")
+        ->assertJsonCount(1, 'data.collections');
+});
+
+it('reads only one collection\'s copy of a source shared by several, and caps length', function () {
+    [$workspace] = ownerWorkspaceForKnowledgeBase();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'a', 'source' => 'notes.txt', 'chunk_text' => 'from a']);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'b', 'source' => 'notes.txt', 'chunk_text' => 'from b']);
+
+    expect(app(KnowledgeBase::class)->readDocument($workspace, 'notes.txt'))->toBe('from a');
+
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'huge.txt', 'chunk_index' => 0, 'chunk_text' => str_repeat('x', KnowledgeBase::MAX_DOCUMENT_CHARACTERS)]);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'huge.txt', 'chunk_index' => 1, 'chunk_text' => 'tail']);
+
+    expect(app(KnowledgeBase::class)->readDocument($workspace, 'huge.txt'))
+        ->toContain('[Document truncated')
+        ->not->toContain('tail');
+});
+
+it('includes the collection in search results', function () {
+    Embeddings::fake();
+    [$workspace] = ownerWorkspaceForKnowledgeBase();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support', 'chunk_text' => 'refund window is thirty days']);
+
+    $results = app(KnowledgeBase::class)->search($workspace, 'refund window');
+
+    expect($results->first()['collection'])->toBe('support');
 });

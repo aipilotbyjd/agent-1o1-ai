@@ -181,6 +181,18 @@ it('keeps the model and look when duplicating an agent', function () {
     expect($copy->allow_self_updates)->toBeTrue();
 });
 
+it('copies attached knowledge collections when duplicating an agent', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    $agent->knowledgeCollections()->create(['collection' => 'support']);
+    Passport::actingAs($owner);
+
+    $copy = Agent::find($this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/duplicate")->assertCreated()->json('data.agent.id'));
+
+    expect($copy->knowledgeCollections()->pluck('collection')->all())->toBe(['support']);
+});
+
 it('lists agents with their tags, chat count and last use', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);

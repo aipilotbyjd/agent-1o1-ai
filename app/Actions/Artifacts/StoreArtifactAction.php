@@ -6,7 +6,6 @@ use App\Enums\Artifacts\ArtifactGeneralAccess;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
-use App\Models\Agents\DocumentEmbedding;
 use App\Models\Artifacts\Artifact;
 use App\Models\Runs\Run;
 use App\Models\Workspaces\Workspace;
@@ -14,6 +13,7 @@ use App\Services\Agents\KnowledgeBase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Writes one artifact — the single place bytes land on disk and a row is
@@ -129,7 +129,13 @@ class StoreArtifactAction
         ]);
 
         if ($searchable && $agent !== null && in_array($mimeType, self::INDEXABLE_MIME_TYPES, true)) {
-            $this->indexForAgent($workspace, $agent, $artifact, $contents);
+            // The artifact is already stored; an embeddings outage must not
+            // fail the export, it only leaves the file unsearchable.
+            try {
+                $this->indexForAgent($workspace, $agent, $artifact, $contents);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
         }
 
         return $artifact;
@@ -147,20 +153,16 @@ class StoreArtifactAction
 
         $collection = $agent->artifactKnowledgeCollection();
 
-        // Only the newest version stays indexed — drop the previous
-        // version's chunks rather than accumulating stale ones.
-        DocumentEmbedding::query()
-            ->where('workspace_id', $workspace->id)
-            ->where('collection', $collection)
-            ->where('source', $artifact->filename)
-            ->delete();
-
+        // Only the newest version stays indexed — `replaceSource` swaps the
+        // previous version's chunks for the new ones in one transaction, so a
+        // failed embedding call leaves the old index intact.
         $this->knowledgeBase->ingest(
             $workspace,
             $text,
             $artifact->filename,
             $collection,
             ['artifact_id' => $artifact->id, 'group_id' => $artifact->group_id],
+            replaceSource: true,
         );
     }
 

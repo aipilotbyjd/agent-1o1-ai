@@ -7,9 +7,13 @@ use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditMeter;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Embeddings;
+use RuntimeException;
 
 /**
  * The workspace knowledge base behind `document_embeddings`: turning text
@@ -75,8 +79,22 @@ class KnowledgeBase
     private const int EMBED_BATCH = 64;
 
     /**
+     * The most characters of one document `readDocument()` hands back. A
+     * whole document goes straight into a model's context, so an enormous
+     * one is cut off (with a notice) instead of exhausting it.
+     */
+    public const int MAX_DOCUMENT_CHARACTERS = 60000;
+
+    /**
      * Split text into chunks, embed them, and store one row per chunk. The
      * embedding tokens are charged to `$workspace` — see `chargeForEmbeddings()`.
+     *
+     * Embedding happens first and everything is written in one transaction,
+     * so a provider failure or a billing failure never leaves a half-ingested
+     * document behind. With `$replaceSource`, chunks already stored for the
+     * same `$source` in the same `$collection` are swapped for the new ones in
+     * that same transaction — re-ingesting a revised document replaces it
+     * rather than duplicating it, and a failed re-ingest keeps the old one.
      *
      * @param  array<string, mixed>|null  $metadata
      * @return Collection<int, DocumentEmbedding>
@@ -87,6 +105,7 @@ class KnowledgeBase
         ?string $source = null,
         string $collection = 'default',
         ?array $metadata = null,
+        bool $replaceSource = false,
     ): Collection {
         $chunks = $this->chunk($text);
 
@@ -100,6 +119,14 @@ class KnowledgeBase
         foreach (array_chunk($chunks, self::EMBED_BATCH) as $batch) {
             $response = Embeddings::for($batch)->generate();
 
+            if (count($response->embeddings) !== count($batch)) {
+                throw new RuntimeException(sprintf(
+                    'The embeddings provider returned %d vectors for %d chunks.',
+                    count($response->embeddings),
+                    count($batch),
+                ));
+            }
+
             $vectors = [...$vectors, ...$response->embeddings];
             $usage = [
                 'prompt_tokens' => $usage['prompt_tokens'] + $response->tokens,
@@ -108,18 +135,37 @@ class KnowledgeBase
             ];
         }
 
-        $stored = collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
-            'workspace_id' => $workspace->id,
-            'collection' => $collection,
-            'source' => $source,
-            'chunk_text' => $chunk,
-            'embedding' => $vectors[$index] ?? [],
-            'metadata' => $metadata,
-        ]));
+        return DB::transaction(function () use ($workspace, $chunks, $vectors, $usage, $source, $collection, $metadata, $replaceSource): Collection {
+            if ($replaceSource && $source !== null) {
+                $this->deleteDocument($workspace, $source, $collection);
+            }
 
-        $this->chargeForEmbeddings($workspace, $stored->first(), $usage);
+            $stored = collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
+                'workspace_id' => $workspace->id,
+                'collection' => $collection,
+                'source' => $source,
+                'chunk_index' => $index,
+                'chunk_text' => $chunk,
+                'embedding' => $vectors[$index],
+                'metadata' => $metadata,
+            ]));
 
-        return $stored;
+            $this->chargeForEmbeddings($workspace, $stored->first(), $usage);
+
+            return $stored;
+        });
+    }
+
+    /**
+     * Removes every chunk of one document, returning how many were deleted.
+     *
+     * @param  string|array<int, string>|null  $collection
+     */
+    public function deleteDocument(Workspace $workspace, string $source, string|array|null $collection = null): int
+    {
+        return $this->scopedTo($workspace, $collection)
+            ->where('source', $source)
+            ->delete();
     }
 
     /**
@@ -155,7 +201,7 @@ class KnowledgeBase
      * @param  string|array<int, string>|null  $collection  One collection, a
      *                                                      list to search across (an agent's attached sources — see
      *                                                      `ToolRegistry`), or null for every collection in the workspace.
-     * @return Collection<int, array{id: string, source: string|null, text: string, score: float}>
+     * @return Collection<int, array{id: string, collection: string, source: string|null, text: string, score: float}>
      */
     public function search(
         Workspace $workspace,
@@ -169,20 +215,24 @@ class KnowledgeBase
         // memory stays flat however large the workspace's knowledge base is.
         $best = [];
 
-        $chunks = DocumentEmbedding::query()
-            ->select(['id', 'source', 'chunk_text', 'embedding'])
-            ->where('workspace_id', $workspace->id)
-            ->when($collection !== null, fn ($builder) => is_array($collection)
-                ? $builder->whereIn('collection', $collection)
-                : $builder->where('collection', $collection))
+        $chunks = $this->scopedTo($workspace, $collection)
+            ->select(['id', 'collection', 'source', 'chunk_text', 'embedding'])
             ->lazyById(500);
 
         $terms = $this->terms($query);
-        $phrase = count($terms) > 1 ? mb_strtolower(trim($query)) : null;
+        $patterns = array_map($this->termPattern(...), $terms);
+        $phrase = count($terms) > 1 ? mb_strtolower(trim($query, " \t\n\r\0\x0B.?!,;:")) : null;
+        $mismatched = 0;
 
         foreach ($chunks as $chunk) {
-            $semantic = $this->cosineSimilarity($queryVector, $chunk->embedding ?? []);
-            $keyword = $this->keywordCoverage($terms, $chunk->chunk_text);
+            $vector = $chunk->embedding ?? [];
+
+            if ($queryVector !== [] && $vector !== [] && count($vector) !== count($queryVector)) {
+                $mismatched++;
+            }
+
+            $semantic = $this->cosineSimilarity($queryVector, $vector);
+            $keyword = $this->keywordCoverage($patterns, $chunk->chunk_text);
 
             if ($semantic < self::MIN_SEMANTIC_SCORE && $keyword === 0.0) {
                 continue;
@@ -192,6 +242,7 @@ class KnowledgeBase
 
             $best[] = [
                 'id' => $chunk->id,
+                'collection' => $chunk->collection,
                 'source' => $chunk->source,
                 'text' => $chunk->chunk_text,
                 'score' => $semantic + self::KEYWORD_WEIGHT * $keyword + $phraseBonus,
@@ -203,6 +254,17 @@ class KnowledgeBase
             }
         }
 
+        if ($mismatched > 0) {
+            // A chunk embedded with a different model has a different vector
+            // length and can only ever match on keywords — worth knowing when
+            // search quality drops after changing the embeddings provider.
+            Log::warning('Knowledge base search skipped semantic scoring for chunks with mismatched embedding dimensions.', [
+                'workspace_id' => $workspace->id,
+                'chunks' => $mismatched,
+                'query_dimensions' => count($queryVector),
+            ]);
+        }
+
         return collect($this->rank($best))->values();
     }
 
@@ -210,8 +272,8 @@ class KnowledgeBase
      * Highest score first; `usort` is stable, so ties keep insertion (id)
      * order.
      *
-     * @param  array<int, array{id: string, source: string|null, text: string, score: float}>  $results
-     * @return array<int, array{id: string, source: string|null, text: string, score: float}>
+     * @param  array<int, array{id: string, collection: string, source: string|null, text: string, score: float}>  $results
+     * @return array<int, array{id: string, collection: string, source: string|null, text: string, score: float}>
      */
     private function rank(array $results): array
     {
@@ -222,8 +284,11 @@ class KnowledgeBase
 
     /**
      * The full text of one "document" — every chunk sharing a `source`
-     * (and, when given, a `collection`), reassembled in storage order.
-     * Backs `Ai\Tools\ReadKnowledgeDocumentTool`: a search hit's `source` is
+     * (and, when given, a `collection`), reassembled in reading order. If the
+     * same `source` exists in several collections and none was asked for, the
+     * first collection alphabetically wins rather than interleaving different
+     * documents. Capped at `MAX_DOCUMENT_CHARACTERS`.
+     * Backs `Ai\Tools\ReadKnowledgeDocumentTool`: a search hit's `text` is
      * a chunk-level snippet, and this is what a model calls when a snippet
      * alone isn't enough context.
      *
@@ -231,16 +296,61 @@ class KnowledgeBase
      */
     public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null): ?string
     {
-        $chunks = DocumentEmbedding::query()
-            ->where('workspace_id', $workspace->id)
+        $rows = $this->scopedTo($workspace, $collection)
             ->where('source', $source)
-            ->when($collection !== null, fn ($builder) => is_array($collection)
-                ? $builder->whereIn('collection', $collection)
-                : $builder->where('collection', $collection))
+            ->orderBy('collection')
+            ->orderBy('chunk_index')
             ->orderBy('id')
-            ->pluck('chunk_text');
+            ->select(['collection', 'chunk_text'])
+            ->cursor();
 
-        return $chunks->isEmpty() ? null : $chunks->implode("\n\n");
+        $parts = [];
+        $length = 0;
+        $documentCollection = null;
+        $truncated = false;
+
+        foreach ($rows as $row) {
+            $documentCollection ??= $row->collection;
+
+            if ($row->collection !== $documentCollection) {
+                break;
+            }
+
+            $parts[] = $row->chunk_text;
+            $length += mb_strlen($row->chunk_text) + 2;
+
+            if ($length > self::MAX_DOCUMENT_CHARACTERS) {
+                $truncated = true;
+
+                break;
+            }
+        }
+
+        if ($parts === []) {
+            return null;
+        }
+
+        $text = implode("\n\n", $parts);
+
+        if (! $truncated) {
+            return $text;
+        }
+
+        return mb_substr($text, 0, self::MAX_DOCUMENT_CHARACTERS)
+            ."\n\n[Document truncated after ".number_format(self::MAX_DOCUMENT_CHARACTERS).' characters.]';
+    }
+
+    /**
+     * @param  string|array<int, string>|null  $collection
+     * @return Builder<DocumentEmbedding>
+     */
+    private function scopedTo(Workspace $workspace, string|array|null $collection): Builder
+    {
+        return DocumentEmbedding::query()
+            ->where('workspace_id', $workspace->id)
+            ->when($collection !== null, fn (Builder $builder) => is_array($collection)
+                ? $builder->whereIn('collection', $collection)
+                : $builder->where('collection', $collection));
     }
 
     /**
@@ -327,10 +437,6 @@ class KnowledgeBase
     }
 
     /**
-     * @param  array<int, float>  $a
-     * @param  array<int, float>  $b
-     */
-    /**
      * The distinct, meaningful words of a query, lowercased.
      *
      * @return array<int, string>
@@ -346,28 +452,41 @@ class KnowledgeBase
     }
 
     /**
-     * The share of `$terms` that appear in `$text` as whole words, from 0 to 1.
-     *
-     * @param  array<int, string>  $terms
+     * A pattern matching one query term as a whole word.
      */
-    private function keywordCoverage(array $terms, string $text): float
+    private function termPattern(string $term): string
     {
-        if ($terms === []) {
+        return '/(?<![\p{L}\p{N}_-])'.preg_quote($term, '/').'(?![\p{L}\p{N}_-])/u';
+    }
+
+    /**
+     * The share of the query's terms (as `termPattern()` regexes) that appear
+     * in `$text` as whole words, from 0 to 1.
+     *
+     * @param  array<int, string>  $patterns
+     */
+    private function keywordCoverage(array $patterns, string $text): float
+    {
+        if ($patterns === []) {
             return 0.0;
         }
 
         $haystack = mb_strtolower($text);
         $found = 0;
 
-        foreach ($terms as $term) {
-            if (preg_match('/(?<![\p{L}\p{N}_-])'.preg_quote($term, '/').'(?![\p{L}\p{N}_-])/u', $haystack) === 1) {
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $haystack) === 1) {
                 $found++;
             }
         }
 
-        return $found / count($terms);
+        return $found / count($patterns);
     }
 
+    /**
+     * @param  array<int, float>  $a
+     * @param  array<int, float>  $b
+     */
     private function cosineSimilarity(array $a, array $b): float
     {
         if ($a === [] || $b === [] || count($a) !== count($b)) {
