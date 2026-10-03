@@ -68,6 +68,50 @@ class SkillSources
      */
     public function create(Workspace $workspace, User $user, array $data): SkillSource
     {
+        $source = $this->connect($workspace, $user, $data);
+
+        $this->queueSync($source, force: true);
+
+        return $source;
+    }
+
+    /**
+     * Imports a repository's skills straight away, for an agent or the
+     * assistant asked mid-conversation to clone skills from GitHub. A
+     * repository folder that's already connected is re-synced rather than
+     * connected twice.
+     *
+     * @param  array{repo?: string, branch?: string|null, path?: string|null}  $data
+     *
+     * @throws ValidationException when the repository can't be connected
+     * @throws \RuntimeException when the sync fails
+     */
+    public function importNow(Workspace $workspace, User $user, array $data): SkillSource
+    {
+        $candidate = $this->unsaved($workspace, $user, $data);
+
+        $source = $workspace->skillSources()
+            ->whereRaw('lower(repo) = ?', [strtolower($candidate->repo)])
+            ->where('path', $candidate->path)
+            ->first() ?? $this->connect($workspace, $user, $data);
+
+        app(SkillSync::class)->sync($source, force: true);
+        $source->refresh();
+
+        if ($source->status !== SkillSourceStatus::Ready) {
+            throw new \RuntimeException($source->last_error ?? 'The skills could not be synced from this repository.');
+        }
+
+        return $source;
+    }
+
+    /**
+     * Saves the source without syncing it.
+     *
+     * @param  array{repo?: string, branch?: string|null, path?: string|null, credential_id?: string|null, is_shared?: bool, two_way?: bool}  $data
+     */
+    private function connect(Workspace $workspace, User $user, array $data): SkillSource
+    {
         $source = $this->unsaved($workspace, $user, $data);
 
         if ($workspace->skillSources()->count() >= self::MAX_PER_WORKSPACE) {
@@ -87,8 +131,6 @@ class SkillSources
             $source->forceFill(['repository_private' => $access['private'], 'branch' => $access['branch'], 'upstream_repo' => $access['parent_repo'], 'upstream_branch' => $access['parent_repo'] ? $access['branch'] : null]);
         }
         $source->forceFill(['is_shared' => (bool) ($data['is_shared'] ?? true), 'two_way' => $twoWay])->save();
-
-        $this->queueSync($source, force: true);
 
         return $source;
     }

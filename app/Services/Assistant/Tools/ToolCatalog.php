@@ -6,6 +6,7 @@ use App\Ai\Assistant\Tools\AssistantTool;
 use App\Ai\Assistant\Tools\ChangeTriggerTool;
 use App\Ai\Assistant\Tools\CreateTriggerTool;
 use App\Ai\Assistant\Tools\ForgetTool;
+use App\Ai\Assistant\Tools\ImportSkillsTool;
 use App\Ai\Assistant\Tools\ListTriggersTool;
 use App\Ai\Assistant\Tools\RememberTool;
 use App\Ai\Assistant\Tools\UpdateStyleTool;
@@ -14,6 +15,7 @@ use App\Enums\Assistant\AssistantToolRule;
 use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantSession;
 use App\Models\Assistant\AssistantTurn;
+use App\Services\Agents\Skills\SkillSources;
 use App\Services\Assistant\Personalization\StyleProfiles;
 use App\Services\Assistant\Triggers\TriggerDefinitions;
 use Illuminate\Contracts\Container\Container;
@@ -39,6 +41,7 @@ class ToolCatalog
         private readonly AiManager $ai,
         private readonly StyleProfiles $styles,
         private readonly TriggerDefinitions $triggers,
+        private readonly SkillSources $skillSources,
     ) {}
 
     /**
@@ -96,6 +99,7 @@ class ToolCatalog
             new CreateTriggerTool($assistant, $this->triggers),
             new ListTriggersTool($assistant),
             new ChangeTriggerTool($assistant, $this->triggers),
+            new ImportSkillsTool($assistant, $this->skillSources),
         ];
     }
 

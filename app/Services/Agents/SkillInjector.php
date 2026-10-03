@@ -4,6 +4,7 @@ namespace App\Services\Agents;
 
 use App\Ai\Tools\CreateSkillTool;
 use App\Ai\Tools\ForgetTool;
+use App\Ai\Tools\ImportSkillsTool;
 use App\Ai\Tools\RecallMemoriesTool;
 use App\Ai\Tools\RememberTool;
 use App\Ai\Tools\UpdateSkillTool;
@@ -97,7 +98,8 @@ class SkillInjector
 
         if ($agent->allow_skill_editing) {
             $lines[] = 'When the user teaches you a repeatable process, template or format, save it as a skill with `'.CreateSkillTool::NAME.'`. '
-                .'When they correct how you did something one of your skills covers, fix that skill with `'.UpdateSkillTool::NAME.'`.';
+                .'When they correct how you did something one of your skills covers, fix that skill with `'.UpdateSkillTool::NAME.'`. '
+                .'When they share a GitHub repository of skills, clone them with `'.ImportSkillsTool::NAME.'`.';
         }
 
         return implode("\n", $lines);
