@@ -3,12 +3,16 @@
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
 use App\Enums\Agents\AutonomyMode;
+use App\Enums\Triggers\TriggerTargetType;
+use App\Http\Requests\Api\Internal\V1\Workflows\Concerns\ValidatesWorkspaceFolder;
 use App\Models\Agents\Agent;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateAgentRequest extends FormRequest
 {
+    use ValidatesWorkspaceFolder;
+
     public function authorize(): bool
     {
         return true;
@@ -25,7 +29,7 @@ class UpdateAgentRequest extends FormRequest
             'description' => ['sometimes', 'nullable', 'string'],
             'icon' => ['sometimes', 'nullable', Rule::in(Agent::ICONS)],
             'color' => ['sometimes', 'nullable', Rule::in(Agent::COLORS)],
-            'folder_id' => ['sometimes', 'nullable', 'uuid'],
+            'folder_id' => ['sometimes', 'nullable', 'uuid', $this->workspaceFolderExists(TriggerTargetType::Agent)],
             'instructions' => ['sometimes', 'nullable', 'string'],
             'provider' => ['sometimes', 'string', 'max:255'],
             'model' => ['sometimes', 'nullable', 'string', 'max:255'],

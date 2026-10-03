@@ -43,7 +43,13 @@ class StoreTriggerRequest extends FormRequest
             'config.autonomy_mode' => ['nullable', Rule::enum(AutonomyMode::class)],
             'config.test_mode' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
-            'credential_id' => ['nullable', 'uuid'],
+            'credential_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('connector_credentials', 'id')
+                    ->where('workspace_id', $this->workspace()?->id)
+                    ->whereNull('deleted_at'),
+            ],
             'signing_secret' => ['nullable', 'string'],
         ];
     }

@@ -2,10 +2,14 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Templates;
 
+use App\Enums\Triggers\TriggerTargetType;
+use App\Http\Requests\Api\Internal\V1\Workflows\Concerns\ValidatesWorkspaceFolder;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UseWorkflowTemplateRequest extends FormRequest
 {
+    use ValidatesWorkspaceFolder;
+
     public function authorize(): bool
     {
         return true;
@@ -18,7 +22,7 @@ class UseWorkflowTemplateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'folder_id' => ['nullable', 'uuid', 'exists:folders,id'],
+            'folder_id' => ['nullable', 'uuid', $this->workspaceFolderExists(TriggerTargetType::Workflow)],
         ];
     }
 }

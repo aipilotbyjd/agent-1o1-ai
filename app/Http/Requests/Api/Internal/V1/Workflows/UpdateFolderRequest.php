@@ -28,7 +28,9 @@ class UpdateFolderRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'uuid',
-                Rule::exists('folders', 'id')->where('type', $folder->type->value),
+                Rule::exists('folders', 'id')
+                    ->where('workspace_id', $folder->workspace_id)
+                    ->where('type', $folder->type->value),
             ],
             'position' => ['sometimes', 'integer', 'min:0'],
         ];
