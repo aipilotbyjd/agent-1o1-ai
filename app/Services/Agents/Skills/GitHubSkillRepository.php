@@ -107,8 +107,9 @@ class GitHubSkillRepository
         $entries->setMaxDepth(32);
 
         foreach ($entries as $entry) {
-            // Phar reports tar symlinks as files, but its stream wrapper cannot
-            // open them as ordinary archive entries (for example AGENTS.md).
+            // Phar does not reliably identify tar symlinks: it can report one
+            // as a regular zero-byte file. Skip links before the size check if
+            // Phar can identify them on this PHP build.
             if ($entry->isLink()) {
                 continue;
             }
@@ -126,12 +127,28 @@ class GitHubSkillRepository
                 continue;
             }
 
-            // PharData lists symlinks as regular files but cannot open them, so they are skipped.
-            $contents = @file_get_contents($entry->getPathname());
+            try {
+                $contents = file_get_contents($entry->getPathname());
+            } catch (Throwable $e) {
+                // Some Phar builds expose symlinks as unreadable zero-byte
+                // entries rather than links. Tar symlink headers have no file
+                // payload; regular zero-byte files remain readable as ''.
+                if ($entry->getSize() === 0) {
+                    continue;
+                }
 
-            if ($contents !== false) {
-                $files[$path] = $contents;
+                throw $e;
             }
+
+            if ($contents === false) {
+                if ($entry->getSize() === 0) {
+                    continue;
+                }
+
+                throw new RuntimeException("GitHub returned an unreadable repository file: {$path}.");
+            }
+
+            $files[$path] = $contents;
         }
 
         unset($entries, $tar);
