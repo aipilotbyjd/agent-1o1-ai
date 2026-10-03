@@ -128,6 +128,22 @@ return [
         'max_files' => 5,
     ],
 
+    'inbox' => [
+        'max_labels' => 25,
+        'max_labels_per_message' => 5,
+
+        // Labels the classifier is less sure of than this are dropped.
+        'min_confidence' => 0.6,
+
+        // New messages handled per check, per mailbox.
+        'max_messages_per_check' => 20,
+
+        // Past replies to the same sender used to match the owner's voice.
+        'past_replies' => 3,
+
+        'drafting_instructions_max_chars' => 2000,
+    ],
+
     'approvals' => [
         'ttl_minutes' => (int) env('ASSISTANT_APPROVAL_TTL_MINUTES', 1440),
     ],

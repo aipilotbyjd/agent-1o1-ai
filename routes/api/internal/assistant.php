@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantAppController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantBriefingController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantFeedbackController;
+use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantInboxController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMeetingController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMessageController;
@@ -50,6 +51,15 @@ Route::middleware(['auth:api', 'workspace.context'])
             ->whereIn('type', ['daily', 'meeting_prep'])
             ->middleware('throttle:6,1')
             ->name('briefings.run-now');
+
+        Route::get('inbox', [AssistantInboxController::class, 'show'])->name('inbox.show');
+        Route::put('inbox', [AssistantInboxController::class, 'update'])->name('inbox.update');
+        Route::post('inbox/enable', [AssistantInboxController::class, 'enable'])->middleware('throttle:10,1')->name('inbox.enable');
+        Route::post('inbox/disable', [AssistantInboxController::class, 'disable'])->name('inbox.disable');
+        Route::post('inbox/labels', [AssistantInboxController::class, 'storeLabel'])->name('inbox.labels.store');
+        Route::patch('inbox/labels/{label}', [AssistantInboxController::class, 'updateLabel'])->name('inbox.labels.update');
+        Route::delete('inbox/labels/{label}', [AssistantInboxController::class, 'destroyLabel'])->name('inbox.labels.destroy');
+        Route::post('inbox/messages/{message}/accept', [AssistantInboxController::class, 'acceptSuggestion'])->name('inbox.messages.accept');
 
         Route::get('meetings', [AssistantMeetingController::class, 'index'])->name('meetings.index');
         Route::post('meetings/{meeting}/prepare', [AssistantMeetingController::class, 'prepare'])

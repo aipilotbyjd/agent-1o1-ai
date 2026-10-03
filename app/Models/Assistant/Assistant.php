@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A user's personal assistant — one per (workspace, user), created on first
@@ -78,6 +79,11 @@ class Assistant extends Model
     public function meetings(): HasMany
     {
         return $this->hasMany(AssistantMeeting::class);
+    }
+
+    public function inbox(): HasOne
+    {
+        return $this->hasOne(AssistantInboxConfig::class);
     }
 
     public function situations(): HasMany
