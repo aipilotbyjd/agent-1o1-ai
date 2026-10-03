@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Internal\V1\Notifications;
 
 use App\Enums\Workspaces\Permission;
+use App\Rules\SafeOutboundUrl;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -26,7 +27,7 @@ class UpdateNotificationChannelRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:100'],
             'config' => ['sometimes', 'array'],
-            'config.url' => ['required_with:config', 'url'],
+            'config.url' => ['required_with:config', 'url', new SafeOutboundUrl],
             'config.headers' => ['sometimes', 'array'],
             'config.headers.*' => ['string'],
             // A Slack app's signing secret, so approve/reject buttons in its messages can be trusted.

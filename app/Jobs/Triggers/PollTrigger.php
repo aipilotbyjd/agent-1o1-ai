@@ -4,13 +4,13 @@ namespace App\Jobs\Triggers;
 
 use App\Enums\Triggers\TriggerType;
 use App\Models\Triggers\Trigger;
+use App\Services\Http\GuardedHttp;
 use App\Services\Triggers\TriggerService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
@@ -30,7 +30,7 @@ class PollTrigger implements ShouldQueue
         $this->onQueue((string) config('triggers.poll_queue'));
     }
 
-    public function handle(TriggerService $triggers): void
+    public function handle(TriggerService $triggers, GuardedHttp $http): void
     {
         $this->trigger->refresh();
 
@@ -49,7 +49,7 @@ class PollTrigger implements ShouldQueue
 
         try {
             $method = strtolower((string) ($config['method'] ?? 'get'));
-            $response = Http::withQueryParameters($this->cursorQuery($config))->{$method}($url);
+            $response = $http->send($method, $url, query: $this->cursorQuery($config));
             $response->throw();
         } catch (Throwable) {
             $triggers->recordFailure($this->trigger);
