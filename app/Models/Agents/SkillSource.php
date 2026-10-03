@@ -16,9 +16,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A GitHub repository the workspace's skills are synced from — see
- * `Services\Agents\Skills\SkillSync`. The repository is the source of
- * truth: its skills are read-only in the app. `status`, `last_error`,
- * `last_commit_sha`, `last_synced_at` and `skills_count` are engine-managed.
+ * `Services\Agents\Skills\SkillSync`. Sources are read-only unless
+ * two-way sync is explicitly enabled. Sync state and baselines are
+ * engine-managed and cannot be mass assigned.
  */
 #[Fillable(['workspace_id', 'created_by', 'connector_credential_id', 'repo', 'branch', 'path', 'is_shared'])]
 class SkillSource extends Model
@@ -33,6 +33,8 @@ class SkillSource extends Model
         'status' => 'pending',
         'is_shared' => true,
         'skills_count' => 0,
+        'two_way' => false,
+        'publish_once' => false,
     ];
 
     /**
@@ -42,6 +44,12 @@ class SkillSource extends Model
     {
         return [
             'status' => SkillSourceStatus::class,
+            'two_way' => 'boolean',
+            'publish_once' => 'boolean',
+            'repository_private' => 'boolean',
+            'fork_request' => 'array',
+            'sync_baseline' => 'array',
+            'sync_conflicts' => 'array',
             'is_shared' => 'boolean',
             'last_synced_at' => 'datetime',
             'skills_count' => 'integer',

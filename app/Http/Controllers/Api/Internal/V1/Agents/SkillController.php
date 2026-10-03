@@ -5,12 +5,18 @@ namespace App\Http\Controllers\Api\Internal\V1\Agents;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Api\Internal\V1\Agents\Concerns\GuardsSyncedSkills;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Agents\PublishSkillRequest;
 use App\Http\Requests\Api\Internal\V1\Agents\StoreSkillRequest;
 use App\Http\Requests\Api\Internal\V1\Agents\UpdateSkillRequest;
 use App\Http\Resources\Api\Internal\V1\Agents\SkillResource;
+use App\Http\Resources\Api\Internal\V1\Agents\SkillSourceResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Skill;
 use App\Models\Workspaces\Workspace;
+use App\Services\Agents\Skills\SkillPublishing;
+use App\Services\Agents\Skills\SkillSources;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -59,6 +65,28 @@ class SkillController extends Controller
         });
 
         return ApiResponse::created(['skill' => SkillResource::make($skill)], 'Skill created successfully.');
+    }
+
+    public function copy(Request $request, Workspace $workspace, Skill $skill, SkillPublishing $publishing): JsonResponse
+    {
+        $this->requirePermission(Permission::AgentSkillManage);
+        $this->ensureBelongsToWorkspace($workspace, $skill);
+
+        return ApiResponse::created(['skill' => SkillResource::make($publishing->copy($skill, $request->user()))], 'Editable copy created.');
+    }
+
+    public function publish(PublishSkillRequest $request, Workspace $workspace, Skill $skill, SkillPublishing $publishing, SkillSources $sources): JsonResponse
+    {
+        $this->requirePermission(Permission::AgentSkillManage);
+        $this->ensureBelongsToWorkspace($workspace, $skill);
+        try {
+            $source = $publishing->publish($workspace, $request->user(), $skill, $request->validated());
+        } catch (\RuntimeException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        }
+        $sources->queueSync($source, force: true);
+
+        return ApiResponse::created(['skill' => SkillResource::make($skill->fresh()), 'source' => ($fresh = $source->fresh()) ? SkillSourceResource::make($fresh) : null], 'Publishing skill to GitHub.');
     }
 
     public function show(Workspace $workspace, Skill $skill)

@@ -3,6 +3,7 @@
 namespace App\Services\Agents\Skills;
 
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * Turns a repository's files into skills, in the Agent Skills layout: every
@@ -37,9 +38,13 @@ class SkillPackageParser
      * @param  string|null  $root  only folders inside this one are read
      * @return list<SkillPackage>
      */
-    public function parse(array $files, ?string $root = null): array
+    public function parse(array $files, ?string $root = null, bool $strict = false): array
     {
         $root = trim((string) $root, '/');
+
+        if ($strict && count(array_filter(array_keys($files), fn (string $path): bool => basename($path) === 'SKILL.md' && $this->within($path, $root))) > self::MAX_SKILLS) {
+            throw new RuntimeException('The repository folder contains more than 100 skills.');
+        }
 
         $folders = collect(array_keys($files))
             ->filter(fn (string $path): bool => basename($path) === 'SKILL.md' && $this->within($path, $root))
@@ -49,7 +54,7 @@ class SkillPackageParser
             ->values();
 
         return $folders
-            ->map(fn (string $folder): ?SkillPackage => $this->package($folder, $files, $folders->all()))
+            ->map(fn (string $folder): ?SkillPackage => $this->package($folder, $files, $folders->all(), $strict))
             ->filter()
             ->values()
             ->all();
@@ -59,13 +64,16 @@ class SkillPackageParser
      * @param  array<string, string>  $files
      * @param  list<string>  $folders  every skill folder, to leave nested skills out
      */
-    private function package(string $folder, array $files, array $folders): ?SkillPackage
+    private function package(string $folder, array $files, array $folders, bool $strict): ?SkillPackage
     {
         [$meta, $body] = $this->frontmatter($files[ltrim("{$folder}/SKILL.md", '/')]);
 
         $description = trim((string) ($meta['description'] ?? '')) ?: null;
         $instructions = trim($body) ?: (string) $description;
 
+        if ($strict && ($instructions === '' || ! mb_check_encoding($instructions, 'UTF-8'))) {
+            throw new RuntimeException('Every synced SKILL.md must contain UTF-8 instructions.');
+        }
         if ($instructions === '') {
             return null;
         }
@@ -84,8 +92,14 @@ class SkillPackageParser
             }
 
             $relative = ltrim(Str::after($path, $folder === '' ? '' : "{$folder}/"), '/');
+            if ($strict && mb_strlen($relative) > 255) {
+                throw new RuntimeException('A synced skill file path exceeds 255 characters.');
+            }
             $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
 
+            if ($strict && ((isset(self::SCRIPT_LANGUAGES[$extension]) && count($scripts) >= self::MAX_FILES_PER_SKILL) || (in_array($extension, self::REFERENCE_EXTENSIONS, true) && count($references) >= self::MAX_FILES_PER_SKILL))) {
+                throw new RuntimeException('A synced skill supports at most 30 references and 30 scripts.');
+            }
             if (! mb_check_encoding($content, 'UTF-8') || trim($content) === '') {
                 continue;
             }
@@ -98,6 +112,10 @@ class SkillPackageParser
         }
 
         $name = trim((string) ($meta['name'] ?? '')) ?: ($folder === '' ? 'Skill' : basename($folder));
+
+        if ($strict && mb_strlen($name) > 255) {
+            throw new RuntimeException('A synced skill name exceeds 255 characters.');
+        }
 
         return new SkillPackage($folder, Str::limit($name, 255, ''), $description, $instructions, $references, $scripts);
     }

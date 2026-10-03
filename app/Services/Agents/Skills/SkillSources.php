@@ -4,6 +4,7 @@ namespace App\Services\Agents\Skills;
 
 use App\Enums\Agents\SkillSourceStatus;
 use App\Jobs\Agents\SyncSkillSourceJob;
+use App\Models\Agents\Skill;
 use App\Models\Agents\SkillSource;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
@@ -77,11 +78,137 @@ class SkillSources
             throw ValidationException::withMessages(['repo' => 'Skills are already synced from this repository folder.']);
         }
 
-        $source->forceFill(['is_shared' => (bool) ($data['is_shared'] ?? true)])->save();
+        $twoWay = Validator::make($data, ['two_way' => ['sometimes', 'boolean']])->validate()['two_way'] ?? false;
+        if ($twoWay && $source->credential === null) {
+            throw ValidationException::withMessages(['credential_id' => 'Connect a GitHub account with repository write access to enable two-way sync.']);
+        }
+        if ($twoWay) {
+            $access = $this->requireWritable($source);
+            $source->forceFill(['repository_private' => $access['private'], 'branch' => $access['branch'], 'upstream_repo' => $access['parent_repo'], 'upstream_branch' => $access['parent_repo'] ? $access['branch'] : null]);
+        }
+        $source->forceFill(['is_shared' => (bool) ($data['is_shared'] ?? true), 'two_way' => $twoWay])->save();
 
         $this->queueSync($source, force: true);
 
         return $source;
+    }
+
+    /** @param array{two_way: bool, credential_id?: string|null} $data */
+    public function configure(SkillSource $source, User $user, array $data): void
+    {
+        $credential = filled($data['credential_id'] ?? null)
+            ? $this->accounts->credential($source->workspace, $user, 'github', $data['credential_id'])
+            : $source->credential;
+        if ($data['two_way'] && $credential === null) {
+            throw ValidationException::withMessages(['credential_id' => 'Connect a GitHub account with repository write access to enable two-way sync.']);
+        }
+
+        if ($source->fork_request !== null) {
+            throw ValidationException::withMessages(['two_way' => 'Finish or cancel the pending fork connection first.']);
+        }
+        if (filled($data['branch'] ?? null) && $data['branch'] !== $source->branch) {
+            if ($source->two_way && (app(TwoWaySkillSync::class)->pendingPaths($source) !== [] || filled($source->sync_conflicts))) {
+                throw ValidationException::withMessages(['branch' => 'Sync pending edits before choosing a different branch.']);
+            }
+            $source->forceFill(['branch' => $data['branch'], 'last_commit_sha' => null]);
+        }
+        if ($data['two_way']) {
+            $candidate = clone $source;
+            $candidate->setRelation('credential', $credential);
+            $access = $this->requireWritable($candidate);
+            $source->forceFill(['repository_private' => $access['private'], 'branch' => $access['branch'], 'upstream_repo' => $access['parent_repo'], 'upstream_branch' => $access['parent_repo'] ? $access['branch'] : null]);
+        }
+        $snapshot = app(TwoWaySkillSync::class)->snapshot($source);
+        if ($source->two_way && ! $data['two_way'] && ($snapshot != ($source->sync_baseline ?? []) || filled($source->sync_conflicts))) {
+            throw ValidationException::withMessages(['two_way' => 'Sync or resolve pending changes before disabling two-way sync.']);
+        }
+
+        $source->forceFill([
+            'two_way' => $data['two_way'],
+            'connector_credential_id' => $credential?->id,
+            'sync_baseline' => $source->two_way ? $source->sync_baseline : $snapshot,
+        ])->save();
+        $source->unsetRelation('credential');
+    }
+
+    public function export(SkillSource $source, Skill $skill, string $path): void
+    {
+        if (! $source->two_way || $skill->isSynced()) {
+            throw ValidationException::withMessages(['skill_id' => 'Choose an unsynced skill and a repository with two-way sync enabled.']);
+        }
+        $this->requireWritable($source);
+        $path = trim($path, '/');
+        try {
+            app(SkillPackageWriter::class)->validatePath($path);
+        } catch (\RuntimeException $e) {
+            throw ValidationException::withMessages(['path' => $e->getMessage()]);
+        }
+        $path = ltrim(($source->path ? $source->path.'/' : '').$path, '/');
+        foreach ($source->skills()->withTrashed()->pluck('source_path') as $existing) {
+            if ($existing === '' || $existing === $path || str_starts_with($path, $existing.'/') || str_starts_with($existing, $path.'/')) {
+                throw ValidationException::withMessages(['path' => 'Choose a folder that does not overlap another synced skill.']);
+            }
+        }
+        if ($source->skills()->count() >= SkillPackageParser::MAX_SKILLS) {
+            throw ValidationException::withMessages(['skill_id' => 'This source already has 100 skills.']);
+        }
+        $skill->forceFill(['skill_source_id' => $source->id, 'source_path' => $path]);
+        try {
+            app(SkillPackageWriter::class)->files(app(SkillPackageWriter::class)->fromSkill($skill));
+        } catch (\RuntimeException $e) {
+            throw ValidationException::withMessages(['skill_id' => $e->getMessage()]);
+        }
+        $skill->save();
+    }
+
+    public function resolve(SkillSource $source, string $path, string $resolution, string $commit, ?array $files = null): void
+    {
+        $conflicts = $source->sync_conflicts ?? [];
+        $found = false;
+        foreach ($conflicts as &$conflict) {
+            if ($conflict['path'] === $path && $conflict['commit_sha'] === $commit) {
+                if ($resolution === 'merged') {
+                    if ($files === null || ! isset($files['SKILL.md'])) {
+                        throw ValidationException::withMessages(['files' => 'A combined skill must contain SKILL.md.']);
+                    }
+                    $repositoryFiles = [];
+                    foreach ($files as $relative => $content) {
+                        try {
+                            app(SkillPackageWriter::class)->validatePath($relative);
+                        } catch (\RuntimeException $e) {
+                            throw ValidationException::withMessages(['files' => $e->getMessage()]);
+                        }
+                        $repositoryFiles[ltrim($path.'/'.$relative, '/')] = $content;
+                    }
+                    try {
+                        $packages = $this->parser->parse($repositoryFiles, strict: true);
+                    } catch (\RuntimeException $e) {
+                        throw ValidationException::withMessages(['files' => $e->getMessage()]);
+                    }
+                    if (count($packages) !== 1 || $packages[0]->path !== $path || array_diff(array_keys($files), array_keys(app(SkillPackageWriter::class)->files($packages[0]))) !== []) {
+                        throw ValidationException::withMessages(['files' => 'Use one complete skill with supported text and script files.']);
+                    }
+                    $conflict['merged'] = app(SkillPackageWriter::class)->files($packages[0]);
+                }
+                $conflict['resolution'] = $resolution;
+                $found = true;
+            }
+        }
+        unset($conflict);
+        if (! $found) {
+            throw ValidationException::withMessages(['path' => 'This conflict has changed. Reload the source and choose again.']);
+        }
+        $source->forceFill(['sync_conflicts' => $conflicts])->save();
+    }
+
+    /** @return array<string, mixed> */
+    private function requireWritable(SkillSource $source): array
+    {
+        try {
+            return $this->repository->requireWriteAccess($source);
+        } catch (\RuntimeException $e) {
+            throw ValidationException::withMessages(['credential_id' => $e->getMessage()]);
+        }
     }
 
     public function queueSync(SkillSource $source, bool $force = false): void
@@ -99,7 +226,9 @@ class SkillSources
     {
         DB::transaction(function () use ($source, $keepSkills): void {
             if ($keepSkills) {
-                $source->skills()->withTrashed()->update(['skill_source_id' => null, 'source_path' => null]);
+                foreach ($source->skills()->withTrashed()->get() as $skill) {
+                    $skill->forceFill(['origin_url' => $skill->origin_url ?? $source->url($skill->source_path), 'skill_source_id' => null, 'source_path' => null])->save();
+                }
             } else {
                 $source->skills()->delete();
             }
@@ -113,7 +242,7 @@ class SkillSources
      *
      * @param  array<string, mixed>  $data
      */
-    private function unsaved(Workspace $workspace, User $user, array $data): SkillSource
+    public function unsaved(Workspace $workspace, User $user, array $data): SkillSource
     {
         $location = $this->location((string) ($data['repo'] ?? ''));
 

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\Internal\V1\Agents;
 
 use App\Models\Agents\SkillSource;
+use App\Services\Agents\Skills\TwoWaySkillSync;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,6 +19,14 @@ class SkillSourceResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'pending_changes' => app(TwoWaySkillSync::class)->pendingPaths($this->resource),
+            'repository_private' => $this->repository_private,
+            'upstream_repo' => $this->upstream_repo,
+            'upstream_branch' => $this->upstream_branch,
+            'fork_request' => $this->fork_request === null ? null : ['repo' => $this->fork_request['repo']],
+            'publish_once' => $this->publish_once,
+            'two_way' => $this->two_way,
+            'conflicts' => $this->sync_conflicts ?? [],
             'repo' => $this->repo,
             'branch' => $this->branch,
             'path' => $this->path,

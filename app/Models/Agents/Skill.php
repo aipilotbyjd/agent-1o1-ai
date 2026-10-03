@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * `skill_source_id` and `source_path` are set only by `SkillSync`: a skill
- * with a source is synced from GitHub and read-only here (see `isSynced()`).
+ * `skill_source_id` and `source_path` are managed by the skill sync services.
+ * Linked skills are editable when their source enables two-way sync.
  *
  * `version` is engine-managed — not in `#[Fillable]`, incremented via
  * `forceFill()`/`increment()` whenever `instructions` changes (see
@@ -81,8 +81,7 @@ class Skill extends Model
     }
 
     /**
-     * Synced from a repository, which is the source of truth: change it
-     * there, not here.
+     * Whether this skill is linked to a repository.
      */
     public function isSynced(): bool
     {
