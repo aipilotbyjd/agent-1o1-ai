@@ -13,17 +13,15 @@ use App\Models\Agents\AgentMemory;
 use App\Models\Agents\Skill;
 
 /**
- * Composes an `Agent`'s base `instructions` with a list of its attached
- * `Skill`s (name and description only — the model loads a skill's full
- * instructions on demand through `UseSkillTool`),
- * active `AgentKnowledge` entries, and remembered `AgentMemory` facts into
- * one final system-prompt string — see docs/AGENTS_PLAN.md's "Skills"
- * section ("no config binding, just injected as additional system-prompt
- * context alongside instructions()"), "Knowledge / RAG" (`AgentKnowledge` is
- * "always know this", injected directly, as opposed to
- * `SearchKnowledgeTool`'s "look this up when relevant"), and the
- * `agent_memories` section ("durable memory distinct from `AgentSession`'s
- * per-conversation history").
+ * Composes an `Agent`'s base `instructions` into the final system prompt,
+ * adding an "about you" section, the names and descriptions of its attached
+ * `Skill`s (the model loads a skill's full text on demand through
+ * `UseSkillTool`), active `AgentKnowledge` entries and remembered
+ * `AgentMemory` facts — see docs/AGENTS_PLAN.md's "Skills", "Knowledge / RAG"
+ * and `agent_memories` sections. `AgentKnowledge` is "always know this",
+ * injected directly, as opposed to `SearchKnowledgeTool`'s "look this up when
+ * relevant"; memory is durable and distinct from `AgentSession`'s
+ * per-conversation history.
  */
 class SkillInjector
 {
