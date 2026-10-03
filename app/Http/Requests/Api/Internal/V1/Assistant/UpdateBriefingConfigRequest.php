@@ -31,6 +31,10 @@ class UpdateBriefingConfigRequest extends FormRequest
             'instructions' => ['sometimes', 'nullable', 'string', 'max:'.config('assistant.briefings.instructions_max_chars')],
             'delivery' => ['sometimes', 'array'],
             'delivery.email' => ['boolean'],
+            'settings' => ['sometimes', 'array'],
+            'settings.auto' => ['sometimes', 'boolean'],
+            'settings.minutes_before' => ['sometimes', 'integer', 'between:5,240'],
+            'settings.scope' => ['sometimes', Rule::in(['external_only', 'all'])],
         ];
     }
 }

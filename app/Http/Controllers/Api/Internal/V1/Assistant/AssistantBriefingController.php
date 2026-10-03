@@ -14,12 +14,14 @@ use App\Models\Assistant\AssistantBriefingRun;
 use App\Models\Workspaces\Workspace;
 use App\Services\Assistant\Briefings\BriefingScheduler;
 use App\Services\Assistant\Briefings\BriefingSources;
+use App\Services\Assistant\Meetings\MeetingPrepScheduler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The Daily report: its settings, running it now, and past reports.
+ * A background report's settings (`daily` or `meeting_prep`), running the
+ * Daily report now, and past reports.
  */
 class AssistantBriefingController extends Controller
 {
@@ -30,50 +32,55 @@ class AssistantBriefingController extends Controller
     public function __construct(
         private BriefingScheduler $scheduler,
         private BriefingSources $sources,
+        private MeetingPrepScheduler $meetingPrep,
     ) {}
 
-    public function show(Request $request, Workspace $workspace): JsonResponse
+    public function show(Request $request, Workspace $workspace, string $type): JsonResponse
     {
         $this->requirePermission(Permission::AssistantUse);
 
-        return ApiResponse::success($this->payload($this->config($this->ownAssistant($request, $workspace))));
+        return ApiResponse::success($this->payload($this->config($this->ownAssistant($request, $workspace), $type)));
     }
 
-    public function update(UpdateBriefingConfigRequest $request, Workspace $workspace): JsonResponse
+    public function update(UpdateBriefingConfigRequest $request, Workspace $workspace, string $type): JsonResponse
     {
         $this->requirePermission(Permission::AssistantUse);
 
-        $config = $this->config($this->ownAssistant($request, $workspace));
+        $config = $this->config($this->ownAssistant($request, $workspace), $type);
         $config->fill($request->validated())->save();
 
         return ApiResponse::success($this->payload($config->refresh()), 'Saved.');
     }
 
-    public function pause(Request $request, Workspace $workspace): JsonResponse
+    public function pause(Request $request, Workspace $workspace, string $type): JsonResponse
     {
         $this->requirePermission(Permission::AssistantUse);
 
-        $config = $this->config($this->ownAssistant($request, $workspace));
+        $config = $this->config($this->ownAssistant($request, $workspace), $type);
         $config->forceFill(['paused_at' => now()])->save();
 
         return ApiResponse::success($this->payload($config), 'Paused.');
     }
 
-    public function resume(Request $request, Workspace $workspace): JsonResponse
+    public function resume(Request $request, Workspace $workspace, string $type): JsonResponse
     {
         $this->requirePermission(Permission::AssistantUse);
 
-        $config = $this->config($this->ownAssistant($request, $workspace));
+        $config = $this->config($this->ownAssistant($request, $workspace), $type);
         $config->forceFill(['paused_at' => null])->save();
 
         return ApiResponse::success($this->payload($config), 'Resumed.');
     }
 
-    public function runNow(Request $request, Workspace $workspace): JsonResponse
+    public function runNow(Request $request, Workspace $workspace, string $type): JsonResponse
     {
         $this->requirePermission(Permission::AssistantUse);
 
-        $run = $this->scheduler->runNow($this->config($this->ownAssistant($request, $workspace)));
+        $config = $this->config($this->ownAssistant($request, $workspace), $type);
+
+        abort_unless($config->type === AssistantBriefingType::Daily, 422, 'Meeting briefs are prepared per meeting.');
+
+        $run = $this->scheduler->runNow($config);
 
         return ApiResponse::success(['run' => $run === null ? null : $this->describeRun($run->refresh())], 'Writing your report.', Response::HTTP_ACCEPTED);
     }
@@ -87,8 +94,14 @@ class AssistantBriefingController extends Controller
         return ApiResponse::success(['run' => $this->describeRun($run, withDocument: true)]);
     }
 
-    private function config(Assistant $assistant): AssistantBriefingConfig
+    private function config(Assistant $assistant, string $type): AssistantBriefingConfig
     {
+        $type = AssistantBriefingType::tryFrom($type) ?? abort(404);
+
+        if ($type === AssistantBriefingType::MeetingPrep) {
+            return $this->meetingPrep->config($assistant);
+        }
+
         return $assistant->briefingConfigs()->firstOrCreate(
             ['type' => AssistantBriefingType::Daily],
             [
@@ -114,9 +127,10 @@ class AssistantBriefingController extends Controller
                 'connector_keys' => $config->connector_keys ?? [],
                 'instructions' => $config->instructions,
                 'delivery' => $config->delivery ?? ['email' => false],
+                'settings' => $config->settings ?? (object) [],
             ],
             'readable_sources' => array_keys($this->sources->all()),
-            'runs' => $config->runs()->latest()->limit(self::RUNS_SHOWN)->get()
+            'runs' => $config->runs()->whereNull('assistant_meeting_id')->latest()->limit(self::RUNS_SHOWN)->get()
                 ->map(fn (AssistantBriefingRun $run): array => $this->describeRun($run))
                 ->values(),
         ];

@@ -117,6 +117,17 @@ return [
         'instructions_max_chars' => 4000,
     ],
 
+    'meetings' => [
+        // How far ahead the calendar is synced and listed.
+        'sync_days' => 7,
+        'default_minutes_before' => 30,
+
+        // How far back Meeting Prep looks for email with the attendees.
+        'email_lookback_days' => 90,
+        'max_emails' => 10,
+        'max_files' => 5,
+    ],
+
     'approvals' => [
         'ttl_minutes' => (int) env('ASSISTANT_APPROVAL_TTL_MINUTES', 1440),
     ],

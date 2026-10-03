@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantAppController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantBriefingController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantFeedbackController;
+use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMeetingController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMessageController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantSessionController;
@@ -41,13 +42,19 @@ Route::middleware(['auth:api', 'workspace.context'])
             ->middleware('throttle:60,1')
             ->name('sessions.messages.feedback');
 
-        Route::get('briefings/daily', [AssistantBriefingController::class, 'show'])->name('briefings.daily.show');
-        Route::put('briefings/daily', [AssistantBriefingController::class, 'update'])->name('briefings.daily.update');
-        Route::post('briefings/daily/pause', [AssistantBriefingController::class, 'pause'])->name('briefings.daily.pause');
-        Route::post('briefings/daily/resume', [AssistantBriefingController::class, 'resume'])->name('briefings.daily.resume');
-        Route::post('briefings/daily/run-now', [AssistantBriefingController::class, 'runNow'])
+        Route::get('briefings/{type}', [AssistantBriefingController::class, 'show'])->whereIn('type', ['daily', 'meeting_prep'])->name('briefings.show');
+        Route::put('briefings/{type}', [AssistantBriefingController::class, 'update'])->whereIn('type', ['daily', 'meeting_prep'])->name('briefings.update');
+        Route::post('briefings/{type}/pause', [AssistantBriefingController::class, 'pause'])->whereIn('type', ['daily', 'meeting_prep'])->name('briefings.pause');
+        Route::post('briefings/{type}/resume', [AssistantBriefingController::class, 'resume'])->whereIn('type', ['daily', 'meeting_prep'])->name('briefings.resume');
+        Route::post('briefings/{type}/run-now', [AssistantBriefingController::class, 'runNow'])
+            ->whereIn('type', ['daily', 'meeting_prep'])
             ->middleware('throttle:6,1')
-            ->name('briefings.daily.run-now');
+            ->name('briefings.run-now');
+
+        Route::get('meetings', [AssistantMeetingController::class, 'index'])->name('meetings.index');
+        Route::post('meetings/{meeting}/prepare', [AssistantMeetingController::class, 'prepare'])
+            ->middleware('throttle:10,1')
+            ->name('meetings.prepare');
         Route::get('briefing-runs/{run}', [AssistantBriefingController::class, 'showRun'])->name('briefing-runs.show');
 
         Route::get('situations', [AssistantSituationController::class, 'index'])->name('situations.index');

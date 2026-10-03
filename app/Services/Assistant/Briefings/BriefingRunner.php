@@ -2,13 +2,10 @@
 
 namespace App\Services\Assistant\Briefings;
 
-use App\Actions\Billing\DeductCreditsAction;
 use App\Ai\Assistant\BriefingWriterAgent;
 use App\Ai\ResponseUsage;
 use App\Enums\Assistant\AssistantBriefingRunStatus;
 use App\Enums\Assistant\AssistantStyleKind;
-use App\Enums\Billing\CreditTransactionType;
-use App\Events\Assistant\AssistantBriefingCompleted;
 use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantBriefingConfig;
 use App\Models\Assistant\AssistantBriefingRun;
@@ -20,7 +17,6 @@ use App\Services\Assistant\Personalization\StyleProfiles;
 use App\Services\Assistant\Runtime\AssistantModel;
 use App\Services\Assistant\Tools\ConnectorToolProvider;
 use App\Services\Billing\CreditGate;
-use App\Services\Billing\CreditMeter;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -34,6 +30,8 @@ use Throwable;
  */
 class BriefingRunner
 {
+    use SettlesBriefingRuns;
+
     public function __construct(
         private readonly BriefingSources $sources,
         private readonly ConnectorToolProvider $connectors,
@@ -41,18 +39,11 @@ class BriefingRunner
         private readonly StyleProfiles $styles,
         private readonly BrandRepository $brands,
         private readonly CreditGate $creditGate,
-        private readonly CreditMeter $meter,
-        private readonly DeductCreditsAction $deductCredits,
     ) {}
 
     public function run(AssistantBriefingRun $run): void
     {
-        $claimed = AssistantBriefingRun::query()
-            ->whereKey($run->id)
-            ->where('status', AssistantBriefingRunStatus::Queued)
-            ->update(['status' => AssistantBriefingRunStatus::Collecting, 'updated_at' => now()]);
-
-        if ($claimed !== 1) {
+        if (! $this->claim($run)) {
             return;
         }
 
@@ -86,7 +77,7 @@ class BriefingRunner
 
             $this->storeSituations($run, $assistant, $written['situations']);
             $this->advanceCursors($config, $results, $windowEnd);
-            $this->charge($run, $assistant, $written['usage']);
+            $this->charge($run, $assistant, $written['usage'], 'Personal assistant Daily report');
             $this->finish($run, AssistantBriefingRunStatus::Completed);
             $this->deliver($run, $config, $assistant);
         } catch (Throwable $e) {
@@ -230,52 +221,12 @@ class BriefingRunner
     }
 
     /**
-     * @param  array<string, mixed>|null  $usage
-     */
-    private function charge(AssistantBriefingRun $run, Assistant $assistant, ?array $usage): void
-    {
-        if ($usage === null) {
-            return;
-        }
-
-        $this->deductCredits->execute(
-            $assistant->workspace,
-            CreditTransactionType::AssistantTurn,
-            $run->id,
-            $this->meter->costForAssistantTurn($usage),
-            'Personal assistant Daily report',
-            allowOverdraft: true,
-        );
-    }
-
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
-    private function finish(AssistantBriefingRun $run, AssistantBriefingRunStatus $status, array $attributes = []): void
-    {
-        $run->forceFill(['status' => $status, ...$attributes])->save();
-
-        // Live refresh is a convenience: the report is saved either way, so a
-        // broadcasting outage must not fail it.
-        try {
-            AssistantBriefingCompleted::dispatch($run);
-        } catch (Throwable $e) {
-            report($e);
-        }
-    }
-
-    /**
      * Only one delivery per report, however many times this is reached:
      * the `delivered_at` claim is a conditional update.
      */
     private function deliver(AssistantBriefingRun $run, AssistantBriefingConfig $config, Assistant $assistant): void
     {
-        $claimed = AssistantBriefingRun::query()
-            ->whereKey($run->id)
-            ->whereNull('delivered_at')
-            ->update(['delivered_at' => now()]);
-
-        if ($claimed !== 1) {
+        if (! $this->claimDelivery($run)) {
             return;
         }
 

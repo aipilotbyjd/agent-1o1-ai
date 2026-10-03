@@ -75,6 +75,11 @@ class Assistant extends Model
         return $this->hasMany(AssistantBriefingConfig::class);
     }
 
+    public function meetings(): HasMany
+    {
+        return $this->hasMany(AssistantMeeting::class);
+    }
+
     public function situations(): HasMany
     {
         return $this->hasMany(AssistantSituation::class);

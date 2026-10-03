@@ -27,4 +27,5 @@ Schedule::command('reflections:run-due')->everyFifteenMinutes()->withoutOverlapp
 Schedule::command('agents:expire-actions')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('assistant:expire-actions')->everyMinute()->withoutOverlapping()->onOneServer();
 Schedule::command('assistant:run-due-briefings')->everyMinute()->withoutOverlapping()->onOneServer();
+Schedule::command('assistant:sync-meetings')->everyTenMinutes()->withoutOverlapping()->onOneServer();
 Schedule::command('workflow-builder:archive-idle')->dailyAt('03:00')->withoutOverlapping()->onOneServer();

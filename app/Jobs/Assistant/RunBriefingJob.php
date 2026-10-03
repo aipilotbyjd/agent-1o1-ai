@@ -2,8 +2,10 @@
 
 namespace App\Jobs\Assistant;
 
+use App\Enums\Assistant\AssistantBriefingType;
 use App\Models\Assistant\AssistantBriefingRun;
 use App\Services\Assistant\Briefings\BriefingRunner;
+use App\Services\Assistant\Meetings\MeetingPrepRunner;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -22,8 +24,11 @@ class RunBriefingJob implements ShouldQueue
         $this->onQueue(config('assistant.runtime.queue'));
     }
 
-    public function handle(BriefingRunner $runner): void
+    public function handle(BriefingRunner $daily, MeetingPrepRunner $meetingPrep): void
     {
-        $runner->run($this->run);
+        match ($this->run->config->type) {
+            AssistantBriefingType::Daily => $daily->run($this->run),
+            AssistantBriefingType::MeetingPrep => $meetingPrep->run($this->run),
+        };
     }
 }

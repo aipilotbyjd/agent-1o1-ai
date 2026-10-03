@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * One report. `run_key` (`daily:2026-10-03`, `manual:<uuid>`) is unique per
  * config, so a retried or doubled schedule tick can never produce two.
  */
-#[Fillable(['assistant_briefing_config_id', 'run_key', 'status', 'trigger', 'window_start', 'window_end', 'summary', 'document', 'source_results', 'delivery_results', 'usage', 'error', 'delivered_at'])]
+#[Fillable(['assistant_briefing_config_id', 'assistant_meeting_id', 'run_key', 'status', 'trigger', 'window_start', 'window_end', 'summary', 'document', 'source_results', 'delivery_results', 'usage', 'error', 'delivered_at'])]
 class AssistantBriefingRun extends Model
 {
     use HasUuids;
@@ -37,6 +37,11 @@ class AssistantBriefingRun extends Model
     public function config(): BelongsTo
     {
         return $this->belongsTo(AssistantBriefingConfig::class, 'assistant_briefing_config_id');
+    }
+
+    public function meeting(): BelongsTo
+    {
+        return $this->belongsTo(AssistantMeeting::class, 'assistant_meeting_id');
     }
 
     public function situations(): HasMany
