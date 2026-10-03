@@ -3,6 +3,7 @@
 namespace App\Broadcasting;
 
 use App\Models\Agents\AgentSession;
+use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
@@ -34,6 +35,8 @@ final class Channels
     public const string WORKFLOW_BUILDER_SESSION_PATTERN = 'workspaces.{workspaceId}.workflow-builder-sessions.{sessionId}';
 
     public const string ASSISTANT_SESSION_PATTERN = 'workspaces.{workspaceId}.assistant-sessions.{sessionId}';
+
+    public const string ASSISTANT_PATTERN = 'workspaces.{workspaceId}.assistants.{assistantId}';
 
     /**
      * Workspace-wide firehose of run state transitions — what a "Runs" list
@@ -81,5 +84,14 @@ final class Channels
         $workspaceId = $session->assistant->workspace_id;
 
         return "workspaces.{$workspaceId}.assistant-sessions.{$session->id}";
+    }
+
+    /**
+     * One personal assistant's own stream — background reports finishing.
+     * Owner only (`WorkspaceChannelGate::assistant()`).
+     */
+    public static function assistant(Assistant $assistant): string
+    {
+        return "workspaces.{$assistant->workspace_id}.assistants.{$assistant->id}";
     }
 }

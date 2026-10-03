@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\Api\Internal\V1\AppConfigController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantAppController;
+use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantBriefingController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantFeedbackController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMessageController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantSessionController;
+use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantSituationController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantStyleController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantToolRuleController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantTranscriptionController;
@@ -38,6 +40,20 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('sessions/{session}/messages/{message}/feedback', [AssistantFeedbackController::class, 'store'])
             ->middleware('throttle:60,1')
             ->name('sessions.messages.feedback');
+
+        Route::get('briefings/daily', [AssistantBriefingController::class, 'show'])->name('briefings.daily.show');
+        Route::put('briefings/daily', [AssistantBriefingController::class, 'update'])->name('briefings.daily.update');
+        Route::post('briefings/daily/pause', [AssistantBriefingController::class, 'pause'])->name('briefings.daily.pause');
+        Route::post('briefings/daily/resume', [AssistantBriefingController::class, 'resume'])->name('briefings.daily.resume');
+        Route::post('briefings/daily/run-now', [AssistantBriefingController::class, 'runNow'])
+            ->middleware('throttle:6,1')
+            ->name('briefings.daily.run-now');
+        Route::get('briefing-runs/{run}', [AssistantBriefingController::class, 'showRun'])->name('briefing-runs.show');
+
+        Route::get('situations', [AssistantSituationController::class, 'index'])->name('situations.index');
+        Route::patch('situations/{situation}', [AssistantSituationController::class, 'update'])->name('situations.update');
+        Route::patch('situations/{situation}/steps/{step}', [AssistantSituationController::class, 'updateStep'])->name('situations.steps.update');
+        Route::post('situations/{situation}/send', [AssistantSituationController::class, 'send'])->name('situations.send');
 
         Route::get('styles', [AssistantStyleController::class, 'index'])->name('styles.index');
         Route::put('styles/{kind}', [AssistantStyleController::class, 'update'])->name('styles.update');

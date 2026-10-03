@@ -70,6 +70,16 @@ class Assistant extends Model
         return $this->hasMany(AssistantFeedback::class);
     }
 
+    public function briefingConfigs(): HasMany
+    {
+        return $this->hasMany(AssistantBriefingConfig::class);
+    }
+
+    public function situations(): HasMany
+    {
+        return $this->hasMany(AssistantSituation::class);
+    }
+
     public function toolRules(): HasMany
     {
         return $this->hasMany(AssistantToolRule::class);

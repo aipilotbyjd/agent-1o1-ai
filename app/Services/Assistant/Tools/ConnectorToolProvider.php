@@ -58,7 +58,10 @@ class ConnectorToolProvider implements ProvidesAssistantTools
                 ?? $this->preferred($group->where('scope', ConnectorCredentialScope::Team)))
             ->filter()
             ->filter(fn (ConnectorCredential $credential): bool => $credential->connector instanceof Connector && $credential->connector->is_active)
-            ->mapWithKeys(fn (ConnectorCredential $credential): array => [$credential->connector->key => $credential]);
+            ->mapWithKeys(fn (ConnectorCredential $credential): array => [$credential->connector->key => $credential])
+            // A plain collection: keyed by app, so `only()`/`has()` work on those keys
+            // rather than on the models' primary keys as an Eloquent collection would.
+            ->toBase();
     }
 
     /**

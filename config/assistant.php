@@ -102,6 +102,21 @@ return [
         'max_kilobytes' => 25600,
     ],
 
+    'briefings' => [
+        // How far back the very first report looks.
+        'first_run_lookback_hours' => 16,
+
+        // Items read from each app per report — keeps the prompt bounded.
+        'max_items_per_source' => 25,
+
+        'max_situations' => 5,
+
+        // Writing a whole report takes longer than a chat reply.
+        'writer_timeout_seconds' => 180,
+        'max_connectors' => 50,
+        'instructions_max_chars' => 4000,
+    ],
+
     'approvals' => [
         'ttl_minutes' => (int) env('ASSISTANT_APPROVAL_TTL_MINUTES', 1440),
     ],
