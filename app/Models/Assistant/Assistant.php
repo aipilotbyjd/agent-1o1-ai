@@ -86,6 +86,11 @@ class Assistant extends Model
         return $this->hasOne(AssistantInboxConfig::class);
     }
 
+    public function triggers(): HasMany
+    {
+        return $this->hasMany(AssistantTrigger::class);
+    }
+
     public function situations(): HasMany
     {
         return $this->hasMany(AssistantSituation::class);

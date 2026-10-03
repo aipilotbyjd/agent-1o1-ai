@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Assistant;
 
-use DateTimeZone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +23,8 @@ class UpdateBriefingConfigRequest extends FormRequest
             'schedule.time' => ['required_with:schedule', 'date_format:H:i'],
             'schedule.days' => ['required_with:schedule', 'array', 'min:1'],
             'schedule.days.*' => ['integer', 'between:1,7', 'distinct'],
-            'schedule.timezone' => ['required_with:schedule', Rule::in(DateTimeZone::listIdentifiers())],
+            // Browsers still report legacy names ("Asia/Calcutta"), so those count too.
+            'schedule.timezone' => ['required_with:schedule', 'timezone:all_with_bc'],
             'connector_scope' => ['sometimes', Rule::in(['all', 'selected'])],
             'connector_keys' => ['nullable', 'array', 'max:'.config('assistant.briefings.max_connectors')],
             'connector_keys.*' => ['string', 'max:100'],

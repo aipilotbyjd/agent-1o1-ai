@@ -155,6 +155,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Keyed by token rather than IP: one noisy provider must not rate-limit
         // every other trigger sharing its egress IPs.
+        // Personal-assistant webhook triggers: per trigger URL.
+        RateLimiter::for('assistant-hooks', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('assistant.triggers.webhook_rate_per_minute'),
+        )->by('assistant-hook:'.($request->route('token') ?? $request->ip())));
+
         RateLimiter::for('trigger-hooks', fn (Request $request): Limit => Limit::perMinute(
             (int) config('triggers.hook_rate_limit_per_minute'),
         )->by($request->route('token') ?? $request->ip()));

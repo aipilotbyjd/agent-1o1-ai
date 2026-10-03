@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * `external_thread_ref` let a Slack thread, email thread or SMS chat find
  * its way back to the same session. Incognito sessions expire after a day.
  */
-#[Fillable(['assistant_id', 'title', 'status', 'origin', 'external_thread_ref', 'incognito', 'expires_at', 'last_activity_at'])]
+#[Fillable(['assistant_id', 'assistant_trigger_id', 'title', 'status', 'origin', 'external_thread_ref', 'incognito', 'expires_at', 'last_activity_at'])]
 class AssistantSession extends Model
 {
     /** @use HasFactory<AssistantSessionFactory> */
@@ -50,6 +50,11 @@ class AssistantSession extends Model
     public function assistant(): BelongsTo
     {
         return $this->belongsTo(Assistant::class);
+    }
+
+    public function trigger(): BelongsTo
+    {
+        return $this->belongsTo(AssistantTrigger::class, 'assistant_trigger_id');
     }
 
     public function messages(): HasMany

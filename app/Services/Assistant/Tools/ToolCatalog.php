@@ -3,7 +3,10 @@
 namespace App\Services\Assistant\Tools;
 
 use App\Ai\Assistant\Tools\AssistantTool;
+use App\Ai\Assistant\Tools\ChangeTriggerTool;
+use App\Ai\Assistant\Tools\CreateTriggerTool;
 use App\Ai\Assistant\Tools\ForgetTool;
+use App\Ai\Assistant\Tools\ListTriggersTool;
 use App\Ai\Assistant\Tools\RememberTool;
 use App\Ai\Assistant\Tools\UpdateStyleTool;
 use App\Contracts\Assistant\ProvidesAssistantTools;
@@ -12,6 +15,7 @@ use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantSession;
 use App\Models\Assistant\AssistantTurn;
 use App\Services\Assistant\Personalization\StyleProfiles;
+use App\Services\Assistant\Triggers\TriggerDefinitions;
 use Illuminate\Contracts\Container\Container;
 use Laravel\Ai\AiManager;
 use Laravel\Ai\Contracts\Providers\SupportsWebFetch;
@@ -34,6 +38,7 @@ class ToolCatalog
         private readonly Container $container,
         private readonly AiManager $ai,
         private readonly StyleProfiles $styles,
+        private readonly TriggerDefinitions $triggers,
     ) {}
 
     /**
@@ -88,6 +93,9 @@ class ToolCatalog
             new RememberTool($assistant, $session->exists ? $session : null),
             new ForgetTool($assistant),
             new UpdateStyleTool($assistant, $this->styles),
+            new CreateTriggerTool($assistant, $this->triggers),
+            new ListTriggersTool($assistant),
+            new ChangeTriggerTool($assistant, $this->triggers),
         ];
     }
 

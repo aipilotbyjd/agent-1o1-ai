@@ -7,6 +7,7 @@ use App\Models\Assistant\AssistantTurn;
 use App\Services\Assistant\Runtime\AssistantLoop;
 use App\Services\Assistant\Runtime\ContextCompactor;
 use App\Services\Assistant\Runtime\TurnRunner;
+use App\Services\Assistant\Triggers\TriggerOutcomes;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
@@ -32,9 +33,11 @@ class RunAssistantTurnJob implements ShouldQueue
         $this->onQueue(config('assistant.runtime.queue'));
     }
 
-    public function handle(TurnRunner $runner, AssistantLoop $loop, ContextCompactor $compactor): void
+    public function handle(TurnRunner $runner, AssistantLoop $loop, ContextCompactor $compactor, TriggerOutcomes $outcomes): void
     {
         $runner->run($this->turn);
+
+        $outcomes->record($this->turn->refresh());
 
         $session = $this->turn->session()->firstOrFail();
 

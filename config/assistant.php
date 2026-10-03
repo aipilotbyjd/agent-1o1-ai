@@ -144,6 +144,17 @@ return [
         'drafting_instructions_max_chars' => 2000,
     ],
 
+    'triggers' => [
+        'max_per_assistant' => 50,
+
+        // A trigger switches itself off after this many failed runs in a row.
+        'max_consecutive_failures' => 3,
+
+        'webhook_rate_per_minute' => 100,
+        'webhook_payload_max_chars' => 10000,
+        'prompt_max_chars' => 4000,
+    ],
+
     'approvals' => [
         'ttl_minutes' => (int) env('ASSISTANT_APPROVAL_TTL_MINUTES', 1440),
     ],

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Connectors\OAuthConnectorController;
+use App\Http\Controllers\Webhooks\AssistantWebhookController;
 use App\Http\Controllers\Webhooks\SlackAgentActionController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\WaitCallbackController;
@@ -13,6 +14,12 @@ use Illuminate\Support\Facades\Route;
 Route::post('hooks/{token}', WebhookController::class)
     ->middleware('throttle:trigger-hooks')
     ->name('hooks.trigger');
+
+// A personal assistant's webhook trigger — the token in the URL is the
+// credential. Answers at once; the assistant runs on the queue.
+Route::post('hooks/assistant/{token}', AssistantWebhookController::class)
+    ->middleware('throttle:assistant-hooks')
+    ->name('hooks.assistant');
 
 // Same pattern, applied to a Wait node's one-time callback token instead of
 // a Trigger's — reuses the 'trigger-hooks' limiter since it's already

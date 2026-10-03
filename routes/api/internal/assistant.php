@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantSituationController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantStyleController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantToolRuleController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantTranscriptionController;
+use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantTriggerController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantTurnController;
 use Illuminate\Support\Facades\Route;
 
@@ -60,6 +61,14 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::patch('inbox/labels/{label}', [AssistantInboxController::class, 'updateLabel'])->name('inbox.labels.update');
         Route::delete('inbox/labels/{label}', [AssistantInboxController::class, 'destroyLabel'])->name('inbox.labels.destroy');
         Route::post('inbox/messages/{message}/accept', [AssistantInboxController::class, 'acceptSuggestion'])->name('inbox.messages.accept');
+
+        Route::get('triggers', [AssistantTriggerController::class, 'index'])->name('triggers.index');
+        Route::post('triggers', [AssistantTriggerController::class, 'store'])->name('triggers.store');
+        Route::patch('triggers/{trigger}', [AssistantTriggerController::class, 'update'])->name('triggers.update');
+        Route::delete('triggers/{trigger}', [AssistantTriggerController::class, 'destroy'])->name('triggers.destroy');
+        Route::post('triggers/{trigger}/run-now', [AssistantTriggerController::class, 'runNow'])
+            ->middleware('throttle:10,1')
+            ->name('triggers.run-now');
 
         Route::get('meetings', [AssistantMeetingController::class, 'index'])->name('meetings.index');
         Route::post('meetings/{meeting}/prepare', [AssistantMeetingController::class, 'prepare'])
