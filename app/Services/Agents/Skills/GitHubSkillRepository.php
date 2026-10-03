@@ -107,6 +107,12 @@ class GitHubSkillRepository
         $entries->setMaxDepth(32);
 
         foreach ($entries as $entry) {
+            // Phar reports tar symlinks as files, but its stream wrapper cannot
+            // open them as ordinary archive entries (for example AGENTS.md).
+            if ($entry->isLink()) {
+                continue;
+            }
+
             if ($strict && $entry->isFile() && $entry->getSize() > self::MAX_FILE_BYTES) {
                 throw new RuntimeException('Two-way sync cannot safely read a repository containing files larger than 256 KB.');
             }
@@ -116,8 +122,15 @@ class GitHubSkillRepository
 
             $path = Str::after(Str::after($entry->getPathname(), $prefix), '/');
 
-            if ($path !== '') {
-                $files[$path] = (string) file_get_contents($entry->getPathname());
+            if ($path === '') {
+                continue;
+            }
+
+            // PharData lists symlinks as regular files but cannot open them, so they are skipped.
+            $contents = @file_get_contents($entry->getPathname());
+
+            if ($contents !== false) {
+                $files[$path] = $contents;
             }
         }
 
