@@ -36,6 +36,7 @@ it('lists attached and available collections', function () {
 
 it('attaches and detaches a collection', function () {
     [$workspace, $owner, $agent] = agentWorkspaceForKnowledgeSources();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support']);
     Passport::actingAs($owner);
 
     $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge-sources/support")
@@ -61,6 +62,29 @@ it('does not let a viewer attach a knowledge source', function () {
 
     $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge-sources/support")
         ->assertForbidden();
+});
+
+it('404s attaching a collection that does not exist in the workspace', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledgeSources();
+    $other = app(WorkspaceService::class)->create($owner, ['name' => 'Other']);
+    DocumentEmbedding::factory()->forWorkspace($other)->create(['collection' => 'elsewhere']);
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge-sources/elsewhere")
+        ->assertNotFound();
+    expect($agent->knowledgeCollections()->count())->toBe(0);
+});
+
+it('does not offer or attach another agent\'s artifact collection', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledgeSources();
+    $collection = Agent::factory()->forWorkspace($workspace)->create()->artifactKnowledgeCollection();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => $collection]);
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge-sources")
+        ->assertJsonPath('data.available', []);
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge-sources/".rawurlencode($collection))
+        ->assertNotFound();
 });
 
 it('404s for an agent from another workspace', function () {

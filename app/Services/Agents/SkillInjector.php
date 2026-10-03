@@ -11,6 +11,7 @@ use App\Ai\Tools\UseSkillTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentMemory;
 use App\Models\Agents\Skill;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Composes an `Agent`'s base `instructions` with a list of its attached
@@ -57,10 +58,33 @@ class SkillInjector
             $sections[] = $skills;
         }
 
-        foreach ($agent->knowledge()->where('is_active', true)->orderBy('sort_order')->get() as $knowledge) {
-            if ($knowledge->content !== null) {
-                $sections[] = "## Knowledge: {$knowledge->title}\n{$knowledge->content}";
+        $budget = (int) config('knowledge_base.max_injected_characters');
+        $skipped = 0;
+
+        foreach ($agent->knowledge()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get() as $knowledge) {
+            if ($knowledge->content === null) {
+                continue;
             }
+
+            $section = "## Knowledge: {$knowledge->title}\n{$knowledge->content}";
+
+            // Every entry is resent on every turn, so the total is capped;
+            // an entry that doesn't fit is left out whole rather than cut.
+            if (mb_strlen($section) > $budget) {
+                $skipped++;
+
+                continue;
+            }
+
+            $budget -= mb_strlen($section);
+            $sections[] = $section;
+        }
+
+        if ($skipped > 0) {
+            Log::warning('Agent knowledge entries left out of the prompt: over the injection budget.', [
+                'agent_id' => $agent->id,
+                'skipped' => $skipped,
+            ]);
         }
 
         if ($memories = $this->memoriesSection($agent, $userId)) {
