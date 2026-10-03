@@ -12,13 +12,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * One conversation with an `Assistant`, from any channel. `origin` +
  * `external_thread_ref` let a Slack thread, email thread or SMS chat find
  * its way back to the same session. Incognito sessions expire after a day.
  */
-#[Fillable(['assistant_id', 'assistant_trigger_id', 'title', 'status', 'origin', 'external_thread_ref', 'incognito', 'expires_at', 'last_activity_at'])]
+#[Fillable(['assistant_id', 'assistant_trigger_id', 'title', 'status', 'origin', 'external_thread_ref', 'channel_context', 'incognito', 'expires_at', 'last_activity_at'])]
 class AssistantSession extends Model
 {
     /** @use HasFactory<AssistantSessionFactory> */
@@ -41,6 +42,7 @@ class AssistantSession extends Model
         return [
             'status' => AssistantSessionStatus::class,
             'origin' => AssistantSessionOrigin::class,
+            'channel_context' => 'array',
             'incognito' => 'boolean',
             'expires_at' => 'datetime',
             'last_activity_at' => 'datetime',
@@ -86,5 +88,13 @@ class AssistantSession extends Model
     public function scopeAlive(Builder $query): void
     {
         $query->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+    }
+
+    /**
+     * The cloud computer this conversation runs code on, once it has.
+     */
+    public function sandbox(): HasOne
+    {
+        return $this->hasOne(AssistantSandbox::class);
     }
 }

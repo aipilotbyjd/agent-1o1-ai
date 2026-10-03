@@ -28,7 +28,7 @@ class MeetingResearch
     public function for(Assistant $assistant, AssistantMeeting $meeting, ?array $onlySources = null): array
     {
         $credentials = $this->connectors->credentialsFor($assistant)
-            ->only(['gmail', 'google_drive'])
+            ->only(['gmail', 'outlook', 'google_drive'])
             ->when($onlySources !== null, fn (Collection $credentials) => $credentials->only($onlySources));
 
         $items = collect();
@@ -38,6 +38,7 @@ class MeetingResearch
             try {
                 $found = match ($source) {
                     'gmail' => $this->emails($assistant, $credential, $meeting),
+                    'outlook' => $this->outlookEmails($assistant, $credential, $meeting),
                     'google_drive' => $this->files($assistant, $credential, $meeting),
                 };
 
@@ -85,6 +86,37 @@ class MeetingResearch
                     'people' => array_values(array_filter([(string) ($headers['from'] ?? '')])),
                 ];
             })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Recent Outlook mail from any of the guests (Graph search can't combine
+     * people with a date, so the newest few per guest).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function outlookEmails(Assistant $assistant, $credential, AssistantMeeting $meeting): array
+    {
+        $max = (int) config('assistant.meetings.max_emails');
+        $since = now()->subDays((int) config('assistant.meetings.email_lookback_days'));
+
+        return collect($meeting->attendees ?? [])->pluck('email')->take(5)
+            ->flatMap(fn (string $email): array => $this->reader->read('outlook_list_messages', $assistant, $credential, [
+                'folder' => 'inbox',
+                'search' => "participants:{$email}",
+                'max_results' => $max,
+            ])['value'] ?? [])
+            ->filter(fn (array $message): bool => isset($message['receivedDateTime']) && now()->parse($message['receivedDateTime'])->gte($since))
+            ->unique('id')
+            ->sortByDesc('receivedDateTime')
+            ->take($max)
+            ->map(fn (array $message): array => [
+                'title' => (string) ($message['subject'] ?? '') ?: '(no subject)',
+                'detail' => (string) ($message['bodyPreview'] ?? ''),
+                'at' => (string) $message['receivedDateTime'],
+                'people' => array_values(array_filter([(string) ($message['from']['emailAddress']['address'] ?? '')])),
+            ])
             ->values()
             ->all();
     }

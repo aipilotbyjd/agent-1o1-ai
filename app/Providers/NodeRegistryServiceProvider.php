@@ -36,11 +36,22 @@ use App\Nodes\Integrations\GoogleDocs\GoogleDocsAppendTextNode;
 use App\Nodes\Integrations\GoogleDocs\GoogleDocsCreateDocumentNode;
 use App\Nodes\Integrations\GoogleDocs\GoogleDocsGetDocumentNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveDeleteFileNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveExportFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveGetFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveListFilesNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsAppendValuesNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetValuesNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsUpdateValuesNode;
+use App\Nodes\Integrations\Outlook\OutlookCreateDraftNode;
+use App\Nodes\Integrations\Outlook\OutlookCreateEventNode;
+use App\Nodes\Integrations\Outlook\OutlookDeleteEventNode;
+use App\Nodes\Integrations\Outlook\OutlookDeleteMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookGetMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookListEventsNode;
+use App\Nodes\Integrations\Outlook\OutlookListMessagesNode;
+use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
 use App\Nodes\Integrations\Slack\SlackGetChannelHistoryNode;
 use App\Nodes\Integrations\Slack\SlackInviteToChannelNode;
@@ -120,6 +131,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_drive_list_files' => GoogleDriveListFilesNode::class,
             'google_drive_get_file' => GoogleDriveGetFileNode::class,
             'google_drive_delete_file' => GoogleDriveDeleteFileNode::class,
+            'google_drive_export_file' => GoogleDriveExportFileNode::class,
             'google_sheets_get_values' => GoogleSheetsGetValuesNode::class,
             'google_sheets_append_values' => GoogleSheetsAppendValuesNode::class,
             'google_sheets_update_values' => GoogleSheetsUpdateValuesNode::class,
@@ -129,6 +141,16 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_calendar_list_events' => GoogleCalendarListEventsNode::class,
             'google_calendar_create_event' => GoogleCalendarCreateEventNode::class,
             'google_calendar_delete_event' => GoogleCalendarDeleteEventNode::class,
+            'outlook_list_messages' => OutlookListMessagesNode::class,
+            'outlook_get_message' => OutlookGetMessageNode::class,
+            'outlook_send_email' => OutlookSendEmailNode::class,
+            'outlook_reply_to_message' => OutlookReplyToMessageNode::class,
+            'outlook_create_draft' => OutlookCreateDraftNode::class,
+            'outlook_move_message' => OutlookMoveMessageNode::class,
+            'outlook_delete_message' => OutlookDeleteMessageNode::class,
+            'outlook_list_events' => OutlookListEventsNode::class,
+            'outlook_create_event' => OutlookCreateEventNode::class,
+            'outlook_delete_event' => OutlookDeleteEventNode::class,
         ];
     }
 }

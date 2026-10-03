@@ -75,4 +75,9 @@ enum CreditTransactionType: string
      * like an agent chat turn.
      */
     case AssistantTurn = 'assistant_turn';
+
+    /**
+     * Minutes the assistant's cloud computer spent running code.
+     */
+    case AssistantSandbox = 'assistant_sandbox';
 }

@@ -6,6 +6,7 @@ use App\Services\Assistant\Briefings\Collectors\GitHubCollector;
 use App\Services\Assistant\Briefings\Collectors\GmailCollector;
 use App\Services\Assistant\Briefings\Collectors\GoogleCalendarCollector;
 use App\Services\Assistant\Briefings\Collectors\GoogleDriveCollector;
+use App\Services\Assistant\Briefings\Collectors\OutlookCollector;
 use App\Services\Assistant\Briefings\Collectors\SlackCollector;
 use Illuminate\Contracts\Container\Container;
 
@@ -24,6 +25,7 @@ class BriefingSources
         SlackCollector::class,
         GitHubCollector::class,
         GoogleDriveCollector::class,
+        OutlookCollector::class,
     ];
 
     public function __construct(private readonly Container $container) {}

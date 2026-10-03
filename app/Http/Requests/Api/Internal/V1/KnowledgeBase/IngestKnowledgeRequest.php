@@ -21,6 +21,7 @@ class IngestKnowledgeRequest extends FormRequest
             // Embedding happens inline, so the size caps keep one request
             // from turning into minutes of provider calls. Ingest a large
             // corpus as several documents rather than one.
+            'private' => ['sometimes', 'boolean'],
             'text' => ['required_without:file', 'prohibits:file', 'nullable', 'string', 'max:200000'],
             'file' => [
                 'required_without:text',

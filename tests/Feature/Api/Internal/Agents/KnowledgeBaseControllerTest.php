@@ -156,8 +156,8 @@ it('lists collections with their chunk counts', function () {
 
     $response->assertOk();
     expect($response->json('data.collections'))->toBe([
-        ['collection' => 'sales', 'chunks_count' => 1],
-        ['collection' => 'support', 'chunks_count' => 2],
+        ['collection' => 'sales', 'private' => false, 'chunks_count' => 1],
+        ['collection' => 'support', 'private' => false, 'chunks_count' => 2],
     ]);
 });
 

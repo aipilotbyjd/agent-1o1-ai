@@ -226,8 +226,10 @@ it('gives incognito conversations no memory tools', function () {
 
     $this->loop->send($session, 'Hello');
 
-    AssistantAgent::assertPrompted(fn (AgentPrompt $prompt): bool => ! collect($prompt->agent->tools())
-        ->contains(fn ($tool) => $tool instanceof AssistantTool));
+    // Searching is fine; nothing that saves memories or knowledge.
+    AssistantAgent::assertPrompted(fn (AgentPrompt $prompt): bool => collect($prompt->agent->tools())
+        ->filter(fn ($tool) => $tool instanceof AssistantTool)
+        ->every(fn (AssistantTool $tool): bool => $tool->effect() === AssistantToolEffect::Read));
 });
 
 it('queues a message sent while a turn is running and answers it next', function () {

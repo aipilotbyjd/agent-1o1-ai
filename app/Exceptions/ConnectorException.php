@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use App\Models\Connectors\Connector;
+use App\Models\Connectors\ConnectorCredential;
 use RuntimeException;
 
 /**
@@ -16,5 +17,16 @@ class ConnectorException extends RuntimeException
     public static function notConfigured(Connector $connector): self
     {
         return new self("{$connector->name} isn't set up on this server yet, so it can't be connected.");
+    }
+
+    /**
+     * The access token is past its expiry and can't be renewed — only the
+     * member reconnecting the app fixes it.
+     */
+    public static function needsReconnect(ConnectorCredential $credential): self
+    {
+        $app = $credential->connector?->name ?? 'This app';
+
+        return new self("The {$app} connection \"{$credential->name}\" has expired. Reconnect it in Apps.");
     }
 }

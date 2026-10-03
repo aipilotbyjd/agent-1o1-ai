@@ -155,6 +155,71 @@ return [
         'prompt_max_chars' => 4000,
     ],
 
+    'sandbox' => [
+        // The cloud computer the assistant runs code on (E2B). Leave the key
+        // empty to turn code running off.
+        'provider' => 'e2b',
+        'api_key' => env('E2B_API_KEY'),
+        'api_url' => env('E2B_API_URL', 'https://api.e2b.dev'),
+        'domain' => env('E2B_DOMAIN', 'e2b.app'),
+        'template' => env('E2B_TEMPLATE', 'code-interpreter-v1'),
+
+        // A conversation's computer is deleted after this long idle.
+        'idle_seconds' => 900,
+
+        // Longest one run may take, and how much output reaches the model.
+        'run_timeout_seconds' => 600,
+        'max_output_chars' => 20000,
+        'max_file_kilobytes' => 20480,
+
+        'credits_per_minute' => 2,
+    ],
+
+    'channels' => [
+        'email' => [
+            // The secret your inbound mail provider (e.g. Postmark) puts in
+            // the webhook URL: /api/hooks/assistant/email?token=…
+            'inbound_token' => env('ASSISTANT_EMAIL_INBOUND_TOKEN'),
+
+            // Only act on mail whose sender passed SPF or DKIM.
+            'require_authentication' => (bool) env('ASSISTANT_EMAIL_REQUIRE_AUTH', true),
+        ],
+
+        // The platform's own Slack app, installed per Slack workspace with
+        // "Add to Slack". Leave empty to hide Slack.
+        'slack' => [
+            'client_id' => env('ASSISTANT_SLACK_CLIENT_ID'),
+            'client_secret' => env('ASSISTANT_SLACK_CLIENT_SECRET'),
+            'signing_secret' => env('ASSISTANT_SLACK_SIGNING_SECRET'),
+            'scopes' => 'chat:write,im:history,im:read,im:write,users:read,users:read.email',
+        ],
+
+        // Texting the assistant (Twilio). Leave the SID empty to hide SMS.
+        'sms' => [
+            'account_sid' => env('TWILIO_ACCOUNT_SID'),
+            'auth_token' => env('TWILIO_AUTH_TOKEN'),
+            'from' => env('ASSISTANT_SMS_FROM'),
+
+            // The exact URL Twilio posts to, if a proxy changes what the app sees.
+            'webhook_url' => env('ASSISTANT_SMS_WEBHOOK_URL'),
+
+            'code_minutes' => 10,
+            'resend_seconds' => 60,
+            'attempts_per_code' => 5,
+            'codes_per_hour' => 5,
+
+            'chunk_chars' => 1500,
+            'max_chunks' => 6,
+            'per_minute' => 20,
+            'per_hour' => 200,
+
+            // A text within this many minutes continues the last conversation;
+            // after this many days it starts a new one; in between the model decides.
+            'continue_within_minutes' => 20,
+            'new_after_days' => 7,
+        ],
+    ],
+
     'approvals' => [
         'ttl_minutes' => (int) env('ASSISTANT_APPROVAL_TTL_MINUTES', 1440),
     ],

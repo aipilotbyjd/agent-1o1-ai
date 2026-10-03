@@ -95,7 +95,7 @@ class InboxProcessor
 
         $labels = $config->labels()->where('enabled', true)->get();
 
-        if ($config->skip_existing_labels && $this->hasOwnersLabel($message, $labels)) {
+        if ($config->skip_existing_labels && $this->hasOwnersLabel($mailbox, $message, $labels)) {
             $this->record($config, $id, ['status' => AssistantInboxMessageStatus::Skipped, 'skipped_reason' => 'Already labelled by you.'], $message);
 
             return;
@@ -314,11 +314,11 @@ class InboxProcessor
     /**
      * @param  Collection<int, AssistantInboxLabel>  $labels
      */
-    private function hasOwnersLabel(MailMessage $message, Collection $labels): bool
+    private function hasOwnersLabel(Mailbox $mailbox, MailMessage $message, Collection $labels): bool
     {
         $managed = $labels->pluck('provider_label_id')->filter()->all();
 
-        return collect($message->labelIds)->contains(fn (string $id): bool => Str::startsWith($id, 'Label_') && ! in_array($id, $managed, true));
+        return collect($message->labelIds)->contains(fn (string $id): bool => $mailbox->isOwnersLabel($id) && ! in_array($id, $managed, true));
     }
 
     /**

@@ -307,6 +307,7 @@ class ToolRegistry
 
         $artifactCollection = $agent->artifactKnowledgeCollection();
         $hasOwnArtifactChunks = DocumentEmbedding::query()
+            ->shared()
             ->where('workspace_id', $agent->workspace_id)
             ->where('collection', $artifactCollection)
             ->exists();
@@ -315,7 +316,7 @@ class ToolRegistry
 
         $collection = match (true) {
             $scoped !== [] => $scoped,
-            DocumentEmbedding::query()->where('workspace_id', $agent->workspace_id)->exists() => null,
+            DocumentEmbedding::query()->shared()->where('workspace_id', $agent->workspace_id)->exists() => null,
             default => false,
         };
 

@@ -6,6 +6,7 @@ use App\Models\Connectors\Connector;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\User;
 use App\Notifications\Connectors\ConnectorCredentialExpiredNotification;
+use App\Services\Connectors\ConnectorTokens;
 use App\Services\Connectors\OAuthConnectorFlowService;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Http;
@@ -26,7 +27,7 @@ it('refreshes an oauth connector credential', function () {
         $connector->oauth['token_url'] => Http::response(['access_token' => 'fresh', 'expires_in' => 3600]),
     ]);
 
-    (new RefreshConnectorCredentialJob($credential))->handle(app(OAuthConnectorFlowService::class));
+    (new RefreshConnectorCredentialJob($credential))->handle(app(ConnectorTokens::class));
 
     Http::assertSent(fn ($request) => $request->hasHeader('Accept', 'application/json'));
 

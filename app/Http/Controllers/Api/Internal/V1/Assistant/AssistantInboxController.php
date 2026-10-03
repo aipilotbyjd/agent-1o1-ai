@@ -32,6 +32,13 @@ class AssistantInboxController extends Controller
 {
     use ResolvesOwnAssistant;
 
+    /**
+     * Mail providers Smart Inbox works with, by connector key.
+     */
+    private const array PROVIDERS = ['gmail', 'outlook'];
+
+    private const array PROVIDER_NAMES = ['gmail' => 'Gmail', 'outlook' => 'Outlook'];
+
     private const int MESSAGES_SHOWN = 50;
 
     public function __construct(
@@ -55,8 +62,13 @@ class AssistantInboxController extends Controller
         $assistant = $this->ownAssistant($request, $workspace);
         abort_unless($this->access->planAllows($assistant), 402, 'Smart Inbox needs the Pro plan.');
 
-        $credential = $this->connectors->credentialsFor($assistant)->get('gmail');
-        abort_if($credential === null, 422, 'Connect Gmail in Apps first.');
+        $connected = $this->connectors->credentialsFor($assistant)->only(self::PROVIDERS);
+        abort_if($connected->isEmpty(), 422, 'Connect Gmail or Outlook in Apps first.');
+        $provider = $request->string('provider')->toString() ?: $connected->keys()->first();
+        abort_unless(in_array($provider, self::PROVIDERS, true), 422, 'Choose Gmail or Outlook.');
+
+        $credential = $connected->get($provider);
+        abort_if($credential === null, 422, 'Connect '.self::PROVIDER_NAMES[$provider].' in Apps first.');
 
         $config = $this->config($assistant);
 
@@ -65,7 +77,7 @@ class AssistantInboxController extends Controller
             $this->access->switchOff($config);
         }
 
-        $config->forceFill(['connector_credential_id' => $credential->id, 'provider' => 'gmail'])->save();
+        $config->forceFill(['connector_credential_id' => $credential->id, 'provider' => $provider])->save();
         $this->labels->seedBuiltins($config);
 
         try {
@@ -73,7 +85,9 @@ class AssistantInboxController extends Controller
         } catch (Throwable $e) {
             report($e);
 
-            return ApiResponse::error('Gmail refused the labels: '.$e->getMessage().' Reconnect Gmail with permission to manage labels.', 422);
+            $name = self::PROVIDER_NAMES[$provider];
+
+            return ApiResponse::error("{$name} refused the labels: ".$e->getMessage()." Reconnect {$name} with permission to manage labels.", 422);
         }
 
         $config->forceFill(['enabled' => true, 'enabled_at' => now(), 'last_checked_at' => now(), 'last_error' => null])->save();
@@ -213,6 +227,7 @@ class AssistantInboxController extends Controller
             'available' => [
                 'plan' => $this->access->planAllows($assistant),
                 'gmail_connected' => $this->connectors->credentialsFor($assistant)->has('gmail'),
+                'outlook_connected' => $this->connectors->credentialsFor($assistant)->has('outlook'),
             ],
             'config' => [
                 'enabled' => $config->enabled,

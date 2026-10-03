@@ -78,9 +78,16 @@ class FakeMailbox implements Mailbox
         return $id;
     }
 
-    public function renameLabel(string $id, string $name): void
+    public function renameLabel(string $id, string $name): string
     {
         $this->labelNames[$id] = $name;
+
+        return $id;
+    }
+
+    public function isOwnersLabel(string $id): bool
+    {
+        return str_starts_with($id, 'Label_');
     }
 
     public function modify(string $messageId, array $add, array $remove): void

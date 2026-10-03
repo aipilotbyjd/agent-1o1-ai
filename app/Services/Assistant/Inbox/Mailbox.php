@@ -5,8 +5,9 @@ namespace App\Services\Assistant\Inbox;
 use Carbon\CarbonInterface;
 
 /**
- * Everything Smart Inbox does to a mailbox. Gmail now; Outlook implements
- * the same contract later, so classifying and drafting stay provider-free.
+ * Everything Smart Inbox does to a mailbox — Gmail and Outlook implement
+ * it, so classifying and drafting stay provider-free. `INBOX` is the one
+ * shared label id: removing it archives the message.
  */
 interface Mailbox
 {
@@ -26,7 +27,16 @@ interface Mailbox
 
     public function createLabel(string $name): string;
 
-    public function renameLabel(string $id, string $name): void;
+    /**
+     * @return string the label's id afterwards — a provider that can't rename
+     *                in place (Outlook) creates a new label
+     */
+    public function renameLabel(string $id, string $name): string;
+
+    /**
+     * Whether a label on a message is one the owner made (not a system label).
+     */
+    public function isOwnersLabel(string $id): bool;
 
     /**
      * @param  list<string>  $add

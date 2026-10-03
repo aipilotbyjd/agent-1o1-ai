@@ -3,6 +3,7 @@
 namespace App\Services\Assistant\Inbox;
 
 use App\Models\Connectors\ConnectorCredential;
+use App\Services\Connectors\ConnectorTokens;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -34,6 +35,17 @@ class GmailMailbox implements Mailbox
         $result = $this->get('/messages', ['q' => "in:inbox after:{$since->getTimestamp()}", 'maxResults' => $limit]);
 
         return collect($result['messages'] ?? [])->pluck('id')->map(fn ($id): string => (string) $id)->values()->all();
+    }
+
+    /**
+     * Ids of messages matching a Gmail search, newest first.
+     *
+     * @return list<string>
+     */
+    public function searchIds(string $query, int $limit): array
+    {
+        return collect($this->get('/messages', ['q' => $query, 'maxResults' => $limit])['messages'] ?? [])
+            ->pluck('id')->map(fn ($id): string => (string) $id)->values()->all();
     }
 
     public function message(string $id): MailMessage
@@ -77,9 +89,16 @@ class GmailMailbox implements Mailbox
         ])['id'];
     }
 
-    public function renameLabel(string $id, string $name): void
+    public function renameLabel(string $id, string $name): string
     {
         $this->send('patch', "/labels/{$id}", ['name' => $name]);
+
+        return $id;
+    }
+
+    public function isOwnersLabel(string $id): bool
+    {
+        return Str::startsWith($id, 'Label_');
     }
 
     public function modify(string $messageId, array $add, array $remove): void
@@ -159,15 +178,7 @@ class GmailMailbox implements Mailbox
 
     private function request(): PendingRequest
     {
-        if ($this->credential->isExpired()) {
-            throw new RuntimeException('The Gmail connection has expired. Reconnect Gmail in Apps.');
-        }
-
-        $token = $this->credential->data['access_token'] ?? null;
-
-        if (! is_string($token) || $token === '') {
-            throw new RuntimeException('The Gmail connection has no usable access token. Reconnect Gmail in Apps.');
-        }
+        $token = app(ConnectorTokens::class)->accessToken($this->credential);
 
         return Http::withToken($token)->timeout(30);
     }

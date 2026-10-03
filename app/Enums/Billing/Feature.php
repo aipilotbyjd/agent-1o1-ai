@@ -19,4 +19,14 @@ enum Feature: string
      * The personal assistant's Smart Inbox (labels new mail, drafts replies).
      */
     case SmartInbox = 'smart_inbox';
+
+    /**
+     * The assistant's cloud computer for running code.
+     */
+    case AssistantSandbox = 'assistant_sandbox';
+
+    /**
+     * Texting the assistant by SMS.
+     */
+    case AssistantSms = 'assistant_sms';
 }

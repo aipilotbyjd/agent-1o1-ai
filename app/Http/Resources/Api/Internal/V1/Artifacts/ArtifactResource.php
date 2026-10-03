@@ -31,6 +31,8 @@ class ArtifactResource extends JsonResource
                 'id' => $this->agent->id,
                 'name' => $this->agent->name,
             ],
+            // The personal-assistant conversation that made it, if any.
+            'assistant_session_id' => $this->assistant_session_id,
             'creator' => UserResource::make($this->whenLoaded('creator')),
             'preview_url' => $this->isPreviewable()
                 ? URL::temporarySignedRoute('artifacts.preview', now()->addMinutes(15), ['artifact' => $this->id])

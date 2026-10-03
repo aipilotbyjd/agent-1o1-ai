@@ -16,6 +16,7 @@ class MailboxFactory
 
         return match ($config->provider) {
             'gmail' => new GmailMailbox($credential),
+            'outlook' => new OutlookMailbox($credential),
             default => throw new RuntimeException("Unsupported mail provider [{$config->provider}]."),
         };
     }

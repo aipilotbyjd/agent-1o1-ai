@@ -50,7 +50,7 @@ class ConnectorToolProvider implements ProvidesAssistantTools
                 ->where('scope', ConnectorCredentialScope::Team->value)
                 ->orWhere(fn ($query) => $query->where('scope', ConnectorCredentialScope::Personal->value)->where('created_by', $assistant->user_id)))
             ->get()
-            ->reject(fn (ConnectorCredential $credential): bool => $credential->isExpired())
+            ->filter(fn (ConnectorCredential $credential): bool => $credential->isUsable())
             ->groupBy('connector_id');
 
         return $credentials

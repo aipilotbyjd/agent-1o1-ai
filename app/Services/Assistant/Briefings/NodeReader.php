@@ -7,6 +7,7 @@ use App\Enums\Agents\ActionEffect;
 use App\Models\Assistant\Assistant;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Runs\Run;
+use App\Models\Workspaces\Workspace;
 use App\Services\Workflows\NodeRegistry;
 use LogicException;
 
@@ -25,6 +26,18 @@ class NodeReader
      */
     public function read(string $type, Assistant $assistant, ConnectorCredential $credential, array $config = []): array
     {
+        return $this->readAs($type, $assistant->workspace, $assistant->user_id, $credential, $config);
+    }
+
+    /**
+     * The same, for a workspace member rather than an assistant (e.g. a
+     * knowledge source syncing).
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    public function readAs(string $type, Workspace $workspace, ?string $userId, ConnectorCredential $credential, array $config = []): array
+    {
         $node = $this->nodes->resolve($type);
 
         if (! $node instanceof DeclaresEffect || $node->effect($config) !== ActionEffect::Read) {
@@ -32,8 +45,8 @@ class NodeReader
         }
 
         $run = new Run;
-        $run->forceFill(['workspace_id' => $assistant->workspace_id, 'triggered_by' => $assistant->user_id]);
-        $run->setRelation('workspace', $assistant->workspace);
+        $run->forceFill(['workspace_id' => $workspace->id, 'triggered_by' => $userId]);
+        $run->setRelation('workspace', $workspace);
 
         return $node->execute($run, [...$config, 'credential_id' => $credential->id], ['input' => [], 'nodes' => []]);
     }

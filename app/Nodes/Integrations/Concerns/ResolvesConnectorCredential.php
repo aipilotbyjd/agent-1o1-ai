@@ -6,6 +6,7 @@ use App\Enums\Connectors\ConnectorCredentialScope;
 use App\Models\Connectors\Connector;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Runs\Run;
+use App\Services\Connectors\ConnectorTokens;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
@@ -110,20 +111,12 @@ trait ResolvesConnectorCredential
         return $candidates->firstWhere('is_default', true) ?? ($candidates->count() === 1 ? $candidates->first() : null);
     }
 
+    /**
+     * A valid token for the credential, refreshed first if it is about to
+     * expire — see `ConnectorTokens`.
+     */
     private function tokenFrom(ConnectorCredential $credential): string
     {
-        if ($credential->isExpired()) {
-            throw new RuntimeException("Connector credential [{$credential->id}] has expired.");
-        }
-
-        $token = $credential->data['access_token'] ?? $credential->data['api_key'] ?? null;
-
-        if (! is_string($token) || $token === '') {
-            throw new RuntimeException("Connector credential [{$credential->id}] has no usable access token.");
-        }
-
-        $credential->forceFill(['last_used_at' => now()])->saveQuietly();
-
-        return $token;
+        return app(ConnectorTokens::class)->accessToken($credential);
     }
 }

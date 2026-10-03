@@ -30,7 +30,11 @@ use App\Observers\RunObserver;
 use App\Observers\WorkspaceMemberObserver;
 use App\Services\Assistant\Branding\BrandRepository;
 use App\Services\Assistant\Branding\ConfigBrandRepository;
+use App\Services\Assistant\Computer\ComputerToolProvider;
+use App\Services\Assistant\Computer\E2BSandboxDriver;
+use App\Services\Assistant\Computer\SandboxDriver;
 use App\Services\Assistant\Tools\ConnectorToolProvider;
+use App\Services\Assistant\Tools\KnowledgeToolProvider;
 use App\Services\Assistant\Tools\ToolCatalog;
 use App\Services\Auth\Grants\SocialExchangeGrant;
 use App\Services\Triggers\TargetRunStarter;
@@ -58,7 +62,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(RunStarter::class, TargetRunStarter::class);
         $this->app->bind(BrandRepository::class, ConfigBrandRepository::class);
-        $this->app->tag([ConnectorToolProvider::class], ToolCatalog::TAG);
+        $this->app->bind(SandboxDriver::class, E2BSandboxDriver::class);
+        $this->app->tag([ConnectorToolProvider::class, KnowledgeToolProvider::class, ComputerToolProvider::class], ToolCatalog::TAG);
 
         // Must run in register(), not boot(): CashierServiceProvider's own
         // boot() (which registers its default routes unless this flag is

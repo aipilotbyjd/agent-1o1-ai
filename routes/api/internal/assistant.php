@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Internal\V1\AppConfigController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantAppController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantBriefingController;
+use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantChannelController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantFeedbackController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantInboxController;
@@ -61,6 +62,12 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::patch('inbox/labels/{label}', [AssistantInboxController::class, 'updateLabel'])->name('inbox.labels.update');
         Route::delete('inbox/labels/{label}', [AssistantInboxController::class, 'destroyLabel'])->name('inbox.labels.destroy');
         Route::post('inbox/messages/{message}/accept', [AssistantInboxController::class, 'acceptSuggestion'])->name('inbox.messages.accept');
+
+        Route::get('channels', [AssistantChannelController::class, 'index'])->name('channels.index');
+        Route::post('channels/slack/install', [AssistantChannelController::class, 'slackInstallUrl'])->name('channels.slack.install');
+        Route::post('channels/sms/verify-start', [AssistantChannelController::class, 'smsStart'])->middleware('throttle:6,1')->name('channels.sms.start');
+        Route::post('channels/sms/verify-confirm', [AssistantChannelController::class, 'smsConfirm'])->middleware('throttle:10,1')->name('channels.sms.confirm');
+        Route::delete('channels/sms', [AssistantChannelController::class, 'smsRemove'])->name('channels.sms.remove');
 
         Route::get('triggers', [AssistantTriggerController::class, 'index'])->name('triggers.index');
         Route::post('triggers', [AssistantTriggerController::class, 'store'])->name('triggers.store');

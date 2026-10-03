@@ -22,6 +22,16 @@ class ConnectorSeeder extends Seeder
 
     private const string GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
+    /**
+     * Without these Google issues no refresh token, and the connection dies
+     * with its first access token an hour later.
+     */
+    private const array GOOGLE_AUTHORIZE_PARAMS = ['access_type' => 'offline', 'prompt' => 'consent', 'include_granted_scopes' => 'true'];
+
+    private const string MICROSOFT_AUTHORIZE_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
+
+    private const string MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+
     public function run(): void
     {
         foreach ($this->connectors() as $connector) {
@@ -98,6 +108,7 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => self::GOOGLE_AUTHORIZE_URL,
                     'token_url' => self::GOOGLE_TOKEN_URL,
+                    'authorize_params' => self::GOOGLE_AUTHORIZE_PARAMS,
                     'scopes' => ['https://www.googleapis.com/auth/gmail.modify'],
                 ],
                 'sort_order' => 3,
@@ -113,6 +124,7 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => self::GOOGLE_AUTHORIZE_URL,
                     'token_url' => self::GOOGLE_TOKEN_URL,
+                    'authorize_params' => self::GOOGLE_AUTHORIZE_PARAMS,
                     'scopes' => ['https://www.googleapis.com/auth/drive'],
                 ],
                 'sort_order' => 4,
@@ -128,6 +140,7 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => self::GOOGLE_AUTHORIZE_URL,
                     'token_url' => self::GOOGLE_TOKEN_URL,
+                    'authorize_params' => self::GOOGLE_AUTHORIZE_PARAMS,
                     'scopes' => ['https://www.googleapis.com/auth/spreadsheets'],
                 ],
                 'sort_order' => 5,
@@ -143,6 +156,7 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => self::GOOGLE_AUTHORIZE_URL,
                     'token_url' => self::GOOGLE_TOKEN_URL,
+                    'authorize_params' => self::GOOGLE_AUTHORIZE_PARAMS,
                     'scopes' => ['https://www.googleapis.com/auth/documents'],
                 ],
                 'sort_order' => 6,
@@ -158,9 +172,27 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => self::GOOGLE_AUTHORIZE_URL,
                     'token_url' => self::GOOGLE_TOKEN_URL,
+                    'authorize_params' => self::GOOGLE_AUTHORIZE_PARAMS,
                     'scopes' => ['https://www.googleapis.com/auth/calendar'],
                 ],
                 'sort_order' => 7,
+            ],
+            [
+                // Mail and calendar in one connection — Microsoft grants
+                // them on one consent screen.
+                'key' => 'outlook',
+                'name' => 'Outlook',
+                'description' => 'Read, draft and send email, and manage your calendar in Outlook (Microsoft 365).',
+                'icon' => 'mail',
+                'color' => '#0078D4',
+                'auth_type' => ConnectorAuthType::OAuth2,
+                'fields' => [],
+                'oauth' => [
+                    'authorize_url' => self::MICROSOFT_AUTHORIZE_URL,
+                    'token_url' => self::MICROSOFT_TOKEN_URL,
+                    'scopes' => ['offline_access', 'User.Read', 'Mail.ReadWrite', 'Mail.Send', 'MailboxSettings.ReadWrite', 'Calendars.ReadWrite'],
+                ],
+                'sort_order' => 8,
             ],
         ];
     }

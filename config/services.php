@@ -72,4 +72,9 @@ return [
         'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
     ],
 
+    'outlook' => [
+        'client_id' => env('MICROSOFT_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CONNECTORS_CLIENT_SECRET'),
+    ],
+
 ];

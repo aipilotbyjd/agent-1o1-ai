@@ -24,7 +24,8 @@ class ConnectorCredentialResource extends JsonResource
             'connector_id' => $this->connector_id,
             'connector' => ConnectorResource::make($this->whenLoaded('connector')),
             'name' => $this->name,
-            'is_expired' => $this->isExpired(),
+            // Expired for the member: the token lapsed and can't be refreshed.
+            'is_expired' => ! $this->isUsable(),
             'last_used_at' => $this->last_used_at,
             'expires_at' => $this->expires_at,
             'created_at' => $this->created_at,

@@ -28,6 +28,7 @@ class AgentKnowledgeSourceController extends Controller
             // Every collection in the workspace, so a picker can offer what
             // isn't attached yet.
             'available' => DocumentEmbedding::query()
+                ->shared()
                 ->where('workspace_id', $workspace->id)
                 ->distinct()
                 ->orderBy('collection')

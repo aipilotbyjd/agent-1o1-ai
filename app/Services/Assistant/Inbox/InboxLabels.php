@@ -53,11 +53,13 @@ class InboxLabels
 
     public function rename(AssistantInboxLabel $label, string $name, ?Mailbox $mailbox): void
     {
-        if ($mailbox !== null && $label->provider_label_id !== null && $label->name !== $name) {
-            $mailbox->renameLabel($label->provider_label_id, $name);
+        $providerLabelId = $label->provider_label_id;
+
+        if ($mailbox !== null && $providerLabelId !== null && $label->name !== $name) {
+            $providerLabelId = $mailbox->renameLabel($providerLabelId, $name);
         }
 
-        $label->forceFill(['name' => $name])->save();
+        $label->forceFill(['name' => $name, 'provider_label_id' => $providerLabelId])->save();
     }
 
     /**

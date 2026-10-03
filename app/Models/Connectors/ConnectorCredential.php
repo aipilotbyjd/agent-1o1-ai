@@ -73,9 +73,35 @@ class ConnectorCredential extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Whether the stored access token is past its expiry. An expired token
+     * that can be refreshed is still usable — see `isUsable()`.
+     */
     public function isExpired(): bool
     {
         return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    /**
+     * An OAuth connection holding a refresh token renews itself
+     * (`ConnectorTokens`), so its access token expiring doesn't end it —
+     * unless the provider has rejected that refresh token (revoked access,
+     * a changed password).
+     */
+    public function canRefresh(): bool
+    {
+        return filled($this->data['refresh_token'] ?? null)
+            && blank($this->data['refresh_rejected_at'] ?? null)
+            && ($this->connector?->isOAuth() ?? false);
+    }
+
+    /**
+     * Whether the connection can be used right now, refreshing if needed —
+     * what "connected" means to anyone choosing an account.
+     */
+    public function isUsable(): bool
+    {
+        return ! $this->isExpired() || $this->canRefresh();
     }
 
     /**

@@ -30,4 +30,6 @@ Schedule::command('assistant:run-due-briefings')->everyMinute()->withoutOverlapp
 Schedule::command('assistant:sync-meetings')->everyTenMinutes()->withoutOverlapping()->onOneServer();
 Schedule::command('assistant:check-inboxes')->everyTwoMinutes()->withoutOverlapping()->onOneServer();
 Schedule::command('assistant:run-due-triggers')->everyMinute()->withoutOverlapping()->onOneServer();
+Schedule::command('connectors:refresh-expiring')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+Schedule::command('knowledge:sync-sources')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
 Schedule::command('workflow-builder:archive-idle')->dailyAt('03:00')->withoutOverlapping()->onOneServer();

@@ -4,6 +4,7 @@ namespace App\Jobs\Assistant;
 
 use App\Models\Assistant\AssistantSession;
 use App\Models\Assistant\AssistantTurn;
+use App\Services\Assistant\Channels\ChannelReplies;
 use App\Services\Assistant\Runtime\AssistantLoop;
 use App\Services\Assistant\Runtime\ContextCompactor;
 use App\Services\Assistant\Runtime\TurnRunner;
@@ -33,11 +34,13 @@ class RunAssistantTurnJob implements ShouldQueue
         $this->onQueue(config('assistant.runtime.queue'));
     }
 
-    public function handle(TurnRunner $runner, AssistantLoop $loop, ContextCompactor $compactor, TriggerOutcomes $outcomes): void
+    public function handle(TurnRunner $runner, AssistantLoop $loop, ContextCompactor $compactor, TriggerOutcomes $outcomes, ChannelReplies $replies): void
     {
         $runner->run($this->turn);
 
-        $outcomes->record($this->turn->refresh());
+        $turn = $this->turn->refresh();
+        $outcomes->record($turn);
+        $replies->deliver($turn);
 
         $session = $this->turn->session()->firstOrFail();
 
