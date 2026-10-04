@@ -4,7 +4,6 @@ namespace App\Jobs\Agents;
 
 use App\Enums\Queue;
 use App\Enums\RunStatus;
-use App\Exceptions\RunStateException;
 use App\Models\Runs\Run;
 use App\Services\Agents\AgentRunner;
 use App\Services\Agents\AgentTurnBroadcaster;
@@ -15,22 +14,21 @@ use Illuminate\Queue\InteractsWithQueue;
 use Throwable;
 
 /**
- * Continues a chat turn whose waiting actions have all been decided — see
- * `AgentRunner::resumeStream()`. Whoever decided may have long since left,
- * and a triggered turn never had anyone watching, so this runs on the queue;
- * an open chat follows along through the conversation's broadcasts, the
- * reply arriving as it is written (`AgentTurnBroadcaster`).
+ * Runs a chat turn the request only opened (`AgentRunner::beginTurn()`):
+ * calls the model and streams the reply to the conversation's channel as it
+ * is written — see `AgentTurnBroadcaster`. Sending a message never waits for
+ * the reply, and an open chat follows along over Reverb.
  *
- * A turn someone already resumed (a second decision landing at once) is
- * skipped rather than retried.
+ * A turn that is no longer `running` (already picked up, or failed as stale
+ * while this waited in the queue) is skipped rather than run twice.
  */
-class ResumeAgentTurnJob implements ShouldQueue
+class RunAgentTurnJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
     public int $tries = 1;
 
-    public int $timeout = 300;
+    public int $timeout = 600;
 
     public function __construct(public readonly string $runId)
     {
@@ -41,14 +39,17 @@ class ResumeAgentTurnJob implements ShouldQueue
     {
         $run = Run::query()->find($this->runId);
 
-        if ($run === null) {
+        if ($run === null || $run->status !== RunStatus::Running) {
             return;
         }
 
         try {
-            $turn = $runner->resumeStream($run);
-        } catch (RunStateException) {
-            // Already resumed, or still waiting on a decision.
+            $turn = $runner->streamBegun($run);
+        } catch (Throwable $e) {
+            // `streamBegun()` has already failed the run; the chat still
+            // needs to hear about it.
+            $broadcaster->fail($run, $e);
+
             return;
         }
 
@@ -56,14 +57,14 @@ class ResumeAgentTurnJob implements ShouldQueue
     }
 
     /**
-     * Resuming blew up, or the worker was killed mid-turn — close the run
-     * out and tell the chat, which would otherwise wait on it forever.
+     * The worker was killed or timed out mid-turn — nothing else will close
+     * the run out, and the chat would wait on it forever.
      */
     public function failed(Throwable $e): void
     {
         $run = Run::query()->find($this->runId);
 
-        if ($run !== null && ! $run->status->isTerminal() && $run->status !== RunStatus::AwaitingApproval) {
+        if ($run !== null && ! $run->status->isTerminal()) {
             app(AgentTurnBroadcaster::class)->fail($run, $e);
         }
     }

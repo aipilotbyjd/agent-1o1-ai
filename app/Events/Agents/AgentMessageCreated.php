@@ -14,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
  * A message was appended to an agent conversation — the user's own turn, the
  * assistant's reply, or a tool result. Lets a second tab (or a teammate
  * watching a shared session) follow along without polling; the token-by-token
- * view of the *same* reply is `AgentSessionStreamController`'s SSE stream.
+ * view of the *same* reply is `AgentTurnDelta`, streamed by `AgentTurnBroadcaster`.
  *
  * Only says that a message arrived, not what it says: Reverb and Pusher
  * reject any event over 10 KB, which a long reply or its tool calls pass

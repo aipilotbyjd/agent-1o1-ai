@@ -6,6 +6,8 @@ use App\Enums\Agents\AgentActionStatus;
 use App\Enums\Agents\AgentPlanStatus;
 use App\Enums\Agents\AutonomyMode;
 use App\Enums\RunStatus;
+use App\Events\Agents\AgentActionsRequested;
+use App\Events\Agents\AgentTurnChanged;
 use App\Enums\Workspaces\Role;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentAction;
@@ -20,6 +22,7 @@ use App\Services\Http\SsrfGuard;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Laravel\Ai\Responses\Data\ToolCall;
 use Laravel\Passport\Passport;
@@ -56,31 +59,38 @@ beforeEach(function () {
     Passport::actingAs($this->owner);
 });
 
-it('streams an approval request and a paused status when a turn stops for approval', function () {
+it('tells the chat a turn paused for approval', function () {
+    Event::fake([AgentActionsRequested::class, AgentTurnChanged::class]);
     WorkspaceAgent::fake([new ToolCall('call-1', 'call_api', ['body' => ['text' => 'hi']]), 'Posted it.']);
 
-    $body = $this->post("{$this->sessionUrl}/messages/stream", ['message' => 'Post it.'], ['Accept' => 'text/event-stream'])
-        ->assertOk()
-        ->streamedContent();
+    $this->postJson("{$this->sessionUrl}/turns", ['message' => 'Post it.'])->assertAccepted();
 
-    expect($body)
-        ->toContain('event: approval-required')
-        ->toContain('"tool_name":"call_api"')
-        ->toContain('"status":"awaiting_approval"');
+    $action = AgentAction::query()->sole();
+
+    Event::assertDispatched(AgentActionsRequested::class, fn (AgentActionsRequested $event): bool => $event->actions->modelKeys() === [$action->id]);
+    Event::assertDispatched(AgentTurnChanged::class, function (AgentTurnChanged $event) use ($action): bool {
+        $turn = $event->broadcastWith()['turn'];
+
+        return $turn['status'] === 'awaiting_approval' && $turn['pending_action_ids'] === [$action->id];
+    });
     Http::assertNothingSent();
 });
 
-it('continues the paused turn as a stream once the chat decides', function () {
+it('continues the paused turn on the queue once the chat decides', function () {
     ($this->pause)();
     $action = AgentAction::query()->sole();
 
-    $body = $this->post("{$this->sessionUrl}/actions/decisions", [
-        'decisions' => [['action_id' => $action->id, 'decision' => 'approve']],
-    ], ['Accept' => 'text/event-stream'])->assertOk()->streamedContent();
+    Event::fake([AgentTurnChanged::class]);
 
-    expect($body)->toContain('event: complete')->toContain('"status":"completed"');
+    $this->postJson("{$this->sessionUrl}/actions/decisions", [
+        'decisions' => [['action_id' => $action->id, 'decision' => 'approve']],
+    ])->assertOk()->assertJsonPath('data.actions.0.id', $action->id);
+
     Http::assertSentCount(1);
     expect(Run::query()->where('runnable_id', $this->session->id)->sole()->status)->toBe(RunStatus::Completed);
+
+    $statuses = Event::dispatched(AgentTurnChanged::class)->map(fn (array $args): string => $args[0]->broadcastWith()['turn']['status']);
+    expect($statuses->all())->toBe(['running', 'completed']);
 });
 
 it('lists a conversation\'s actions for its approval cards', function () {

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentActionController;
-use App\Http\Controllers\Api\Internal\V1\Agents\AgentActionStreamController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentDraftController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentEvalCaseController;
@@ -14,8 +13,8 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeSourceController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentPlanController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionTurnController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionEvaluationController;
-use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionStreamController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSkillController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSubagentController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentToolBindingController;
@@ -59,16 +58,17 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{agent}/sessions/{session}/subagent-tasks', [SubagentTaskController::class, 'index'])->name('sessions.subagent-tasks.index');
         Route::post('{agent}/sessions/{session}/messages', [AgentSessionController::class, 'sendMessage'])->middleware('long-agent-turn')->name('sessions.messages.store');
 
-        // The same turn as above, delivered as server-sent events — see
-        // AgentSessionStreamController for the event names.
-        Route::post('{agent}/sessions/{session}/messages/stream', [AgentSessionStreamController::class, 'store'])->middleware('long-agent-turn')->name('sessions.messages.stream');
+        // The same turn as above, delivered over Reverb: the request only
+        // opens it and the reply streams to the conversation's private
+        // channel — see AgentSessionTurnController.
+        Route::post('{agent}/sessions/{session}/turns', [AgentSessionTurnController::class, 'store'])->name('sessions.turns.store');
 
         // Approvals: the actions an agent took or is waiting to take — see
         // Services\Agents\Approvals\ActionGate. Deciding from the chat
-        // continues the paused turn as a stream, like sending a message.
+        // queues the paused turn to continue, streaming over Reverb.
         Route::get('{agent}/actions', [AgentActionController::class, 'index'])->name('actions.index');
         Route::get('{agent}/sessions/{session}/actions', [AgentActionController::class, 'sessionIndex'])->name('sessions.actions.index');
-        Route::post('{agent}/sessions/{session}/actions/decisions', [AgentActionStreamController::class, 'store'])->middleware('long-agent-turn')->name('sessions.actions.decide');
+        Route::post('{agent}/sessions/{session}/actions/decisions', [AgentActionController::class, 'decide'])->name('sessions.actions.decide');
 
         // Plan mode: plans the agent proposed, and approving/rejecting them.
         Route::get('{agent}/sessions/{session}/plans', [AgentPlanController::class, 'index'])->name('sessions.plans.index');

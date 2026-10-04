@@ -22,6 +22,7 @@ use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Services\Agents\AgentRunner;
+use App\Services\Agents\AgentTurnBroadcaster;
 use App\Services\Http\SsrfGuard;
 use App\Services\Triggers\TriggerService;
 use App\Services\Workflows\Engine\RunCanceller;
@@ -126,7 +127,7 @@ it('holds a subagent\'s task while its action waits, and completes it once appro
 
     // The queue is faked, so run the resume the approval queued.
     Queue::assertPushed(ResumeAgentTurnJob::class);
-    Queue::pushed(ResumeAgentTurnJob::class)->each(fn (ResumeAgentTurnJob $job) => $job->handle(app(AgentRunner::class)));
+    Queue::pushed(ResumeAgentTurnJob::class)->each(fn (ResumeAgentTurnJob $job) => $job->handle(app(AgentRunner::class), app(AgentTurnBroadcaster::class)));
 
     expect($task->fresh()->status)->toBe(SubagentTaskStatus::Completed);
     expect($task->fresh()->result)->toContain('Posted by the subagent.');

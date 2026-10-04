@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
+use App\Actions\Agents\ResolveAgentActionsAction;
 use App\Enums\Agents\AgentActionStatus;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Agents\DecideAgentActionsRequest;
 use App\Http\Resources\Api\Internal\V1\Agents\AgentActionResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
@@ -18,12 +20,14 @@ use Illuminate\Validation\Rule;
 /**
  * An agent's action log — everything it did or tried to do that changes
  * something, newest first — and one conversation's slice of it, which is
- * what a chat renders its approval cards from. A subagent's actions are
+ * what a chat renders its approval cards from (and decides them from). A subagent's actions are
  * included in its parent conversation's list, since that's where a person
  * is watching.
  */
 class AgentActionController extends Controller
 {
+    public function __construct(private readonly ResolveAgentActionsAction $resolve) {}
+
     public function index(Request $request, Workspace $workspace, Agent $agent)
     {
         $this->requirePermission(Permission::AgentView);
@@ -47,6 +51,30 @@ class AgentActionController extends Controller
         return ApiResponse::success([
             'actions' => AgentActionResource::collection($this->filtered($request, $query)->with(['agent', 'session'])->oldest('id')->get()),
         ]);
+    }
+
+    /**
+     * Deciding from an open chat: records the decisions and, if that leaves
+     * the conversation's paused turn fully decided, queues it to carry on —
+     * the person watches the agent continue over the conversation's channel
+     * (`AgentTurnBroadcaster`), the same as for a sent message.
+     */
+    public function decide(DecideAgentActionsRequest $request, Workspace $workspace, Agent $agent, AgentSession $session)
+    {
+        $this->requirePermission(Permission::AgentChat);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+        abort_if($session->agent_id !== $agent->id, 404);
+
+        // Only this conversation's actions, and its subagents' — the same
+        // set `sessionIndex()` shows it.
+        $sessionIds = AgentSession::query()->where('parent_session_id', $session->id)->pluck('id')->push($session->id);
+        $decisionIds = array_column($request->decisions(), 'action_id');
+
+        abort_if(AgentAction::query()->whereKey($decisionIds)->whereIn('agent_session_id', $sessionIds)->count() !== count($decisionIds), 404);
+
+        $decided = $this->resolve->execute($request->user(), $request->decisions());
+
+        return ApiResponse::success(['actions' => AgentActionResource::collection($decided)], 'Decisions recorded.');
     }
 
     /**
