@@ -15,6 +15,24 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 /**
+ * An Anthropic streaming body — a resumed turn is streamed, so its faked
+ * reply has to arrive as server-sent events rather than one JSON message.
+ */
+function anthropicStream(string $id, string $text, int $inputTokens, int $outputTokens): string
+{
+    $events = [
+        'message_start' => ['type' => 'message_start', 'message' => ['id' => $id, 'type' => 'message', 'role' => 'assistant', 'model' => 'claude-test', 'content' => [], 'stop_reason' => null, 'usage' => ['input_tokens' => $inputTokens, 'output_tokens' => 1]]],
+        'content_block_start' => ['type' => 'content_block_start', 'index' => 0, 'content_block' => ['type' => 'text', 'text' => '']],
+        'content_block_delta' => ['type' => 'content_block_delta', 'index' => 0, 'delta' => ['type' => 'text_delta', 'text' => $text]],
+        'content_block_stop' => ['type' => 'content_block_stop', 'index' => 0],
+        'message_delta' => ['type' => 'message_delta', 'delta' => ['stop_reason' => 'end_turn', 'stop_sequence' => null], 'usage' => ['output_tokens' => $outputTokens]],
+        'message_stop' => ['type' => 'message_stop'],
+    ];
+
+    return collect($events)->map(fn (array $data, string $event): string => "event: {$event}\ndata: ".json_encode($data)."\n\n")->implode('');
+}
+
+/**
  * The SDK's agent fakes skip approval resumption entirely, so this drives a
  * paused turn through the real Anthropic gateway (HTTP faked) to prove the
  * resume is accepted: the paused message replays with its call still
@@ -37,12 +55,7 @@ it('resumes a paused turn through the real provider with the approved action\'s 
                 'stop_reason' => 'tool_use',
                 'usage' => ['input_tokens' => 20, 'output_tokens' => 10],
             ])
-            ->push([
-                'id' => 'msg_2', 'type' => 'message', 'role' => 'assistant', 'model' => 'claude-test',
-                'content' => [['type' => 'text', 'text' => 'Posted to the team.']],
-                'stop_reason' => 'end_turn',
-                'usage' => ['input_tokens' => 40, 'output_tokens' => 6],
-            ]),
+            ->push(anthropicStream('msg_2', 'Posted to the team.', inputTokens: 40, outputTokens: 6), headers: ['Content-Type' => 'text/event-stream']),
     ]);
 
     $owner = User::factory()->create();

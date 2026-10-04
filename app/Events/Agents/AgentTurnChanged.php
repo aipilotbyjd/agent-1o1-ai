@@ -21,11 +21,29 @@ class AgentTurnChanged implements ShouldBroadcastNow
 {
     use Dispatchable;
 
+    /**
+     * The payload is captured now, not when it is sent: the run keeps
+     * changing as the turn settles, and this event says what it was at the
+     * moment it was announced.
+     *
+     * @var array<string, mixed>
+     */
+    public readonly array $turn;
+
     public function __construct(
         public readonly AgentSession $session,
-        public readonly Run $run,
-        public readonly ?string $error = null,
-    ) {}
+        Run $run,
+        ?string $error = null,
+    ) {
+        $this->turn = array_filter([
+            'run_id' => $run->id,
+            'agent_session_id' => $session->id,
+            'status' => $run->status->value,
+            'message_id' => $run->output['message_id'] ?? null,
+            'pending_action_ids' => $run->output['pending_action_ids'] ?? null,
+            'error' => $error,
+        ], fn (mixed $value): bool => $value !== null);
+    }
 
     public function broadcastOn(): PrivateChannel
     {
@@ -42,15 +60,6 @@ class AgentTurnChanged implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
-        return [
-            'turn' => array_filter([
-                'run_id' => $this->run->id,
-                'agent_session_id' => $this->session->id,
-                'status' => $this->run->status->value,
-                'message_id' => $this->run->output['message_id'] ?? null,
-                'pending_action_ids' => $this->run->output['pending_action_ids'] ?? null,
-                'error' => $this->error,
-            ], fn (mixed $value): bool => $value !== null),
-        ];
+        return ['turn' => $this->turn];
     }
 }
