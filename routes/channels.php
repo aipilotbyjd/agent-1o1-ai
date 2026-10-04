@@ -22,17 +22,17 @@ Broadcast::channel('App.Models.User.{id}', function (User $user, string $id): bo
  */
 Broadcast::channel(
     Channels::WORKSPACE_RUNS_PATTERN,
-    fn (User $user, int $workspaceId): bool => app(WorkspaceChannelGate::class)->runs($user, $workspaceId),
+    fn (User $user, string $workspaceId): bool => app(WorkspaceChannelGate::class)->runs($user, $workspaceId),
 );
 
 Broadcast::channel(
     Channels::RUN_PATTERN,
-    fn (User $user, int $workspaceId, int $runId): bool => app(WorkspaceChannelGate::class)->run($user, $workspaceId, $runId),
+    fn (User $user, string $workspaceId, string $runId): bool => app(WorkspaceChannelGate::class)->run($user, $workspaceId, $runId),
 );
 
 Broadcast::channel(
     Channels::AGENT_SESSION_PATTERN,
-    fn (User $user, int $workspaceId, int $sessionId): bool => app(WorkspaceChannelGate::class)->agentSession($user, $workspaceId, $sessionId),
+    fn (User $user, string $workspaceId, string $sessionId): bool => app(WorkspaceChannelGate::class)->agentSession($user, $workspaceId, $sessionId),
 );
 
 Broadcast::channel(

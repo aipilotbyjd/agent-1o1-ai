@@ -19,7 +19,8 @@ class SkillScriptController extends Controller
 
     public function index(Workspace $workspace, Skill $skill)
     {
-        $this->requirePermission(Permission::AgentView);
+        // Script source isn't something a viewer needs; it's managed with the skill.
+        $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $skill);
 
         return ApiResponse::success([

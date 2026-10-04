@@ -8,6 +8,7 @@ use App\Actions\Billing\CheckoutSubscriptionAction;
 use App\Actions\Billing\PreviewSubscriptionSwapAction;
 use App\Actions\Billing\ResumeSubscriptionAction;
 use App\Enums\Billing\BillingInterval;
+use App\Enums\Workspaces\AuditAction;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Billing\CheckoutSubscriptionRequest;
@@ -18,10 +19,13 @@ use App\Http\Resources\Api\Internal\V1\Billing\SubscriptionResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Billing\Plan;
 use App\Models\Workspaces\Workspace;
+use App\Services\Workspaces\AuditLogger;
 use Illuminate\Http\Request;
 
 class SubscriptionController extends Controller
 {
+    public function __construct(private readonly AuditLogger $audit) {}
+
     public function show(Request $request, Workspace $workspace)
     {
         $this->requirePermission(Permission::BillingView);
@@ -48,6 +52,7 @@ class SubscriptionController extends Controller
 
         $plan = Plan::findOrFail($request->validated('plan_id'));
         $interval = BillingInterval::from($request->validated('interval'));
+        $this->audit->record($workspace->id, AuditAction::SubscriptionCheckoutStarted, metadata: ['plan' => $plan->slug, 'interval' => $interval->value]);
 
         if (! $interval->isRecurring()) {
             $result = $lifetimeCheckout->execute($workspace, $plan, $request->user());
@@ -92,6 +97,7 @@ class SubscriptionController extends Controller
         $this->requirePermission(Permission::BillingManage);
 
         $subscription = $cancel->execute($workspace);
+        $this->audit->record($workspace->id, AuditAction::SubscriptionCanceled);
 
         return ApiResponse::success(['subscription' => SubscriptionResource::make($subscription->load('plan'))], 'Subscription canceled.');
     }
@@ -101,6 +107,7 @@ class SubscriptionController extends Controller
         $this->requirePermission(Permission::BillingManage);
 
         $subscription = $resume->execute($workspace);
+        $this->audit->record($workspace->id, AuditAction::SubscriptionResumed);
 
         return ApiResponse::success(['subscription' => SubscriptionResource::make($subscription->load('plan'))], 'Subscription resumed.');
     }

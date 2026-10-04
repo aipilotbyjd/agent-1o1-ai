@@ -23,7 +23,7 @@ class StoreSkillScriptRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'language' => ['required', 'string', Rule::in(SkillScript::LANGUAGES)],
             'code' => ['required', 'string'],
-            'is_enabled' => ['nullable', 'boolean'],
+            'is_enabled' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -22,11 +22,13 @@ class StoreAgentKnowledgeRequest extends FormRequest
             // Every entry is injected verbatim into the agent's system prompt
             // (SkillInjector), so the cap is about prompt budget, not storage.
             'content' => ['required', 'string', 'max:50000'],
-            'source_type' => ['nullable', Rule::in(['text', 'url', 'file'])],
+            // `sometimes` without `nullable`: these columns are NOT NULL, so an
+            // explicit null must be rejected rather than override the default.
+            'source_type' => ['sometimes', Rule::in(['text', 'url', 'file'])],
             'source_url' => ['nullable', 'url', 'max:2048', 'required_if:source_type,url'],
-            'is_active' => ['nullable', 'boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-            'metadata' => ['nullable', 'array'],
+            'is_active' => ['sometimes', 'boolean'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'metadata' => ['nullable', 'array', 'max:50'],
         ];
     }
 }

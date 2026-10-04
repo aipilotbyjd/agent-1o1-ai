@@ -2,14 +2,18 @@
 
 namespace App\Notifications\Channels;
 
+use App\Exceptions\Http\BlockedUrlException;
 use App\Models\Notifications\NotificationChannel;
+use App\Services\Http\GuardedHttp;
+use Illuminate\Http\Client\Response;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class WorkspaceWebhookChannel
 {
+    public function __construct(private readonly GuardedHttp $http) {}
+
     public function send(object $notifiable, Notification $notification): void
     {
         if (! method_exists($notification, 'toWorkspaceChannel')) {
@@ -50,12 +54,11 @@ class WorkspaceWebhookChannel
     {
         try {
             $config = $channel->config;
-            $request = Http::timeout(10)->retry(2, 250);
 
             $response = match ($channel->type) {
-                'discord' => $request->post($config['url'], ['content' => $message]),
-                'slack' => $request->post($config['url'], array_filter(['text' => $message, 'blocks' => $slackBlocks])),
-                'webhook' => $request->withHeaders($config['headers'] ?? [])->post($config['url'], ['message' => $message]),
+                'discord' => $this->post($config['url'], ['content' => $message]),
+                'slack' => $this->post($config['url'], array_filter(['text' => $message, 'blocks' => $slackBlocks])),
+                'webhook' => $this->post($config['url'], ['message' => $message], $config['headers'] ?? []),
             };
 
             if ($response->successful()) {
@@ -68,6 +71,13 @@ class WorkspaceWebhookChannel
             ]);
 
             return ['ok' => false, 'message' => "Delivery failed: HTTP {$response->status()}."];
+        } catch (BlockedUrlException $exception) {
+            Log::warning('Workspace notification channel delivery blocked.', [
+                'channel_id' => $channel->id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return ['ok' => false, 'message' => $exception->getMessage()];
         } catch (Throwable $exception) {
             Log::warning('Workspace notification channel delivery errored.', [
                 'channel_id' => $channel->id,
@@ -76,5 +86,14 @@ class WorkspaceWebhookChannel
 
             return ['ok' => false, 'message' => 'Delivery error.'];
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $headers
+     */
+    private function post(string $url, array $payload, array $headers = []): Response
+    {
+        return $this->http->send('POST', $url, $headers, $payload, timeoutSeconds: 10, retries: 2);
     }
 }

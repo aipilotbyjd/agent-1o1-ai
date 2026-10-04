@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
+use App\Http\Requests\Api\Internal\V1\Agents\Concerns\ValidatesSkillFields;
 use App\Models\Agents\SkillScript;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreSkillRequest extends FormRequest
 {
+    use ValidatesSkillFields;
+
     public function authorize(): bool
     {
         return true;
@@ -18,19 +21,17 @@ class StoreSkillRequest extends FormRequest
      */
     public function rules(): array
     {
+        $rules = $this->skillFieldRules();
+
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', 'alpha_dash'],
-            'description' => ['nullable', 'string'],
-            'category' => ['nullable', 'string', 'max:255'],
-            'icon' => ['nullable', 'string', 'max:255'],
-            'color' => ['nullable', 'string', 'max:255'],
-            'tags' => ['nullable', 'array'],
-            'instructions' => ['required', 'string'],
-            'is_shared' => ['nullable', 'boolean'],
+            ...$rules,
+            'name' => ['required', ...$rules['name']],
+            'slug' => ['nullable', ...$rules['slug']],
+            'instructions' => ['required', ...$rules['instructions']],
+            'is_shared' => ['sometimes', ...$rules['is_shared']],
             'references' => ['sometimes', 'array', 'max:50'],
             'references.*.title' => ['required', 'string', 'max:255'],
-            'references.*.content' => ['required', 'string'],
+            'references.*.content' => ['required', ...$this->referenceContentRules()],
             'scripts' => ['sometimes', 'array', 'max:20'],
             'scripts.*.name' => ['required', 'string', 'max:255'],
             'scripts.*.description' => ['nullable', 'string'],

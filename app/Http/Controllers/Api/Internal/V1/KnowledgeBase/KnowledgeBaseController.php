@@ -9,11 +9,14 @@ use App\Http\Requests\Api\Internal\V1\KnowledgeBase\ReadKnowledgeDocumentRequest
 use App\Http\Requests\Api\Internal\V1\KnowledgeBase\SearchKnowledgeRequest;
 use App\Http\Resources\Api\Internal\V1\KnowledgeBase\DocumentEmbeddingResource;
 use App\Http\Responses\ApiResponse;
+use App\Jobs\Knowledge\IngestKnowledgeJob;
+use App\Models\Agents\AgentKnowledgeCollection;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
 use App\Services\Billing\CreditGate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The workspace-wide knowledge base agents retrieve from: text ingested here
@@ -43,8 +46,11 @@ class KnowledgeBaseController extends Controller
                 : $query->whereNull('owner_id'))
             ->when($request->query('collection'), fn ($query, $collection) => $query->where('collection', $collection))
             ->when($request->query('source'), fn ($query, $source) => $query->where('source', $source))
-            ->latest('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->orderBy('collection')
+            ->orderBy('source')
+            ->orderBy('chunk_index')
+            ->orderBy('id')
+            ->paginate(max(1, min((int) $request->query('per_page', 25), 100)));
 
         return ApiResponse::paginated(DocumentEmbeddingResource::collection($chunks));
     }
@@ -52,6 +58,7 @@ class KnowledgeBaseController extends Controller
     /**
      * Collections are just a string column, so the catalog is derived rather
      * than stored — this is what a picker needs to offer the existing ones.
+     * Agents' own exported-artifact collections are internal and left out.
      */
     public function collections(Request $request, Workspace $workspace)
     {
@@ -60,6 +67,7 @@ class KnowledgeBaseController extends Controller
         $collections = DocumentEmbedding::query()
             ->visibleTo($request->user())
             ->where('workspace_id', $workspace->id)
+            ->where('collection', 'not like', DocumentEmbedding::ARTIFACT_COLLECTION_PREFIX.'%')
             ->selectRaw('collection, (owner_id IS NOT NULL) as is_private, COUNT(*) as chunks_count')
             ->groupBy('collection', 'is_private')
             ->orderBy('collection')
@@ -75,7 +83,12 @@ class KnowledgeBaseController extends Controller
 
     /**
      * Embedding is billed (see `KnowledgeBase::ingest()`), so a workspace out
-     * of credits is refused before the provider is called.
+     * of credits is refused before the provider is called. Short text is
+     * embedded during the request; longer text is queued (202), since
+     * embedding a multi-megabyte file outlasts an HTTP request.
+     *
+     * Ingesting a `source` that already exists in the collection replaces it
+     * — re-uploading a revised file never duplicates its chunks.
      */
     public function store(IngestKnowledgeRequest $request, Workspace $workspace, CreditGate $creditGate)
     {
@@ -86,19 +99,25 @@ class KnowledgeBaseController extends Controller
 
         $file = $request->file('file');
         $text = $file !== null ? (string) file_get_contents($file->getRealPath()) : (string) $request->validated('text');
+        $text = preg_replace('/^\xEF\xBB\xBF/', '', $text) ?? $text;
 
         abort_if(trim($text) === '', 422, 'The file has no readable text.');
+        abort_unless(mb_check_encoding($text, 'UTF-8'), 422, 'The content must be UTF-8 text.');
 
         $creditGate->assertCanStartRun($workspace);
 
-        $chunks = $this->knowledgeBase->ingest(
-            $workspace,
-            $text,
-            $request->validated('source') ?? $file?->getClientOriginalName(),
-            $request->validated('collection') ?? ($private ? 'personal' : 'default'),
-            $request->validated('metadata'),
-            ownerId: $private ? $request->user()->id : null,
-        );
+        $source = $request->validated('source') ?? $file?->getClientOriginalName();
+        $collection = $request->validated('collection') ?? ($private ? 'personal' : 'default');
+        $metadata = $request->validated('metadata');
+        $ownerId = $private ? $request->user()->id : null;
+
+        if (mb_strlen($text) > (int) config('knowledge_base.sync_ingest_max_characters')) {
+            IngestKnowledgeJob::dispatch($workspace, $text, $source, $collection, $metadata, $ownerId);
+
+            return ApiResponse::success(['queued' => true], 'Knowledge ingestion queued.', 202);
+        }
+
+        $chunks = $this->knowledgeBase->ingest($workspace, $text, $source, $collection, $metadata, ownerId: $ownerId, replaceSource: true);
 
         return ApiResponse::created([
             'chunks_count' => $chunks->count(),
@@ -155,6 +174,28 @@ class KnowledgeBaseController extends Controller
         ]);
     }
 
+    /**
+     * Removes a whole document — every chunk sharing a source — so a file
+     * can be taken out without deleting its collection. With `private`, only
+     * the member's own copy is removed; otherwise only the shared one.
+     */
+    public function destroyDocument(ReadKnowledgeDocumentRequest $request, Workspace $workspace)
+    {
+        $private = $request->boolean('private');
+        $this->requirePermission($private ? Permission::AgentView : Permission::AgentManage);
+
+        $deleted = $this->knowledgeBase->deleteDocument(
+            $workspace,
+            $request->validated('source'),
+            $request->validated('collection'),
+            $private ? $request->user()->id : null,
+        );
+
+        abort_if($deleted === 0, 404, 'No document found for that source.');
+
+        return ApiResponse::success(['deleted_count' => $deleted], 'Document deleted.');
+    }
+
     public function destroy(Request $request, Workspace $workspace, DocumentEmbedding $documentEmbedding)
     {
         $this->ensureBelongsToWorkspace($workspace, $documentEmbedding);
@@ -174,11 +215,26 @@ class KnowledgeBaseController extends Controller
         $private = $request->boolean('private');
         $this->requirePermission($private ? Permission::AgentView : Permission::AgentManage);
 
-        $deleted = DocumentEmbedding::query()
-            ->where('workspace_id', $workspace->id)
-            ->where('collection', $collection)
-            ->when($private, fn ($query) => $query->where('owner_id', $request->user()->id), fn ($query) => $query->shared())
-            ->delete();
+        $deleted = DB::transaction(function () use ($request, $workspace, $collection, $private): int {
+            $deleted = DocumentEmbedding::query()
+                ->where('workspace_id', $workspace->id)
+                ->where('collection', $collection)
+                ->when($private, fn ($query) => $query->where('owner_id', $request->user()->id), fn ($query) => $query->shared())
+                ->delete();
+
+            // An agent left attached to a collection that no longer exists
+            // would keep a search tool scoped to nothing instead of falling
+            // back to the workspace — detach it along with the data. Agents
+            // only ever see shared knowledge, so a private delete leaves them be.
+            if ($deleted > 0 && ! $private) {
+                AgentKnowledgeCollection::query()
+                    ->where('collection', $collection)
+                    ->whereIn('agent_id', $workspace->agents()->select('agents.id'))
+                    ->delete();
+            }
+
+            return $deleted;
+        });
 
         abort_if($deleted === 0, 404);
 

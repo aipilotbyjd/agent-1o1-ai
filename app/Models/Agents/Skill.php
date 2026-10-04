@@ -4,6 +4,7 @@ namespace App\Models\Agents;
 
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use Database\Factories\Agents\SkillFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable(['workspace_id', 'created_by', 'name', 'slug', 'description', 'category', 'icon', 'color', 'tags', 'instructions', 'is_shared'])]
 class Skill extends Model
 {
+    /** @use HasFactory<SkillFactory> */
     use HasFactory, HasUuids, SoftDeletes;
 
     /**
@@ -44,6 +46,14 @@ class Skill extends Model
      * @var list<string>
      */
     public const COLORS = ['#6366F1', '#7C3AED', '#D97706', '#10A37F', '#EC4899', '#0EA5E9', '#EF4444'];
+
+    /**
+     * A skill's description is listed in the system prompt on every turn, so
+     * it is kept short; the full text lives in `instructions`.
+     */
+    public const int DESCRIPTION_MAX_LENGTH = 500;
+
+    public const int INSTRUCTIONS_MAX_LENGTH = 50000;
 
     /**
      * @var array<string, mixed>
@@ -105,6 +115,16 @@ class Skill extends Model
             ->implode("\n\n");
 
         return trim("# Skill: {$this->name}\n{$this->instructions}\n\n{$references}");
+    }
+
+    /**
+     * Bumps `version` for a change to what `toPrompt()` hands the model —
+     * the instructions or any reference — so a caller can tell an in-flight
+     * session's skill context may have changed.
+     */
+    public function bumpVersion(): void
+    {
+        $this->increment('version');
     }
 
     public function references(): HasMany

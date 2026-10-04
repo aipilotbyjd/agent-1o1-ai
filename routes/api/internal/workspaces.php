@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Internal\V1\Notifications\NotificationChannelController;
 use App\Http\Controllers\Api\Internal\V1\Notifications\NotificationPreferenceController;
+use App\Http\Controllers\Api\Internal\V1\Workspaces\AuditLogController;
 use App\Http\Controllers\Api\Internal\V1\Workspaces\WorkspaceController;
 use App\Http\Controllers\Api\Internal\V1\Workspaces\WorkspaceInvitationController;
 use App\Http\Controllers\Api\Internal\V1\Workspaces\WorkspaceMemberController;
@@ -34,6 +35,8 @@ Route::middleware('auth:api')->prefix('workspaces')->group(function () {
         Route::patch('notification-channels/{notificationChannel}', [NotificationChannelController::class, 'update']);
         Route::delete('notification-channels/{notificationChannel}', [NotificationChannelController::class, 'destroy']);
         Route::post('notification-channels/{notificationChannel}/test', [NotificationChannelController::class, 'test']);
+
+        Route::get('audit-logs', [AuditLogController::class, 'index']);
 
         Route::get('notification-preferences', [NotificationPreferenceController::class, 'index']);
         Route::put('notification-preferences', [NotificationPreferenceController::class, 'upsert']);

@@ -12,19 +12,26 @@ use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
+use App\Models\Agents\WorkspaceAgentPolicy;
+use App\Models\Auth\ApiKey;
 use App\Models\Auth\PassportToken;
 use App\Models\Billing\Subscription as BillingSubscription;
 use App\Models\Billing\SubscriptionItem as BillingSubscriptionItem;
+use App\Models\Connectors\ConnectorCredential;
+use App\Models\Notifications\NotificationChannel;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
+use App\Models\Secrets\Secret;
 use App\Models\Templates\AgentTemplate;
 use App\Models\Templates\WorkflowTemplate;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Models\Workspaces\WorkspaceInvitation;
 use App\Models\Workspaces\WorkspaceMember;
 use App\Observers\AgentMessageObserver;
 use App\Observers\AgentObserver;
+use App\Observers\AuditObserver;
 use App\Observers\NodeRunObserver;
 use App\Observers\RunObserver;
 use App\Observers\WorkspaceMemberObserver;
@@ -223,6 +230,20 @@ class AppServiceProvider extends ServiceProvider
     private function configureObservers(): void
     {
         WorkspaceMember::observe(WorkspaceMemberObserver::class);
+
+        // Workspace audit trail — see `AuditLogger`.
+        foreach ([
+            Workspace::class,
+            WorkspaceMember::class,
+            WorkspaceInvitation::class,
+            ApiKey::class,
+            Secret::class,
+            ConnectorCredential::class,
+            NotificationChannel::class,
+            WorkspaceAgentPolicy::class,
+        ] as $audited) {
+            $audited::observe(AuditObserver::class);
+        }
 
         // Behavioral history for agents — see `AgentVersioner`.
         Agent::observe(AgentObserver::class);

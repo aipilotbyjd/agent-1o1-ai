@@ -84,6 +84,11 @@ class Workspace extends Model
         return $this->hasMany(WorkspaceInvitation::class);
     }
 
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
     public function notificationChannels(): HasMany
     {
         return $this->hasMany(NotificationChannel::class);

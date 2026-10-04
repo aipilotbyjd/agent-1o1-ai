@@ -4,10 +4,12 @@ namespace App\Ai\Tools;
 
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
+use App\Services\Agents\UntrustedContent;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 use Stringable;
+use Throwable;
 
 /**
  * RAG over `document_embeddings` — auto-attached by `ToolRegistry` to every
@@ -35,11 +37,21 @@ class SearchKnowledgeTool implements Tool
 
     public function handle(Request $request): Stringable|string
     {
-        $results = $this->knowledgeBase
-            ->search($this->workspace, (string) $request['query'], $this->collection)
+        try {
+            $found = $this->knowledgeBase->search($this->workspace, (string) $request['query'], $this->collection);
+        } catch (Throwable $exception) {
+            // A provider outage shouldn't abort the whole turn — the model
+            // can carry on and tell the user the lookup failed.
+            report($exception);
+
+            return 'The knowledge base search is temporarily unavailable. Tell the user you could not look this up right now; do not guess an answer.';
+        }
+
+        $results = $found
             ->map(fn (array $result): array => [
+                'collection' => $result['collection'],
                 'source' => $result['source'],
-                'text' => $result['text'],
+                'text' => UntrustedContent::wrap('knowledge_base', $result['text']),
                 'score' => round($result['score'], 4),
             ]);
 

@@ -12,19 +12,18 @@ use App\Ai\Tools\UseSkillTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentMemory;
 use App\Models\Agents\Skill;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Composes an `Agent`'s base `instructions` with a list of its attached
- * `Skill`s (name and description only — the model loads a skill's full
- * instructions on demand through `UseSkillTool`),
- * active `AgentKnowledge` entries, and remembered `AgentMemory` facts into
- * one final system-prompt string — see docs/AGENTS_PLAN.md's "Skills"
- * section ("no config binding, just injected as additional system-prompt
- * context alongside instructions()"), "Knowledge / RAG" (`AgentKnowledge` is
- * "always know this", injected directly, as opposed to
- * `SearchKnowledgeTool`'s "look this up when relevant"), and the
- * `agent_memories` section ("durable memory distinct from `AgentSession`'s
- * per-conversation history").
+ * Composes an `Agent`'s base `instructions` into the final system prompt,
+ * adding an "about you" section, the names and descriptions of its attached
+ * `Skill`s (the model loads a skill's full text on demand through
+ * `UseSkillTool`), active `AgentKnowledge` entries and remembered
+ * `AgentMemory` facts — see docs/AGENTS_PLAN.md's "Skills", "Knowledge / RAG"
+ * and `agent_memories` sections. `AgentKnowledge` is "always know this",
+ * injected directly, as opposed to `SearchKnowledgeTool`'s "look this up when
+ * relevant"; memory is durable and distinct from `AgentSession`'s
+ * per-conversation history.
  */
 class SkillInjector
 {
@@ -58,10 +57,33 @@ class SkillInjector
             $sections[] = $skills;
         }
 
-        foreach ($agent->knowledge()->where('is_active', true)->orderBy('sort_order')->get() as $knowledge) {
-            if ($knowledge->content !== null) {
-                $sections[] = "## Knowledge: {$knowledge->title}\n{$knowledge->content}";
+        $budget = (int) config('knowledge_base.max_injected_characters');
+        $skipped = 0;
+
+        foreach ($agent->knowledge()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get() as $knowledge) {
+            if ($knowledge->content === null) {
+                continue;
             }
+
+            $section = "## Knowledge: {$knowledge->title}\n{$knowledge->content}";
+
+            // Every entry is resent on every turn, so the total is capped;
+            // an entry that doesn't fit is left out whole rather than cut.
+            if (mb_strlen($section) > $budget) {
+                $skipped++;
+
+                continue;
+            }
+
+            $budget -= mb_strlen($section);
+            $sections[] = $section;
+        }
+
+        if ($skipped > 0) {
+            Log::warning('Agent knowledge entries left out of the prompt: over the injection budget.', [
+                'agent_id' => $agent->id,
+                'skipped' => $skipped,
+            ]);
         }
 
         if ($memories = $this->memoriesSection($agent, $userId)) {
@@ -88,6 +110,7 @@ class SkillInjector
 
         $lines[] = 'Today is '.now()->format('l, F j, Y').'.';
         $lines[] = "When asked who you are, answer as {$agent->name}; never present yourself as the underlying language model or its provider.";
+        $lines[] = UntrustedContent::RULE;
         $lines[] = 'Act on the most likely intent of each request, and ask a clarifying question only when a wrong guess would be costly. '
             .'When you have tools that can get real data or do the work, use them instead of guessing, and chain several calls when a task needs it.';
         $lines[] = 'When the user tells you something about themselves, their work or their preferences, or asks you to remember something, save it with `'.RememberTool::NAME.'`.';

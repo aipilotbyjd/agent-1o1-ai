@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\SkillInjector;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Facades\Log;
 use Laravel\Passport\Passport;
 
 /**
@@ -110,6 +111,41 @@ it('requires a url when the source type is url', function () {
         'content' => 'a',
         'source_type' => 'url',
     ])->assertJsonValidationErrors('source_url');
+});
+
+it('rejects explicit nulls for columns that cannot be null', function (string $field) {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge", [
+        'title' => 'Docs',
+        'content' => 'a',
+        $field => null,
+    ])->assertJsonValidationErrors($field);
+})->with(['source_type', 'is_active', 'sort_order']);
+
+it('keeps a url entry\'s url when updating something else', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    $entry = AgentKnowledge::factory()->forAgent($agent)->create(['source_type' => 'url', 'source_url' => 'https://example.com']);
+    $bare = AgentKnowledge::factory()->forAgent($agent)->create(['source_type' => 'text']);
+    Passport::actingAs($owner);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/{$entry->id}", ['title' => 'Renamed'])->assertOk();
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/{$bare->id}", ['source_type' => 'url'])
+        ->assertJsonValidationErrors('source_url');
+});
+
+it('leaves entries out of the prompt once the injection budget is spent', function () {
+    config(['knowledge_base.max_injected_characters' => 100]);
+    Log::spy();
+    [, , $agent] = agentWorkspaceForKnowledge();
+    AgentKnowledge::factory()->forAgent($agent)->create(['title' => 'Fits', 'content' => 'short', 'sort_order' => 0]);
+    AgentKnowledge::factory()->forAgent($agent)->create(['title' => 'Too big', 'content' => str_repeat('x', 200), 'sort_order' => 1]);
+
+    $prompt = app(SkillInjector::class)->instructionsFor($agent);
+
+    expect($prompt)->toContain('## Knowledge: Fits')->not->toContain('Too big');
+    Log::shouldHaveReceived('warning')->once();
 });
 
 it('lets a viewer read knowledge but not write it', function () {

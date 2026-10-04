@@ -10,6 +10,7 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\Skill;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Approvable;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -116,6 +117,14 @@ class UpdateSkillTool implements Approvable, Tool
 
         if ($changes === []) {
             return 'Not updated: pass new instructions or a new description.';
+        }
+
+        if (isset($changes['description'])) {
+            $changes['description'] = Str::limit($changes['description'], Skill::DESCRIPTION_MAX_LENGTH, '');
+        }
+
+        if (mb_strlen($changes['instructions'] ?? '') > Skill::INSTRUCTIONS_MAX_LENGTH) {
+            return 'Not updated: the instructions are too long. Shorten them and try again.';
         }
 
         // `version` isn't fillable, so it's set alongside the edit in one save.

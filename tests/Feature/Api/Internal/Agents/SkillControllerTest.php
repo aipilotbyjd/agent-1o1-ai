@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Workspaces\Role;
 use App\Models\Agents\Agent;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
@@ -103,4 +104,78 @@ it('404s attaching a skill from a different workspace', function () {
 
     $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/skills/{$foreignSkill->id}")
         ->assertNotFound();
+});
+
+it('does not bump the version when the instructions are re-sent unchanged', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $skill = $workspace->skills()->create(['name' => 'S', 'slug' => 's', 'instructions' => 'v1']);
+
+    Passport::actingAs($owner);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}", ['instructions' => 'v1', 'color' => '#fff'])
+        ->assertOk();
+
+    expect($skill->fresh()->version)->toBe(1);
+});
+
+it('refuses a duplicate slug or name instead of erroring', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workspace->skills()->create(['name' => 'Refunds', 'slug' => 'refunds', 'instructions' => 'v1']);
+    $other = $workspace->skills()->create(['name' => 'Other', 'slug' => 'other', 'instructions' => 'v1']);
+
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/skills", ['name' => 'New', 'slug' => 'refunds', 'instructions' => 'x'])
+        ->assertUnprocessable()->assertJsonValidationErrors('slug');
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/skills", ['name' => 'REFUNDS', 'instructions' => 'x'])
+        ->assertUnprocessable()->assertJsonValidationErrors('name');
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/skills/{$other->id}", ['slug' => 'refunds'])
+        ->assertUnprocessable()->assertJsonValidationErrors('slug');
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/skills/{$other->id}", ['name' => 'Other', 'slug' => 'other'])
+        ->assertOk();
+});
+
+it('rejects a null is_shared, nested tags and an overlong description', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/skills", ['name' => 'A', 'instructions' => 'x', 'is_shared' => null])
+        ->assertUnprocessable()->assertJsonValidationErrors('is_shared');
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/skills", ['name' => 'A', 'instructions' => 'x', 'tags' => [['nested']]])
+        ->assertUnprocessable()->assertJsonValidationErrors('tags.0');
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/skills", ['name' => 'A', 'instructions' => 'x', 'description' => str_repeat('a', 501)])
+        ->assertUnprocessable()->assertJsonValidationErrors('description');
+});
+
+it('shows, lists and deletes skills, and forbids a viewer from managing them', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $skill = $workspace->skills()->create(['name' => 'S', 'slug' => 's', 'instructions' => 'v1']);
+    $viewer = User::factory()->create();
+    $workspace->members()->create(['user_id' => $viewer->id, 'role' => Role::Viewer, 'joined_at' => now()]);
+
+    Passport::actingAs($viewer);
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/skills")->assertOk();
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}")->assertOk();
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}")->assertForbidden();
+
+    Passport::actingAs($owner);
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}")->assertNoContent();
+    expect($skill->fresh())->toBeNull();
+});
+
+it('does not reach into another workspace\'s skill', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $foreign = app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Other']);
+    $skill = $foreign->skills()->create(['name' => 'S', 'slug' => 's', 'instructions' => 'v1']);
+
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}")->assertNotFound();
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}")->assertNotFound();
 });

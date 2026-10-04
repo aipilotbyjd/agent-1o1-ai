@@ -106,14 +106,17 @@ class SkillController extends Controller
             $this->ensureNotSynced($skill);
         }
 
-        $skill->update($request->validated());
-
         // A version bump is a signal to callers that an in-flight session's
-        // Skill context may have changed — bump it whenever the instructions
-        // themselves change, not on cosmetic fields like color/icon.
-        if ($request->has('instructions')) {
-            $skill->increment('version');
+        // Skill context may have changed — bump it only when the instructions
+        // actually change, not on cosmetic fields like color/icon. Set in the
+        // same save as the edit; `version` isn't fillable.
+        $skill->fill($request->validated());
+
+        if ($skill->isDirty('instructions')) {
+            $skill->version++;
         }
+
+        $skill->save();
 
         return ApiResponse::success(['skill' => SkillResource::make($skill->fresh())], 'Skill updated successfully.');
     }

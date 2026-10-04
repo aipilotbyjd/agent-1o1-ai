@@ -16,6 +16,30 @@ return [
 
     'max_upload_kilobytes' => (int) env('KNOWLEDGE_BASE_MAX_UPLOAD_KILOBYTES', 5120),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Inline vs. queued ingestion
+    |--------------------------------------------------------------------------
+    |
+    | Text up to this many characters is embedded during the request (and the
+    | chunks returned); anything longer is queued as an `IngestKnowledgeJob`
+    | and the request answers 202.
+    */
+
+    'sync_ingest_max_characters' => (int) env('KNOWLEDGE_BASE_SYNC_INGEST_MAX_CHARACTERS', 20000),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Always-injected knowledge budget
+    |--------------------------------------------------------------------------
+    |
+    | The most characters of an agent's `AgentKnowledge` entries that
+    | `SkillInjector` puts in its system prompt, summed across entries.
+    | Entries past the budget are left out (and logged), not truncated.
+    */
+
+    'max_injected_characters' => (int) env('KNOWLEDGE_BASE_MAX_INJECTED_CHARACTERS', 100000),
+
     'allowed_extensions' => ['txt', 'md', 'markdown', 'csv', 'json', 'xml', 'yaml', 'yml', 'html', 'htm'],
 
     /*

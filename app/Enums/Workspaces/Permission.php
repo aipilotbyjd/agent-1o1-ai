@@ -61,6 +61,8 @@ enum Permission: string
     case NotificationChannelView = 'notification-channel.view';
     case NotificationChannelManage = 'notification-channel.manage';
 
+    case AuditLogView = 'audit-log.view';
+
     /**
      * @return array<int, self>
      */
@@ -134,6 +136,7 @@ enum Permission: string
             self::BillingManage,
             self::NotificationChannelManage,
             self::AgentPolicyManage,
+            self::AuditLogView,
         ];
     }
 

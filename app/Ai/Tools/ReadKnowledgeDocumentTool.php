@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
+use App\Services\Agents\UntrustedContent;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -41,7 +42,9 @@ class ReadKnowledgeDocumentTool implements Tool
             $this->collection,
         );
 
-        return $text ?? json_encode(['error' => 'No document found for that source.']);
+        return $text === null
+            ? json_encode(['error' => 'No document found for that source.'])
+            : UntrustedContent::wrap('knowledge_base', $text);
     }
 
     public function schema(JsonSchema $schema): array

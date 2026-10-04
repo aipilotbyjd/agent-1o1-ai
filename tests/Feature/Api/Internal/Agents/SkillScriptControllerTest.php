@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Workspaces\Role;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
 use Laravel\Passport\Passport;
@@ -89,4 +90,28 @@ it('404s deleting a script that belongs to a different skill', function () {
 
     $this->deleteJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}/scripts/{$script->id}")
         ->assertNotFound();
+});
+
+it('rejects a null is_enabled', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $skill = $workspace->skills()->create(['name' => 'S', 'slug' => 's', 'instructions' => 'v1']);
+
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}/scripts", [
+        'name' => 'X', 'language' => 'python', 'code' => '1', 'is_enabled' => null,
+    ])->assertUnprocessable()->assertJsonValidationErrors('is_enabled');
+});
+
+it('keeps script source from a viewer', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $skill = $workspace->skills()->create(['name' => 'S', 'slug' => 's', 'instructions' => 'v1']);
+    $viewer = User::factory()->create();
+    $workspace->members()->create(['user_id' => $viewer->id, 'role' => Role::Viewer, 'joined_at' => now()]);
+
+    Passport::actingAs($viewer);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}/scripts")->assertForbidden();
 });

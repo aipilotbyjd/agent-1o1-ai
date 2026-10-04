@@ -10,8 +10,11 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditMeter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Embeddings;
+use RuntimeException;
 
 /**
  * The workspace knowledge base behind `document_embeddings`: turning text
@@ -77,9 +80,24 @@ class KnowledgeBase
     private const int EMBED_BATCH = 64;
 
     /**
+     * The most characters of one document `readDocument()` hands back. A
+     * whole document goes straight into a model's context, so an enormous
+     * one is cut off (with a notice) instead of exhausting it.
+     */
+    public const int MAX_DOCUMENT_CHARACTERS = 60000;
+
+    /**
      * Split text into chunks, embed them, and store one row per chunk. The
      * embedding tokens are charged to `$workspace` — see `chargeForEmbeddings()`.
      * With `$ownerId` the chunks are private to that member (their Brain).
+     *
+     * Embedding happens first and everything is written in one transaction,
+     * so a provider failure or a billing failure never leaves a half-ingested
+     * document behind. With `$replaceSource`, chunks already stored for the
+     * same `$source` in the same `$collection` (and with the same owner) are
+     * swapped for the new ones in that same transaction — re-ingesting a
+     * revised document replaces it rather than duplicating it, and a failed
+     * re-ingest keeps the old one.
      *
      * @param  array<string, mixed>|null  $metadata
      * @return Collection<int, DocumentEmbedding>
@@ -93,6 +111,7 @@ class KnowledgeBase
         ?string $ownerId = null,
         ?string $knowledgeSourceId = null,
         ?string $externalId = null,
+        bool $replaceSource = false,
     ): Collection {
         $chunks = $this->chunk($text);
 
@@ -102,38 +121,51 @@ class KnowledgeBase
 
         ['vectors' => $vectors, 'usage' => $usage] = $this->embed($chunks);
 
-        $stored = collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
-            'workspace_id' => $workspace->id,
-            'owner_id' => $ownerId,
-            'collection' => $collection,
-            'knowledge_source_id' => $knowledgeSourceId,
-            'external_id' => $externalId,
-            'source' => $source,
-            'chunk_text' => $chunk,
-            'embedding' => $vectors[$index] ?? [],
-            'metadata' => $metadata,
-        ]));
+        return DB::transaction(function () use ($workspace, $chunks, $vectors, $usage, $source, $collection, $metadata, $ownerId, $knowledgeSourceId, $externalId, $replaceSource): Collection {
+            if ($replaceSource && $source !== null) {
+                $this->deleteDocument($workspace, $source, $collection, $ownerId);
+            }
 
-        $first = $stored->first();
-        $this->chargeForEmbeddings($workspace, $first->id, $first->source !== null ? 'Knowledge ingestion ('.Str::limit($first->source, 200).')' : 'Knowledge ingestion', $usage);
+            $stored = collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
+                'workspace_id' => $workspace->id,
+                'owner_id' => $ownerId,
+                'collection' => $collection,
+                'knowledge_source_id' => $knowledgeSourceId,
+                'external_id' => $externalId,
+                'source' => $source,
+                'chunk_index' => $index,
+                'chunk_text' => $chunk,
+                'embedding' => $vectors[$index],
+                'metadata' => $metadata,
+            ]));
 
-        return $stored;
+            $this->chargeForEmbeddings($workspace, $stored->first(), $usage);
+
+            return $stored;
+        });
     }
 
     /**
-     * Embeds texts in provider-sized batches. Also used by the assistant's
-     * Brain, so both knowledge stores embed the same way.
+     * Embeds texts in provider-sized batches.
      *
      * @param  array<int, string>  $texts
      * @return array{vectors: array<int, array<int, float>>, usage: array{prompt_tokens: int, provider: string|null, model: string|null}}
      */
-    public function embed(array $texts): array
+    private function embed(array $texts): array
     {
         $vectors = [];
         $usage = ['prompt_tokens' => 0, 'provider' => null, 'model' => null];
 
         foreach (array_chunk(array_values($texts), self::EMBED_BATCH) as $batch) {
             $response = Embeddings::for($batch)->generate();
+
+            if (count($response->embeddings) !== count($batch)) {
+                throw new RuntimeException(sprintf(
+                    'The embeddings provider returned %d vectors for %d chunks.',
+                    count($response->embeddings),
+                    count($batch),
+                ));
+            }
 
             $vectors = [...$vectors, ...$response->embeddings];
             $usage = [
@@ -147,7 +179,23 @@ class KnowledgeBase
     }
 
     /**
-     * Bills embedding tokens against `$referenceId` (the first stored chunk).
+     * Removes every chunk of one document, returning how many were deleted.
+     * Only shared chunks are touched unless `$ownerId` is given, in which case
+     * only that member's private ones are — a document is never removed
+     * across the shared/private line.
+     *
+     * @param  string|array<int, string>|null  $collection
+     */
+    public function deleteDocument(Workspace $workspace, string $source, string|array|null $collection = null, ?string $ownerId = null): int
+    {
+        return $this->scopedTo($workspace, $collection)
+            ->where('source', $source)
+            ->when($ownerId !== null, fn (Builder $builder) => $builder->where('owner_id', $ownerId), fn (Builder $builder) => $builder->shared())
+            ->delete();
+    }
+
+    /**
+     * Bills the ingestion's embedding tokens against its first stored chunk.
      * With overdraft: the provider has already been paid by the time the
      * chunks exist. Retrieval (`search()`) isn't charged — one short query's
      * embedding rounds to nothing, and an agent's search is already billed
@@ -155,7 +203,7 @@ class KnowledgeBase
      *
      * @param  array{prompt_tokens: int, provider: string|null, model: string|null}  $usage
      */
-    public function chargeForEmbeddings(Workspace $workspace, string $referenceId, string $description, array $usage): void
+    private function chargeForEmbeddings(Workspace $workspace, DocumentEmbedding $firstChunk, array $usage): void
     {
         $credits = app(CreditMeter::class)->costForEmbeddings($usage);
 
@@ -166,9 +214,9 @@ class KnowledgeBase
         app(DeductCreditsAction::class)->execute(
             $workspace,
             CreditTransactionType::KnowledgeIngestion,
-            $referenceId,
+            $firstChunk->id,
             $credits,
-            $description,
+            $firstChunk->source !== null ? 'Knowledge ingestion ('.Str::limit($firstChunk->source, 200).')' : 'Knowledge ingestion',
             allowOverdraft: true,
         );
     }
@@ -181,7 +229,7 @@ class KnowledgeBase
      *                                                      `ToolRegistry`), or null for every collection in the workspace.
      * @param  User|null  $viewer  With no viewer only shared knowledge is searched (what agents see);
      *                             with one, their private knowledge too — or only it, when `$includeShared` is false.
-     * @return Collection<int, array{id: string, source: string|null, collection: string, url: string|null, private: bool, text: string, score: float}>
+     * @return Collection<int, array{id: string, collection: string, source: string|null, url: string|null, private: bool, text: string, score: float}>
      */
     public function search(
         Workspace $workspace,
@@ -191,41 +239,62 @@ class KnowledgeBase
         ?User $viewer = null,
         bool $includeShared = true,
     ): Collection {
-        $profile = $this->queryProfile($query);
+        $queryVector = Embeddings::for([$query])->generate()->embeddings[0] ?? [];
 
         // Chunks are read in batches and only the running top N is kept, so
         // memory stays flat however large the workspace's knowledge base is.
         $best = [];
 
-        $chunks = $this->visible(DocumentEmbedding::query(), $viewer, $includeShared)
+        $chunks = $this->visible($this->scopedTo($workspace, $collection), $viewer, $includeShared)
             ->select(['id', 'owner_id', 'collection', 'source', 'chunk_text', 'embedding', 'metadata'])
-            ->where('workspace_id', $workspace->id)
-            ->when($collection !== null, fn ($builder) => is_array($collection)
-                ? $builder->whereIn('collection', $collection)
-                : $builder->where('collection', $collection))
             ->lazyById(500);
 
-        foreach ($chunks as $chunk) {
-            $score = $this->relevance($profile, $chunk->embedding ?? [], $chunk->chunk_text);
+        $terms = $this->terms($query);
+        $patterns = array_map($this->termPattern(...), $terms);
+        $phrase = count($terms) > 1 ? mb_strtolower(trim($query, " \t\n\r\0\x0B.?!,;:")) : null;
+        $mismatched = 0;
 
-            if ($score === null) {
+        foreach ($chunks as $chunk) {
+            $vector = $chunk->embedding ?? [];
+
+            if ($queryVector !== [] && $vector !== [] && count($vector) !== count($queryVector)) {
+                $mismatched++;
+            }
+
+            $semantic = $this->cosineSimilarity($queryVector, $vector);
+            $keyword = $this->keywordCoverage($patterns, $chunk->chunk_text);
+
+            if ($semantic < self::MIN_SEMANTIC_SCORE && $keyword === 0.0) {
                 continue;
             }
 
+            $phraseBonus = $phrase !== null && str_contains(mb_strtolower($chunk->chunk_text), $phrase) ? self::PHRASE_WEIGHT : 0.0;
+
             $best[] = [
                 'id' => $chunk->id,
-                'source' => $chunk->source,
                 'collection' => $chunk->collection,
+                'source' => $chunk->source,
                 'url' => $chunk->metadata['url'] ?? null,
                 'private' => $chunk->owner_id !== null,
                 'text' => $chunk->chunk_text,
-                'score' => $score,
+                'score' => $semantic + self::KEYWORD_WEIGHT * $keyword + $phraseBonus,
             ];
 
             if (count($best) > $topN) {
                 $best = $this->rank($best);
                 array_pop($best);
             }
+        }
+
+        if ($mismatched > 0) {
+            // A chunk embedded with a different model has a different vector
+            // length and can only ever match on keywords — worth knowing when
+            // search quality drops after changing the embeddings provider.
+            Log::warning('Knowledge base search skipped semantic scoring for chunks with mismatched embedding dimensions.', [
+                'workspace_id' => $workspace->id,
+                'chunks' => $mismatched,
+                'query_dimensions' => count($queryVector),
+            ]);
         }
 
         return collect($this->rank($best))->values();
@@ -248,49 +317,11 @@ class KnowledgeBase
     }
 
     /**
-     * What a chunk is scored against: the query's embedding, its meaningful
-     * words, and the whole query as a phrase when it has several words.
-     *
-     * @return array{vector: array<int, float>, terms: array<int, string>, phrase: string|null}
-     */
-    public function queryProfile(string $query): array
-    {
-        $terms = $this->terms($query);
-
-        return [
-            'vector' => Embeddings::for([$query])->generate()->embeddings[0] ?? [],
-            'terms' => $terms,
-            'phrase' => count($terms) > 1 ? mb_strtolower(trim($query)) : null,
-        ];
-    }
-
-    /**
-     * A chunk's hybrid score against a query (see the class docblock), or
-     * null when it is neither semantically close nor shares a word.
-     *
-     * @param  array{vector: array<int, float>, terms: array<int, string>, phrase: string|null}  $profile
-     * @param  array<int, float>  $embedding
-     */
-    public function relevance(array $profile, array $embedding, string $text): ?float
-    {
-        $semantic = $this->cosineSimilarity($profile['vector'], $embedding);
-        $keyword = $this->keywordCoverage($profile['terms'], $text);
-
-        if ($semantic < self::MIN_SEMANTIC_SCORE && $keyword === 0.0) {
-            return null;
-        }
-
-        $phraseBonus = $profile['phrase'] !== null && str_contains(mb_strtolower($text), $profile['phrase']) ? self::PHRASE_WEIGHT : 0.0;
-
-        return $semantic + self::KEYWORD_WEIGHT * $keyword + $phraseBonus;
-    }
-
-    /**
      * Highest score first; `usort` is stable, so ties keep insertion (id)
      * order.
      *
-     * @param  array<int, array{id: string, source: string|null, text: string, score: float}>  $results
-     * @return array<int, array{id: string, source: string|null, text: string, score: float}>
+     * @param  array<int, array{id: string, collection: string, source: string|null, url: string|null, private: bool, text: string, score: float}>  $results
+     * @return array<int, array{id: string, collection: string, source: string|null, url: string|null, private: bool, text: string, score: float}>
      */
     private function rank(array $results): array
     {
@@ -301,8 +332,11 @@ class KnowledgeBase
 
     /**
      * The full text of one "document" — every chunk sharing a `source`
-     * (and, when given, a `collection`), reassembled in storage order.
-     * Backs `Ai\Tools\ReadKnowledgeDocumentTool`: a search hit's `source` is
+     * (and, when given, a `collection`), reassembled in reading order. If the
+     * same `source` exists in several collections and none was asked for, the
+     * first collection alphabetically wins rather than interleaving different
+     * documents. Capped at `MAX_DOCUMENT_CHARACTERS`.
+     * Backs `Ai\Tools\ReadKnowledgeDocumentTool`: a search hit's `text` is
      * a chunk-level snippet, and this is what a model calls when a snippet
      * alone isn't enough context.
      *
@@ -310,16 +344,61 @@ class KnowledgeBase
      */
     public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null, ?User $viewer = null): ?string
     {
-        $chunks = $this->visible(DocumentEmbedding::query(), $viewer)
-            ->where('workspace_id', $workspace->id)
+        $rows = $this->visible($this->scopedTo($workspace, $collection), $viewer)
             ->where('source', $source)
-            ->when($collection !== null, fn ($builder) => is_array($collection)
-                ? $builder->whereIn('collection', $collection)
-                : $builder->where('collection', $collection))
+            ->orderBy('collection')
+            ->orderBy('chunk_index')
             ->orderBy('id')
-            ->pluck('chunk_text');
+            ->select(['collection', 'chunk_text'])
+            ->cursor();
 
-        return $chunks->isEmpty() ? null : $chunks->implode("\n\n");
+        $parts = [];
+        $length = 0;
+        $documentCollection = null;
+        $truncated = false;
+
+        foreach ($rows as $row) {
+            $documentCollection ??= $row->collection;
+
+            if ($row->collection !== $documentCollection) {
+                break;
+            }
+
+            $parts[] = $row->chunk_text;
+            $length += mb_strlen($row->chunk_text) + 2;
+
+            if ($length > self::MAX_DOCUMENT_CHARACTERS) {
+                $truncated = true;
+
+                break;
+            }
+        }
+
+        if ($parts === []) {
+            return null;
+        }
+
+        $text = implode("\n\n", $parts);
+
+        if (! $truncated) {
+            return $text;
+        }
+
+        return mb_substr($text, 0, self::MAX_DOCUMENT_CHARACTERS)
+            ."\n\n[Document truncated after ".number_format(self::MAX_DOCUMENT_CHARACTERS).' characters.]';
+    }
+
+    /**
+     * @param  string|array<int, string>|null  $collection
+     * @return Builder<DocumentEmbedding>
+     */
+    private function scopedTo(Workspace $workspace, string|array|null $collection): Builder
+    {
+        return DocumentEmbedding::query()
+            ->where('workspace_id', $workspace->id)
+            ->when($collection !== null, fn (Builder $builder) => is_array($collection)
+                ? $builder->whereIn('collection', $collection)
+                : $builder->where('collection', $collection));
     }
 
     /**
@@ -406,10 +485,6 @@ class KnowledgeBase
     }
 
     /**
-     * @param  array<int, float>  $a
-     * @param  array<int, float>  $b
-     */
-    /**
      * The distinct, meaningful words of a query, lowercased.
      *
      * @return array<int, string>
@@ -425,28 +500,41 @@ class KnowledgeBase
     }
 
     /**
-     * The share of `$terms` that appear in `$text` as whole words, from 0 to 1.
-     *
-     * @param  array<int, string>  $terms
+     * A pattern matching one query term as a whole word.
      */
-    private function keywordCoverage(array $terms, string $text): float
+    private function termPattern(string $term): string
     {
-        if ($terms === []) {
+        return '/(?<![\p{L}\p{N}_-])'.preg_quote($term, '/').'(?![\p{L}\p{N}_-])/u';
+    }
+
+    /**
+     * The share of the query's terms (as `termPattern()` regexes) that appear
+     * in `$text` as whole words, from 0 to 1.
+     *
+     * @param  array<int, string>  $patterns
+     */
+    private function keywordCoverage(array $patterns, string $text): float
+    {
+        if ($patterns === []) {
             return 0.0;
         }
 
         $haystack = mb_strtolower($text);
         $found = 0;
 
-        foreach ($terms as $term) {
-            if (preg_match('/(?<![\p{L}\p{N}_-])'.preg_quote($term, '/').'(?![\p{L}\p{N}_-])/u', $haystack) === 1) {
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $haystack) === 1) {
                 $found++;
             }
         }
 
-        return $found / count($terms);
+        return $found / count($patterns);
     }
 
+    /**
+     * @param  array<int, float>  $a
+     * @param  array<int, float>  $b
+     */
     private function cosineSimilarity(array $a, array $b): float
     {
         if ($a === [] || $b === [] || count($a) !== count($b)) {

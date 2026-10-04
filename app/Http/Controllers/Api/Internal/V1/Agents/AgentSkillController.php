@@ -35,6 +35,7 @@ class AgentSkillController extends Controller
     {
         $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $agent);
+        $this->ensureBelongsToWorkspace($workspace, $skill);
 
         $agent->skills()->detach($skill->id);
 
