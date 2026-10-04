@@ -42,4 +42,23 @@ return [
 
     'allowed_extensions' => ['txt', 'md', 'markdown', 'csv', 'json', 'xml', 'yaml', 'yml', 'html', 'htm'],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Synced sources
+    |--------------------------------------------------------------------------
+    |
+    | Web pages and connected apps (Drive, Gmail, Outlook, GitHub, Slack)
+    | the knowledge base keeps in sync — shared, or private to one member.
+    */
+
+    'sources' => [
+        'max_per_workspace' => 200,
+
+        // Documents read per sync; the rest come on the next one.
+        'max_documents_per_sync' => 50,
+        'max_document_chars' => 100000,
+
+        'sync_every_minutes' => 60,
+    ],
+
 ];

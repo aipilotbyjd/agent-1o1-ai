@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
+use App\Models\Agents\SkillScript;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class UpdateSkillScriptRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'language' => ['sometimes', 'string', Rule::in(['python', 'javascript', 'typescript', 'bash'])],
+            'language' => ['sometimes', 'string', Rule::in(SkillScript::LANGUAGES)],
             'code' => ['sometimes', 'string'],
             'is_enabled' => ['sometimes', 'boolean'],
         ];

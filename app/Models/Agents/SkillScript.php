@@ -16,6 +16,13 @@ class SkillScript extends Model
     use HasFactory, HasUuids;
 
     /**
+     * The languages a script may be written in.
+     *
+     * @var list<string>
+     */
+    public const LANGUAGES = ['python', 'javascript', 'typescript', 'bash'];
+
+    /**
      * @var array<string, mixed>
      */
     protected $attributes = [

@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Connectors\OAuthConnectorController;
+use App\Http\Controllers\Webhooks\AssistantEmailWebhookController;
+use App\Http\Controllers\Webhooks\AssistantSlackEventsController;
+use App\Http\Controllers\Webhooks\AssistantSlackOAuthController;
+use App\Http\Controllers\Webhooks\AssistantSmsWebhookController;
+use App\Http\Controllers\Webhooks\AssistantWebhookController;
 use App\Http\Controllers\Webhooks\SlackAgentActionController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\WaitCallbackController;
@@ -13,6 +18,25 @@ use Illuminate\Support\Facades\Route;
 Route::post('hooks/{token}', WebhookController::class)
     ->middleware('throttle:trigger-hooks')
     ->name('hooks.trigger');
+
+// A personal assistant's webhook trigger — the token in the URL is the
+// credential. Answers at once; the assistant runs on the queue.
+// The assistant's own channels. Declared before hooks/assistant/{token} so
+// these fixed paths are never read as a trigger token.
+Route::post('hooks/assistant/email', AssistantEmailWebhookController::class)
+    ->middleware('throttle:120,1')
+    ->name('hooks.assistant.email');
+Route::post('hooks/assistant/slack/events', AssistantSlackEventsController::class)
+    ->name('hooks.assistant.slack.events');
+Route::get('hooks/assistant/slack/oauth', AssistantSlackOAuthController::class)
+    ->name('hooks.assistant.slack.oauth');
+Route::post('hooks/assistant/sms', AssistantSmsWebhookController::class)
+    ->middleware('throttle:300,1')
+    ->name('hooks.assistant.sms');
+
+Route::post('hooks/assistant/{token}', AssistantWebhookController::class)
+    ->middleware('throttle:assistant-hooks')
+    ->name('hooks.assistant');
 
 // Same pattern, applied to a Wait node's one-time callback token instead of
 // a Trigger's — reuses the 'trigger-hooks' limiter since it's already

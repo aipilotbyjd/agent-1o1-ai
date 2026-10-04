@@ -3,9 +3,10 @@
 namespace App\Jobs\Connectors;
 
 use App\Enums\Queue;
+use App\Exceptions\ConnectorException;
 use App\Models\Connectors\ConnectorCredential;
 use App\Notifications\Connectors\ConnectorCredentialExpiredNotification;
-use App\Services\Connectors\OAuthConnectorFlowService;
+use App\Services\Connectors\ConnectorTokens;
 use App\Services\Notifications\NotificationDispatcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,14 +37,21 @@ class RefreshConnectorCredentialJob implements ShouldQueue
         $this->onQueue(Queue::Maintenance->value);
     }
 
-    public function handle(OAuthConnectorFlowService $flow): void
+    public function handle(ConnectorTokens $tokens): void
     {
-        $flow->refresh($this->credential);
+        $refreshed = $tokens->refresh($this->credential, force: true);
+
+        // The provider rejected the refresh token: retrying won't help, so
+        // fail now and let `failed()` tell the admins to reconnect.
+        if (filled($refreshed->data['refresh_token'] ?? null) && ! $refreshed->canRefresh()) {
+            $this->fail(ConnectorException::needsReconnect($refreshed));
+        }
     }
 
     public function failed(?Throwable $exception): void
     {
         $this->credential->update(['expires_at' => now()]);
+        app(ConnectorTokens::class)->markRejected($this->credential->refresh());
 
         app(NotificationDispatcher::class)->dispatch(
             app(NotificationDispatcher::class)->ownersAndAdmins($this->credential->workspace),

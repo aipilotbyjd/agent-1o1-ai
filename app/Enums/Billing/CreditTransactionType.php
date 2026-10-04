@@ -41,6 +41,12 @@ enum CreditTransactionType: string
     case AgentDraft = 'agent_draft';
 
     /**
+     * Drafting a new skill from a description — see `SkillDraftController`.
+     * A draft saves nothing, so its charge carries an id of its own.
+     */
+    case SkillDraft = 'skill_draft';
+
+    /**
      * One workflow-builder assistant turn (charged against its assistant
      * message's id) or one builder assist call — suggest, configure,
      * explain — which saves nothing and carries an id of its own. See
@@ -69,4 +75,15 @@ enum CreditTransactionType: string
      * action it reviewed.
      */
     case ActionReview = 'action_review';
+
+    /**
+     * One turn of a member's personal assistant (`AssistantTurn`), priced
+     * like an agent chat turn.
+     */
+    case AssistantTurn = 'assistant_turn';
+
+    /**
+     * Minutes the assistant's cloud computer spent running code.
+     */
+    case AssistantSandbox = 'assistant_sandbox';
 }

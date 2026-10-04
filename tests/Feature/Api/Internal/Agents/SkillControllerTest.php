@@ -22,6 +22,44 @@ it('creates a skill with a generated slug', function () {
     expect($response->json('data.skill.version'))->toBe(1);
 });
 
+it('creates a skill with its references and scripts in one request', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    Passport::actingAs($owner);
+
+    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/skills", [
+        'name' => 'Weekly MRR Report',
+        'instructions' => 'Fill the "Report template".',
+        'references' => [
+            ['title' => 'Report template', 'content' => '## MRR'],
+            ['title' => 'Glossary', 'content' => 'MRR: monthly recurring revenue'],
+        ],
+        'scripts' => [['name' => 'compute_mrr', 'description' => null, 'language' => 'python', 'code' => 'print(1)']],
+    ]);
+
+    $response->assertCreated();
+    $skill = $workspace->skills()->sole();
+    expect($skill->references->pluck('title', 'sort_order')->all())->toBe([0 => 'Report template', 1 => 'Glossary']);
+    expect($skill->scripts()->sole()->only(['name', 'language', 'is_enabled']))
+        ->toBe(['name' => 'compute_mrr', 'language' => 'python', 'is_enabled' => true]);
+});
+
+it('saves nothing when one of the scripts is invalid', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/skills", [
+        'name' => 'S',
+        'instructions' => 'I',
+        'scripts' => [['name' => 'x', 'language' => 'ruby', 'code' => 'puts 1']],
+    ])->assertUnprocessable()->assertJsonValidationErrors(['scripts.0.language']);
+
+    $this->assertDatabaseCount('skills', 0);
+});
+
 it('bumps the version when instructions change but not for cosmetic edits', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);

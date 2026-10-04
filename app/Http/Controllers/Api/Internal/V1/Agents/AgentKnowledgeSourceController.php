@@ -29,6 +29,7 @@ class AgentKnowledgeSourceController extends Controller
             // isn't attached yet. Agents' exported-artifact collections are
             // private to the agent that wrote them, so they aren't offered.
             'available' => DocumentEmbedding::query()
+                ->shared()
                 ->where('workspace_id', $workspace->id)
                 ->where('collection', 'not like', DocumentEmbedding::ARTIFACT_COLLECTION_PREFIX.'%')
                 ->distinct()

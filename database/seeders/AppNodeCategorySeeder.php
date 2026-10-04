@@ -72,6 +72,14 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'List, create, and delete events on Google Calendar.',
                 'sort_order' => 7,
             ],
+            [
+                'slug' => 'outlook',
+                'name' => 'Outlook',
+                'icon' => 'mail-01',
+                'color' => '#0078D4',
+                'description' => 'Read, draft and send email, and manage your calendar in Outlook (Microsoft 365).',
+                'sort_order' => 8,
+            ],
         ];
 
         foreach ($categories as $category) {

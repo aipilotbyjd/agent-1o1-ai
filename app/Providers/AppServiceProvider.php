@@ -35,6 +35,14 @@ use App\Observers\AuditObserver;
 use App\Observers\NodeRunObserver;
 use App\Observers\RunObserver;
 use App\Observers\WorkspaceMemberObserver;
+use App\Services\Assistant\Branding\BrandRepository;
+use App\Services\Assistant\Branding\ConfigBrandRepository;
+use App\Services\Assistant\Computer\ComputerToolProvider;
+use App\Services\Assistant\Computer\E2BSandboxDriver;
+use App\Services\Assistant\Computer\SandboxDriver;
+use App\Services\Assistant\Tools\ConnectorToolProvider;
+use App\Services\Assistant\Tools\KnowledgeToolProvider;
+use App\Services\Assistant\Tools\ToolCatalog;
 use App\Services\Auth\Grants\SocialExchangeGrant;
 use App\Services\Triggers\TargetRunStarter;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -60,6 +68,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(RunStarter::class, TargetRunStarter::class);
+        $this->app->bind(BrandRepository::class, ConfigBrandRepository::class);
+        $this->app->bind(SandboxDriver::class, E2BSandboxDriver::class);
+        $this->app->tag([ConnectorToolProvider::class, KnowledgeToolProvider::class, ComputerToolProvider::class], ToolCatalog::TAG);
 
         // Must run in register(), not boot(): CashierServiceProvider's own
         // boot() (which registers its default routes unless this flag is
@@ -156,6 +167,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Keyed by token rather than IP: one noisy provider must not rate-limit
         // every other trigger sharing its egress IPs.
+        // Personal-assistant webhook triggers: per trigger URL.
+        RateLimiter::for('assistant-hooks', fn (Request $request): Limit => Limit::perMinute(
+            (int) config('assistant.triggers.webhook_rate_per_minute'),
+        )->by('assistant-hook:'.($request->route('token') ?? $request->ip())));
+
         RateLimiter::for('trigger-hooks', fn (Request $request): Limit => Limit::perMinute(
             (int) config('triggers.hook_rate_limit_per_minute'),
         )->by($request->route('token') ?? $request->ip()));

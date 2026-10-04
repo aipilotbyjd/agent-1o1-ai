@@ -43,6 +43,7 @@ class IngestKnowledgeJob implements ShouldQueue
         public ?string $source,
         public string $collection,
         public ?array $metadata = null,
+        public ?string $ownerId = null,
     ) {}
 
     public function handle(KnowledgeBase $knowledgeBase): void
@@ -53,6 +54,7 @@ class IngestKnowledgeJob implements ShouldQueue
             $this->source,
             $this->collection,
             $this->metadata,
+            ownerId: $this->ownerId,
             replaceSource: true,
         );
     }

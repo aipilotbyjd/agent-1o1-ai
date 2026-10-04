@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
+use App\Models\Agents\SkillScript;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class StoreSkillScriptRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'language' => ['required', 'string', Rule::in(['python', 'javascript', 'typescript', 'bash'])],
+            'language' => ['required', 'string', Rule::in(SkillScript::LANGUAGES)],
             'code' => ['required', 'string'],
             'is_enabled' => ['sometimes', 'boolean'],
         ];

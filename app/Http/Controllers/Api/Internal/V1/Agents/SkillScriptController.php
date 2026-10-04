@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
 use App\Enums\Workspaces\Permission;
+use App\Http\Controllers\Api\Internal\V1\Agents\Concerns\GuardsSyncedSkills;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\StoreSkillScriptRequest;
 use App\Http\Requests\Api\Internal\V1\Agents\UpdateSkillScriptRequest;
@@ -14,6 +15,8 @@ use App\Models\Workspaces\Workspace;
 
 class SkillScriptController extends Controller
 {
+    use GuardsSyncedSkills;
+
     public function index(Workspace $workspace, Skill $skill)
     {
         // Script source isn't something a viewer needs; it's managed with the skill.
@@ -29,6 +32,7 @@ class SkillScriptController extends Controller
     {
         $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $skill);
+        $this->ensureNotSynced($skill);
 
         $script = $skill->scripts()->create($request->validated());
 
@@ -39,6 +43,7 @@ class SkillScriptController extends Controller
     {
         $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $skill);
+        $this->ensureNotSynced($skill);
         $this->ensureBelongsToSkill($skill, $script);
 
         $script->update($request->validated());
@@ -50,6 +55,7 @@ class SkillScriptController extends Controller
     {
         $this->requirePermission(Permission::AgentSkillManage);
         $this->ensureBelongsToWorkspace($workspace, $skill);
+        $this->ensureNotSynced($skill);
         $this->ensureBelongsToSkill($skill, $script);
 
         $script->delete();

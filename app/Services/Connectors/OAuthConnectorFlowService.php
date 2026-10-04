@@ -58,7 +58,11 @@ class OAuthConnectorFlowService
             'expires_at' => now()->addMinutes(self::STATE_TTL_MINUTES),
         ]);
 
+        // Provider-specific extras, e.g. Google only returns a refresh token
+        // (and so a connection that outlives its one-hour access token) when
+        // asked for offline access with consent.
         $params = http_build_query([
+            ...($connector->oauth['authorize_params'] ?? []),
             'client_id' => $this->clientId($connector),
             'redirect_uri' => $redirectUri,
             'scope' => implode(' ', $connector->oauth['scopes'] ?? []),

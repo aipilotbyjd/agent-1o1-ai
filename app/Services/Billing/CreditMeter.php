@@ -100,6 +100,14 @@ class CreditMeter
     }
 
     /**
+     * @param  array<string, mixed>  $usage
+     */
+    public function costForSkillDraft(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
      * A workflow-builder chat turn or assist call — priced as the chat turn
      * it is.
      *
@@ -117,6 +125,16 @@ class CreditMeter
      * @param  array<string, mixed>  $usage
      */
     public function costForActionReview(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
+     * One personal-assistant turn — the same chat-turn formula as an agent's.
+     *
+     * @param  array<string, mixed>|null  $usage
+     */
+    public function costForAssistantTurn(?array $usage): int
     {
         return $this->costForChatTurn($usage);
     }

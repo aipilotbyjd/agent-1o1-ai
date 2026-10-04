@@ -5,8 +5,13 @@ use App\Broadcasting\WorkspaceChannelGate;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (string) $user->id === (string) $id;
+/*
+ * User ids are UUIDs, so they are compared exactly as strings. Casting to int
+ * kept only the leading digits ("01a0…" → 1) and let nearly any user
+ * subscribe to any other user's channel.
+ */
+Broadcast::channel('App.Models.User.{id}', function (User $user, string $id): bool {
+    return hash_equals((string) $user->getKey(), $id);
 });
 
 /*
@@ -33,4 +38,14 @@ Broadcast::channel(
 Broadcast::channel(
     Channels::WORKFLOW_BUILDER_SESSION_PATTERN,
     fn (User $user, string $workspaceId, string $sessionId): bool => app(WorkspaceChannelGate::class)->workflowBuilderSession($user, $workspaceId, $sessionId),
+);
+
+Broadcast::channel(
+    Channels::ASSISTANT_SESSION_PATTERN,
+    fn (User $user, string $workspaceId, string $sessionId): bool => app(WorkspaceChannelGate::class)->assistantSession($user, $workspaceId, $sessionId),
+);
+
+Broadcast::channel(
+    Channels::ASSISTANT_PATTERN,
+    fn (User $user, string $workspaceId, string $assistantId): bool => app(WorkspaceChannelGate::class)->assistant($user, $workspaceId, $assistantId),
 );

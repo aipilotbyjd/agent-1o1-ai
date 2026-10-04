@@ -57,6 +57,23 @@ abstract class AbstractGoogleDriveNode implements DeclaresEffect, NodeContract
     }
 
     /**
+     * A file's bytes (or a Google Docs export) as text rather than JSON.
+     *
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $params
+     */
+    protected function getText(Run $run, string $endpoint, array $config, array $params = []): string
+    {
+        $response = Http::withToken($this->resolveAccessToken($run, $config))->get(self::BASE_URL.$endpoint, $params);
+
+        if ($response->failed()) {
+            throw new RuntimeException("Google Drive API error [{$endpoint}]: ".($response->json('error.message') ?? $response->body()));
+        }
+
+        return $response->body();
+    }
+
+    /**
      * Like Gmail, Drive signals failure via a normal HTTP status code, with
      * the error detail under `error.message` in the JSON body. A successful
      * delete returns an empty body, which `json()` decodes to `null`.

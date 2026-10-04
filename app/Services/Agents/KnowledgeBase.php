@@ -5,6 +5,7 @@ namespace App\Services\Agents;
 use App\Actions\Billing\DeductCreditsAction;
 use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\DocumentEmbedding;
+use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditMeter;
 use Illuminate\Database\Eloquent\Builder;
@@ -88,13 +89,15 @@ class KnowledgeBase
     /**
      * Split text into chunks, embed them, and store one row per chunk. The
      * embedding tokens are charged to `$workspace` — see `chargeForEmbeddings()`.
+     * With `$ownerId` the chunks are private to that member (their Brain).
      *
      * Embedding happens first and everything is written in one transaction,
      * so a provider failure or a billing failure never leaves a half-ingested
      * document behind. With `$replaceSource`, chunks already stored for the
-     * same `$source` in the same `$collection` are swapped for the new ones in
-     * that same transaction — re-ingesting a revised document replaces it
-     * rather than duplicating it, and a failed re-ingest keeps the old one.
+     * same `$source` in the same `$collection` (and with the same owner) are
+     * swapped for the new ones in that same transaction — re-ingesting a
+     * revised document replaces it rather than duplicating it, and a failed
+     * re-ingest keeps the old one.
      *
      * @param  array<string, mixed>|null  $metadata
      * @return Collection<int, DocumentEmbedding>
@@ -105,6 +108,9 @@ class KnowledgeBase
         ?string $source = null,
         string $collection = 'default',
         ?array $metadata = null,
+        ?string $ownerId = null,
+        ?string $knowledgeSourceId = null,
+        ?string $externalId = null,
         bool $replaceSource = false,
     ): Collection {
         $chunks = $this->chunk($text);
@@ -113,10 +119,44 @@ class KnowledgeBase
             return collect();
         }
 
+        ['vectors' => $vectors, 'usage' => $usage] = $this->embed($chunks);
+
+        return DB::transaction(function () use ($workspace, $chunks, $vectors, $usage, $source, $collection, $metadata, $ownerId, $knowledgeSourceId, $externalId, $replaceSource): Collection {
+            if ($replaceSource && $source !== null) {
+                $this->deleteDocument($workspace, $source, $collection, $ownerId);
+            }
+
+            $stored = collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
+                'workspace_id' => $workspace->id,
+                'owner_id' => $ownerId,
+                'collection' => $collection,
+                'knowledge_source_id' => $knowledgeSourceId,
+                'external_id' => $externalId,
+                'source' => $source,
+                'chunk_index' => $index,
+                'chunk_text' => $chunk,
+                'embedding' => $vectors[$index],
+                'metadata' => $metadata,
+            ]));
+
+            $this->chargeForEmbeddings($workspace, $stored->first(), $usage);
+
+            return $stored;
+        });
+    }
+
+    /**
+     * Embeds texts in provider-sized batches.
+     *
+     * @param  array<int, string>  $texts
+     * @return array{vectors: array<int, array<int, float>>, usage: array{prompt_tokens: int, provider: string|null, model: string|null}}
+     */
+    private function embed(array $texts): array
+    {
         $vectors = [];
         $usage = ['prompt_tokens' => 0, 'provider' => null, 'model' => null];
 
-        foreach (array_chunk($chunks, self::EMBED_BATCH) as $batch) {
+        foreach (array_chunk(array_values($texts), self::EMBED_BATCH) as $batch) {
             $response = Embeddings::for($batch)->generate();
 
             if (count($response->embeddings) !== count($batch)) {
@@ -135,36 +175,22 @@ class KnowledgeBase
             ];
         }
 
-        return DB::transaction(function () use ($workspace, $chunks, $vectors, $usage, $source, $collection, $metadata, $replaceSource): Collection {
-            if ($replaceSource && $source !== null) {
-                $this->deleteDocument($workspace, $source, $collection);
-            }
-
-            $stored = collect($chunks)->map(fn (string $chunk, int $index) => DocumentEmbedding::create([
-                'workspace_id' => $workspace->id,
-                'collection' => $collection,
-                'source' => $source,
-                'chunk_index' => $index,
-                'chunk_text' => $chunk,
-                'embedding' => $vectors[$index],
-                'metadata' => $metadata,
-            ]));
-
-            $this->chargeForEmbeddings($workspace, $stored->first(), $usage);
-
-            return $stored;
-        });
+        return ['vectors' => $vectors, 'usage' => $usage];
     }
 
     /**
      * Removes every chunk of one document, returning how many were deleted.
+     * Only shared chunks are touched unless `$ownerId` is given, in which case
+     * only that member's private ones are — a document is never removed
+     * across the shared/private line.
      *
      * @param  string|array<int, string>|null  $collection
      */
-    public function deleteDocument(Workspace $workspace, string $source, string|array|null $collection = null): int
+    public function deleteDocument(Workspace $workspace, string $source, string|array|null $collection = null, ?string $ownerId = null): int
     {
         return $this->scopedTo($workspace, $collection)
             ->where('source', $source)
+            ->when($ownerId !== null, fn (Builder $builder) => $builder->where('owner_id', $ownerId), fn (Builder $builder) => $builder->shared())
             ->delete();
     }
 
@@ -201,13 +227,17 @@ class KnowledgeBase
      * @param  string|array<int, string>|null  $collection  One collection, a
      *                                                      list to search across (an agent's attached sources — see
      *                                                      `ToolRegistry`), or null for every collection in the workspace.
-     * @return Collection<int, array{id: string, collection: string, source: string|null, text: string, score: float}>
+     * @param  User|null  $viewer  With no viewer only shared knowledge is searched (what agents see);
+     *                             with one, their private knowledge too — or only it, when `$includeShared` is false.
+     * @return Collection<int, array{id: string, collection: string, source: string|null, url: string|null, private: bool, text: string, score: float}>
      */
     public function search(
         Workspace $workspace,
         string $query,
         string|array|null $collection = null,
         int $topN = self::DEFAULT_TOP_N,
+        ?User $viewer = null,
+        bool $includeShared = true,
     ): Collection {
         $queryVector = Embeddings::for([$query])->generate()->embeddings[0] ?? [];
 
@@ -215,8 +245,8 @@ class KnowledgeBase
         // memory stays flat however large the workspace's knowledge base is.
         $best = [];
 
-        $chunks = $this->scopedTo($workspace, $collection)
-            ->select(['id', 'collection', 'source', 'chunk_text', 'embedding'])
+        $chunks = $this->visible($this->scopedTo($workspace, $collection), $viewer, $includeShared)
+            ->select(['id', 'owner_id', 'collection', 'source', 'chunk_text', 'embedding', 'metadata'])
             ->lazyById(500);
 
         $terms = $this->terms($query);
@@ -244,6 +274,8 @@ class KnowledgeBase
                 'id' => $chunk->id,
                 'collection' => $chunk->collection,
                 'source' => $chunk->source,
+                'url' => $chunk->metadata['url'] ?? null,
+                'private' => $chunk->owner_id !== null,
                 'text' => $chunk->chunk_text,
                 'score' => $semantic + self::KEYWORD_WEIGHT * $keyword + $phraseBonus,
             ];
@@ -269,11 +301,27 @@ class KnowledgeBase
     }
 
     /**
+     * Shared knowledge for no viewer; for a viewer, shared plus their own
+     * private knowledge (or only theirs).
+     *
+     * @param  Builder<DocumentEmbedding>  $query
+     * @return Builder<DocumentEmbedding>
+     */
+    private function visible(Builder $query, ?User $viewer, bool $includeShared = true): Builder
+    {
+        return match (true) {
+            $viewer === null => $query->shared(),
+            $includeShared => $query->visibleTo($viewer),
+            default => $query->where('owner_id', $viewer->id),
+        };
+    }
+
+    /**
      * Highest score first; `usort` is stable, so ties keep insertion (id)
      * order.
      *
-     * @param  array<int, array{id: string, collection: string, source: string|null, text: string, score: float}>  $results
-     * @return array<int, array{id: string, collection: string, source: string|null, text: string, score: float}>
+     * @param  array<int, array{id: string, collection: string, source: string|null, url: string|null, private: bool, text: string, score: float}>  $results
+     * @return array<int, array{id: string, collection: string, source: string|null, url: string|null, private: bool, text: string, score: float}>
      */
     private function rank(array $results): array
     {
@@ -294,9 +342,9 @@ class KnowledgeBase
      *
      * @param  string|array<int, string>|null  $collection
      */
-    public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null): ?string
+    public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null, ?User $viewer = null): ?string
     {
-        $rows = $this->scopedTo($workspace, $collection)
+        $rows = $this->visible($this->scopedTo($workspace, $collection), $viewer)
             ->where('source', $source)
             ->orderBy('collection')
             ->orderBy('chunk_index')

@@ -6,6 +6,7 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\Agents\Skill;
+use App\Models\Agents\SkillSource;
 use App\Models\Artifacts\Artifact;
 use App\Models\Auth\ApiKey;
 use App\Models\Billing\CreditPack;
@@ -158,6 +159,11 @@ class Workspace extends Model
     public function skills(): HasMany
     {
         return $this->hasMany(Skill::class);
+    }
+
+    public function skillSources(): HasMany
+    {
+        return $this->hasMany(SkillSource::class);
     }
 
     public function customNodes(): HasMany

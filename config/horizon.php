@@ -306,6 +306,22 @@ return [
             'timeout' => 320,
             'nice' => 0,
         ],
+        // Personal-assistant turns (`RunAssistantTurnJob`). Long-running by
+        // design (up to config('assistant.runtime.max_steps') model steps),
+        // so on its own connection whose retry_after exceeds this timeout.
+        'supervisor-ai-assistant' => [
+            'connection' => 'redis-assistant',
+            'queue' => ['ai-assistant'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 1,
+            'timeout' => 1200,
+            'nice' => 0,
+        ],
         // Subagents started by `InvokeAgentTool`. Separate from `ai-agent` so a
         // parent waiting on its subagents never occupies the workers they need
         // (subagents can't start subagents, so nothing here waits on this
@@ -400,6 +416,11 @@ return [
             'supervisor-ai-subagent' => [
                 'maxProcesses' => 10,
             ],
+            'supervisor-ai-assistant' => [
+                'maxProcesses' => 10,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
             'supervisor-workflow-builder' => [
                 'maxProcesses' => 5,
                 'balanceMaxShift' => 1,
@@ -433,6 +454,9 @@ return [
             ],
             'supervisor-ai-subagent' => [
                 'maxProcesses' => 5,
+            ],
+            'supervisor-ai-assistant' => [
+                'maxProcesses' => 2,
             ],
             'supervisor-workflow-builder' => [
                 'maxProcesses' => 1,

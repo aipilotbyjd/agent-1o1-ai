@@ -160,8 +160,8 @@ it('lists collections with their chunk counts', function () {
 
     $response->assertOk();
     expect($response->json('data.collections'))->toBe([
-        ['collection' => 'sales', 'chunks_count' => 1],
-        ['collection' => 'support', 'chunks_count' => 2],
+        ['collection' => 'sales', 'private' => false, 'chunks_count' => 1],
+        ['collection' => 'support', 'private' => false, 'chunks_count' => 2],
     ]);
 });
 
@@ -430,4 +430,67 @@ it('includes the collection in search results', function () {
     $results = app(KnowledgeBase::class)->search($workspace, 'refund window');
 
     expect($results->first()['collection'])->toBe('support');
+});
+
+it('re-ingests a private document without replacing the shared one of the same source', function () {
+    Embeddings::fake();
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'policy.md', 'collection' => 'notes', 'chunk_text' => 'Shared.']);
+    Passport::actingAs($owner);
+
+    foreach (['Mine v1.', 'Mine v2.'] as $text) {
+        $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", [
+            'text' => $text,
+            'source' => 'policy.md',
+            'collection' => 'notes',
+            'private' => true,
+        ])->assertCreated();
+    }
+
+    expect(DocumentEmbedding::whereNull('owner_id')->sole()->chunk_text)->toBe('Shared.')
+        ->and(DocumentEmbedding::where('owner_id', $owner->id)->sole()->chunk_text)->toBe('Mine v2.');
+});
+
+it('deletes a private document by source without touching the shared copy, and lets a viewer do it', function () {
+    [$workspace] = ownerWorkspaceForKnowledgeBase();
+    $viewer = User::factory()->create();
+    $workspace->members()->create(['user_id' => $viewer->id, 'role' => Role::Viewer, 'joined_at' => now()]);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'a.md']);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['source' => 'a.md', 'owner_id' => $viewer->id]);
+    Passport::actingAs($viewer);
+
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/document?source=a.md")->assertForbidden();
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/document?source=a.md&private=1")
+        ->assertOk()
+        ->assertJsonPath('data.deleted_count', 1);
+
+    expect(DocumentEmbedding::sole()->owner_id)->toBeNull();
+});
+
+it('keeps the owner on a queued private ingest', function () {
+    Bus::fake();
+    config(['knowledge_base.sync_ingest_max_characters' => 100]);
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['text' => str_repeat('word ', 50), 'source' => 'big.md', 'private' => true])
+        ->assertAccepted();
+
+    Bus::assertDispatched(IngestKnowledgeJob::class, fn (IngestKnowledgeJob $job) => $job->ownerId === $owner->id && $job->collection === 'personal');
+});
+
+it('leaves agents attached when only a private collection is deleted', function () {
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support']);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support', 'owner_id' => $owner->id]);
+    $agent->knowledgeCollections()->create(['collection' => 'support']);
+    Passport::actingAs($owner);
+
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/knowledge-base/collections/support?private=1")
+        ->assertOk()
+        ->assertJsonPath('data.deleted_count', 1);
+
+    expect($agent->knowledgeCollections()->count())->toBe(1)
+        ->and(DocumentEmbedding::sole()->owner_id)->toBeNull();
 });

@@ -6,8 +6,8 @@ use App\Models\Agents\AgentKnowledge;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\SkillInjector;
-use Illuminate\Support\Facades\Log;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Facades\Log;
 use Laravel\Passport\Passport;
 
 /**

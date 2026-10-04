@@ -19,6 +19,7 @@ class ReadKnowledgeDocumentRequest extends FormRequest
         return [
             'source' => ['required', 'string', 'max:255'],
             'collection' => ['nullable', 'string', 'max:255'],
+            'private' => ['sometimes', 'boolean'],
         ];
     }
 }

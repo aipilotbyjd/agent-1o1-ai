@@ -19,6 +19,8 @@ class DocumentEmbeddingResource extends JsonResource
         return [
             'id' => $this->id,
             'collection' => $this->collection,
+            'private' => $this->owner_id !== null,
+            'knowledge_source_id' => $this->knowledge_source_id,
             'source' => $this->source,
             'chunk_text' => $this->chunk_text,
             // The vector itself is deliberately not serialized — it is

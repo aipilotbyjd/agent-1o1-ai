@@ -22,7 +22,7 @@ use Laravel\Ai\Files\Document;
 use Laravel\Ai\Files\Image;
 
 #[Fillable([
-    'workspace_id', 'agent_id', 'agent_session_id', 'agent_message_id', 'run_id', 'created_by',
+    'workspace_id', 'agent_id', 'agent_session_id', 'assistant_session_id', 'agent_message_id', 'run_id', 'created_by',
     'group_id', 'version', 'filename', 'mime_type', 'size', 'disk', 'path', 'metadata',
     'general_access',
 ])]

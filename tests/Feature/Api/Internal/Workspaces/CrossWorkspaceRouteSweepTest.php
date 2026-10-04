@@ -1,7 +1,23 @@
 <?php
 
+use App\Enums\Agents\KnowledgeSourceType;
+use App\Enums\Assistant\AssistantBriefingType;
+use App\Enums\Assistant\AssistantInboxMessageStatus;
+use App\Enums\Assistant\AssistantTriggerType;
 use App\Models\Agents\Agent;
+use App\Models\Agents\KnowledgeSource;
 use App\Models\Artifacts\Artifact;
+use App\Models\Assistant\Assistant;
+use App\Models\Assistant\AssistantBriefingConfig;
+use App\Models\Assistant\AssistantBriefingRun;
+use App\Models\Assistant\AssistantInboxConfig;
+use App\Models\Assistant\AssistantInboxLabel;
+use App\Models\Assistant\AssistantInboxMessage;
+use App\Models\Assistant\AssistantMeeting;
+use App\Models\Assistant\AssistantMemory;
+use App\Models\Assistant\AssistantSession;
+use App\Models\Assistant\AssistantSituation;
+use App\Models\Assistant\AssistantTrigger;
 use App\Models\Auth\ApiKey;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
@@ -72,11 +88,24 @@ function singleModelRoutes(string $uriPrefix): array
  */
 function foreignRow(string $class, Workspace $workspace): ?Model
 {
+    $assistantRow = foreignAssistantRow($class, $workspace);
+
+    if ($assistantRow !== null) {
+        return $assistantRow;
+    }
+
     if (! Schema::hasColumn((new $class)->getTable(), 'workspace_id')) {
         return null;
     }
 
     return match ($class) {
+        KnowledgeSource::class => KnowledgeSource::query()->create([
+            'workspace_id' => $workspace->id,
+            'created_by' => $workspace->owner_id,
+            'collection' => 'default',
+            'type' => KnowledgeSourceType::Url,
+            'name' => 'Docs',
+        ]),
         Artifact::class => Artifact::query()->create([
             'workspace_id' => $workspace->id,
             'agent_id' => Agent::factory()->forWorkspace($workspace)->create()->id,
@@ -101,6 +130,63 @@ function foreignRow(string $class, Workspace $workspace): ?Model
             'expires_at' => now()->addDay(),
         ]),
         default => method_exists($class, 'factory') ? $class::factory()->create(['workspace_id' => $workspace->id]) : null,
+    };
+}
+
+/**
+ * Assistant rows are tenant-owned through their assistant (one per member
+ * per workspace) rather than a `workspace_id` of their own, so they are
+ * built under the workspace owner's assistant.
+ *
+ * @param  class-string<Model>  $class
+ */
+function foreignAssistantRow(string $class, Workspace $workspace): ?Model
+{
+    if (! str_starts_with($class, 'App\\Models\\Assistant\\')) {
+        return null;
+    }
+
+    // One assistant per member per workspace, and one inbox per assistant —
+    // the sweep reuses the same foreign workspace for every route.
+    $assistant = Assistant::query()->firstOrCreate(['user_id' => $workspace->owner_id, 'workspace_id' => $workspace->id]);
+    $inbox = fn (): AssistantInboxConfig => AssistantInboxConfig::query()->firstOrCreate(['assistant_id' => $assistant->id]);
+    $briefing = fn (): AssistantBriefingConfig => AssistantBriefingConfig::query()->create([
+        'assistant_id' => $assistant->id,
+        'type' => AssistantBriefingType::Daily,
+    ]);
+
+    return match ($class) {
+        AssistantSession::class => AssistantSession::factory()->create(['assistant_id' => $assistant->id]),
+        AssistantMemory::class => AssistantMemory::query()->create(['assistant_id' => $assistant->id, 'key' => 'k', 'value' => 'v']),
+        AssistantTrigger::class => AssistantTrigger::query()->create([
+            'assistant_id' => $assistant->id,
+            'type' => AssistantTriggerType::Once,
+            'name' => 'Ping',
+            'prompt' => 'Say hi',
+            'run_at' => now()->addDay(),
+        ]),
+        AssistantMeeting::class => AssistantMeeting::query()->create([
+            'assistant_id' => $assistant->id,
+            'provider_event_id' => 'evt',
+            'title' => 'Sync',
+            'starts_at' => now()->addDay(),
+        ]),
+        AssistantSituation::class => AssistantSituation::query()->create(['assistant_id' => $assistant->id, 'title' => 'Renewal']),
+        AssistantBriefingRun::class => AssistantBriefingRun::query()->create([
+            'assistant_briefing_config_id' => $briefing()->id,
+            'run_key' => 'run',
+        ]),
+        AssistantInboxLabel::class => AssistantInboxLabel::query()->create([
+            'assistant_inbox_config_id' => $inbox()->id,
+            'name' => 'Urgent '.Str::random(6),
+            'definition' => 'Needs a reply today',
+        ]),
+        AssistantInboxMessage::class => AssistantInboxMessage::query()->create([
+            'assistant_inbox_config_id' => $inbox()->id,
+            'provider_message_id' => 'msg',
+            'status' => AssistantInboxMessageStatus::Classified,
+        ]),
+        default => null,
     };
 }
 

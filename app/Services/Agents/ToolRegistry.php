@@ -7,6 +7,7 @@ use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Ai\Tools\CreateSkillTool;
 use App\Ai\Tools\ExportArtifactTool;
 use App\Ai\Tools\ForgetTool;
+use App\Ai\Tools\ImportSkillsTool;
 use App\Ai\Tools\InvokeAgentTool;
 use App\Ai\Tools\NodeTool;
 use App\Ai\Tools\ReadKnowledgeDocumentTool;
@@ -63,7 +64,7 @@ use Laravel\Ai\Providers\Tools\WebSearch;
  * skip it, same as before. `UpdateInstructionsTool` has the same session
  * requirement, so a stateless eval case can never rewrite the agent under
  * test, and is only attached when the agent has `allow_self_updates` on.
- * `CreateSkillTool`/`UpdateSkillTool` follow the same rule, gated on
+ * `CreateSkillTool`/`ImportSkillsTool`/`UpdateSkillTool` follow the same rule, gated on
  * `allow_skill_editing` instead. `InvokeAgentTool` also needs a session, and is
  * only offered in a top-level conversation — see `subagentTools()`.
  *
@@ -97,7 +98,7 @@ class ToolRegistry
     ) {}
 
     /**
-     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|UseSkillTool|CreateSkillTool|UpdateSkillTool|RememberTool|ForgetTool|RecallMemoriesTool|ExportArtifactTool|UpdateInstructionsTool|InvokeAgentTool|WaitForSubagentsTool|SubmitPlanTool|WebSearch|WebFetch>
+     * @return array<int, NodeTool|WorkflowTool|SearchKnowledgeTool|ReadKnowledgeDocumentTool|UseSkillTool|CreateSkillTool|ImportSkillsTool|UpdateSkillTool|RememberTool|ForgetTool|RecallMemoriesTool|ExportArtifactTool|UpdateInstructionsTool|InvokeAgentTool|WaitForSubagentsTool|SubmitPlanTool|WebSearch|WebFetch>
      */
     public function toolsFor(Agent $agent, Run $run, ?AgentSession $session = null, bool $canPause = true, bool $simulateActions = false): array
     {
@@ -137,6 +138,7 @@ class ToolRegistry
         $skillEditingTools = $session !== null && $agent->allow_skill_editing
             ? array_values(array_filter([
                 (new CreateSkillTool($agent, $run->triggered_by))->guardedBy($this->guard($context, CreateSkillTool::NAME, ActionToolKind::Builtin)),
+                (new ImportSkillsTool($agent, $run->triggered_by))->guardedBy($this->guard($context, ImportSkillsTool::NAME, ActionToolKind::Builtin)),
                 $agent->skills->isNotEmpty()
                     ? (new UpdateSkillTool($agent, $run->triggered_by))->guardedBy($this->guard($context, UpdateSkillTool::NAME, ActionToolKind::Builtin))
                     : null,
@@ -307,6 +309,7 @@ class ToolRegistry
 
         $artifactCollection = $agent->artifactKnowledgeCollection();
         $hasOwnArtifactChunks = DocumentEmbedding::query()
+            ->shared()
             ->where('workspace_id', $agent->workspace_id)
             ->where('collection', $artifactCollection)
             ->exists();
@@ -315,7 +318,7 @@ class ToolRegistry
 
         $collection = match (true) {
             $scoped !== [] => $scoped,
-            DocumentEmbedding::query()->where('workspace_id', $agent->workspace_id)->exists() => null,
+            DocumentEmbedding::query()->shared()->where('workspace_id', $agent->workspace_id)->exists() => null,
             default => false,
         };
 

@@ -14,4 +14,19 @@ enum Feature: string
     case WorkflowApprovals = 'workflow_approvals';
     case CustomNodes = 'custom_nodes';
     case PrioritySupport = 'priority_support';
+
+    /**
+     * The personal assistant's Smart Inbox (labels new mail, drafts replies).
+     */
+    case SmartInbox = 'smart_inbox';
+
+    /**
+     * The assistant's cloud computer for running code.
+     */
+    case AssistantSandbox = 'assistant_sandbox';
+
+    /**
+     * Texting the assistant by SMS.
+     */
+    case AssistantSms = 'assistant_sms';
 }

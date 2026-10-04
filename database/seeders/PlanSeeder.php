@@ -80,7 +80,7 @@ class PlanSeeder extends Seeder
                 'price_lifetime' => 149000,
                 'credits_monthly' => 25000,
                 'limits' => ['workflows' => -1, 'agents' => -1, 'members' => -1],
-                'features' => ['git_sync' => true, 'workflow_approvals' => true, 'custom_nodes' => true, 'priority_support' => true, 'credit_packs' => true, 'credit_overage' => true],
+                'features' => ['git_sync' => true, 'workflow_approvals' => true, 'custom_nodes' => true, 'priority_support' => true, 'credit_packs' => true, 'credit_overage' => true, 'smart_inbox' => true, 'assistant_sandbox' => true, 'assistant_sms' => true],
                 'stripe_product_id' => env('STRIPE_PLAN_PRO_PRODUCT_ID'),
                 'stripe_price_id_monthly' => env('STRIPE_PLAN_PRO_MONTHLY_PRICE_ID'),
                 'stripe_price_id_quarterly' => env('STRIPE_PLAN_PRO_QUARTERLY_PRICE_ID'),

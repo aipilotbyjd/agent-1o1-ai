@@ -94,6 +94,11 @@ class UpdateSkillTool implements Approvable, Tool
             return "Not updated: you have no skill named \"{$name}\".";
         }
 
+        if ($skill->isSynced()) {
+            return "Not updated: \"{$skill->name}\" is synced from a GitHub repository, which would undo your change on its next sync. "
+                .'Tell the user what to change so they can update it in the repository.';
+        }
+
         $user = User::query()->find($this->userId ?? $this->agent->created_by);
 
         if ($user === null || ! WorkspaceContext::resolveRole($this->agent->workspace, $user)?->has(Permission::AgentSkillManage)) {

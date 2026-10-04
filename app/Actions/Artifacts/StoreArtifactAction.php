@@ -7,6 +7,7 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Artifacts\Artifact;
+use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
@@ -76,6 +77,7 @@ class StoreArtifactAction
         ?array $metadata = null,
         ?AgentMessage $message = null,
         bool $searchable = true,
+        ?AssistantSession $assistantSession = null,
     ): Artifact {
         // `withTrashed()`: a soft-deleted group must still be found here, both
         // to keep versioning past its last version number and so a matching
@@ -91,6 +93,11 @@ class StoreArtifactAction
                         $session !== null,
                         fn ($scoped) => $scoped->where('agent_session_id', $session->id),
                         fn ($scoped) => $scoped->whereNull('agent_session_id'),
+                    )
+                    ->when(
+                        $assistantSession !== null,
+                        fn ($scoped) => $scoped->where('assistant_session_id', $assistantSession->id),
+                        fn ($scoped) => $scoped->whereNull('assistant_session_id'),
                     ),
             )
             ->orderByDesc('version')
@@ -112,6 +119,7 @@ class StoreArtifactAction
             'workspace_id' => $workspace->id,
             'agent_id' => $agent?->id,
             'agent_session_id' => $session?->id,
+            'assistant_session_id' => $assistantSession?->id,
             'agent_message_id' => $message?->id,
             'run_id' => $run?->id,
             'created_by' => $createdBy,
