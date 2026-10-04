@@ -23,7 +23,6 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceInvitation;
 use App\Services\Workspaces\WorkspaceService;
-use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Route;

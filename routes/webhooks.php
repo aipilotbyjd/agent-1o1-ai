@@ -12,54 +12,94 @@ use App\Http\Controllers\Webhooks\WaitCallbackController;
 use App\Http\Controllers\Webhooks\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-// Public — authenticated by the trigger's own token, not a session or API key.
-// Deliberately outside routes/api/{internal,public}/, whose middleware groups
-// this endpoint must not inherit. See docs/TRIGGERS_PLAN.md.
-Route::post('hooks/{token}', WebhookController::class)
-    ->middleware('throttle:trigger-hooks')
-    ->name('hooks.trigger');
+/*
+|--------------------------------------------------------------------------
+| Inbound Webhooks
+|--------------------------------------------------------------------------
+|
+| Every route here is public: each one authenticates itself (a URL token,
+| a provider signature, or an OAuth `state`) rather than through a session
+| or API key. They live outside routes/api/{internal,public}/ so they don't
+| inherit those middleware groups. See docs/TRIGGERS_PLAN.md.
+|
+*/
 
-// A personal assistant's webhook trigger — the token in the URL is the
-// credential. Answers at once; the assistant runs on the queue.
-// The assistant's own channels. Declared before hooks/assistant/{token} so
-// these fixed paths are never read as a trigger token.
-Route::post('hooks/assistant/email', AssistantEmailWebhookController::class)
-    ->middleware('throttle:120,1')
-    ->name('hooks.assistant.email');
-Route::post('hooks/assistant/slack/events', AssistantSlackEventsController::class)
-    ->name('hooks.assistant.slack.events');
-Route::get('hooks/assistant/slack/oauth', AssistantSlackOAuthController::class)
-    ->name('hooks.assistant.slack.oauth');
-Route::post('hooks/assistant/sms', AssistantSmsWebhookController::class)
-    ->middleware('throttle:300,1')
-    ->name('hooks.assistant.sms');
+Route::prefix('hooks')->name('hooks.')->group(function (): void {
+    // Workflow trigger — the token in the URL is the credential.
+    Route::post('{token}', WebhookController::class)
+        ->middleware('throttle:trigger-hooks')
+        ->name('trigger');
 
-Route::post('hooks/assistant/{token}', AssistantWebhookController::class)
-    ->middleware('throttle:assistant-hooks')
-    ->name('hooks.assistant');
+    // A Wait node's one-time callback token. Reuses the 'trigger-hooks'
+    // limiter, which is keyed generically by the {token} route param.
+    Route::post('wait/{token}', WaitCallbackController::class)
+        ->middleware('throttle:trigger-hooks')
+        ->name('wait-callback');
 
-// Same pattern, applied to a Wait node's one-time callback token instead of
-// a Trigger's — reuses the 'trigger-hooks' limiter since it's already
-// generically keyed by the {token} route param, not trigger-specific.
-Route::post('hooks/wait/{token}', WaitCallbackController::class)
-    ->middleware('throttle:trigger-hooks')
-    ->name('hooks.wait-callback');
+    Route::prefix('assistant')->name('assistant.')->group(function (): void {
+        // The assistant's own channels. Declared before assistant/{token}
+        // so these fixed paths are never read as a trigger token.
+        Route::post('email', AssistantEmailWebhookController::class)
+            ->middleware('throttle:120,1')
+            ->name('email');
 
-// Public — the provider redirects the user's browser here after the OAuth
-// consent screen, so no session/API-key auth is available. Tenant-safety
-// comes from the unguessable `state` query param OAuthConnectorController
-// looks up, not from this route's auth.
+        Route::post('sms', AssistantSmsWebhookController::class)
+            ->middleware('throttle:300,1')
+            ->name('sms');
+
+        Route::post('slack/events', AssistantSlackEventsController::class)
+            ->name('slack.events');
+
+        Route::get('slack/oauth', AssistantSlackOAuthController::class)
+            ->name('slack.oauth');
+    });
+
+    // A personal assistant's webhook trigger — the token in the URL is the
+    // credential. Answers at once; the assistant runs on the queue.
+    Route::post('assistant/{token}', AssistantWebhookController::class)
+        ->middleware('throttle:assistant-hooks')
+        ->name('assistant');
+});
+
+/*
+|--------------------------------------------------------------------------
+| OAuth Callbacks
+|--------------------------------------------------------------------------
+|
+| The provider redirects the user's browser here after the consent screen,
+| so no session or API key is available. Tenant safety comes from the
+| unguessable `state` query param OAuthConnectorController looks up.
+|
+*/
+
 Route::get('oauth/connectors/callback', [OAuthConnectorController::class, 'callback'])
     ->name('oauth.connectors.callback');
 
-// Public — Slack's interactivity callback for approve/reject buttons on
-// agent approval messages. Authenticated by Slack's request signature and
-// the button's encrypted value; see SlackAgentActionController.
+/*
+|--------------------------------------------------------------------------
+| Slack Interactivity
+|--------------------------------------------------------------------------
+|
+| Approve/reject buttons on agent approval messages. Authenticated by
+| Slack's request signature and the button's encrypted value — see
+| SlackAgentActionController.
+|
+*/
+
 Route::post('slack/agent-actions', SlackAgentActionController::class)
     ->middleware('throttle:trigger-hooks')
     ->name('slack.agent-actions');
 
-// Cashier auto-registration is disabled (AppServiceProvider::configureCashier)
-// so this resolves to our own controller (idempotency guard + plan/usage-period
-// sync) instead of Cashier's default one.
-Route::post('stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('cashier.webhook');
+/*
+|--------------------------------------------------------------------------
+| Stripe
+|--------------------------------------------------------------------------
+|
+| Cashier's auto-registration is disabled (AppServiceProvider::configureCashier)
+| so this resolves to our own controller — idempotency guard plus plan and
+| usage-period sync — instead of Cashier's default one.
+|
+*/
+
+Route::post('stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])
+    ->name('cashier.webhook');
