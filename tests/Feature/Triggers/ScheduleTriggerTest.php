@@ -37,3 +37,13 @@ it('produces exactly one row when the due command runs twice in the same minute'
 
     expect($trigger->events()->count())->toBe(1);
 });
+
+it('keeps firing other schedules when one has an invalid stored cron expression', function () {
+    $broken = makeScheduleTrigger('not a cron');
+    $healthy = makeScheduleTrigger('* * * * *');
+
+    $this->artisan('triggers:run-due')->assertSuccessful();
+
+    expect($broken->events()->count())->toBe(0)
+        ->and($healthy->events()->count())->toBe(1);
+});

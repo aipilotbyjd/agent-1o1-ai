@@ -158,3 +158,16 @@ it('rejects a trigger endpoint that points at an internal address', function (st
         'config' => ['url' => $url],
     ])->assertUnprocessable()->assertJsonValidationErrors('config.url');
 })->with(['http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1:6379/', 'file:///etc/passwd']);
+
+it('rejects a schedule trigger with an invalid cron expression', function () {
+    [$workspace, $owner] = ownerWorkspace();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/triggers", [
+        'target_type' => 'workflow',
+        'target_id' => $workflow->id,
+        'type' => 'schedule',
+        'config' => ['cron' => 'every day'],
+    ])->assertUnprocessable()->assertJsonValidationErrors('config.cron');
+});

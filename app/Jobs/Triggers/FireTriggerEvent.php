@@ -76,7 +76,20 @@ class FireTriggerEvent implements ShouldQueue
 
         $this->event->increment('attempts');
 
-        $triggers->fire($this->trigger, $this->event);
+        try {
+            $triggers->fire($this->trigger, $this->event);
+        } catch (Throwable $exception) {
+            // The claim moved the event to `running`; handing it back lets the
+            // queue's retry claim it again instead of finding it taken and
+            // quietly doing nothing. One that already fired stays fired.
+            $this->event->refresh();
+
+            if ($this->event->status !== TriggerEventStatus::Fired) {
+                $this->event->requeue();
+            }
+
+            throw $exception;
+        }
     }
 
     public function failed(?Throwable $exception): void
