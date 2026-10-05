@@ -23,7 +23,6 @@ it('covers every route that runs an agent turn inside the request', function (st
 
     expect(Route::gatherRouteMiddleware($route))->toContain(AllowLongAgentTurn::class);
 })->with([
-    'stream' => ['POST', '/api/v1/workspaces/w/agents/a/sessions/s/messages/stream'],
     'send' => ['POST', '/api/v1/workspaces/w/agents/a/sessions/s/messages'],
     'public send' => ['POST', '/api/public/v1/agents/a/sessions/s/messages'],
 ]);

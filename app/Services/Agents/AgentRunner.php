@@ -34,7 +34,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-use Iterator;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Responses\AgentResponse;
 use Laravel\Ai\Responses\StreamedAgentResponse;
@@ -126,7 +125,7 @@ class AgentRunner
     }
 
     /**
-     * `resume()`, delivered as a stream — see `stream()` for who owns
+     * `resume()`, delivered as a stream — see `streamBegun()` for who owns
      * failure.
      */
     public function resumeStream(Run $run): StreamedTurn
@@ -143,23 +142,53 @@ class AgentRunner
     }
 
     /**
-     * The same turn, delivered incrementally. The caller iterates the
-     * returned `StreamableAgentResponse` (an SSE controller does; see
-     * `AgentSessionStreamController`) and the turn is closed out by the
-     * `then()` callback registered here once the provider finishes.
+     * Opens a turn that is delivered later, from the queue: everything
+     * `openTurn()` does that can be refused or needs the uploaded files —
+     * credit gate, the turn's `Run`, the user's message and its attachments —
+     * so the sender hears about a busy conversation or an empty balance
+     * right away. The turn stays `running` until `RunAgentTurnJob` streams
+     * it with `streamBegun()`.
+     *
+     * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
+     */
+    public function beginTurn(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): Run
+    {
+        return $this->startTurn($session, $message, $triggerType, $attachments, $skill)[0];
+    }
+
+    /**
+     * Streams a turn `beginTurn()` opened — the provider call and the reply.
+     * The caller iterates the returned `StreamableAgentResponse`
+     * (`AgentTurnBroadcaster` does, inside `RunAgentTurnJob`) and the turn is
+     * closed out by the `then()` callback registered here once the provider
+     * finishes.
      *
      * The caller owns failure: nothing runs until the stream is iterated, so
      * an exception surfaces *there*, not here, and whoever iterates must call
      * `failTurn()` — otherwise the turn's `Run` would sit in `running`
      * forever.
-     *
-     * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
-    public function stream(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): StreamedTurn
+    public function streamBegun(Run $run): StreamedTurn
     {
-        $turn = $this->openTurn($session, $message, $triggerType, $attachments, $skill);
+        try {
+            $session = $run->runnable;
 
-        $response = $turn->agent->stream($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
+            if (! $session instanceof AgentSession) {
+                throw new InvalidArgumentException("Run [{$run->id}] is not an agent conversation turn.");
+            }
+
+            $userMessage = $session->messages()->findOrFail($run->input['user_message_id'] ?? null);
+            $skill = $userMessage->skill_id !== null ? Skill::query()->find($userMessage->skill_id) : null;
+            $attachments = Artifact::query()->whereKey($run->input['attachment_ids'] ?? [])->get()->all();
+
+            $turn = $this->buildTurn($session, $run, $userMessage, $attachments, $skill);
+        } catch (Throwable $e) {
+            $this->failTurn($run, $e);
+
+            throw $e;
+        }
+
+        $response = $turn->agent->stream($userMessage->content, $turn->attachments, provider: $turn->provider, model: $turn->model);
 
         $response->then(function (StreamedAgentResponse $streamed) use ($turn): void {
             $this->settleTurn($turn, $streamed);
@@ -169,39 +198,36 @@ class AgentRunner
     }
 
     /**
-     * Finishes a streamed turn nobody is listening to any more — the client
-     * disconnected mid-reply. Pulling the rest of the provider stream is what
-     * fires the `then()` callback registered in `stream()`, so the reply is
-     * still persisted and charged instead of the run sitting in `running`.
-     *
-     * @param  Iterator<int, mixed>  $events  the partly consumed stream
-     */
-    public function drain(StreamedTurn $turn, Iterator $events): void
-    {
-        try {
-            while ($events->valid()) {
-                $events->next();
-            }
-        } catch (Throwable $e) {
-            $this->failTurn($turn->run, $e);
-        }
-    }
-
-    /**
-     * Everything that happens before the provider is called: credit gate,
-     * the turn's own `Run`, the user's message and its attachments, and the
-     * SDK agent built from the version this conversation is pinned to.
+     * Everything that happens before the provider is called: `startTurn()`'s
+     * setup, then the SDK agent built from the version this conversation is
+     * pinned to.
      *
      * @param  array<int, UploadedFile>  $attachments
      */
     private function openTurn(AgentSession $session, string $message, string $triggerType, array $attachments, ?Skill $skill = null): AgentTurn
     {
-        // The version the conversation was started against, not whatever the
-        // agent looks like right now — see `AgentSession::pinnedAgent()`.
-        $agent = $session->pinnedAgent();
+        [$run, $userMessage, $stored] = $this->startTurn($session, $message, $triggerType, $attachments, $skill);
 
-        // Before the turn's `Run` exists — a workspace out of credits is
-        // refused up front rather than after the model call is paid for.
+        try {
+            return $this->buildTurn($session, $run, $userMessage, $stored, $skill);
+        } catch (Throwable $e) {
+            $this->failTurn($run, $e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * The part of a turn that can be refused or needs the uploaded files:
+     * credit gate (before the turn's `Run` exists — a workspace out of
+     * credits is refused up front rather than after the model call is paid
+     * for), the `Run`, the user's message and its attachments.
+     *
+     * @param  array<int, UploadedFile>  $attachments
+     * @return array{0: Run, 1: AgentMessage, 2: array<int, Artifact>}
+     */
+    private function startTurn(AgentSession $session, string $message, string $triggerType, array $attachments, ?Skill $skill): array
+    {
         $this->creditGate->assertCanStartRun($session->workspace);
 
         $run = $this->claimTurn($session, $message, $triggerType);
@@ -213,38 +239,55 @@ class AgentRunner
                 'skill_id' => $skill?->id,
             ]);
 
-            $storedAttachments = $this->storeAttachments($session, $run, $userMessage, $attachments);
+            // What `streamBegun()` needs to pick a queued turn up again.
+            $run->forceFill(['input' => [...$run->input, 'user_message_id' => $userMessage->id]])->save();
 
-            $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
-
-            if ($skill !== null) {
-                $instructions .= "\n\n".$this->skillInjector->chosenSkillSection($skill);
-            }
-
-            [$provider, $model] = $this->modelCatalog->forAgent($agent);
-            $tools = $this->tools->toolsFor($agent, $run);
-
-            $this->recordContext($run, $instructions, $provider, $model, $tools, $skill);
-
-            return new AgentTurn(
-                $session,
-                $run,
-                new WorkspaceAgent(
-                    $instructions,
-                    $session,
-                    $userMessage->id,
-                    $tools,
-                    GenerationSettings::fromAgent($agent),
-                ),
-                $provider,
-                $model,
-                array_map(fn (Artifact $artifact) => $artifact->toPromptAttachment(), $storedAttachments),
-            );
+            return [$run, $userMessage, $this->storeAttachments($session, $run, $userMessage, $attachments)];
         } catch (Throwable $e) {
             $this->failTurn($run, $e);
 
             throw $e;
         }
+    }
+
+    /**
+     * The SDK agent for a turn whose `Run`, user message and attachments
+     * already exist — instructions, tools and model from the pinned version.
+     * Doesn't fail the run on an exception; the caller does.
+     *
+     * @param  array<int, Artifact>  $storedAttachments
+     */
+    private function buildTurn(AgentSession $session, Run $run, AgentMessage $userMessage, array $storedAttachments, ?Skill $skill): AgentTurn
+    {
+        // The version the conversation was started against, not whatever the
+        // agent looks like right now — see `AgentSession::pinnedAgent()`.
+        $agent = $session->pinnedAgent();
+
+        $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
+
+        if ($skill !== null) {
+            $instructions .= "\n\n".$this->skillInjector->chosenSkillSection($skill);
+        }
+
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+        $tools = $this->tools->toolsFor($agent, $run);
+
+        $this->recordContext($run, $instructions, $provider, $model, $tools, $skill);
+
+        return new AgentTurn(
+            $session,
+            $run,
+            new WorkspaceAgent(
+                $instructions,
+                $session,
+                $userMessage->id,
+                $tools,
+                GenerationSettings::fromAgent($agent),
+            ),
+            $provider,
+            $model,
+            array_map(fn (Artifact $artifact) => $artifact->toPromptAttachment(), $storedAttachments),
+        );
     }
 
     /**
@@ -621,7 +664,7 @@ class AgentRunner
 
     /**
      * Marks a turn's `Run` failed. Public because a streamed turn fails in
-     * the caller's loop rather than inside this class — see `stream()`.
+     * the caller's loop rather than inside this class — see `streamBegun()`.
      * Idempotent, so a caller that fails a turn the SDK already closed out
      * can't overwrite a completed run.
      */

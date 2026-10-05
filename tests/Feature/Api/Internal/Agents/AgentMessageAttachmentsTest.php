@@ -3,6 +3,7 @@
 use App\Actions\Agents\CreateAgentSessionAction;
 use App\Ai\Agents\WorkspaceAgent;
 use App\Enums\Agents\AgentMessageRole;
+use App\Enums\RunStatus;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\DocumentEmbedding;
@@ -134,17 +135,16 @@ it('returns attachments with the transcript', function () {
         ->assertJsonPath('data.session.messages.0.attachments.0.filename', 'chart.png');
 });
 
-it('accepts attachments on the streaming endpoint', function () {
+it('hands attachments to the queued turn on the Reverb endpoint', function () {
     WorkspaceAgent::fake(['Streamed.']);
     [, , , $session, $url] = chatWithAttachments();
 
-    $response = $this->post("{$url}/stream", [
+    $this->post(preg_replace('#/messages$#', '/turns', $url), [
         'message' => 'Describe this.',
         'attachments' => [pngAttachment()],
-    ], ['Accept' => 'text/event-stream']);
+    ], ['Accept' => 'application/json'])->assertAccepted();
 
-    $response->assertOk();
-    expect($response->streamedContent())->toContain('event: complete');
+    expect($session->runs()->sole()->status)->toBe(RunStatus::Completed);
 
     $userMessage = $session->messages()->where('role', AgentMessageRole::User)->sole();
     expect($userMessage->attachments()->sole()->filename)->toBe('chart.png');

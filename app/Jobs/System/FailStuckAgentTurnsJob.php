@@ -15,7 +15,8 @@ use RuntimeException;
 /**
  * Scheduled every five minutes (`routes/console.php`) — the durability net
  * for an agent turn whose process died mid-reply: a web request killed by a
- * time limit or a restart, or a worker lost while running a subagent. None of
+ * time limit or a restart, or a worker lost while running a subagent or a
+ * queued chat turn (`RunAgentTurnJob`) whose `failed()` never got to run. None of
  * those can run the code that closes the turn out, so its `Run` would stay
  * `running` forever. Once a run has been going far longer than any turn can
  * (`AllowLongAgentTurn::SECONDS` for one in a request, less for a subagent
