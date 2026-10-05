@@ -2,8 +2,8 @@
 
 use App\Jobs\Notifications\DeliverWorkspaceWebhookJob;
 use App\Models\Notifications\NotificationChannel;
-use App\Notifications\Channels\WorkspaceWebhookChannel;
 use App\Models\User;
+use App\Notifications\Channels\WorkspaceWebhookChannel;
 use App\Services\Http\SsrfGuard;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Http\Client\Request;
