@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Agents\ResolveAgentActionsAction;
 use App\Models\Agents\AgentAction;
+use App\Services\Agents\Approvals\ActionApprovers;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -21,8 +22,14 @@ use Illuminate\View\View;
  */
 class AgentActionSignedDecisionController extends Controller
 {
+    public function __construct(private readonly ActionApprovers $approvers) {}
+
     public function show(Request $request, AgentAction $action): View
     {
+        $user = User::query()->findOrFail($request->query('user'));
+
+        abort_unless($this->approvers->canDecide($user, $action), 403, 'You are not allowed to decide this action.');
+
         return view('agent-actions.decide', [
             'action' => $action->load('agent'),
             'decided' => ! $action->status->isAwaitingDecision(),

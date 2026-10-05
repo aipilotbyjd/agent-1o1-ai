@@ -26,9 +26,11 @@ class NotifyAgentActionApprovers
 
         $event->actions->loadMissing('session');
 
-        $this->notifications->dispatch(
-            $this->approvers->recipientsFor($event->session->workspace, $event->actions),
-            new AgentActionApprovalRequestedNotification($event->session, $event->actions),
-        );
+        foreach ($this->approvers->notificationsFor($event->session->workspace, $event->actions) as $entry) {
+            $this->notifications->dispatch(
+                [$entry['user']],
+                new AgentActionApprovalRequestedNotification($event->session, $entry['actions']),
+            );
+        }
     }
 }
