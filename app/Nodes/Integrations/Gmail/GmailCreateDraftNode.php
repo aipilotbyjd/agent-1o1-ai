@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Gmail;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GmailCreateDraftNode extends AbstractGmailNode
 {
@@ -33,11 +34,10 @@ class GmailCreateDraftNode extends AbstractGmailNode
             'type' => 'object',
             'required' => ['to', 'subject', 'body'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'to' => ['type' => 'string'],
-                'subject' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'to' => Field::emails('To'),
+                'subject' => Field::text('Subject'),
+                'body' => Field::textarea('Body'),
             ],
         ];
     }

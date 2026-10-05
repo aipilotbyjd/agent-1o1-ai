@@ -8,6 +8,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use Illuminate\Support\Arr;
 
 /**
@@ -54,7 +55,7 @@ class TransformNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['mapping'],
             'properties' => [
-                'mapping' => ['type' => 'object'],
+                'mapping' => Field::keyValue('Fields', 'Each output key is set from a path into the run, e.g. nodes.fetch.output.email or input.name.'),
             ],
         ];
     }

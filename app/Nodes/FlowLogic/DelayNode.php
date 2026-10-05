@@ -8,6 +8,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 /**
  * Implements `NodeContract` (unlike its `FlowLogic` siblings) — `execute()`
@@ -54,7 +55,7 @@ class DelayNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['seconds'],
             'properties' => [
-                'seconds' => ['type' => 'integer'],
+                'seconds' => Field::integer('Wait for (seconds)', null, 60, 0),
             ],
         ];
     }

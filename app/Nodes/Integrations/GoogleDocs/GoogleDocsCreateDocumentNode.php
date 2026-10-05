@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleDocs;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleDocsCreateDocumentNode extends AbstractGoogleDocsNode
 {
@@ -33,9 +34,8 @@ class GoogleDocsCreateDocumentNode extends AbstractGoogleDocsNode
             'type' => 'object',
             'required' => ['title'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'title' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'title' => Field::text('Title', null, 'Meeting notes'),
             ],
         ];
     }

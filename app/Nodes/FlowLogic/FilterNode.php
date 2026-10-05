@@ -8,6 +8,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use Illuminate\Support\Arr;
 
 /**
@@ -56,9 +57,9 @@ class FilterNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['path', 'operator'],
             'properties' => [
-                'path' => ['type' => 'string'],
-                'operator' => ['type' => 'string', 'enum' => self::OPERATORS],
-                'value' => [],
+                'path' => Field::text('Value to check', 'A path into the run, e.g. input.status or nodes.fetch.output.total.', 'input.status'),
+                'operator' => Field::select('Condition', self::OPERATORS, default: 'equals'),
+                'value' => ['title' => 'Compare to', 'description' => 'Not needed for Is Empty / Is Not Empty.', 'x-widget' => 'text'],
             ],
         ];
     }

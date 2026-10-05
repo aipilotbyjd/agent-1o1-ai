@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Slack;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class SlackListUsersNode extends AbstractSlackNode
 {
@@ -33,10 +34,9 @@ class SlackListUsersNode extends AbstractSlackNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'limit' => ['type' => 'integer'],
-                'cursor' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'limit' => Field::integer('Limit', 'Maximum users to return.', 100, 1, 1000),
+                'cursor' => Field::advanced(Field::text('Cursor', 'next_cursor from a previous page.')),
             ],
         ];
     }

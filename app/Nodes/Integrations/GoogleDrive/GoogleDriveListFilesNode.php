@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleDrive;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleDriveListFilesNode extends AbstractGoogleDriveNode
 {
@@ -33,10 +34,9 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'query' => ['type' => 'string'],
-                'page_size' => ['type' => 'integer'],
+                ...$this->credentialFields(),
+                'query' => Field::text('Search query', 'Drive search syntax.', "name contains 'report' and trashed = false"),
+                'page_size' => Field::integer('Max results', null, 10, 1, 1000),
             ],
         ];
     }

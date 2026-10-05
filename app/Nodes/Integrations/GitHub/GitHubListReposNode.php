@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GitHub;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GitHubListReposNode extends AbstractGitHubNode
 {
@@ -33,10 +34,9 @@ class GitHubListReposNode extends AbstractGitHubNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'owner' => ['type' => 'string'],
-                'per_page' => ['type' => 'integer'],
+                ...$this->credentialFields(),
+                'owner' => Field::dynamic('Organization', 'github.owners', 'Leave empty to list your own repositories.'),
+                'per_page' => Field::advanced(Field::integer('Results per page', default: 30, minimum: 1, maximum: 100)),
             ],
         ];
     }

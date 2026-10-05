@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GitHub;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GitHubCreateIssueNode extends AbstractGitHubNode
 {
@@ -33,13 +34,12 @@ class GitHubCreateIssueNode extends AbstractGitHubNode
             'type' => 'object',
             'required' => ['repo', 'title'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'repo' => ['type' => 'string'],
-                'title' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
-                'labels' => ['type' => 'array'],
-                'assignees' => ['type' => 'array'],
+                ...$this->credentialFields(),
+                'repo' => Field::dynamic('Repository', 'github.repos', 'In owner/name form.', 'acme/widgets'),
+                'title' => Field::text('Title'),
+                'body' => Field::textarea('Description', 'Markdown supported.'),
+                'labels' => Field::dynamic('Labels', 'github.labels', dependsOn: ['repo'], multiple: true, type: 'array'),
+                'assignees' => Field::dynamic('Assignees', 'github.assignees', dependsOn: ['repo'], multiple: true, type: 'array'),
             ],
         ];
     }

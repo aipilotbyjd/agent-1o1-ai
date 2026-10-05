@@ -40,6 +40,19 @@ it('gets values for a range', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), '/v4/spreadsheets/sheet1/values/Sheet1!A1:B1'));
 });
 
+it('encodes a quoted tab name picked from the sheet dropdown', function () {
+    Http::fake(['sheets.googleapis.com/*' => Http::response(['updates' => ['updatedRows' => 1]])]);
+
+    (new GoogleSheetsAppendValuesNode)->execute(Run::factory()->create(), [
+        'access_token' => 'ya29-test',
+        'spreadsheet_id' => 'sheet1',
+        'range' => "'Q1 Sales'!A:B",
+        'values' => ['a', 'b'],
+    ], []);
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v4/spreadsheets/sheet1/values/%27Q1%20Sales%27!A:B:append?valueInputOption=USER_ENTERED'));
+});
+
 it('appends a row of values', function () {
     Http::fake(['sheets.googleapis.com/*' => Http::response(['updates' => ['updatedRows' => 1]])]);
 

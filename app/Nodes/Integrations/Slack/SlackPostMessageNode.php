@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Slack;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class SlackPostMessageNode extends AbstractSlackNode
 {
@@ -33,11 +34,10 @@ class SlackPostMessageNode extends AbstractSlackNode
             'type' => 'object',
             'required' => ['channel', 'text'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'channel' => ['type' => 'string'],
-                'text' => ['type' => 'string'],
-                'thread_ts' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'channel' => Field::dynamic('Channel', 'slack.channels', 'The channel to use. Pick one, or enter a channel ID.', 'C0123456789'),
+                'text' => Field::textarea('Message', 'Supports Slack mrkdwn and {{templates}}.', 'Hello from my workflow!'),
+                'thread_ts' => Field::advanced(Field::text('Reply in thread', 'The parent message timestamp (ts) to reply under.', '1700000000.000100')),
             ],
         ];
     }

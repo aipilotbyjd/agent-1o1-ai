@@ -9,6 +9,7 @@ use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use App\Services\Agents\AgentRunner;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
@@ -73,12 +74,9 @@ class AgentNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['agent_id'],
             'properties' => [
-                'agent_id' => ['type' => 'string'],
-                'prompt' => ['type' => 'string'],
-                // Continues a conversation started by an earlier Agent node
-                // run (its returned `conversation_id`) instead of starting a
-                // fresh one — see AgentRunner::askInConversation()'s docblock.
-                'previous_conversation_id' => ['type' => 'string'],
+                'agent_id' => Field::dynamic('Agent', 'workspace.agents', allowCustom: false),
+                'prompt' => Field::textarea('Message', 'What to send the agent. Defaults to the run input\'s message.'),
+                'previous_conversation_id' => Field::advanced(Field::text('Continue conversation', 'A conversation ID from an earlier Agent step, to keep its context.')),
             ],
         ];
     }

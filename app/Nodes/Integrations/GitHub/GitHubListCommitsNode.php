@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GitHub;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GitHubListCommitsNode extends AbstractGitHubNode
 {
@@ -33,12 +34,11 @@ class GitHubListCommitsNode extends AbstractGitHubNode
             'type' => 'object',
             'required' => ['repo'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'repo' => ['type' => 'string'],
-                'sha' => ['type' => 'string'],
-                'path' => ['type' => 'string'],
-                'per_page' => ['type' => 'integer'],
+                ...$this->credentialFields(),
+                'repo' => Field::dynamic('Repository', 'github.repos', 'In owner/name form.', 'acme/widgets'),
+                'sha' => Field::dynamic('Branch', 'github.branches', 'Defaults to the default branch.', dependsOn: ['repo']),
+                'path' => Field::advanced(Field::text('Path', 'Only commits touching this file or folder.', 'src/')),
+                'per_page' => Field::advanced(Field::integer('Results per page', default: 30, minimum: 1, maximum: 100)),
             ],
         ];
     }

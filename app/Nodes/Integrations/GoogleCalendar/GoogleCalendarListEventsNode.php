@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleCalendar;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode
 {
@@ -33,11 +34,10 @@ class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'calendar_id' => ['type' => 'string'],
-                'time_min' => ['type' => 'string'],
-                'max_results' => ['type' => 'integer'],
+                ...$this->credentialFields(),
+                'calendar_id' => Field::dynamic('Calendar', 'google_calendar.calendars', 'Defaults to your primary calendar.', 'primary'),
+                'time_min' => Field::datetime('From', 'Only events ending after this time. Defaults to now.'),
+                'max_results' => Field::integer('Max results', null, 10, 1, 2500),
             ],
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleDocs;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleDocsGetDocumentNode extends AbstractGoogleDocsNode
 {
@@ -33,9 +34,8 @@ class GoogleDocsGetDocumentNode extends AbstractGoogleDocsNode
             'type' => 'object',
             'required' => ['document_id'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'document_id' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'document_id' => Field::dynamic('Document', 'google_docs.documents', 'Pick a document, or enter its ID from the URL.', '1AbCdEfGhIjKlMnOp'),
             ],
         ];
     }

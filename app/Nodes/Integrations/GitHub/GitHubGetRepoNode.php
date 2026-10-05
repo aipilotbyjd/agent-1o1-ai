@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GitHub;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GitHubGetRepoNode extends AbstractGitHubNode
 {
@@ -33,9 +34,8 @@ class GitHubGetRepoNode extends AbstractGitHubNode
             'type' => 'object',
             'required' => ['repo'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'repo' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'repo' => Field::dynamic('Repository', 'github.repos', 'In owner/name form.', 'acme/widgets'),
             ],
         ];
     }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Internal\V1\Nodes\NodeCategoryController;
 use App\Http\Controllers\Api\Internal\V1\Nodes\NodeController;
+use App\Http\Controllers\Api\Internal\V1\Nodes\NodeOptionsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:api')->group(function () {
@@ -17,6 +18,7 @@ Route::middleware(['auth:api', 'workspace.context'])
     ->group(function () {
         Route::get('custom', [NodeController::class, 'custom'])->name('custom');
         Route::get('recently-used', [NodeController::class, 'recentlyUsed'])->name('recently-used');
+        Route::post('options', NodeOptionsController::class)->middleware('throttle:120,1')->name('options');
 
         Route::get('/', [NodeController::class, 'index'])->name('index');
         Route::post('/', [NodeController::class, 'store'])->name('store');

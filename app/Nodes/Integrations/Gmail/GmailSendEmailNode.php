@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Gmail;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GmailSendEmailNode extends AbstractGmailNode
 {
@@ -33,12 +34,11 @@ class GmailSendEmailNode extends AbstractGmailNode
             'type' => 'object',
             'required' => ['to', 'subject', 'body'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'to' => ['type' => 'string'],
-                'subject' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
-                'is_html' => ['type' => 'boolean'],
+                ...$this->credentialFields(),
+                'to' => Field::emails('To'),
+                'subject' => Field::text('Subject', null, 'Weekly report'),
+                'body' => Field::textarea('Body'),
+                'is_html' => Field::boolean('Send as HTML', 'Treat the body as HTML instead of plain text.'),
             ],
         ];
     }

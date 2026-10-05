@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleDrive;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleDriveGetFileNode extends AbstractGoogleDriveNode
 {
@@ -33,9 +34,8 @@ class GoogleDriveGetFileNode extends AbstractGoogleDriveNode
             'type' => 'object',
             'required' => ['file_id'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'file_id' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'file_id' => Field::dynamic('File', 'google_drive.files', 'Pick a file, or enter a Drive file ID.', '1AbCdEfGhIjKlMnOp'),
             ],
         ];
     }

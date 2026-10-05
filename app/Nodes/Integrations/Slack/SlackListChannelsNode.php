@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Slack;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class SlackListChannelsNode extends AbstractSlackNode
 {
@@ -33,11 +34,10 @@ class SlackListChannelsNode extends AbstractSlackNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'types' => ['type' => 'string'],
-                'limit' => ['type' => 'integer'],
-                'cursor' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'types' => Field::select('Channel types', ['public_channel' => 'Public channels', 'private_channel' => 'Private channels', 'public_channel,private_channel' => 'Public and private', 'im' => 'Direct messages', 'mpim' => 'Group direct messages'], default: 'public_channel'),
+                'limit' => Field::integer('Limit', 'Maximum channels to return.', 100, 1, 1000),
+                'cursor' => Field::advanced(Field::text('Cursor', 'next_cursor from a previous page.')),
             ],
         ];
     }

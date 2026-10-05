@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Gmail;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GmailListMessagesNode extends AbstractGmailNode
 {
@@ -33,10 +34,9 @@ class GmailListMessagesNode extends AbstractGmailNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'query' => ['type' => 'string'],
-                'max_results' => ['type' => 'integer'],
+                ...$this->credentialFields(),
+                'query' => Field::text('Search', 'Gmail search syntax, same as the Gmail search box.', 'from:boss@example.com is:unread newer_than:1d'),
+                'max_results' => Field::integer('Max results', null, 10, 1, 500),
             ],
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Gmail;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GmailReplyToMessageNode extends AbstractGmailNode
 {
@@ -33,13 +34,12 @@ class GmailReplyToMessageNode extends AbstractGmailNode
             'type' => 'object',
             'required' => ['to', 'message_id', 'thread_id', 'body'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'to' => ['type' => 'string'],
-                'message_id' => ['type' => 'string'],
-                'thread_id' => ['type' => 'string'],
-                'subject' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'message_id' => Field::dynamic('Message', 'gmail.messages', 'Pick a recent email, or map a message ID from an earlier step.', '18c2f0a1b2c3d4e5'),
+                'thread_id' => Field::dynamic('Thread', 'gmail.threads', 'The conversation the reply belongs to.'),
+                'to' => Field::emails('To'),
+                'subject' => Field::text('Subject', 'Sent as "Re: <subject>".'),
+                'body' => Field::textarea('Body'),
             ],
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Outlook;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class OutlookCreateEventNode extends AbstractOutlookNode
 {
@@ -33,13 +34,12 @@ class OutlookCreateEventNode extends AbstractOutlookNode
             'type' => 'object',
             'required' => ['subject', 'start_at', 'end_at'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'subject' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
-                'start_at' => ['type' => 'string'],
-                'end_at' => ['type' => 'string'],
-                'attendees' => ['type' => 'string', 'description' => 'Comma-separated email addresses.'],
+                ...$this->credentialFields(),
+                'subject' => Field::text('Title', null, 'Team sync'),
+                'body' => Field::textarea('Description'),
+                'start_at' => Field::datetime('Starts at'),
+                'end_at' => Field::datetime('Ends at'),
+                'attendees' => Field::emails('Attendees'),
             ],
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Slack;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class SlackCreateChannelNode extends AbstractSlackNode
 {
@@ -33,10 +34,9 @@ class SlackCreateChannelNode extends AbstractSlackNode
             'type' => 'object',
             'required' => ['name'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'name' => ['type' => 'string'],
-                'is_private' => ['type' => 'boolean'],
+                ...$this->credentialFields(),
+                'name' => Field::text('Channel name', 'Lowercase, no spaces, up to 80 characters.', 'project-updates'),
+                'is_private' => Field::boolean('Private channel'),
             ],
         ];
     }

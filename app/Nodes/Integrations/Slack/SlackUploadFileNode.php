@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Slack;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -42,13 +43,12 @@ class SlackUploadFileNode extends AbstractSlackNode
             'type' => 'object',
             'required' => ['channels', 'content'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'channels' => ['type' => 'string'],
-                'content' => ['type' => 'string'],
-                'filename' => ['type' => 'string'],
-                'title' => ['type' => 'string'],
-                'initial_comment' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'channels' => Field::dynamic('Channels', 'slack.channels', 'Where to share the file.', 'C0123456789', multiple: true),
+                'content' => Field::textarea('File content', 'The text content of the file.'),
+                'filename' => Field::text('File name', null, 'report.txt'),
+                'title' => Field::text('Title'),
+                'initial_comment' => Field::textarea('Message', 'Posted alongside the file.'),
             ],
         ];
     }
