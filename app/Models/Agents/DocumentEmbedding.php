@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `owner_id` — a member's own Brain, which only they (and their assistant)
  * can see.
  */
-#[Fillable(['workspace_id', 'owner_id', 'collection', 'knowledge_source_id', 'external_id', 'source', 'chunk_index', 'chunk_text', 'embedding', 'metadata'])]
+#[Fillable(['workspace_id', 'owner_id', 'collection', 'knowledge_source_id', 'external_id', 'source', 'chunk_index', 'chunk_text', 'embedding', 'metadata', 'ingest_revision'])]
 class DocumentEmbedding extends Model
 {
     /** @use HasFactory<DocumentEmbeddingFactory> */
@@ -44,6 +44,7 @@ class DocumentEmbedding extends Model
     {
         return [
             'chunk_index' => 'integer',
+            'ingest_revision' => 'integer',
             'embedding' => 'array',
             'metadata' => 'array',
         ];
@@ -65,6 +66,17 @@ class DocumentEmbedding extends Model
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         return $query->where(fn (Builder $visible) => $visible->whereNull('owner_id')->orWhere('owner_id', $user->id));
+    }
+
+    /**
+     * Leaves out the app-written artifact collections. Their chunks are
+     * indexed from artifacts whose access is decided per artifact
+     * (`Artifact::isAccessibleBy()`), so the workspace-wide knowledge-base
+     * views must not surface them — only the owning agent's own search does.
+     */
+    public function scopeExcludingArtifactCollections(Builder $query): Builder
+    {
+        return $query->where('collection', 'not like', self::ARTIFACT_COLLECTION_PREFIX.'%');
     }
 
     /**

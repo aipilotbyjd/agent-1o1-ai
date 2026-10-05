@@ -10,7 +10,7 @@ Route::middleware(['auth:api', 'workspace.context'])
     ->group(function () {
         Route::get('/', [KnowledgeBaseController::class, 'index'])->name('index');
         Route::post('/', [KnowledgeBaseController::class, 'store'])->name('store');
-        Route::post('search', [KnowledgeBaseController::class, 'search'])->name('search');
+        Route::post('search', [KnowledgeBaseController::class, 'search'])->middleware('throttle:30,1')->name('search');
         Route::get('document', [KnowledgeBaseController::class, 'document'])->name('document');
         Route::delete('document', [KnowledgeBaseController::class, 'destroyDocument'])->name('document.destroy');
 

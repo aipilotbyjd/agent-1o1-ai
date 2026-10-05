@@ -10,6 +10,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditMeter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -112,6 +113,7 @@ class KnowledgeBase
         ?string $knowledgeSourceId = null,
         ?string $externalId = null,
         bool $replaceSource = false,
+        ?int $revision = null,
     ): Collection {
         $chunks = $this->chunk($text);
 
@@ -121,8 +123,12 @@ class KnowledgeBase
 
         ['vectors' => $vectors, 'usage' => $usage] = $this->embed($chunks);
 
-        return DB::transaction(function () use ($workspace, $chunks, $vectors, $usage, $source, $collection, $metadata, $ownerId, $knowledgeSourceId, $externalId, $replaceSource): Collection {
+        $store = function () use ($workspace, $chunks, $vectors, $usage, $source, $collection, $metadata, $ownerId, $knowledgeSourceId, $externalId, $replaceSource, $revision): Collection {
             if ($replaceSource && $source !== null) {
+                if ($revision !== null && $this->hasNewerRevision($workspace, $source, $collection, $ownerId, $revision)) {
+                    return collect();
+                }
+
                 $this->deleteDocument($workspace, $source, $collection, $ownerId);
             }
 
@@ -137,12 +143,35 @@ class KnowledgeBase
                 'chunk_text' => $chunk,
                 'embedding' => $vectors[$index],
                 'metadata' => $metadata,
+                'ingest_revision' => $revision,
             ]));
 
             $this->chargeForEmbeddings($workspace, $stored->first(), $usage);
 
             return $stored;
-        });
+        };
+
+        if ($revision === null || $source === null || ! $replaceSource) {
+            return DB::transaction($store);
+        }
+
+        // Serialises same-source ingests so the revision check and the swap
+        // can't interleave across workers.
+        return Cache::lock('knowledge-ingest:'.sha1("{$workspace->id}|{$collection}|{$ownerId}|{$source}"), 120)
+            ->block(60, fn (): Collection => DB::transaction($store));
+    }
+
+    /**
+     * Whether the stored copy of this document came from a later upload than
+     * `$revision`.
+     */
+    private function hasNewerRevision(Workspace $workspace, string $source, string $collection, ?string $ownerId, int $revision): bool
+    {
+        return $this->scopedTo($workspace, $collection)
+            ->where('source', $source)
+            ->when($ownerId !== null, fn (Builder $builder) => $builder->where('owner_id', $ownerId), fn (Builder $builder) => $builder->shared())
+            ->where('ingest_revision', '>', $revision)
+            ->exists();
     }
 
     /**
@@ -238,6 +267,7 @@ class KnowledgeBase
         int $topN = self::DEFAULT_TOP_N,
         ?User $viewer = null,
         bool $includeShared = true,
+        bool $excludeArtifactCollections = false,
     ): Collection {
         $queryVector = Embeddings::for([$query])->generate()->embeddings[0] ?? [];
 
@@ -246,6 +276,7 @@ class KnowledgeBase
         $best = [];
 
         $chunks = $this->visible($this->scopedTo($workspace, $collection), $viewer, $includeShared)
+            ->when($excludeArtifactCollections, fn (Builder $builder) => $builder->excludingArtifactCollections())
             ->select(['id', 'owner_id', 'collection', 'source', 'chunk_text', 'embedding', 'metadata'])
             ->lazyById(500);
 
@@ -342,9 +373,10 @@ class KnowledgeBase
      *
      * @param  string|array<int, string>|null  $collection
      */
-    public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null, ?User $viewer = null): ?string
+    public function readDocument(Workspace $workspace, string $source, string|array|null $collection = null, ?User $viewer = null, bool $excludeArtifactCollections = false): ?string
     {
         $rows = $this->visible($this->scopedTo($workspace, $collection), $viewer)
+            ->when($excludeArtifactCollections, fn (Builder $builder) => $builder->excludingArtifactCollections())
             ->where('source', $source)
             ->orderBy('collection')
             ->orderBy('chunk_index')
