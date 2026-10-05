@@ -6,6 +6,7 @@ use App\Actions\Referrals\RevokeReferralRewardAction;
 use App\Enums\Referrals\ReferralRewardStatus;
 use App\Enums\Referrals\ReferralStatus;
 use App\Enums\Referrals\ReferralTrigger;
+use App\Models\Referrals\PendingReferralRefund;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralPayment;
 use App\Models\Referrals\ReferralReward;
@@ -27,11 +28,9 @@ class ReferralLifecycle
 
     public function markVerified(Referral $referral): void
     {
-        if ($referral->isRejected() || $referral->hasReached(ReferralStatus::Verified)) {
+        if (! $this->advanceTo($referral, ReferralStatus::Verified, ['verified_at' => now()])) {
             return;
         }
-
-        $referral->update(['status' => ReferralStatus::Verified, 'verified_at' => now()]);
 
         $this->engine->fire($referral, ReferralTrigger::SignupVerified);
     }
@@ -42,15 +41,16 @@ class ReferralLifecycle
      */
     public function markActivated(Referral $referral): void
     {
-        if ($referral->isRejected() || $referral->hasReached(ReferralStatus::Activated)) {
+        $advanced = $this->advanceTo(
+            $referral,
+            ReferralStatus::Activated,
+            ['activated_at' => now()],
+            fn (Referral $current): bool => ! ($current->status === ReferralStatus::Pending && $current->program?->require_verified_email),
+        );
+
+        if (! $advanced) {
             return;
         }
-
-        if ($referral->status === ReferralStatus::Pending && $referral->program?->require_verified_email) {
-            return;
-        }
-
-        $referral->update(['status' => ReferralStatus::Activated, 'activated_at' => now()]);
 
         $this->engine->fire($referral, ReferralTrigger::Activated);
     }
@@ -89,6 +89,12 @@ class ReferralLifecycle
             return;
         }
 
+        // A refund that beat this payment here withdraws it before it can
+        // earn anything.
+        if ($this->applyPendingRefund($recorded)) {
+            return;
+        }
+
         $context = new TriggerContext(
             paymentCents: $payment->amountCents,
             planId: $payment->planId,
@@ -110,7 +116,9 @@ class ReferralLifecycle
             return;
         }
 
-        $referral->update(['status' => ReferralStatus::Converted, 'converted_at' => now()]);
+        if (! $this->advanceTo($referral, ReferralStatus::Converted, ['converted_at' => now()])) {
+            return;
+        }
 
         $this->engine->fire($referral, ReferralTrigger::FirstPayment, $context);
         $this->engine->evaluateMilestones($referral);
@@ -122,6 +130,35 @@ class ReferralLifecycle
      */
     public function recordRefund(string $paymentIntentId, bool $fullyRefunded, string $reason): void
     {
+        if ($this->settleRefund($paymentIntentId, $fullyRefunded, $reason)) {
+            return;
+        }
+
+        // No payment on record yet: keep the refund until it arrives.
+        $pending = PendingReferralRefund::query()->firstOrNew(['payment_intent_id' => $paymentIntentId]);
+        $pending->fill([
+            'fully_refunded' => $pending->fully_refunded || $fullyRefunded,
+            'reason' => $reason,
+        ])->save();
+
+        // The payment may have been recorded while this was being stored.
+        if ($this->settleRefund($paymentIntentId, $fullyRefunded, $reason)) {
+            $pending->delete();
+        }
+    }
+
+    /**
+     * Withdraws what the payment earned. Returns false when no payment with
+     * that intent is on record at all.
+     */
+    private function settleRefund(string $paymentIntentId, bool $fullyRefunded, string $reason): bool
+    {
+        $known = ReferralPayment::query()->where('payment_intent_id', $paymentIntentId)->exists();
+
+        if (! $known) {
+            return false;
+        }
+
         $payments = ReferralPayment::query()
             ->where('payment_intent_id', $paymentIntentId)
             ->whereNull('refunded_at')
@@ -133,6 +170,9 @@ class ReferralLifecycle
                 continue;
             }
 
+            // Marked refunded before the rewards are looked up: a reward
+            // created after this point finds the mark (see
+            // `ReferralRuleEngine::award()`), one created before it is found here.
             $payment->update(['refunded_at' => now()]);
 
             ReferralReward::query()
@@ -141,6 +181,63 @@ class ReferralLifecycle
                 ->get()
                 ->each(fn (ReferralReward $reward) => $this->revoke->execute($reward, $reason));
         }
+
+        return true;
+    }
+
+    /**
+     * Applies a refund that was seen before this payment was recorded.
+     * Returns whether the payment ended up refunded.
+     */
+    private function applyPendingRefund(ReferralPayment $payment): bool
+    {
+        if ($payment->payment_intent_id === null) {
+            return false;
+        }
+
+        $pending = PendingReferralRefund::query()->where('payment_intent_id', $payment->payment_intent_id)->first();
+
+        if ($pending === null) {
+            return false;
+        }
+
+        $this->settleRefund($payment->payment_intent_id, $pending->fully_refunded, $pending->reason);
+        $pending->delete();
+
+        return $payment->fresh()?->refunded_at !== null;
+    }
+
+    /**
+     * Moves a referral forward to `$status` against the freshly locked row,
+     * never backwards and never out of `rejected` — concurrent lifecycle
+     * events work from stale models, so a plain `update()` could overwrite a
+     * later stage. Returns whether this call made the move; the caller's
+     * model is refreshed to match.
+     *
+     * @param  array<string, mixed>  $attributes  Stage timestamps to write alongside the status.
+     * @param  (callable(Referral): bool)|null  $allowed  A last check against the locked row.
+     */
+    private function advanceTo(Referral $referral, ReferralStatus $status, array $attributes, ?callable $allowed = null): bool
+    {
+        $advanced = DB::transaction(function () use ($referral, $status, $attributes, $allowed): bool {
+            $locked = Referral::query()->whereKey($referral->id)->lockForUpdate()->first();
+
+            if ($locked === null || $locked->isRejected() || $locked->hasReached($status)) {
+                return false;
+            }
+
+            if ($allowed !== null && ! $allowed($locked)) {
+                return false;
+            }
+
+            $locked->update(['status' => $status, ...$attributes]);
+
+            return true;
+        });
+
+        $referral->refresh();
+
+        return $advanced;
     }
 
     /**

@@ -3,11 +3,13 @@
 namespace App\Services\Referrals;
 
 use App\Actions\Referrals\GrantReferralRewardAction;
+use App\Actions\Referrals\RevokeReferralRewardAction;
 use App\Enums\Referrals\ReferralRecipient;
 use App\Enums\Referrals\ReferralRewardStatus;
 use App\Enums\Referrals\ReferralStatus;
 use App\Enums\Referrals\ReferralTrigger;
 use App\Models\Referrals\Referral;
+use App\Models\Referrals\ReferralPayment;
 use App\Models\Referrals\ReferralProgram;
 use App\Models\Referrals\ReferralReward;
 use App\Models\Referrals\ReferralRewardRule;
@@ -15,6 +17,7 @@ use App\Notifications\Referrals\ReferralMilestoneReachedNotification;
 use App\Services\Notifications\NotificationDispatcher;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Decides and records what a referral event earns. For each live rule of the
@@ -117,10 +120,6 @@ class ReferralRuleEngine
             return null;
         }
 
-        if ($this->limitReached($rule, $referral, $recipient->id)) {
-            return null;
-        }
-
         $workspace = $this->workspaces->for($referral, $rule->recipient);
         $values = $this->calculator->calculate($program, $rule, $recipient, $workspace, $referral->code?->rule_multiplier ?? 1.0);
 
@@ -130,32 +129,54 @@ class ReferralRuleEngine
 
         $holdDays = $program->holdDaysFor($rule->trigger, $rule->hold_days);
 
-        try {
-            $reward = ReferralReward::query()->create([
-                'referral_id' => $referral->id,
-                'rule_id' => $rule->id,
-                'rule_snapshot' => [
-                    ...$rule->snapshot(),
-                    'program_id' => $program->id,
-                    'caps' => $program->capsSnapshot(),
-                ],
-                'recipient_user_id' => $recipient->id,
-                'workspace_id' => $workspace?->id,
-                'recipient_role' => $rule->recipient,
-                'trigger' => $rule->trigger,
-                'reward_type' => $values['reward_type'],
-                'credits' => $values['credits'],
-                'plan_id' => $values['plan_id'],
-                'duration_days' => $values['duration_days'],
-                'amount_cents' => $values['amount_cents'],
-                'trial_days' => $values['trial_days'],
-                'notes' => $values['notes'],
-                'status' => $program->requiresManualApproval() ? ReferralRewardStatus::AwaitingApproval : ReferralRewardStatus::Pending,
-                'grant_after' => now()->addDays($holdDays),
-                'payment_reference' => $context->paymentReference,
-                'idempotency_key' => $key,
-            ]);
-        } catch (UniqueConstraintViolationException) {
+        // The limit check and the insert run under the rule's row lock:
+        // checked separately, concurrent firings each see room for one more.
+        $reward = DB::transaction(function () use ($rule, $referral, $recipient, $program, $context, $key, $workspace, $values, $holdDays): ?ReferralReward {
+            ReferralRewardRule::query()->whereKey($rule->id)->lockForUpdate()->first();
+
+            if ($this->limitReached($rule, $referral, $recipient->id)) {
+                return null;
+            }
+
+            try {
+                return DB::transaction(fn (): ReferralReward => ReferralReward::query()->create([
+                    'referral_id' => $referral->id,
+                    'rule_id' => $rule->id,
+                    'rule_snapshot' => [
+                        ...$rule->snapshot(),
+                        'program_id' => $program->id,
+                        'caps' => $program->capsSnapshot(),
+                    ],
+                    'recipient_user_id' => $recipient->id,
+                    'workspace_id' => $workspace?->id,
+                    'recipient_role' => $rule->recipient,
+                    'trigger' => $rule->trigger,
+                    'reward_type' => $values['reward_type'],
+                    'credits' => $values['credits'],
+                    'plan_id' => $values['plan_id'],
+                    'duration_days' => $values['duration_days'],
+                    'amount_cents' => $values['amount_cents'],
+                    'trial_days' => $values['trial_days'],
+                    'notes' => $values['notes'],
+                    'status' => $program->requiresManualApproval() ? ReferralRewardStatus::AwaitingApproval : ReferralRewardStatus::Pending,
+                    'grant_after' => now()->addDays($holdDays),
+                    'payment_reference' => $context->paymentReference,
+                    'idempotency_key' => $key,
+                ]));
+            } catch (UniqueConstraintViolationException) {
+                return null;
+            }
+        });
+
+        if ($reward === null) {
+            return null;
+        }
+
+        // A refund recorded while this reward was being created has already
+        // looked for rewards to revoke and missed this one.
+        if ($context->paymentReference !== null && ReferralPayment::query()->where('reference', $context->paymentReference)->whereNotNull('refunded_at')->exists()) {
+            app(RevokeReferralRewardAction::class)->execute($reward, 'Payment refunded');
+
             return null;
         }
 

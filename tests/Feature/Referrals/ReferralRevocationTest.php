@@ -7,6 +7,7 @@ use App\Enums\Referrals\ReferralStatus;
 use App\Enums\Referrals\ReferralTrigger;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
+use App\Models\Referrals\PendingReferralRefund;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralProgram;
 use App\Models\Referrals\ReferralReward;
@@ -160,4 +161,30 @@ it('maps a refund back through an invoice that only lists its payment under paym
     $this->postJson('/api/stripe/webhook', refundPayload('evt_refund', 'pi_new_api'))->assertOk();
 
     expect(ReferralReward::query()->sole()->status)->toBe(ReferralRewardStatus::Revoked);
+});
+
+it('withdraws a payment whose refund arrived before the payment was recorded', function () {
+    ['program' => $program] = refundableReferral();
+    ReferralRewardRule::factory()->forProgram($program)->on(ReferralTrigger::FirstPayment)->credits(2000)->create();
+
+    $this->postJson('/api/stripe/webhook', refundPayload('evt_pay', 'pi_evt_pay'))->assertOk();
+    $this->postJson('/api/stripe/webhook', referralInvoicePaidPayload('evt_pay', 'cus_refund', 9900))->assertOk();
+
+    expect(ReferralReward::query()->count())->toBe(0)
+        ->and(PendingReferralRefund::query()->count())->toBe(0);
+});
+
+it('never moves a referral backwards or out of rejection', function () {
+    ['referral' => $referral] = refundableReferral();
+    $referral->forceFill(['status' => ReferralStatus::Converted, 'converted_at' => now()])->save();
+
+    app(ReferralLifecycle::class)->markVerified(Referral::find($referral->id));
+
+    expect($referral->fresh()->status)->toBe(ReferralStatus::Converted);
+
+    $referral->forceFill(['status' => ReferralStatus::Rejected, 'rejected_at' => now()])->save();
+
+    app(ReferralLifecycle::class)->markActivated(Referral::find($referral->id));
+
+    expect($referral->fresh()->status)->toBe(ReferralStatus::Rejected);
 });
