@@ -1,13 +1,16 @@
 <?php
 
+use App\Actions\Artifacts\StoreArtifactAction;
 use App\Enums\Workspaces\Role;
 use App\Models\Agents\Agent;
 use App\Models\Artifacts\Artifact;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 
 /**
@@ -208,4 +211,36 @@ it('sandboxes a previewed html artifact', function () {
     $response->assertOk();
     expect($response->headers->get('Content-Security-Policy'))->toBe('sandbox');
     expect($response->headers->get('X-Content-Type-Options'))->toBe('nosniff');
+});
+
+it('refuses two artifacts sharing a version in one group', function () {
+    Storage::fake('local');
+    [$workspace, $owner] = ownerWorkspaceForUploads();
+    $attributes = [
+        'workspace_id' => $workspace->id, 'created_by' => $owner->id, 'group_id' => (string) Str::uuid(), 'version' => 1,
+        'filename' => 'a.txt', 'mime_type' => 'text/plain', 'size' => 1, 'disk' => 'local',
+    ];
+
+    Artifact::create([...$attributes, 'path' => 'artifacts/a-1.txt']);
+
+    expect(fn () => Artifact::create([...$attributes, 'path' => 'artifacts/a-2.txt']))
+        ->toThrow(UniqueConstraintViolationException::class);
+});
+
+it('leaves no artifact row or staged file behind when the bytes cannot be stored', function () {
+    Storage::fake('local');
+    [$workspace] = ownerWorkspaceForUploads();
+
+    Storage::shouldReceive('disk')->with('local')->andReturn(new class
+    {
+        public function put(): bool
+        {
+            return false;
+        }
+    });
+
+    expect(fn () => app(StoreArtifactAction::class)->execute($workspace, 'a.txt', 'text/plain', 'hello'))
+        ->toThrow(RuntimeException::class);
+
+    expect(Artifact::count())->toBe(0);
 });
