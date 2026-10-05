@@ -88,7 +88,7 @@ it('batches reply text into chunks instead of one event per token', function () 
     $deltas->each(fn (string $text) => expect(strlen(json_encode(['text' => $text])))->toBeLessThan(10_000));
 });
 
-it('broadcasts each tool call without its payload and keeps the output on the stored reply', function () {
+it('broadcasts each tool call with its small arguments and output, and keeps the full call on the stored reply', function () {
     Event::fake([AgentTurnToolActivity::class]);
     WorkspaceAgent::fake([
         new ToolCall('call-1', 'remember', ['key' => 'preferred_name', 'value' => 'JD']),
@@ -98,7 +98,8 @@ it('broadcasts each tool call without its payload and keeps the output on the st
     $this->postJson($this->turnsUrl, ['message' => 'Call me JD.'])->assertAccepted();
 
     Event::assertDispatched(AgentTurnToolActivity::class, fn (AgentTurnToolActivity $event): bool => $event->phase === AgentTurnToolActivity::STARTED
-        && $event->broadcastWith()['tool'] === 'remember');
+        && $event->broadcastWith()['tool'] === 'remember'
+        && $event->broadcastWith()['arguments'] === ['key' => 'preferred_name', 'value' => 'JD']);
 
     Event::assertDispatched(AgentTurnToolActivity::class, function (AgentTurnToolActivity $event): bool {
         $payload = $event->broadcastWith();
@@ -106,8 +107,7 @@ it('broadcasts each tool call without its payload and keeps the output on the st
         return $event->phase === AgentTurnToolActivity::FINISHED
             && $payload['tool_call_id'] === 'call-1'
             && $payload['successful'] === true
-            && ! array_key_exists('output', $payload)
-            && ! array_key_exists('arguments', $payload);
+            && $payload['output'] === 'Remembered preferred_name.';
     });
 
     $this->getJson("/api/v1/workspaces/{$this->workspace->id}/agents/{$this->agent->id}/sessions/{$this->session->id}")
@@ -117,6 +117,21 @@ it('broadcasts each tool call without its payload and keeps the output on the st
             'name' => 'remember',
             'output' => 'Remembered preferred_name.',
         ]);
+});
+
+it('leaves oversized tool arguments and output off the wire', function () {
+    Event::fake([AgentTurnToolActivity::class]);
+    WorkspaceAgent::fake([
+        new ToolCall('call-1', 'remember', ['key' => 'notes', 'value' => str_repeat('x', 5000)]),
+        'Saved.',
+    ]);
+
+    $this->postJson($this->turnsUrl, ['message' => 'Remember this.'])->assertAccepted();
+
+    Event::assertDispatched(AgentTurnToolActivity::class, fn (AgentTurnToolActivity $event): bool => $event->phase === AgentTurnToolActivity::STARTED
+        && ! array_key_exists('arguments', $event->broadcastWith()));
+
+    Event::dispatched(AgentTurnToolActivity::class)->each(fn (array $args) => expect(strlen(json_encode($args[0]->broadcastWith())))->toBeLessThan(10_000));
 });
 
 it('marks the turn failed and tells the chat when the provider blows up', function () {

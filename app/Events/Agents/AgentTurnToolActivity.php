@@ -11,9 +11,11 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * The agent started or finished a tool call — shown live as "Searching the
- * web…". Carries the tool's name and outcome only; arguments and output can
- * be large and stay in the stored reply, which the chat fetches once the
- * turn settles (`AgentTurnChanged`).
+ * web…". Arguments and output ride along only when small: an event over
+ * Reverb's 10 KB limit is simply lost, so `AgentTurnBroadcaster` leaves out
+ * arguments past `MAX_ARGUMENTS_BYTES` and cuts output at `MAX_OUTPUT_CHARS`.
+ * The full call is on the stored reply, which the chat fetches once the turn
+ * settles (`AgentTurnChanged`).
  *
  * A started subagent's `task_id` rides along so the chat can track it live.
  */
@@ -25,6 +27,10 @@ class AgentTurnToolActivity implements ShouldBroadcastNow
 
     public const string FINISHED = 'finished';
 
+    public const int MAX_ARGUMENTS_BYTES = 1500;
+
+    public const int MAX_OUTPUT_CHARS = 1000;
+
     public function __construct(
         public readonly AgentSession $session,
         public readonly Run $run,
@@ -34,6 +40,8 @@ class AgentTurnToolActivity implements ShouldBroadcastNow
         public readonly ?bool $successful = null,
         public readonly bool $denied = false,
         public readonly ?string $subagentTaskId = null,
+        public readonly ?array $arguments = null,
+        public readonly ?string $output = null,
     ) {}
 
     public function broadcastOn(): PrivateChannel
@@ -59,6 +67,8 @@ class AgentTurnToolActivity implements ShouldBroadcastNow
             'successful' => $this->successful,
             'denied' => $this->denied ?: null,
             'subagent_task_id' => $this->subagentTaskId,
+            'arguments' => $this->arguments,
+            'output' => $this->output,
         ], fn (mixed $value): bool => $value !== null);
     }
 }

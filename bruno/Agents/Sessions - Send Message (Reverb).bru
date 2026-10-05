@@ -42,13 +42,16 @@ docs {
   - `turn.delta` — a chunk of assistant text (`run_id`, `text`);
     concatenate in the order received. Chunks are batched, not per token.
   - `turn.tool` — a tool call `started` or `finished` (`tool_call_id`,
-    `tool`, `phase`; `successful` / `denied` when finished, and
-    `subagent_task_id` for a started subagent). Arguments and output are
-    not broadcast — they are on the stored message.
+    `tool`, `phase`; `arguments` when started and `output` when finished,
+    `successful` / `denied` when finished, and `subagent_task_id` for a
+    started subagent). `arguments` is left out when larger than 1500 bytes
+    and `output` is cut at 1000 characters — the full call is on the stored
+    message.
   - `agent.message` — a message was appended (any tab, any teammate).
   - `agent.actions.requested` — the turn paused on actions that need a
-    decision; `POST …/sessions/{session}/actions/decisions` continues it, streaming the same
-    events.
+    decision; `POST …/sessions/{session}/actions/decisions` records the
+    decisions and answers `{ actions, resumed, run_id }` — when `resumed` is
+    true the paused turn carries on, streaming the same events for `run_id`.
 
   Events are not replayed. The transcript is persisted whether or not
   anyone is listening, so a client that connects late or reconnects loads

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Internal\V1\Agents;
 
 use App\Actions\Agents\ResolveAgentActionsAction;
 use App\Enums\Agents\AgentActionStatus;
+use App\Enums\RunStatus;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Agents\DecideAgentActionsRequest;
@@ -13,6 +14,7 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\AgentAction;
 use App\Models\Agents\AgentSession;
 use App\Models\Workspaces\Workspace;
+use App\Services\Agents\Approvals\ActionResumer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,7 +28,10 @@ use Illuminate\Validation\Rule;
  */
 class AgentActionController extends Controller
 {
-    public function __construct(private readonly ResolveAgentActionsAction $resolve) {}
+    public function __construct(
+        private readonly ResolveAgentActionsAction $resolve,
+        private readonly ActionResumer $resumer,
+    ) {}
 
     public function index(Request $request, Workspace $workspace, Agent $agent)
     {
@@ -72,9 +77,20 @@ class AgentActionController extends Controller
 
         abort_if(AgentAction::query()->whereKey($decisionIds)->whereIn('agent_session_id', $sessionIds)->count() !== count($decisionIds), 404);
 
-        $decided = $this->resolve->execute($request->user(), $request->decisions());
+        $decided = $this->resolve->execute($request->user(), $request->decisions(), resume: false);
 
-        return ApiResponse::success(['actions' => AgentActionResource::collection($decided)], 'Decisions recorded.');
+        // Whether this conversation's own paused turn carries on now — the
+        // chat follows it over the channel; subagents' turns resume quietly.
+        $run = $session->runs()->where('status', RunStatus::AwaitingApproval)->latest('id')->first();
+        $resumesNow = $run !== null && $this->resumer->runIsReady($run);
+
+        $this->resumer->resumeReady($decided);
+
+        return ApiResponse::success([
+            'actions' => AgentActionResource::collection($decided),
+            'resumed' => $resumesNow,
+            'run_id' => $resumesNow ? $run->id : null,
+        ], 'Decisions recorded.');
     }
 
     /**
