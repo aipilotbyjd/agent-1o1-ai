@@ -175,3 +175,29 @@ it('fails the callback cleanly when the connector lost its client credentials', 
 
     expect(ConnectorCredential::query()->exists())->toBeFalse();
 });
+
+it('keeps the provider\'s error body out of the callback response and refuses a replayed state', function () {
+    [$workspace, $owner] = ownerWorkspaceForOAuth();
+    $connector = Connector::factory()->oauth()->create(['key' => 'github']);
+
+    config(['services.github.client_id' => 'client-123', 'services.github.client_secret' => 'secret-123']);
+    Http::fake([$connector->oauth['token_url'] => Http::response(['error_description' => 'client secret secret-123 rejected'], 400)]);
+
+    OAuthConnectorState::create([
+        'workspace_id' => $workspace->id,
+        'user_id' => $owner->id,
+        'connector_id' => $connector->id,
+        'state' => 'replayed-state',
+        'name' => 'My GitHub',
+        'redirect_uri' => 'https://app.test/callback',
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    $query = '/api/oauth/connectors/callback?'.http_build_query(['state' => 'replayed-state', 'code' => 'auth-code-123']);
+
+    $first = $this->getJson($query)->assertUnprocessable();
+    expect($first->getContent())->not->toContain('secret-123');
+
+    $this->getJson($query)->assertUnprocessable();
+    Http::assertSentCount(1);
+});
