@@ -6,9 +6,9 @@ use App\Enums\Agents\AgentActionStatus;
 use App\Enums\Agents\AgentPlanStatus;
 use App\Enums\Agents\AutonomyMode;
 use App\Enums\RunStatus;
+use App\Enums\Workspaces\Role;
 use App\Events\Agents\AgentActionsRequested;
 use App\Events\Agents\AgentTurnChanged;
-use App\Enums\Workspaces\Role;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentAction;
 use App\Models\Agents\AgentPlan;
@@ -84,13 +84,21 @@ it('continues the paused turn on the queue once the chat decides', function () {
 
     $this->postJson("{$this->sessionUrl}/actions/decisions", [
         'decisions' => [['action_id' => $action->id, 'decision' => 'approve']],
-    ])->assertOk()->assertJsonPath('data.actions.0.id', $action->id);
+    ])->assertOk()
+        ->assertJsonPath('data.actions.0.id', $action->id)
+        ->assertJsonPath('data.resumed', true)
+        ->assertJsonPath('data.run_id', Run::query()->where('runnable_id', $this->session->id)->sole()->id);
 
     Http::assertSentCount(1);
     expect(Run::query()->where('runnable_id', $this->session->id)->sole()->status)->toBe(RunStatus::Completed);
 
     $statuses = Event::dispatched(AgentTurnChanged::class)->map(fn (array $args): string => $args[0]->broadcastWith()['turn']['status']);
     expect($statuses->all())->toBe(['running', 'completed']);
+
+    // Nothing is waiting any more, so a repeated decision resumes nothing.
+    $this->postJson("{$this->sessionUrl}/actions/decisions", [
+        'decisions' => [['action_id' => $action->id, 'decision' => 'approve']],
+    ])->assertOk()->assertJsonPath('data.resumed', false)->assertJsonPath('data.run_id', null);
 });
 
 it('lists a conversation\'s actions for its approval cards', function () {

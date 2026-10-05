@@ -8,6 +8,7 @@ use App\Events\Agents\AgentTurnDelta;
 use App\Events\Agents\AgentTurnToolActivity;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall;
@@ -81,7 +82,14 @@ class AgentTurnBroadcaster
                 } elseif ($event instanceof ToolCall) {
                     $flush();
 
-                    AgentTurnToolActivity::dispatch($session, $turn->run, $event->toolCall->id, $event->toolCall->name, AgentTurnToolActivity::STARTED);
+                    AgentTurnToolActivity::dispatch(
+                        $session,
+                        $turn->run,
+                        $event->toolCall->id,
+                        $event->toolCall->name,
+                        AgentTurnToolActivity::STARTED,
+                        arguments: $this->smallEnough($event->toolCall->arguments),
+                    );
                 } elseif ($event instanceof ToolResult) {
                     $flush();
 
@@ -94,6 +102,7 @@ class AgentTurnBroadcaster
                         successful: $event->successful,
                         denied: (bool) $event->denied,
                         subagentTaskId: $this->subagentTaskId($event),
+                        output: Str::limit((string) ($event->error ?? $event->toolResult->result), AgentTurnToolActivity::MAX_OUTPUT_CHARS),
                     );
                 }
             }
@@ -126,6 +135,17 @@ class AgentTurnBroadcaster
         }
 
         report($e);
+    }
+
+    /**
+     * Tool arguments, or null when they would make the event too big to send.
+     *
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>|null
+     */
+    private function smallEnough(array $arguments): ?array
+    {
+        return strlen((string) json_encode($arguments)) <= AgentTurnToolActivity::MAX_ARGUMENTS_BYTES ? $arguments : null;
     }
 
     /**
