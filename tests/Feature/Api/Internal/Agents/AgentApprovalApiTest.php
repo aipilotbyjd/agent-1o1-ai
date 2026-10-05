@@ -17,6 +17,7 @@ use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Services\Agents\AgentRunner;
+use App\Services\Agents\Approvals\ActionApprovers;
 use App\Services\Agents\Approvals\ChatApprovalLinks;
 use App\Services\Http\SsrfGuard;
 use App\Services\Workspaces\WorkspaceService;
@@ -340,4 +341,32 @@ it('leaves an action with named approvers to them, not to a Slack button', funct
 
     expect($action->fresh()->status)->toBe(AgentActionStatus::Pending);
     Http::assertNothingSent();
+});
+
+it('tells each person only about the actions they may decide in a mixed batch', function () {
+    ($this->pause)();
+    $named = AgentAction::query()->sole();
+    $named->update(['approvers' => ['role:member']]);
+
+    $unnamed = $named->replicate();
+    $unnamed->forceFill(['tool_call_id' => 'call-2', 'approvers' => null])->save();
+
+    $member = ($this->addMember)(Role::Member);
+
+    $entries = app(ActionApprovers::class)
+        ->notificationsFor($this->workspace, AgentAction::query()->with('session')->get())
+        ->keyBy(fn (array $entry): string => $entry['user']->id);
+
+    expect($entries[$member->id]['actions']->modelKeys())->toBe([$named->id])
+        ->and($entries[$this->owner->id]['actions']->modelKeys())->toEqualCanonicalizing([$named->id, $unnamed->id]);
+});
+
+it('keeps the signed decision page from someone who may not decide the action', function () {
+    ($this->pause)();
+    $action = AgentAction::query()->sole();
+    $viewer = ($this->addMember)(Role::Viewer);
+
+    $url = URL::temporarySignedRoute('agent-actions.signed-decision.show', now()->addHour(), ['action' => $action->id, 'user' => $viewer->id]);
+
+    $this->get($url)->assertForbidden();
 });

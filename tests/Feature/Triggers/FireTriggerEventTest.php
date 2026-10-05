@@ -76,3 +76,19 @@ it('does not count a failure for an event that expired unclaimed', function () {
 
     expect($event->trigger->fresh()->consecutive_failure_count)->toBe(0);
 });
+
+it('hands the event back to the queue when firing throws, so the retry can claim it', function () {
+    $event = makeQueuedEvent();
+
+    $failing = Mockery::mock(TriggerService::class);
+    $failing->shouldReceive('fire')->once()->andThrow(new RuntimeException('target unavailable'));
+
+    expect(fn () => (new FireTriggerEvent($event->trigger, $event))->handle($failing))
+        ->toThrow(RuntimeException::class);
+
+    expect($event->fresh()->status)->toBe(TriggerEventStatus::Queued);
+
+    (new FireTriggerEvent($event->trigger, $event->fresh()))->handle(app(TriggerService::class));
+
+    expect($event->fresh()->status)->toBe(TriggerEventStatus::Fired);
+});

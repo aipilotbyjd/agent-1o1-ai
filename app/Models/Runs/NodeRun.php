@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 #[Fillable(['run_id', 'key', 'type', 'input', 'max_attempts', 'retry_delay_seconds'])]
 class NodeRun extends Model
@@ -49,6 +50,36 @@ class NodeRun extends Model
             'finished_at' => 'datetime',
             'callback_expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Applies `$attributes` only if the row is still in one of `$from` —
+     * checked under a row lock, so two workers (or a worker and a
+     * cancellation) can't both act on the same state. Returns `false`, with
+     * the model refreshed, when someone else moved the node first.
+     *
+     * @param  array<int, NodeRunStatus>  $from
+     * @param  array<string, mixed>  $attributes
+     */
+    public function transitionFrom(array $from, array $attributes): bool
+    {
+        $moved = DB::transaction(function () use ($from, $attributes): bool {
+            $current = static::query()->whereKey($this->getKey())->lockForUpdate()->first();
+
+            if ($current === null || ! in_array($current->status, $from, true)) {
+                return false;
+            }
+
+            $this->forceFill($attributes)->save();
+
+            return true;
+        });
+
+        if (! $moved) {
+            $this->refresh();
+        }
+
+        return $moved;
     }
 
     public function run(): BelongsTo

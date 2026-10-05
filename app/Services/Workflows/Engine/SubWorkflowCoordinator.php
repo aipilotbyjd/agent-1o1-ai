@@ -69,7 +69,7 @@ class SubWorkflowCoordinator
 
         if ($childRun->status === RunStatus::Completed) {
             $nodeRun->forceFill(['status' => NodeRunStatus::Completed, 'output' => $childRun->output, 'finished_at' => now()])->save();
-            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+            DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
             return;
         }

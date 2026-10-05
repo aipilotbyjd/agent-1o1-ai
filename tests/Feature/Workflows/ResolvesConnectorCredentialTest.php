@@ -45,7 +45,8 @@ it('refuses a connector credential belonging to another workspace', function () 
 it('refuses an expired connector credential', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $credential = ConnectorCredential::factory()->forWorkspace($workspace)->expired()->create();
+    $connector = Connector::factory()->create(['key' => 'github']);
+    $credential = ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)->expired()->create();
 
     $run = Run::factory()->create(['workspace_id' => $workspace->id]);
     $node = new GitHubGetRepoNode;
@@ -114,4 +115,37 @@ it('does not fall back when several team credentials exist and none is marked de
 
     expect(fn () => (new GitHubGetRepoNode)->execute($run, ['repo' => 'acme/widgets'], []))
         ->toThrow(RuntimeException::class, 'access_token or credential_id is required');
+});
+
+it('refuses a pinned credential that belongs to a different connector', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    Connector::factory()->create(['key' => 'github']);
+    $slack = Connector::factory()->create(['key' => 'slack']);
+    $credential = ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($slack)->create();
+
+    $run = Run::factory()->create(['workspace_id' => $workspace->id]);
+
+    expect(fn () => (new GitHubGetRepoNode)->execute($run, ['credential_id' => $credential->id, 'repo' => 'acme/widgets'], []))
+        ->toThrow(RuntimeException::class, 'not found in this workspace');
+});
+
+it('refuses another member\'s personal credential even when pinned by id', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $connector = Connector::factory()->create(['key' => 'github']);
+    $teammate = User::factory()->create();
+    $personal = ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)
+        ->create(['scope' => 'personal', 'created_by' => $teammate->id, 'data' => ['access_token' => 'gh-private']]);
+
+    Http::fake(['api.github.com/repos/acme/widgets' => Http::response(['id' => 1])]);
+
+    $ownersRun = Run::factory()->create(['workspace_id' => $workspace->id, 'triggered_by' => $owner->id]);
+    expect(fn () => (new GitHubGetRepoNode)->execute($ownersRun, ['credential_id' => $personal->id, 'repo' => 'acme/widgets'], []))
+        ->toThrow(RuntimeException::class, 'not found in this workspace');
+
+    $teammatesRun = Run::factory()->create(['workspace_id' => $workspace->id, 'triggered_by' => $teammate->id]);
+    (new GitHubGetRepoNode)->execute($teammatesRun, ['credential_id' => $personal->id, 'repo' => 'acme/widgets'], []);
+
+    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer gh-private'));
 });

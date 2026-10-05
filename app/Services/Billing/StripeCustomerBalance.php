@@ -12,22 +12,39 @@ use App\Models\Workspaces\Workspace;
 class StripeCustomerBalance
 {
     /**
+     * With an `$operationKey`, the call is safe to repeat: the key is stored
+     * on the balance transaction, and an earlier transaction carrying it is
+     * returned instead of applying the amount a second time — covering a
+     * crash after Stripe accepted the call but before the caller recorded it.
+     *
      * @return string The Stripe customer balance transaction id.
      */
-    public function credit(Workspace $workspace, int $amountCents, string $description): string
+    public function credit(Workspace $workspace, int $amountCents, string $description, ?string $operationKey = null): string
     {
-        $workspace->createOrGetStripeCustomer();
-
-        return $workspace->creditBalance($amountCents, $description)->id;
+        return $this->apply($workspace, -$amountCents, $description, $operationKey);
     }
 
     /**
      * @return string The Stripe customer balance transaction id.
      */
-    public function debit(Workspace $workspace, int $amountCents, string $description): string
+    public function debit(Workspace $workspace, int $amountCents, string $description, ?string $operationKey = null): string
+    {
+        return $this->apply($workspace, $amountCents, $description, $operationKey);
+    }
+
+    private function apply(Workspace $workspace, int $signedAmountCents, string $description, ?string $operationKey): string
     {
         $workspace->createOrGetStripeCustomer();
 
-        return $workspace->debitBalance($amountCents, $description)->id;
+        if ($operationKey === null) {
+            return $workspace->applyBalance($signedAmountCents, $description)->id;
+        }
+
+        $existing = $workspace->balanceTransactions(100)->first(
+            fn ($transaction): bool => ($transaction->asStripeCustomerBalanceTransaction()->metadata['operation_key'] ?? null) === $operationKey,
+        );
+
+        return $existing?->id
+            ?? $workspace->applyBalance($signedAmountCents, $description, ['metadata' => ['operation_key' => $operationKey]])->id;
     }
 }

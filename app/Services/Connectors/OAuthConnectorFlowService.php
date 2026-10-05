@@ -9,8 +9,10 @@ use App\Models\Connectors\ConnectorCredential;
 use App\Models\Connectors\OAuthConnectorState;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -85,17 +87,27 @@ class OAuthConnectorFlowService
         }
 
         $connector = $pending->connector;
+        $clientId = $this->clientId($connector);
+        $clientSecret = $this->clientSecret($connector);
+
+        // Single use, claimed before any network call: the delete only
+        // succeeds for one of two simultaneous callbacks carrying the same state.
+        if (OAuthConnectorState::query()->whereKey($pending->getKey())->delete() === 0) {
+            throw new ConnectorException('OAuth state is invalid or has expired.');
+        }
 
         $response = Http::acceptJson()->asForm()->timeout(30)->connectTimeout(10)->post($connector->oauth['token_url'], [
-            'client_id' => $this->clientId($connector),
-            'client_secret' => $this->clientSecret($connector),
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
             'code' => $code,
             'redirect_uri' => $pending->redirect_uri,
             'grant_type' => 'authorization_code',
         ]);
 
         if ($response->failed()) {
-            throw new ConnectorException("Failed to exchange OAuth code for connector [{$connector->key}]: {$response->body()}");
+            $this->logProviderFailure('exchange', $connector, $response);
+
+            throw new ConnectorException("Failed to exchange OAuth code for connector [{$connector->key}] (HTTP {$response->status()}). Please try connecting again.");
         }
 
         $body = $this->validatedTokenBody($response->json());
@@ -109,8 +121,6 @@ class OAuthConnectorFlowService
             'data' => $this->tokenData($body),
             'expires_at' => $this->expiresAt($body),
         ]);
-
-        $pending->delete();
 
         return $credential;
     }
@@ -132,7 +142,9 @@ class OAuthConnectorFlowService
         ]);
 
         if ($response->failed()) {
-            throw new ConnectorException("Failed to refresh connector credential [{$credential->id}]: {$response->body()}");
+            $this->logProviderFailure('refresh', $connector, $response);
+
+            throw new ConnectorException("Failed to refresh connector credential [{$credential->id}] (HTTP {$response->status()}). Please reconnect the connector.");
         }
 
         $body = $this->validatedTokenBody($response->json());
@@ -143,6 +155,19 @@ class OAuthConnectorFlowService
         ]);
 
         return $credential->fresh();
+    }
+
+    /**
+     * The provider's reply stays in the logs (bounded) — it can echo request
+     * details and is not for the API client.
+     */
+    private function logProviderFailure(string $operation, Connector $connector, Response $response): void
+    {
+        Log::warning("OAuth token {$operation} failed.", [
+            'connector' => $connector->key,
+            'status' => $response->status(),
+            'body' => Str::limit($response->body(), 500),
+        ]);
     }
 
     /**

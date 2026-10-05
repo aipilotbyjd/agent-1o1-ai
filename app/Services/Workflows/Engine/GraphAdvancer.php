@@ -10,6 +10,7 @@ use App\Jobs\Workflows\ExecuteNodeJob;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\Workflows\WorkflowEdge;
+use App\Services\Workflows\StepOptions;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -50,7 +51,13 @@ class GraphAdvancer
             return;
         }
 
-        $this->createPendingAndDispatch($run, self::entryKeys($graph), $graph);
+        $created = DB::transaction(function () use ($run, $graph): array {
+            $locked = Run::whereKey($run->id)->lockForUpdate()->firstOrFail();
+
+            return $locked->status->isTerminal() ? [] : $this->createPending($run, self::entryKeys($graph), $graph);
+        });
+
+        $this->dispatchCreated($created);
 
         $this->finishIfDone($run);
     }
@@ -67,34 +74,53 @@ class GraphAdvancer
             return;
         }
 
-        $outgoing = array_values(array_filter($graph['edges'], fn (array $edge) => $edge['from'] === $settledNode->key));
+        // Everything that creates this node's successors — and the flag
+        // clearing that tells `finishIfDone()` it has — runs under the run's
+        // row lock, the same lock `finishIfDone()` takes, so a sibling
+        // branch can't judge the run finished while only some successors
+        // exist.
+        $created = DB::transaction(function () use ($run, $settledNode, $graph, $continueOnError): array {
+            $locked = Run::whereKey($run->id)->lockForUpdate()->firstOrFail();
 
-        $matchedKeys = [];
-
-        // Every sibling `NodeRun` row (pending-to-dispatch or skipped) is
-        // created before any of them is actually dispatched — with the sync
-        // queue driver, dispatching a job runs it (and everything it in turn
-        // triggers, including `finishIfDone`) to completion immediately, so
-        // a sibling created *after* the first dispatch would be invisible to
-        // that premature `finishIfDone` check and the run could complete
-        // while a sibling still sits unprocessed.
-        foreach ($outgoing as $edge) {
-            if ($this->edgeMatches($edge, $settledNode, $continueOnError)) {
-                $matchedKeys[] = $edge['to'];
-            } else {
-                $this->skip($run, $edge['to'], $graph);
+            if ($locked->status->isTerminal()) {
+                return [];
             }
-        }
 
-        // A matched edge into a not-yet-ready join is silently dropped here
-        // (not created, not skipped) — the branch that finally makes the
-        // join ready is whichever settles last; see joinReadiness().
-        $readyKeys = array_values(array_filter(
-            $matchedKeys,
-            fn (string $key) => $this->joinReadiness($run, $key, $graph) === true,
-        ));
+            $outgoing = array_values(array_filter($graph['edges'], fn (array $edge) => $edge['from'] === $settledNode->key));
 
-        $this->createPendingAndDispatch($run, $readyKeys, $graph);
+            $matchedKeys = [];
+
+            // Every sibling `NodeRun` row (pending-to-dispatch or skipped) is
+            // created before any of them is actually dispatched — with the sync
+            // queue driver, dispatching a job runs it (and everything it in turn
+            // triggers, including `finishIfDone`) to completion immediately, so
+            // a sibling created *after* the first dispatch would be invisible to
+            // that premature `finishIfDone` check and the run could complete
+            // while a sibling still sits unprocessed.
+            foreach ($outgoing as $edge) {
+                if ($this->edgeMatches($edge, $settledNode, $continueOnError)) {
+                    $matchedKeys[] = $edge['to'];
+                } else {
+                    $this->skip($run, $edge['to'], $graph);
+                }
+            }
+
+            // A matched edge into a not-yet-ready join is silently dropped here
+            // (not created, not skipped) — the branch that finally makes the
+            // join ready is whichever settles last; see joinReadiness().
+            $readyKeys = array_values(array_filter(
+                $matchedKeys,
+                fn (string $key) => $this->joinReadiness($run, $key, $graph) === true,
+            ));
+
+            $created = $this->createPending($run, $readyKeys, $graph);
+
+            NodeRun::query()->whereKey($settledNode->id)->update(['pending_advance' => false]);
+
+            return $created;
+        });
+
+        $this->dispatchCreated($created);
 
         $this->finishIfDone($run);
     }
@@ -193,24 +219,45 @@ class GraphAdvancer
      * @param  array<int, string>  $keys
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
      */
-    private function createPendingAndDispatch(Run $run, array $keys, array $graph): void
+    private function createPending(Run $run, array $keys, array $graph): array
     {
         $created = [];
 
         foreach ($keys as $key) {
-            $type = collect($graph['nodes'])->firstWhere('key', $key)['type'] ?? null;
+            $node = collect($graph['nodes'])->firstWhere('key', $key);
+            $type = $node['type'] ?? null;
 
             if ($type === null) {
                 continue;
             }
 
+            // The retry knobs are persisted on the row so what the API
+            // reports is what the failure handler will actually do.
+            $options = StepOptions::fromNodeConfig($node['config'] ?? []);
+
             try {
-                $created[] = $run->nodeRuns()->create(['key' => $key, 'type' => $type, 'input' => $run->input]);
+                // A savepoint, so losing the unique `(run_id, key)` race
+                // doesn't abort the surrounding transaction.
+                $created[] = DB::transaction(fn (): NodeRun => $run->nodeRuns()->create([
+                    'key' => $key,
+                    'type' => $type,
+                    'input' => $run->input,
+                    'max_attempts' => $options->maxAttempts,
+                    'retry_delay_seconds' => $options->retryDelaySeconds,
+                ]));
             } catch (UniqueConstraintViolationException) {
                 continue;
             }
         }
 
+        return $created;
+    }
+
+    /**
+     * @param  array<int, NodeRun>  $created
+     */
+    private function dispatchCreated(array $created): void
+    {
         foreach ($created as $nodeRun) {
             ExecuteNodeJob::dispatch($nodeRun->id);
         }
@@ -245,7 +292,7 @@ class GraphAdvancer
             // (engine-managed, not user-mass-assignable — see NodeRun's own
             // convention) — create() would silently drop them, so create
             // first, then forceFill the status transition.
-            $nodeRun = $run->nodeRuns()->create(['key' => $key, 'type' => $type, 'input' => $run->input]);
+            $nodeRun = DB::transaction(fn (): NodeRun => $run->nodeRuns()->create(['key' => $key, 'type' => $type, 'input' => $run->input]));
         } catch (UniqueConstraintViolationException) {
             return;
         }
@@ -276,8 +323,12 @@ class GraphAdvancer
             // Pending/Running but AwaitingApproval/AwaitingCallback too, or
             // a paused HumanApproval/Wait node would let the run complete
             // out from under it.
+            // A node that settled but still owes its successors
+            // (`pending_advance`) counts too: they don't exist yet.
             $stillInFlight = $locked->nodeRuns()
-                ->whereNotIn('status', self::TERMINAL_NODE_RUN_STATUSES)
+                ->where(fn ($query) => $query
+                    ->whereNotIn('status', self::TERMINAL_NODE_RUN_STATUSES)
+                    ->orWhere('pending_advance', true))
                 ->exists();
 
             if ($stillInFlight) {

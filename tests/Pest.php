@@ -125,14 +125,14 @@ function fakeStripeBalance(): StripeCustomerBalance
         /** @var list<array{workspace: string, cents: int}> */
         public array $debits = [];
 
-        public function credit(Workspace $workspace, int $amountCents, string $description): string
+        public function credit(Workspace $workspace, int $amountCents, string $description, ?string $operationKey = null): string
         {
             $this->credits[] = ['workspace' => $workspace->id, 'cents' => $amountCents];
 
             return 'cbtxn_'.count($this->credits);
         }
 
-        public function debit(Workspace $workspace, int $amountCents, string $description): string
+        public function debit(Workspace $workspace, int $amountCents, string $description, ?string $operationKey = null): string
         {
             $this->debits[] = ['workspace' => $workspace->id, 'cents' => $amountCents];
 

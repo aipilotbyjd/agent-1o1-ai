@@ -22,7 +22,7 @@ class StripeBalanceRewardHandler implements RewardHandler
             return;
         }
 
-        $reward->stripe_balance_transaction_id = $this->balance->credit($workspace, $reward->amount_cents, 'Referral reward');
+        $reward->stripe_balance_transaction_id = $this->balance->credit($workspace, $reward->amount_cents, 'Referral reward', "referral-reward:{$reward->id}:grant");
     }
 
     public function revoke(ReferralReward $reward): void
@@ -33,6 +33,6 @@ class StripeBalanceRewardHandler implements RewardHandler
             return;
         }
 
-        $this->balance->debit($workspace, $reward->amount_cents, 'Referral reward reversed');
+        $this->balance->debit($workspace, $reward->amount_cents, 'Referral reward reversed', "referral-reward:{$reward->id}:revoke");
     }
 }

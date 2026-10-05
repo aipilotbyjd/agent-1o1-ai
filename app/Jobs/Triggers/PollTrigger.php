@@ -7,6 +7,7 @@ use App\Models\Triggers\Trigger;
 use App\Services\Http\GuardedHttp;
 use App\Services\Triggers\TriggerService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -21,13 +22,28 @@ use Throwable;
  * ConnectorCredential exists (docs/NODES_CATALOG.md) — until then this only
  * supports unauthenticated/public polling endpoints.
  */
-class PollTrigger implements ShouldQueue
+class PollTrigger implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /**
+     * Seconds a poll holds its trigger's lock if the worker dies mid-poll.
+     */
+    public int $uniqueFor = 600;
 
     public function __construct(public Trigger $trigger)
     {
         $this->onQueue((string) config('triggers.poll_queue'));
+    }
+
+    /**
+     * One poll per trigger at a time: `last_run_at` only moves when a poll
+     * finishes, so without this a slow poll is re-queued by every scheduler
+     * tick and the copies race on the cursor.
+     */
+    public function uniqueId(): string
+    {
+        return (string) $this->trigger->getKey();
     }
 
     public function handle(TriggerService $triggers, GuardedHttp $http): void

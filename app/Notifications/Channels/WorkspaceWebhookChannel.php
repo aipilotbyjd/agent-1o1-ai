@@ -3,6 +3,7 @@
 namespace App\Notifications\Channels;
 
 use App\Exceptions\Http\BlockedUrlException;
+use App\Jobs\Notifications\DeliverWorkspaceWebhookJob;
 use App\Models\Notifications\NotificationChannel;
 use App\Services\Http\GuardedHttp;
 use Illuminate\Http\Client\Response;
@@ -31,11 +32,11 @@ class WorkspaceWebhookChannel
             ->where('workspace_id', $payload['workspace_id'])
             ->whereIn('id', $channelIds)
             ->where('is_active', true)
-            ->each(fn (NotificationChannel $channel) => $this->deliver($channel, $payload['message'], $payload['slack_blocks'] ?? null));
+            ->each(fn (NotificationChannel $channel) => DeliverWorkspaceWebhookJob::dispatch($channel->id, $payload['message'], $payload['slack_blocks'] ?? null));
     }
 
     /**
-     * @return array{ok: bool, message: string}
+     * @return array{ok: bool, message: string, retryable: bool}
      */
     public function deliverTest(NotificationChannel $channel): array
     {
@@ -47,10 +48,13 @@ class WorkspaceWebhookChannel
      * for a Slack channel; `$message` stays the text fallback Slack shows
      * in notifications.
      *
+     * `retryable` says whether trying again could help: a network error or
+     * a 5xx/429 might clear, a blocked address or a 4xx will not.
+     *
      * @param  array<int, mixed>|null  $slackBlocks
-     * @return array{ok: bool, message: string}
+     * @return array{ok: bool, message: string, retryable: bool}
      */
-    private function deliver(NotificationChannel $channel, string $message, ?array $slackBlocks = null): array
+    public function deliver(NotificationChannel $channel, string $message, ?array $slackBlocks = null): array
     {
         try {
             $config = $channel->config;
@@ -62,7 +66,7 @@ class WorkspaceWebhookChannel
             };
 
             if ($response->successful()) {
-                return ['ok' => true, 'message' => 'Delivered.'];
+                return ['ok' => true, 'message' => 'Delivered.', 'retryable' => false];
             }
 
             Log::warning('Workspace notification channel delivery failed.', [
@@ -70,21 +74,25 @@ class WorkspaceWebhookChannel
                 'status' => $response->status(),
             ]);
 
-            return ['ok' => false, 'message' => "Delivery failed: HTTP {$response->status()}."];
+            return [
+                'ok' => false,
+                'message' => "Delivery failed: HTTP {$response->status()}.",
+                'retryable' => $response->serverError() || in_array($response->status(), [408, 429], true),
+            ];
         } catch (BlockedUrlException $exception) {
             Log::warning('Workspace notification channel delivery blocked.', [
                 'channel_id' => $channel->id,
                 'exception' => $exception->getMessage(),
             ]);
 
-            return ['ok' => false, 'message' => $exception->getMessage()];
+            return ['ok' => false, 'message' => $exception->getMessage(), 'retryable' => false];
         } catch (Throwable $exception) {
             Log::warning('Workspace notification channel delivery errored.', [
                 'channel_id' => $channel->id,
                 'exception' => $exception->getMessage(),
             ]);
 
-            return ['ok' => false, 'message' => 'Delivery error.'];
+            return ['ok' => false, 'message' => 'Delivery error.', 'retryable' => true];
         }
     }
 

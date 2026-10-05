@@ -9,6 +9,7 @@ use App\Services\Workflows\Engine\GraphAdvancer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Bus\PendingDispatch;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
@@ -29,6 +30,18 @@ class DispatchNextNodesJob implements ShouldQueue
         public bool $continueOnError = false,
     ) {
         $this->onQueue(Queue::WorkflowDispatch->value);
+    }
+
+    /**
+     * Queues the traversal that follows a settled node, flagging the node as
+     * still owing its successors until `GraphAdvancer::advance()` has created
+     * them — so a sibling branch can't complete the run in between.
+     */
+    public static function afterSettling(string $runId, string $settledNodeRunId, bool $continueOnError = false): PendingDispatch
+    {
+        NodeRun::query()->whereKey($settledNodeRunId)->update(['pending_advance' => true]);
+
+        return static::dispatch($runId, $settledNodeRunId, $continueOnError);
     }
 
     public function handle(GraphAdvancer $advancer): void

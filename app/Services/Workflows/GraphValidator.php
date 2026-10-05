@@ -293,6 +293,12 @@ class GraphValidator
         $errors = [];
 
         foreach ($nodes as $node) {
+            // Parsed nowhere that could act on it: a running node can't be
+            // interrupted, so promising a per-step timeout would be a lie.
+            if (isset($node['config']['_options']['timeout_seconds'])) {
+                $errors[] = "Node '{$node['key']}': _options.timeout_seconds is not supported — a running node cannot be interrupted.";
+            }
+
             // Flow-control types (loop, subflow, human_approval, wait, ...)
             // are checked against their catalog schemas like any other
             // node. Types with no schema at all — `custom:` nodes and

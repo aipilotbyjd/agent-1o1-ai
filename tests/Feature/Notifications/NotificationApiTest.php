@@ -125,3 +125,17 @@ it('notifies other workspace administrators when a members role changes', functi
             && $notification->data['role'] === Role::Editor->value;
     });
 });
+
+it('changes only the preference fields a partial update names', function () {
+    $user = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($user, ['name' => 'Acme']);
+    Passport::actingAs($user);
+    $url = "/api/v1/workspaces/{$workspace->id}/notification-preferences";
+    $event = NotificationEvent::RunApprovalRequested->value;
+
+    $this->putJson($url, ['event_key' => $event, 'in_app' => false, 'email' => true])->assertOk();
+    $this->putJson($url, ['event_key' => $event, 'email' => false])
+        ->assertOk()
+        ->assertJsonPath('data.preference.in_app', false)
+        ->assertJsonPath('data.preference.email', false);
+});

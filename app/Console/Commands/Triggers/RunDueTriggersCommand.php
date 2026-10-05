@@ -9,6 +9,7 @@ use App\Services\Triggers\TriggerService;
 use Cron\CronExpression;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Writes a row per due trigger and returns — starts no runs itself, so the
@@ -40,7 +41,17 @@ class RunDueTriggersCommand extends Command
             ->each(function (Trigger $trigger) use ($triggers, $now, &$queued): void {
                 $cron = $trigger->config['cron'] ?? null;
 
-                if ($cron === null || ! (new CronExpression($cron))->isDue($now)) {
+                // One trigger with a bad stored expression must not stop the
+                // others from firing.
+                if (! is_string($cron) || ! CronExpression::isValidExpression($cron)) {
+                    if ($cron !== null) {
+                        Log::warning('Schedule trigger skipped: invalid cron expression.', ['trigger_id' => $trigger->id]);
+                    }
+
+                    return;
+                }
+
+                if (! (new CronExpression($cron))->isDue($now)) {
                     return;
                 }
 

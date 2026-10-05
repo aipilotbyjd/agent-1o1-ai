@@ -44,36 +44,58 @@ class ActionApprovers
     }
 
     /**
-     * Everyone who should hear about these actions waiting.
+     * Everyone who should hear about at least one of these actions waiting.
      *
      * @param  Collection<int, AgentAction>  $actions
      * @return Collection<int, User>
      */
     public function recipientsFor(Workspace $workspace, Collection $actions): Collection
     {
+        return $this->notificationsFor($workspace, $actions)->map(fn (array $entry): User => $entry['user'])->values();
+    }
+
+    /**
+     * Each person to notify with only the actions *they* are to hear about —
+     * a mixed batch must not show one action's arguments, reason or signed
+     * link to someone who may not decide it.
+     *
+     * @param  Collection<int, AgentAction>  $actions
+     * @return Collection<int, array{user: User, actions: Collection<int, AgentAction>}>
+     */
+    public function notificationsFor(Workspace $workspace, Collection $actions): Collection
+    {
         $members = $workspace->users()
             ->whereNull((new WorkspaceMember)->qualifyColumn('deleted_at'))
             ->get();
 
-        $named = $actions->flatMap(fn (AgentAction $action): array => $action->approvers ?? [])->unique()->values();
-        $ownerIds = $actions->map(fn (AgentAction $action): ?string => $action->session?->user_id)->filter()->unique();
-
         return $members
-            ->filter(function (User $user) use ($workspace, $named, $ownerIds): bool {
+            ->map(function (User $user) use ($workspace, $actions): ?array {
                 $role = $workspace->owner_id === $user->id ? Role::Owner : Role::tryFrom((string) $user->pivot?->role);
 
                 if ($role === null) {
-                    return false;
+                    return null;
                 }
 
-                if ($named->isNotEmpty()) {
-                    return in_array($role, [Role::Owner, Role::Admin], true)
-                        || $named->contains("user:{$user->id}")
-                        || $named->contains("role:{$role->value}");
-                }
+                $visible = $actions->filter(fn (AgentAction $action): bool => $this->shouldHear($user, $role, $action))->values();
 
-                return $ownerIds->contains($user->id) || in_array($role, [Role::Owner, Role::Admin], true);
+                return $visible->isEmpty() ? null : ['user' => $user, 'actions' => $visible];
             })
+            ->filter()
             ->values();
+    }
+
+    private function shouldHear(User $user, Role $role, AgentAction $action): bool
+    {
+        if (in_array($role, [Role::Owner, Role::Admin], true)) {
+            return true;
+        }
+
+        $approvers = $action->approvers ?? [];
+
+        if ($approvers !== []) {
+            return in_array("user:{$user->id}", $approvers, true) || in_array("role:{$role->value}", $approvers, true);
+        }
+
+        return $action->session?->user_id === $user->id;
     }
 }

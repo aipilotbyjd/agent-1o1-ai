@@ -40,6 +40,7 @@ class KnowledgeBaseController extends Controller
 
         $chunks = DocumentEmbedding::query()
             ->visibleTo($request->user())
+            ->excludingArtifactCollections()
             ->where('workspace_id', $workspace->id)
             ->when($request->has('private'), fn ($query) => $request->boolean('private')
                 ? $query->whereNotNull('owner_id')
@@ -110,14 +111,15 @@ class KnowledgeBaseController extends Controller
         $collection = $request->validated('collection') ?? ($private ? 'personal' : 'default');
         $metadata = $request->validated('metadata');
         $ownerId = $private ? $request->user()->id : null;
+        $revision = (int) (microtime(true) * 1_000_000);
 
         if (mb_strlen($text) > (int) config('knowledge_base.sync_ingest_max_characters')) {
-            IngestKnowledgeJob::dispatch($workspace, $text, $source, $collection, $metadata, $ownerId);
+            IngestKnowledgeJob::dispatch($workspace, $text, $source, $collection, $metadata, $ownerId, $revision);
 
             return ApiResponse::success(['queued' => true], 'Knowledge ingestion queued.', 202);
         }
 
-        $chunks = $this->knowledgeBase->ingest($workspace, $text, $source, $collection, $metadata, ownerId: $ownerId, replaceSource: true);
+        $chunks = $this->knowledgeBase->ingest($workspace, $text, $source, $collection, $metadata, ownerId: $ownerId, replaceSource: true, revision: $revision);
 
         return ApiResponse::created([
             'chunks_count' => $chunks->count(),
@@ -139,6 +141,7 @@ class KnowledgeBaseController extends Controller
             $request->validated('source'),
             $request->validated('collection'),
             $request->user(),
+            excludeArtifactCollections: true,
         );
 
         abort_if($text === null, 404, 'No document found for that source.');
@@ -164,6 +167,7 @@ class KnowledgeBaseController extends Controller
             $request->validated('collection'),
             (int) ($request->validated('limit') ?? KnowledgeBase::DEFAULT_TOP_N),
             $request->user(),
+            excludeArtifactCollections: true,
         );
 
         return ApiResponse::success([

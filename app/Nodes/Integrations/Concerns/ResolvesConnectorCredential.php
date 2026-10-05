@@ -49,10 +49,24 @@ trait ResolvesConnectorCredential
         return $this->tokenFrom($this->defaultCredential($run));
     }
 
+    /**
+     * A pinned credential must still be one this node may use: the
+     * workspace's, for this node's own connector, and — when personal —
+     * created by the user the run is acting for. Anything else reads as
+     * "not found" rather than confirming the id exists.
+     */
     private function findCredential(Run $run, string $credentialId): ConnectorCredential
     {
-        $credential = ConnectorCredential::query()
+        $connector = Connector::where('key', $this->category())->first();
+
+        $credential = $connector === null ? null : ConnectorCredential::query()
             ->where('workspace_id', $run->workspace_id)
+            ->where('connector_id', $connector->id)
+            ->where(fn ($usable) => $usable
+                ->where('scope', ConnectorCredentialScope::Team->value)
+                ->when($run->triggered_by !== null, fn ($query) => $query->orWhere(fn ($personal) => $personal
+                    ->where('scope', ConnectorCredentialScope::Personal->value)
+                    ->where('created_by', $run->triggered_by))))
             ->find($credentialId);
 
         if ($credential === null) {

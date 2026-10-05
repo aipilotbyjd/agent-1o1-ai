@@ -278,3 +278,12 @@ it('exposes a preview url for pdf and csv artifacts', function () {
     $response->assertOk();
     expect(collect($response->json('data'))->pluck('preview_url'))->each->not->toBeNull();
 });
+
+it('caps per_page when listing artifacts', function () {
+    [$workspace, $owner] = ownerWorkspaceForArtifacts();
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/artifacts?per_page=100000")
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 100);
+});

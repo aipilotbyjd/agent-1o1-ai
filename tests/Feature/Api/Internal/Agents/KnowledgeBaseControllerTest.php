@@ -494,3 +494,32 @@ it('leaves agents attached when only a private collection is deleted', function 
     expect($agent->knowledgeCollections()->count())->toBe(1)
         ->and(DocumentEmbedding::sole()->owner_id)->toBeNull();
 });
+
+it('keeps agents\' artifact collections out of listing, search and document reads', function () {
+    Embeddings::fake();
+    [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create([
+        'collection' => $agent->artifactKnowledgeCollection(),
+        'source' => 'secret.md',
+        'chunk_text' => 'restricted artifact text about payroll',
+    ]);
+    Passport::actingAs($owner);
+    $base = "/api/v1/workspaces/{$workspace->id}/knowledge-base";
+
+    $this->getJson($base)->assertJsonCount(0, 'data');
+    $this->postJson("{$base}/search", ['query' => 'payroll'])->assertJsonCount(0, 'data.results');
+    $this->getJson("{$base}/document?".http_build_query(['source' => 'secret.md', 'collection' => $agent->artifactKnowledgeCollection()]))->assertNotFound();
+});
+
+it('drops an ingest that carries an older revision than the stored document', function () {
+    Embeddings::fake();
+    [$workspace] = ownerWorkspaceForKnowledgeBase();
+    $knowledgeBase = app(KnowledgeBase::class);
+
+    $knowledgeBase->ingest($workspace, 'Newer text.', 'policy.md', 'support', replaceSource: true, revision: 200);
+    $stale = $knowledgeBase->ingest($workspace, 'Older text.', 'policy.md', 'support', replaceSource: true, revision: 100);
+
+    expect($stale)->toBeEmpty()
+        ->and(DocumentEmbedding::where('collection', 'support')->sole()->chunk_text)->toBe('Newer text.');
+});

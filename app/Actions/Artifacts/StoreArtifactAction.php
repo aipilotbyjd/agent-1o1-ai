@@ -11,9 +11,11 @@ use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -51,6 +53,9 @@ class StoreArtifactAction
         'application/json', 'application/xml', 'text/xml', 'text/yaml', 'application/yaml',
     ];
 
+    /** How often a store re-reads the latest version after losing a race for it. */
+    private const int VERSION_ATTEMPTS = 5;
+
     public function __construct(
         private readonly KnowledgeBase $knowledgeBase = new KnowledgeBase,
     ) {}
@@ -79,62 +84,32 @@ class StoreArtifactAction
         bool $searchable = true,
         ?AssistantSession $assistantSession = null,
     ): Artifact {
-        // `withTrashed()`: a soft-deleted group must still be found here, both
-        // to keep versioning past its last version number and so a matching
-        // re-export restores it — see the soft-delete note on the migration.
-        $previous = Artifact::withTrashed()
-            ->where('workspace_id', $workspace->id)
-            ->when(
-                $groupId !== null,
-                fn ($query) => $query->where('group_id', $groupId),
-                fn ($query) => $query
-                    ->where('filename', $filename)
-                    ->when(
-                        $session !== null,
-                        fn ($scoped) => $scoped->where('agent_session_id', $session->id),
-                        fn ($scoped) => $scoped->whereNull('agent_session_id'),
-                    )
-                    ->when(
-                        $assistantSession !== null,
-                        fn ($scoped) => $scoped->where('assistant_session_id', $assistantSession->id),
-                        fn ($scoped) => $scoped->whereNull('assistant_session_id'),
-                    ),
-            )
-            ->orderByDesc('version')
-            ->first();
-
-        if ($previous?->trashed()) {
-            Artifact::withTrashed()->where('group_id', $previous->group_id)->restore();
-        }
-
-        $groupId = $previous?->group_id ?? $groupId ?? (string) Str::uuid();
-        $version = $previous ? $previous->version + 1 : 1;
-
         $disk = (string) config('artifacts.disk');
-        $path = "artifacts/{$workspace->id}/{$groupId}/v{$version}-{$this->safeName($filename)}";
 
-        $this->write($disk, $path, $contents);
+        // The bytes land at a collision-proof temporary path first: the final
+        // path is derived from the version, and two concurrent stores can
+        // pick the same one. Only the store that wins the version (the
+        // unique `(group_id, version)` index) moves its bytes into place.
+        $stagingPath = "artifacts/{$workspace->id}/.incoming/".Str::uuid();
 
-        $artifact = Artifact::create([
-            'workspace_id' => $workspace->id,
-            'agent_id' => $agent?->id,
-            'agent_session_id' => $session?->id,
-            'assistant_session_id' => $assistantSession?->id,
-            'agent_message_id' => $message?->id,
-            'run_id' => $run?->id,
-            'created_by' => $createdBy,
-            'group_id' => $groupId,
-            'version' => $version,
-            'filename' => $filename,
-            'mime_type' => $mimeType,
-            'size' => $contents instanceof UploadedFile ? (int) $contents->getSize() : strlen($contents),
-            'disk' => $disk,
-            'path' => $path,
-            'metadata' => $metadata,
-            // A new version keeps the group's existing sharing tier rather
-            // than resetting to restricted.
-            'general_access' => $previous?->general_access?->value ?? ArtifactGeneralAccess::Restricted->value,
-        ]);
+        $this->write($disk, $stagingPath, $contents);
+
+        try {
+            $artifact = $this->createVersion(
+                $workspace, $filename, $mimeType, $contents, $disk, $agent, $session, $run,
+                $createdBy, $groupId, $metadata, $message, $assistantSession,
+            );
+
+            if (! Storage::disk($disk)->move($stagingPath, $artifact->path)) {
+                $artifact->forceDelete();
+
+                throw new RuntimeException("Could not store artifact [{$filename}].");
+            }
+        } catch (Throwable $exception) {
+            Storage::disk($disk)->delete($stagingPath);
+
+            throw $exception;
+        }
 
         if ($searchable && $agent !== null && in_array($mimeType, self::INDEXABLE_MIME_TYPES, true)) {
             // The artifact is already stored; an embeddings outage must not
@@ -147,6 +122,89 @@ class StoreArtifactAction
         }
 
         return $artifact;
+    }
+
+    /**
+     * Appends the next version to the matching group. Concurrent stores can
+     * read the same latest version; the unique `(group_id, version)` index
+     * rejects the loser, which re-reads and takes the next number.
+     *
+     * @param  array<string, mixed>|null  $metadata
+     */
+    private function createVersion(
+        Workspace $workspace,
+        string $filename,
+        string $mimeType,
+        string|UploadedFile $contents,
+        string $disk,
+        ?Agent $agent,
+        ?AgentSession $session,
+        ?Run $run,
+        ?string $createdBy,
+        ?string $groupId,
+        ?array $metadata,
+        ?AgentMessage $message,
+        ?AssistantSession $assistantSession,
+    ): Artifact {
+        for ($attempt = 1; ; $attempt++) {
+            // `withTrashed()`: a soft-deleted group must still be found here, both
+            // to keep versioning past its last version number and so a matching
+            // re-export restores it — see the soft-delete note on the migration.
+            $previous = Artifact::withTrashed()
+                ->where('workspace_id', $workspace->id)
+                ->when(
+                    $groupId !== null,
+                    fn ($query) => $query->where('group_id', $groupId),
+                    fn ($query) => $query
+                        ->where('filename', $filename)
+                        ->when(
+                            $session !== null,
+                            fn ($scoped) => $scoped->where('agent_session_id', $session->id),
+                            fn ($scoped) => $scoped->whereNull('agent_session_id'),
+                        )
+                        ->when(
+                            $assistantSession !== null,
+                            fn ($scoped) => $scoped->where('assistant_session_id', $assistantSession->id),
+                            fn ($scoped) => $scoped->whereNull('assistant_session_id'),
+                        ),
+                )
+                ->orderByDesc('version')
+                ->first();
+
+            if ($previous?->trashed()) {
+                Artifact::withTrashed()->where('group_id', $previous->group_id)->restore();
+            }
+
+            $resolvedGroupId = $previous?->group_id ?? $groupId ?? (string) Str::uuid();
+            $version = $previous ? $previous->version + 1 : 1;
+
+            try {
+                return Artifact::create([
+                    'workspace_id' => $workspace->id,
+                    'agent_id' => $agent?->id,
+                    'agent_session_id' => $session?->id,
+                    'assistant_session_id' => $assistantSession?->id,
+                    'agent_message_id' => $message?->id,
+                    'run_id' => $run?->id,
+                    'created_by' => $createdBy,
+                    'group_id' => $resolvedGroupId,
+                    'version' => $version,
+                    'filename' => $filename,
+                    'mime_type' => $mimeType,
+                    'size' => $contents instanceof UploadedFile ? (int) $contents->getSize() : strlen($contents),
+                    'disk' => $disk,
+                    'path' => "artifacts/{$workspace->id}/{$resolvedGroupId}/v{$version}-{$this->safeName($filename)}",
+                    'metadata' => $metadata,
+                    // A new version keeps the group's existing sharing tier rather
+                    // than resetting to restricted.
+                    'general_access' => $previous?->general_access?->value ?? ArtifactGeneralAccess::Restricted->value,
+                ]);
+            } catch (UniqueConstraintViolationException $exception) {
+                if ($attempt >= self::VERSION_ATTEMPTS) {
+                    throw $exception;
+                }
+            }
+        }
     }
 
     private function indexForAgent(Workspace $workspace, Agent $agent, Artifact $artifact, string|UploadedFile $contents): void
@@ -176,15 +234,15 @@ class StoreArtifactAction
 
     private function write(string $disk, string $path, string|UploadedFile $contents): void
     {
-        if ($contents instanceof UploadedFile) {
-            // Streams the temp file rather than pulling a multi-megabyte
-            // upload through memory first.
-            Storage::disk($disk)->putFileAs(dirname($path), $contents, basename($path));
+        // Streams the temp file rather than pulling a multi-megabyte upload
+        // through memory first.
+        $written = $contents instanceof UploadedFile
+            ? Storage::disk($disk)->putFileAs(dirname($path), $contents, basename($path))
+            : Storage::disk($disk)->put($path, $contents);
 
-            return;
+        if ($written === false) {
+            throw new RuntimeException('Could not write the artifact to storage.');
         }
-
-        Storage::disk($disk)->put($path, $contents);
     }
 
     /**
