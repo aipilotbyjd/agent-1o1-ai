@@ -118,3 +118,23 @@ it('exposes a workflows input interface to integrators', function () {
         ->assertJsonPath('data.interface.fields.0.key', 'email')
         ->assertJsonPath('data.interface.published', true);
 });
+
+it('authenticates a scoped public request once and does not rewrite a fresh last-used time', function () {
+    [$workspace, $key] = publicApiWorkspace(['workflows:read']);
+
+    $apiKey = $workspace->apiKeys()->sole();
+    $recent = now()->subMinute()->startOfSecond();
+    $apiKey->forceFill(['last_used_at' => $recent])->save();
+
+    $this->withToken($key)->getJson('/api/public/v1/workflows')->assertOk();
+
+    expect($apiKey->fresh()->last_used_at->equalTo($recent))->toBeTrue();
+});
+
+it('stamps last-used on a key that has never been used', function () {
+    [$workspace, $key] = publicApiWorkspace(['workflows:read']);
+
+    $this->withToken($key)->getJson('/api/public/v1/workflows')->assertOk();
+
+    expect($workspace->apiKeys()->sole()->last_used_at)->not->toBeNull();
+});

@@ -1,10 +1,13 @@
 <?php
 
+use App\Jobs\Notifications\DeliverWorkspaceWebhookJob;
 use App\Models\Notifications\NotificationChannel;
+use App\Notifications\Channels\WorkspaceWebhookChannel;
 use App\Models\User;
 use App\Services\Http\SsrfGuard;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Laravel\Passport\Passport;
 
@@ -109,4 +112,66 @@ it('reports a failed delivery by status code', function () {
     $this->postJson("/api/v1/workspaces/{$this->workspace->id}/notification-channels/{$channel->id}/test")
         ->assertStatus(400)
         ->assertJsonPath('message', 'Delivery failed: HTTP 500.');
+});
+
+it('hands each endpoint its own queued delivery instead of sending inline', function () {
+    Bus::fake();
+    Http::fake();
+
+    $channel = NotificationChannel::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'config' => ['url' => 'https://hooks.example.com/hook'],
+    ]);
+    $workspaceId = $this->workspace->id;
+
+    app(WorkspaceWebhookChannel::class)->send($this->owner, new class($workspaceId, $channel->id)
+    {
+        public function __construct(private readonly string $workspaceId, private readonly string $channelId) {}
+
+        public function toWorkspaceChannel(object $notifiable): array
+        {
+            return ['workspace_id' => $this->workspaceId, 'channel_ids' => [$this->channelId], 'message' => 'Hello'];
+        }
+    });
+
+    Bus::assertDispatched(DeliverWorkspaceWebhookJob::class, fn (DeliverWorkspaceWebhookJob $job): bool => $job->channelId === $channel->id && $job->message === 'Hello');
+    Http::assertNothingSent();
+});
+
+it('retries a delivery that failed with a server error', function () {
+    Http::fake(['https://hooks.example.com/*' => Http::response('nope', 503)]);
+
+    $channel = NotificationChannel::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'config' => ['url' => 'https://hooks.example.com/hook'],
+    ]);
+
+    expect(fn () => (new DeliverWorkspaceWebhookJob($channel->id, 'Hello'))->handle(app(WorkspaceWebhookChannel::class)))
+        ->toThrow(RuntimeException::class, 'HTTP 503');
+});
+
+it('drops a delivery that failed permanently instead of retrying it', function () {
+    Http::fake(['https://hooks.example.com/*' => Http::response('gone', 404)]);
+
+    $channel = NotificationChannel::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'config' => ['url' => 'https://hooks.example.com/hook'],
+    ]);
+
+    (new DeliverWorkspaceWebhookJob($channel->id, 'Hello'))->handle(app(WorkspaceWebhookChannel::class));
+
+    Http::assertSentCount(1);
+});
+
+it('keeps a notification channel when the member who created it is deleted', function () {
+    $creator = User::factory()->create();
+    $channel = NotificationChannel::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'created_by' => $creator->id,
+    ]);
+
+    $creator->delete();
+
+    expect($channel->fresh())->not->toBeNull()
+        ->and($channel->fresh()->created_by)->toBeNull();
 });
