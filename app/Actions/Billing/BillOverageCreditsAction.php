@@ -2,36 +2,46 @@
 
 namespace App\Actions\Billing;
 
+use App\Enums\Billing\OverageInvoiceAttemptStatus;
 use App\Exceptions\BillingAccountNotFoundException;
+use App\Models\Billing\OverageInvoiceAttempt;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditOverage;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Turns a period's accrued overage into a Stripe invoice — the second half
- * of Gumloop's "keep running past your monthly credits, billed at $0.005 per
+ * Turns accrued overage into a Stripe invoice — the second half of
+ * Gumloop's "keep running past your monthly credits, billed at $0.005 per
  * credit". Overage is metered as it is spent (`DeductCreditsAction` writes
  * `usage_periods.overage_credits_used`) and charged after the fact, because
  * invoicing per node run would mean a Stripe call inside the metering path.
  *
- * The credits are marked billed *before* the Stripe call and unmarked if it
- * throws, rather than the other way round. Both orderings can lose to a
- * crash; this one loses unbilled revenue, the other double-charges a
- * customer, and only one of those is recoverable by looking at the ledger.
+ * Claiming the credits and recording a `pending` `OverageInvoiceAttempt`
+ * happen in one transaction, *before* the Stripe call; the claim is undone if
+ * the call throws. A process that dies in between leaves the pending attempt
+ * behind, and the next run reconciles it against Stripe (the invoice carries
+ * the attempt id in its metadata): an invoice found means the credits really
+ * were billed, none means they go back on the unbilled pile. That keeps the
+ * "never double-charge" ordering without being able to lose revenue.
+ *
+ * A closed period can never accrue more, so what falls under the invoice
+ * minimum is carried: the credits of every closed period of a workspace are
+ * pooled and invoiced together once they add up to the minimum.
  */
 class BillOverageCreditsAction
 {
+    /** Minutes before a still-pending attempt is presumed to have been interrupted. */
+    private const int STALE_ATTEMPT_MINUTES = 30;
+
     public function __construct(private readonly CreditOverage $overage) {}
 
     /**
      * Bills everything `$period` has accrued and not yet been invoiced for.
-     * Returns `null` when there is nothing to do — no unbilled overage, or
-     * too little of it to be worth an invoice — so a caller can tell "billed
-     * nothing" from "billed zero credits".
      *
-     * @return array{credits: int, amount_cents: int, invoice_id: string|null}|null
+     * @return array{credits: int, amount_cents: int, invoice_id: string|null, periods: int}|null
      *
      * @throws BillingAccountNotFoundException when the workspace never became
      *                                         a Stripe customer, which means
@@ -39,8 +49,28 @@ class BillOverageCreditsAction
      */
     public function execute(Workspace $workspace, UsagePeriod $period): ?array
     {
+        return $this->executeForPeriods($workspace, collect([$period]));
+    }
+
+    /**
+     * Bills the unbilled overage of all `$periods` as one invoice. Returns
+     * `null` when there is nothing to do — no unbilled overage, or too little
+     * of it, in total, to be worth an invoice — so a caller can tell "billed
+     * nothing" from "billed zero credits".
+     *
+     * @param  Collection<int, UsagePeriod>  $periods
+     * @return array{credits: int, amount_cents: int, invoice_id: string|null, periods: int}|null
+     */
+    public function executeForPeriods(Workspace $workspace, Collection $periods): ?array
+    {
         $minimumCents = (int) config('billing.overage.minimum_invoice_cents');
-        $credits = $period->unbilledOverageCredits();
+
+        if ($workspace->hasStripeId()) {
+            $this->reconcileInterruptedAttempts($workspace);
+        }
+
+        $periods = $periods->each(fn (UsagePeriod $period) => $period->refresh());
+        $credits = $periods->sum(fn (UsagePeriod $period): int => $period->unbilledOverageCredits());
 
         if ($credits <= 0 || $this->overage->priceInCents($credits) < $minimumCents) {
             return null;
@@ -52,98 +82,184 @@ class BillOverageCreditsAction
             );
         }
 
-        $reserved = $this->reserve($period, $credits);
+        $attempt = $this->reserve($workspace, $periods, $minimumCents);
 
-        if ($reserved <= 0) {
-            return null;
-        }
-
-        $amountCents = $this->overage->priceInCents($reserved);
-
-        // Another run may have claimed most of it between the two reads,
-        // leaving too little to be worth an invoice after all.
-        if ($amountCents < $minimumCents) {
-            $this->release($period, $reserved);
-
+        if ($attempt === null) {
             return null;
         }
 
         try {
             $invoiceId = $this->invoice(
                 $workspace,
-                $this->description($reserved, $period),
-                $amountCents,
+                $this->description($attempt->credits, $periods),
+                $attempt->amount_cents,
                 [
                     'type' => 'credit_overage',
-                    'usage_period_id' => (string) $period->id,
-                    'overage_credits' => (string) $reserved,
+                    'overage_attempt_id' => $attempt->id,
+                    'usage_period_ids' => implode(',', array_keys($attempt->allocations)),
+                    'overage_credits' => (string) $attempt->credits,
                 ],
             );
         } catch (Throwable $e) {
-            $this->release($period, $reserved);
+            $this->abandon($attempt);
 
             throw $e;
         }
 
+        $attempt->forceFill([
+            'status' => OverageInvoiceAttemptStatus::Succeeded,
+            'stripe_invoice_id' => $invoiceId,
+        ])->save();
+
         return [
-            'credits' => $reserved,
-            'amount_cents' => $amountCents,
+            'credits' => $attempt->credits,
+            'amount_cents' => $attempt->amount_cents,
             'invoice_id' => $invoiceId,
+            'periods' => count($attempt->allocations),
         ];
     }
 
     /**
      * The one Stripe call this action makes: a single invoice line for the
-     * period's overage, charged to the workspace's default payment method
-     * through Cashier. Isolated behind its own method so the reserve/release
-     * bookkeeping around it can be exercised without a Stripe account.
+     * overage, charged to the workspace's default payment method through
+     * Cashier. The metadata goes on both the line and the invoice, so an
+     * interrupted attempt can be traced either way. Isolated behind its own
+     * method so the bookkeeping around it can be exercised without a Stripe
+     * account.
      *
      * @param  array<string, string>  $metadata
      */
     protected function invoice(Workspace $workspace, string $description, int $amountCents, array $metadata): ?string
     {
-        return $workspace->invoiceFor($description, $amountCents, [], ['metadata' => $metadata])->id ?? null;
+        return $workspace->invoiceFor($description, $amountCents, ['metadata' => $metadata], ['metadata' => $metadata])->id ?? null;
     }
 
     /**
-     * Claims the credits under the period's row lock so two concurrent runs
-     * can't invoice the same overage twice. Re-reads inside the lock and
-     * returns what was actually claimed, which is less than `$credits` when
-     * another run got there first.
+     * The id of the Stripe invoice created for an attempt, if there is one.
      */
-    private function reserve(UsagePeriod $period, int $credits): int
+    protected function findInvoiceForAttempt(Workspace $workspace, string $attemptId): ?string
     {
-        return DB::transaction(function () use ($period, $credits): int {
-            $locked = UsagePeriod::whereKey($period->id)->lockForUpdate()->firstOrFail();
+        $found = $workspace->stripe()->invoices->search([
+            'query' => "metadata['overage_attempt_id']:'{$attemptId}'",
+            'limit' => 1,
+        ]);
 
-            $claimable = min($credits, $locked->unbilledOverageCredits());
+        return $found->data[0]->id ?? null;
+    }
 
-            if ($claimable > 0) {
-                $locked->increment('overage_credits_billed', $claimable);
-                $period->refresh();
+    /**
+     * Removes the pending invoice lines an interrupted attempt left on the
+     * customer, so the next invoice does not sweep them up a second time.
+     */
+    protected function discardOrphanedInvoiceItems(Workspace $workspace, string $attemptId): void
+    {
+        $items = $workspace->stripe()->invoiceItems->all(['customer' => $workspace->stripe_id, 'pending' => true, 'limit' => 100]);
+
+        foreach ($items->data as $item) {
+            if (($item->metadata['overage_attempt_id'] ?? null) === $attemptId) {
+                $workspace->stripe()->invoiceItems->delete($item->id);
+            }
+        }
+    }
+
+    /**
+     * Settles attempts that were still pending long after they started — the
+     * process died between claiming the credits and recording the outcome.
+     */
+    private function reconcileInterruptedAttempts(Workspace $workspace): void
+    {
+        OverageInvoiceAttempt::query()
+            ->where('workspace_id', $workspace->id)
+            ->where('status', OverageInvoiceAttemptStatus::Pending)
+            ->where('created_at', '<=', now()->subMinutes(self::STALE_ATTEMPT_MINUTES))
+            ->each(function (OverageInvoiceAttempt $attempt) use ($workspace): void {
+                $invoiceId = $this->findInvoiceForAttempt($workspace, $attempt->id);
+
+                if ($invoiceId !== null) {
+                    $attempt->forceFill([
+                        'status' => OverageInvoiceAttemptStatus::Succeeded,
+                        'stripe_invoice_id' => $invoiceId,
+                    ])->save();
+
+                    return;
+                }
+
+                $this->discardOrphanedInvoiceItems($workspace, $attempt->id);
+                $this->abandon($attempt);
+            });
+    }
+
+    /**
+     * Claims what can be claimed under each period's row lock — so two
+     * concurrent runs can't invoice the same overage twice — and records the
+     * attempt in the same transaction. Returns `null` when too little was
+     * left to claim to be worth an invoice.
+     *
+     * @param  Collection<int, UsagePeriod>  $periods
+     */
+    private function reserve(Workspace $workspace, Collection $periods, int $minimumCents): ?OverageInvoiceAttempt
+    {
+        return DB::transaction(function () use ($workspace, $periods, $minimumCents): ?OverageInvoiceAttempt {
+            $allocations = [];
+
+            foreach ($periods->sortBy('id') as $period) {
+                $locked = UsagePeriod::whereKey($period->id)->lockForUpdate()->firstOrFail();
+                $claimable = $locked->unbilledOverageCredits();
+
+                if ($claimable > 0) {
+                    $allocations[$period->id] = $claimable;
+                }
             }
 
-            return $claimable;
+            $credits = array_sum($allocations);
+
+            // Another run may have claimed most of it between the two reads,
+            // leaving too little to be worth an invoice after all.
+            if ($credits <= 0 || $this->overage->priceInCents($credits) < $minimumCents) {
+                return null;
+            }
+
+            foreach ($allocations as $periodId => $claimed) {
+                UsagePeriod::whereKey($periodId)->increment('overage_credits_billed', $claimed);
+            }
+
+            $periods->each(fn (UsagePeriod $period) => $period->refresh());
+
+            return OverageInvoiceAttempt::create([
+                'workspace_id' => $workspace->id,
+                'status' => OverageInvoiceAttemptStatus::Pending,
+                'credits' => $credits,
+                'amount_cents' => $this->overage->priceInCents($credits),
+                'allocations' => $allocations,
+            ]);
         });
     }
 
     /**
-     * Puts credits back on the unbilled pile after a failed Stripe call, so
-     * the next run retries them instead of writing them off.
+     * Puts an attempt's credits back on the unbilled pile, so the next run
+     * retries them instead of writing them off.
      */
-    private function release(UsagePeriod $period, int $credits): void
+    private function abandon(OverageInvoiceAttempt $attempt): void
     {
-        DB::transaction(function () use ($period, $credits): void {
-            UsagePeriod::whereKey($period->id)->lockForUpdate()->firstOrFail()
-                ->decrement('overage_credits_billed', $credits);
-        });
+        DB::transaction(function () use ($attempt): void {
+            foreach ($attempt->allocations as $periodId => $credits) {
+                UsagePeriod::whereKey($periodId)->lockForUpdate()->first()
+                    ?->decrement('overage_credits_billed', $credits);
+            }
 
-        $period->refresh();
+            $attempt->forceFill(['status' => OverageInvoiceAttemptStatus::Failed])->save();
+        });
     }
 
-    private function description(int $credits, UsagePeriod $period): string
+    /**
+     * @param  Collection<int, UsagePeriod>  $periods
+     */
+    private function description(int $credits, Collection $periods): string
     {
-        $window = $period->starts_at->format('M j').' – '.$period->ends_at->clone()->subSecond()->format('M j, Y');
+        $start = $periods->min('starts_at');
+        $end = $periods->max('ends_at');
+
+        $window = $start->format('M j').' – '.$end->clone()->subSecond()->format('M j, Y');
 
         return number_format($credits).' overage credits ('.$window.')';
     }

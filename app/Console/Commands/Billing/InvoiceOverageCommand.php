@@ -6,11 +6,13 @@ use App\Actions\Billing\BillOverageCreditsAction;
 use App\Models\Billing\UsagePeriod;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\LazyCollection;
+use Illuminate\Support\Collection;
 use Throwable;
 
 /**
- * Invoices the overage every closed billing period accrued. Runs daily
+ * Invoices the overage every closed billing period accrued, pooling a
+ * workspace's closed periods so a remainder under the invoice minimum is
+ * carried into the next invoice rather than stranded. Runs daily
  * rather than at the moment a period ends, so a Stripe outage or a declined
  * card is retried on the next run instead of losing the charge — the credits
  * stay unbilled until an invoice actually succeeds.
@@ -36,22 +38,22 @@ class InvoiceOverageCommand extends Command
         $billed = 0;
         $failed = 0;
 
-        $this->unbilledPeriods()->each(function (UsagePeriod $period) use (&$billed, &$failed): void {
-            $workspace = $period->workspace;
+        $this->unbilledPeriods()->groupBy('workspace_id')->each(function (Collection $periods) use (&$billed, &$failed): void {
+            $workspace = $periods->first()->workspace;
 
             if ($workspace === null) {
                 return;
             }
 
             try {
-                $result = $this->billOverage->execute($workspace, $period);
+                $result = $this->billOverage->executeForPeriods($workspace, $periods);
             } catch (Throwable $e) {
                 $failed++;
 
                 Log::error('Failed to invoice credit overage.', [
                     'workspace_id' => $workspace->id,
-                    'usage_period_id' => $period->id,
-                    'unbilled_overage_credits' => $period->unbilledOverageCredits(),
+                    'usage_period_ids' => $periods->pluck('id')->all(),
+                    'unbilled_overage_credits' => $periods->sum(fn (UsagePeriod $period): int => $period->unbilledOverageCredits()),
                     'exception' => $e->getMessage(),
                 ]);
 
@@ -59,7 +61,7 @@ class InvoiceOverageCommand extends Command
             }
 
             if ($result !== null) {
-                $billed++;
+                $billed += $result['periods'];
             }
         });
 
@@ -74,18 +76,17 @@ class InvoiceOverageCommand extends Command
 
     /**
      * Closed periods that spent more overage than they have been invoiced
-     * for. Chunked because this walks every workspace that ever ran on
-     * overage, not just the current month's.
+     * for.
      *
-     * @return LazyCollection<int, UsagePeriod>
+     * @return Collection<int, UsagePeriod>
      */
-    private function unbilledPeriods(): LazyCollection
+    private function unbilledPeriods(): Collection
     {
         return UsagePeriod::query()
             ->where('ends_at', '<=', now())
             ->whereColumn('overage_credits_used', '>', 'overage_credits_billed')
             ->with('workspace')
             ->orderBy('id')
-            ->lazyById();
+            ->get();
     }
 }

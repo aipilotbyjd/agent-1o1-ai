@@ -2,6 +2,8 @@
 
 use App\Actions\Billing\BillOverageCreditsAction;
 use App\Exceptions\BillingAccountNotFoundException;
+use App\Enums\Billing\OverageInvoiceAttemptStatus;
+use App\Models\Billing\OverageInvoiceAttempt;
 use App\Models\Billing\UsagePeriod;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
@@ -41,6 +43,16 @@ class RecordingOverageBiller extends BillOverageCreditsAction
 
         return 'in_test_'.count($this->invoiced);
     }
+
+    /** What Stripe reports for an interrupted attempt: an invoice id, or null for none. */
+    public ?string $stripeInvoiceForAttempt = null;
+
+    protected function findInvoiceForAttempt(Workspace $workspace, string $attemptId): ?string
+    {
+        return $this->stripeInvoiceForAttempt;
+    }
+
+    protected function discardOrphanedInvoiceItems(Workspace $workspace, string $attemptId): void {}
 }
 
 function recordingBiller(?Throwable $failWith = null): RecordingOverageBiller
@@ -187,4 +199,81 @@ it('logs and carries on when one workspace cannot be invoiced', function () {
     Log::shouldHaveReceived('error')->once()->withArgs(
         fn (string $message): bool => $message === 'Failed to invoice credit overage.',
     );
+});
+
+it('carries a remainder under the minimum into the next closed period instead of stranding it', function () {
+    $workspace = workspaceWithUnbilledOverage(60);
+    $biller = recordingBiller();
+
+    // 60 credits is $0.30 — under the $0.50 minimum on its own.
+    expect($biller->execute($workspace, currentOveragePeriod()))->toBeNull();
+
+    $earlier = currentOveragePeriod();
+    $later = UsagePeriod::create([
+        'workspace_id' => $workspace->id,
+        'starts_at' => now()->subMonths(2)->startOfMonth(),
+        'ends_at' => now()->subMonths(2)->endOfMonth()->addSecond(),
+    ]);
+    $later->forceFill(['overage_credits_used' => 60])->save();
+
+    $result = $biller->executeForPeriods($workspace, collect([$earlier, $later]));
+
+    expect($result['credits'])->toBe(120)
+        ->and($result['periods'])->toBe(2)
+        ->and($biller->invoiced)->toHaveCount(1)
+        ->and(UsagePeriod::query()->sum('overage_credits_billed'))->toBe(120);
+});
+
+it('records a pending attempt before calling Stripe and settles it afterwards', function () {
+    $workspace = workspaceWithUnbilledOverage(1_000);
+    $biller = recordingBiller();
+
+    $biller->execute($workspace, currentOveragePeriod());
+
+    $attempt = OverageInvoiceAttempt::query()->sole();
+
+    expect($attempt->status)->toBe(OverageInvoiceAttemptStatus::Succeeded)
+        ->and($attempt->stripe_invoice_id)->toBe('in_test_1')
+        ->and($biller->invoiced[0]['metadata']['overage_attempt_id'])->toBe($attempt->id);
+});
+
+it('keeps an interrupted attempt billed when Stripe did create its invoice', function () {
+    $workspace = workspaceWithUnbilledOverage(1_000);
+    $biller = recordingBiller();
+    $biller->stripeInvoiceForAttempt = 'in_found';
+
+    $period = currentOveragePeriod();
+    $period->forceFill(['overage_credits_billed' => 1_000])->save();
+    $attempt = OverageInvoiceAttempt::factory()->create([
+        'workspace_id' => $workspace->id,
+        'allocations' => [$period->id => 1_000],
+        'created_at' => now()->subHour(),
+    ]);
+
+    $biller->execute($workspace, currentOveragePeriod());
+
+    expect($attempt->fresh()->status)->toBe(OverageInvoiceAttemptStatus::Succeeded)
+        ->and($attempt->fresh()->stripe_invoice_id)->toBe('in_found')
+        ->and(currentOveragePeriod()->overage_credits_billed)->toBe(1_000)
+        ->and($biller->invoiced)->toBeEmpty();
+});
+
+it('puts an interrupted attempt\'s credits back and re-bills them when Stripe never saw it', function () {
+    $workspace = workspaceWithUnbilledOverage(1_000);
+    $biller = recordingBiller();
+
+    $period = currentOveragePeriod();
+    $period->forceFill(['overage_credits_billed' => 1_000])->save();
+    $attempt = OverageInvoiceAttempt::factory()->create([
+        'workspace_id' => $workspace->id,
+        'allocations' => [$period->id => 1_000],
+        'created_at' => now()->subHour(),
+    ]);
+
+    $result = $biller->execute($workspace, currentOveragePeriod());
+
+    expect($attempt->fresh()->status)->toBe(OverageInvoiceAttemptStatus::Failed)
+        ->and($result['credits'])->toBe(1_000)
+        ->and($biller->invoiced)->toHaveCount(1)
+        ->and(currentOveragePeriod()->overage_credits_billed)->toBe(1_000);
 });
