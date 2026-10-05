@@ -66,7 +66,7 @@ class LoopCoordinator
                 'finished_at' => now(),
             ])->save();
 
-            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+            DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
             return;
         }
@@ -222,7 +222,7 @@ class LoopCoordinator
             'finished_at' => now(),
         ])->save();
 
-        DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+        DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
     }
 
     /**

@@ -85,6 +85,14 @@ class WorkflowRunner
         $secrets = $this->secretsForNode($run, $graph, $nodeRun->key);
         $nodeDefinition = $this->resolvedNodeDefinition($graph, $nodeRun->key, [...$context, ...$secrets->context()]);
 
+        // The status check above is on a model another worker may have loaded
+        // at the same moment; the claim is the actual exclusivity check — two
+        // workers racing here get exactly one winner, and a node whose run
+        // was cancelled in between is left cancelled.
+        if (! $nodeRun->transitionFrom([NodeRunStatus::Pending], ['status' => NodeRunStatus::Running, 'started_at' => now()])) {
+            return;
+        }
+
         match ($nodeRun->type) {
             FlowControlNodeType::HumanApproval->value => $this->pauseForApproval($run, $nodeRun),
             FlowControlNodeType::Wait->value => $this->pauseForWait($nodeRun, $nodeDefinition),
@@ -139,8 +147,6 @@ class WorkflowRunner
      */
     private function executeNodeContract(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph, array $context, ResolvedSecrets $secrets = new ResolvedSecrets): void
     {
-        $nodeRun->forceFill(['status' => NodeRunStatus::Running, 'started_at' => now()])->save();
-
         // Pin data (see `WorkflowNode::pinned_data`) only short-circuits
         // execution for manual test runs — production trigger types
         // (webhook/schedule/polling) always execute for real, so a pin left
@@ -148,13 +154,15 @@ class WorkflowRunner
         $pinnedData = $nodeDefinition['pinned_data'] ?? null;
 
         if ($pinnedData !== null && $run->trigger_type === TriggerType::Manual->value) {
-            $nodeRun->forceFill([
+            if (! $nodeRun->transitionFrom([NodeRunStatus::Running], [
                 'status' => NodeRunStatus::Completed,
                 'output' => $pinnedData,
                 'finished_at' => now(),
-            ])->save();
+            ])) {
+                return;
+            }
 
-            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+            DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
             return;
         }
@@ -171,7 +179,9 @@ class WorkflowRunner
                 $secrets->sensitiveValues(),
             );
 
-            $nodeRun->forceFill([
+            // Conditional on still being `running`: a cancellation that landed
+            // while the node was executing stays cancelled.
+            if (! $nodeRun->transitionFrom([NodeRunStatus::Running], [
                 'status' => NodeRunStatus::Completed,
                 'output' => $output,
                 // Nodes that call an LLM (AskAiNode) report a `usage` key in
@@ -180,14 +190,16 @@ class WorkflowRunner
                 // node types happen to embed it in their output shape.
                 'usage' => $output['usage'] ?? null,
                 'finished_at' => now(),
-            ])->save();
+            ])) {
+                return;
+            }
 
             // DelayNode reports how long to wait rather than blocking a
             // worker inside execute() — the engine applies the real delay
             // to the next dispatch instead.
             $delaySeconds = $nodeRun->type === (new DelayNode)->type() ? (int) ($output['seconds'] ?? 0) : 0;
 
-            $pending = DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+            $pending = DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
             if ($delaySeconds > 0) {
                 $pending->delay(now()->addSeconds($delaySeconds));
@@ -216,7 +228,7 @@ class WorkflowRunner
             'finished_at' => now(),
         ])->save();
 
-        DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+        DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
     }
 
     /**
@@ -227,14 +239,16 @@ class WorkflowRunner
      */
     private function pauseForAgentApproval(NodeRun $nodeRun, AgentTurnPausedException $paused): void
     {
-        $nodeRun->forceFill([
+        if (! $nodeRun->transitionFrom([NodeRunStatus::Running], [
             'status' => NodeRunStatus::AwaitingApproval,
             'output' => [
                 'awaiting_approval' => true,
                 'agent_session_id' => $paused->session->id,
                 'message_id' => $paused->agentMessage->id,
             ],
-        ])->save();
+        ])) {
+            return;
+        }
 
         AgentAction::query()
             ->where('agent_message_id', $paused->agentMessage->id)
@@ -279,14 +293,16 @@ class WorkflowRunner
 
             $output = app(AgentRunner::class)->resumeInConversation($run, $session, $message);
 
-            $nodeRun->forceFill([
+            if (! $nodeRun->transitionFrom([NodeRunStatus::Running], [
                 'status' => NodeRunStatus::Completed,
                 'output' => $output,
                 'usage' => $output['usage'] ?? null,
                 'finished_at' => now(),
-            ])->save();
+            ])) {
+                return;
+            }
 
-            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+            DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
         } catch (AgentTurnPausedException $e) {
             $this->pauseForAgentApproval($nodeRun, $e);
         } catch (Throwable $e) {
@@ -352,7 +368,7 @@ class WorkflowRunner
 
         if ($approved) {
             $nodeRun->forceFill(['status' => NodeRunStatus::Completed, 'output' => ['approved' => true], 'finished_at' => now()])->save();
-            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+            DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
             return;
         }
@@ -388,7 +404,7 @@ class WorkflowRunner
             'callback_token' => null,
         ])->save();
 
-        DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+        DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
         return $nodeRun;
     }
@@ -413,7 +429,7 @@ class WorkflowRunner
                 'callback_token' => null,
             ])->save();
 
-            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id);
+            DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
             return;
         }

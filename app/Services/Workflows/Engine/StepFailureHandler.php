@@ -37,17 +37,22 @@ class StepFailureHandler
         $options = StepOptions::fromNodeConfig($nodeDefinition['config'] ?? []);
         $message = $this->redact($e->getMessage(), $secretValues);
 
+        // Only a node still `running` can fail or be retried: one cancelled
+        // meanwhile stays cancelled, and neither retries nor a failed run
+        // may resurrect it.
         if ($nodeRun->attempt < $options->maxAttempts) {
             $this->retry($nodeRun, $options, $message);
 
             return;
         }
 
-        $nodeRun->forceFill([
+        if (! $nodeRun->transitionFrom([NodeRunStatus::Running], [
             'status' => NodeRunStatus::Failed,
             'error' => $message,
             'finished_at' => now(),
-        ])->save();
+        ])) {
+            return;
+        }
 
         $this->routeFailureOrFailRun($run, $nodeRun, $graph, $options->continueOnError);
     }
@@ -69,7 +74,7 @@ class StepFailureHandler
         );
 
         if ($hasErrorEdge || $continueOnError) {
-            DispatchNextNodesJob::dispatch($run->id, $nodeRun->id, $continueOnError && ! $hasErrorEdge);
+            DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id, $continueOnError && ! $hasErrorEdge);
 
             return;
         }
@@ -81,11 +86,13 @@ class StepFailureHandler
     {
         $delay = $this->backoffSeconds($nodeRun->attempt, $options->retryDelaySeconds);
 
-        $nodeRun->forceFill([
+        if (! $nodeRun->transitionFrom([NodeRunStatus::Running], [
             'status' => NodeRunStatus::Pending,
             'attempt' => $nodeRun->attempt + 1,
             'error' => $message,
-        ])->save();
+        ])) {
+            return;
+        }
 
         ExecuteNodeJob::dispatch($nodeRun->id)->delay(now()->addSeconds($delay));
     }
@@ -117,13 +124,28 @@ class StepFailureHandler
         // and the `RunFailed` listeners see a consistent picture. The node
         // that caused the failure is already terminal, so it keeps its own
         // `failed` status and error message.
+        $run->refresh();
+
+        // A run cancelled (or already failed) while this node was failing
+        // keeps that outcome.
+        if ($run->status->isTerminal()) {
+            return;
+        }
+
         $this->canceller->settleInFlightNodeRuns($run);
 
-        $run->forceFill([
-            'status' => RunStatus::Failed,
-            'error' => $message,
-            'finished_at' => now(),
-        ])->save();
+        $terminal = collect(RunStatus::cases())->filter(fn (RunStatus $status): bool => $status->isTerminal())->map->value->all();
+
+        $failed = Run::query()
+            ->whereKey($run->id)
+            ->whereNotIn('status', $terminal)
+            ->update(['status' => RunStatus::Failed->value, 'error' => $message, 'finished_at' => now()]);
+
+        if ($failed === 0) {
+            return;
+        }
+
+        $run->refresh();
 
         // After the parent is terminal: a child settling mid-cancellation
         // resumes its parent node (`WorkflowRunner::resolveSubWorkflow()`),

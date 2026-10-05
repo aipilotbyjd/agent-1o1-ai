@@ -5,14 +5,15 @@ namespace App\Services\Workflows;
 /**
  * Per-node execution knobs, parsed once from a node's `config._options` —
  * namespaced under `_options` so it never collides with the node's own
- * `configSchema()` fields. See docs/WORKFLOWS_PLAN.md's `StepOptions` entry.
+ * `configSchema()` fields. A per-step timeout is deliberately absent (a
+ * running node can't be interrupted); `GraphValidator` rejects it. See
+ * docs/WORKFLOWS_PLAN.md's `StepOptions` entry.
  */
 final class StepOptions
 {
     public function __construct(
         public readonly int $maxAttempts = 1,
         public readonly int $retryDelaySeconds = 0,
-        public readonly ?int $timeoutSeconds = null,
         public readonly bool $continueOnError = false,
     ) {}
 
@@ -26,7 +27,6 @@ final class StepOptions
         return new self(
             maxAttempts: max(1, (int) ($options['max_attempts'] ?? 1)),
             retryDelaySeconds: max(0, (int) ($options['retry_delay_seconds'] ?? 0)),
-            timeoutSeconds: isset($options['timeout_seconds']) ? max(1, (int) $options['timeout_seconds']) : null,
             continueOnError: (bool) ($options['continue_on_error'] ?? false),
         );
     }
