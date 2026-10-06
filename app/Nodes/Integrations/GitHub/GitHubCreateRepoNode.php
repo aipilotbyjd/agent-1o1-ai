@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GitHub;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GitHubCreateRepoNode extends AbstractGitHubNode
 {
@@ -33,13 +34,12 @@ class GitHubCreateRepoNode extends AbstractGitHubNode
             'type' => 'object',
             'required' => ['name'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'owner' => ['type' => 'string'],
-                'name' => ['type' => 'string'],
-                'description' => ['type' => 'string'],
-                'private' => ['type' => 'boolean'],
-                'auto_init' => ['type' => 'boolean'],
+                ...$this->credentialFields(),
+                'owner' => Field::dynamic('Organization', 'github.owners', 'Leave empty to create it under your own account.'),
+                'name' => Field::text('Name', null, 'my-new-repo'),
+                'description' => Field::text('Description'),
+                'private' => Field::boolean('Private'),
+                'auto_init' => Field::boolean('Add a README', 'Initialise the repository with a first commit.'),
             ],
         ];
     }

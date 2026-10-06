@@ -8,6 +8,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -63,15 +64,18 @@ class RunCodeNode implements DeclaresEffect, HasIcon, NodeContract
             'properties' => [
                 'operations' => [
                     'type' => 'array',
+                    'title' => 'Steps',
+                    'description' => 'Run in order; each step writes one output key.',
+                    'x-widget' => 'list',
                     'items' => [
                         'type' => 'object',
                         'required' => ['op', 'output'],
                         'properties' => [
-                            'op' => ['type' => 'string', 'enum' => self::ALLOWED_OPERATIONS],
-                            'output' => ['type' => 'string'],
-                            'path' => ['type' => 'string'],
-                            'value' => ['type' => 'string'],
-                            'paths' => ['type' => 'array'],
+                            'op' => Field::select('Operation', ['set' => 'Set a value', 'copy' => 'Copy a value', 'uppercase' => 'Uppercase', 'lowercase' => 'Lowercase', 'concat' => 'Join values']),
+                            'output' => Field::text('Output key', null, 'full_name'),
+                            'path' => Field::text('From path', 'Used by Copy, Uppercase and Lowercase.', 'input.name'),
+                            'value' => Field::text('Value', 'Used by Set.'),
+                            'paths' => Field::list('From paths', 'Used by Join values.', 'input.first_name'),
                         ],
                     ],
                 ],

@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Outlook;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class OutlookGetMessageNode extends AbstractOutlookNode
 {
@@ -33,9 +34,8 @@ class OutlookGetMessageNode extends AbstractOutlookNode
             'type' => 'object',
             'required' => ['message_id'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'message_id' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'message_id' => Field::dynamic('Message', 'outlook.messages', 'Pick a recent email, or map a message ID from an earlier step.'),
             ],
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Gmail;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GmailAddLabelNode extends AbstractGmailNode
 {
@@ -33,10 +34,9 @@ class GmailAddLabelNode extends AbstractGmailNode
             'type' => 'object',
             'required' => ['message_id', 'label_ids'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'message_id' => ['type' => 'string'],
-                'label_ids' => ['type' => 'array'],
+                ...$this->credentialFields(),
+                'message_id' => Field::dynamic('Message', 'gmail.messages', 'Pick a recent email, or map a message ID from an earlier step.', '18c2f0a1b2c3d4e5'),
+                'label_ids' => Field::dynamic('Labels', 'gmail.labels', multiple: true, type: 'array'),
             ],
         ];
     }

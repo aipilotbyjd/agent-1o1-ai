@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Outlook;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class OutlookReplyToMessageNode extends AbstractOutlookNode
 {
@@ -33,11 +34,10 @@ class OutlookReplyToMessageNode extends AbstractOutlookNode
             'type' => 'object',
             'required' => ['message_id', 'body'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'message_id' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
-                'reply_all' => ['type' => 'boolean'],
+                ...$this->credentialFields(),
+                'message_id' => Field::dynamic('Message', 'outlook.messages', 'Pick a recent email, or map a message ID from an earlier step.'),
+                'body' => Field::textarea('Reply'),
+                'reply_all' => Field::boolean('Reply all'),
             ],
         ];
     }

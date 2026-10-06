@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Slack;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class SlackInviteToChannelNode extends AbstractSlackNode
 {
@@ -33,11 +34,9 @@ class SlackInviteToChannelNode extends AbstractSlackNode
             'type' => 'object',
             'required' => ['channel', 'users'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'channel' => ['type' => 'string'],
-                // Comma-separated Slack user IDs, per Slack's own API shape.
-                'users' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'channel' => Field::dynamic('Channel', 'slack.channels', 'The channel to use. Pick one, or enter a channel ID.', 'C0123456789'),
+                'users' => Field::dynamic('Users', 'slack.users', 'The people to invite.', 'U0123456789', multiple: true),
             ],
         ];
     }

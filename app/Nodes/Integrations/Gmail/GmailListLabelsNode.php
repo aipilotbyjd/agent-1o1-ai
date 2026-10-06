@@ -33,8 +33,7 @@ class GmailListLabelsNode extends AbstractGmailNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
+                ...$this->credentialFields(),
             ],
         ];
     }

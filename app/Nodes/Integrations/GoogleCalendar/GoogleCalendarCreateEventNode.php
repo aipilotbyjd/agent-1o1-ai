@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleCalendar;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleCalendarCreateEventNode extends AbstractGoogleCalendarNode
 {
@@ -33,13 +34,12 @@ class GoogleCalendarCreateEventNode extends AbstractGoogleCalendarNode
             'type' => 'object',
             'required' => ['summary', 'start_at', 'end_at'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'calendar_id' => ['type' => 'string'],
-                'summary' => ['type' => 'string'],
-                'description' => ['type' => 'string'],
-                'start_at' => ['type' => 'string'],
-                'end_at' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'calendar_id' => Field::dynamic('Calendar', 'google_calendar.calendars', 'Defaults to your primary calendar.', 'primary'),
+                'summary' => Field::text('Title', null, 'Team sync'),
+                'description' => Field::textarea('Description'),
+                'start_at' => Field::datetime('Starts at'),
+                'end_at' => Field::datetime('Ends at'),
             ],
         ];
     }

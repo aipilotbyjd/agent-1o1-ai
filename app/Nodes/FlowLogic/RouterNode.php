@@ -8,6 +8,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use Illuminate\Support\Arr;
 
 /**
@@ -57,14 +58,17 @@ class RouterNode implements DeclaresEffect, HasIcon, NodeContract
             'properties' => [
                 'conditions' => [
                     'type' => 'array',
+                    'title' => 'Routes',
+                    'description' => 'Checked top to bottom; the first match picks the branch.',
+                    'x-widget' => 'list',
                     'items' => [
                         'type' => 'object',
                         'required' => ['path', 'operator', 'value', 'result'],
                         'properties' => [
-                            'path' => ['type' => 'string'],
-                            'operator' => ['type' => 'string', 'enum' => self::OPERATORS],
-                            'value' => [],
-                            'result' => ['type' => 'string'],
+                            'path' => Field::text('Value to check', 'A path into the run, e.g. input.status or nodes.fetch.output.total.', 'input.status'),
+                            'operator' => Field::select('Condition', self::OPERATORS, default: 'equals'),
+                            'value' => ['title' => 'Compare to', 'x-widget' => 'text'],
+                            'result' => Field::text('Branch', 'The branch label this route sends the run down.', 'approved'),
                         ],
                     ],
                 ],

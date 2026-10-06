@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Outlook;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class OutlookDeleteEventNode extends AbstractOutlookNode
 {
@@ -33,9 +34,8 @@ class OutlookDeleteEventNode extends AbstractOutlookNode
             'type' => 'object',
             'required' => ['event_id'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'event_id' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'event_id' => Field::dynamic('Event', 'outlook.events', 'Pick an upcoming event, or map an event ID.'),
             ],
         ];
     }

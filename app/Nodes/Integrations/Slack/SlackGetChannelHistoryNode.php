@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Slack;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class SlackGetChannelHistoryNode extends AbstractSlackNode
 {
@@ -33,12 +34,11 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode
             'type' => 'object',
             'required' => ['channel'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'channel' => ['type' => 'string'],
-                'limit' => ['type' => 'integer'],
-                'oldest' => ['type' => 'string'],
-                'latest' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'channel' => Field::dynamic('Channel', 'slack.channels', 'The channel to use. Pick one, or enter a channel ID.', 'C0123456789'),
+                'limit' => Field::integer('Limit', 'Maximum messages to return.', 100, 1, 1000),
+                'oldest' => Field::advanced(Field::text('Oldest', 'Only messages after this Unix timestamp.', '1700000000')),
+                'latest' => Field::advanced(Field::text('Latest', 'Only messages before this Unix timestamp.', '1700000000')),
             ],
         ];
     }

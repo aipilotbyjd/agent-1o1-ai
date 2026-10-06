@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Outlook;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class OutlookListMessagesNode extends AbstractOutlookNode
 {
@@ -33,12 +34,11 @@ class OutlookListMessagesNode extends AbstractOutlookNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'folder' => ['type' => 'string'],
-                'search' => ['type' => 'string'],
-                'received_after' => ['type' => 'string'],
-                'max_results' => ['type' => 'integer'],
+                ...$this->credentialFields(),
+                'folder' => Field::dynamic('Folder', 'outlook.folders', 'A folder, or a well-known name: inbox, archive, junkemail, deleteditems.', 'inbox'),
+                'search' => Field::text('Search', 'Free-text search across subject, body and sender.', 'invoice'),
+                'received_after' => Field::datetime('Received after', 'Ignored when Search is set.'),
+                'max_results' => Field::integer('Max results', null, 10, 1, 50),
             ],
         ];
     }

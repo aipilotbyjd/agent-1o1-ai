@@ -7,6 +7,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Nodes\NodeCategory;
 use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
+use App\Nodes\Support\Field;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -251,10 +252,10 @@ class NodeRegistry
                     'type' => 'object',
                     'required' => ['items_path', 'workflow_id'],
                     'properties' => [
-                        'items_path' => ['type' => 'string'],
-                        'workflow_id' => ['type' => 'string'],
-                        'max_concurrent' => ['type' => 'integer', 'default' => 1],
-                        'on_item_error' => ['type' => 'string', 'enum' => ['fail_fast', 'continue', 'collect_errors'], 'default' => 'fail_fast'],
+                        'items_path' => Field::text('List to loop over', 'A path to a list in the run, e.g. nodes.fetch.output.rows.', 'nodes.fetch.output.rows'),
+                        'workflow_id' => Field::dynamic('Workflow to run per item', 'workspace.workflows', allowCustom: false),
+                        'max_concurrent' => Field::integer('Items at once', 'How many items run in parallel.', 1, 1, 50),
+                        'on_item_error' => Field::select('If an item fails', ['fail_fast' => 'Stop the loop', 'continue' => 'Skip it and continue', 'collect_errors' => 'Continue and collect errors'], default: 'fail_fast'),
                     ],
                 ],
             ],
@@ -273,8 +274,8 @@ class NodeRegistry
                 'config_schema' => [
                     'type' => 'object',
                     'properties' => [
-                        'timeout_seconds' => ['type' => ['integer', 'null']],
-                        'continue_on_timeout' => ['type' => 'boolean', 'default' => false],
+                        'timeout_seconds' => ['type' => ['integer', 'null'], 'title' => 'Time out after (seconds)', 'description' => 'Leave empty to wait indefinitely.', 'x-widget' => 'number'],
+                        'continue_on_timeout' => Field::boolean('Continue on timeout', 'Carry on instead of failing the run when it times out.'),
                     ],
                 ],
             ],
@@ -294,8 +295,8 @@ class NodeRegistry
                     'type' => 'object',
                     'required' => ['workflow_id'],
                     'properties' => [
-                        'workflow_id' => ['type' => 'string'],
-                        'input' => ['type' => ['object', 'null']],
+                        'workflow_id' => Field::dynamic('Workflow', 'workspace.workflows', allowCustom: false),
+                        'input' => ['type' => ['object', 'null'], 'title' => 'Input', 'description' => 'Passed to the workflow as its run input (JSON).', 'x-widget' => 'json'],
                     ],
                 ],
             ],

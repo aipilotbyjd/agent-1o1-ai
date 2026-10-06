@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleSheets;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode
 {
@@ -33,10 +34,9 @@ class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode
             'type' => 'object',
             'required' => ['spreadsheet_id', 'range'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'spreadsheet_id' => ['type' => 'string'],
-                'range' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'spreadsheet_id' => Field::dynamic('Spreadsheet', 'google_sheets.spreadsheets', 'Pick a spreadsheet, or enter its ID from the URL.', '1AbCdEfGhIjKlMnOp'),
+                'range' => Field::dynamic('Sheet / range', 'google_sheets.sheets', 'Pick a sheet tab to use the whole sheet, or type an A1 range such as Sheet1!A1:D10.', 'Sheet1!A1:D10', dependsOn: ['spreadsheet_id']),
             ],
         ];
     }
@@ -45,7 +45,7 @@ class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode
     {
         return $this->get(
             $run,
-            "/spreadsheets/{$config['spreadsheet_id']}/values/{$config['range']}",
+            $this->valuesPath($config),
             $config,
         );
     }

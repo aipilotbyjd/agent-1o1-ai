@@ -8,6 +8,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use App\Services\Http\GuardedHttp;
 use App\Services\Http\SsrfGuard;
 
@@ -62,11 +63,11 @@ class CallApiNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['method', 'url'],
             'properties' => [
-                'method' => ['type' => 'string', 'enum' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']],
-                'url' => ['type' => 'string'],
-                'headers' => ['type' => 'object'],
-                'body' => ['type' => 'object'],
-                'timeout_seconds' => ['type' => 'integer'],
+                'method' => Field::select('Method', ['GET' => 'GET', 'POST' => 'POST', 'PUT' => 'PUT', 'PATCH' => 'PATCH', 'DELETE' => 'DELETE'], default: 'GET'),
+                'url' => [...Field::text('URL', null, 'https://api.example.com/v1/items'), 'format' => 'uri'],
+                'headers' => Field::keyValue('Headers'),
+                'body' => Field::json('Body', 'JSON request body (ignored for GET).'),
+                'timeout_seconds' => Field::advanced(Field::integer('Timeout (seconds)', null, 30, 1, 120)),
             ],
         ];
     }

@@ -199,6 +199,8 @@ class NodeTool implements Approvable, Tool
             $type = $type->enum($propertySchema['enum']);
         }
 
-        return $type;
+        $description = implode(': ', array_filter([$propertySchema['title'] ?? null, $propertySchema['description'] ?? null]));
+
+        return $description === '' ? $type : $type->description($description);
     }
 }

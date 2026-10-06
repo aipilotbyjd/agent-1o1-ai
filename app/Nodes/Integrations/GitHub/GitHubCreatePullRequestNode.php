@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GitHub;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GitHubCreatePullRequestNode extends AbstractGitHubNode
 {
@@ -33,13 +34,12 @@ class GitHubCreatePullRequestNode extends AbstractGitHubNode
             'type' => 'object',
             'required' => ['repo', 'title', 'head', 'base'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'repo' => ['type' => 'string'],
-                'title' => ['type' => 'string'],
-                'head' => ['type' => 'string'],
-                'base' => ['type' => 'string'],
-                'body' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'repo' => Field::dynamic('Repository', 'github.repos', 'In owner/name form.', 'acme/widgets'),
+                'title' => Field::text('Title'),
+                'head' => Field::dynamic('From branch', 'github.branches', 'The branch with your changes.', 'feature/my-change', dependsOn: ['repo']),
+                'base' => Field::dynamic('Into branch', 'github.branches', 'The branch to merge into.', 'main', dependsOn: ['repo']),
+                'body' => Field::textarea('Description', 'Markdown supported.'),
             ],
         ];
     }

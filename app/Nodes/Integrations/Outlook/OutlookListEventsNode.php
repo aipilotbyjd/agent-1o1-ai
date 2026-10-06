@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Outlook;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class OutlookListEventsNode extends AbstractOutlookNode
 {
@@ -33,11 +34,10 @@ class OutlookListEventsNode extends AbstractOutlookNode
             'type' => 'object',
             'required' => [],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'time_min' => ['type' => 'string'],
-                'time_max' => ['type' => 'string'],
-                'max_results' => ['type' => 'integer'],
+                ...$this->credentialFields(),
+                'time_min' => Field::datetime('From', 'Defaults to now.'),
+                'time_max' => Field::datetime('Until', 'Defaults to 7 days after From.'),
+                'max_results' => Field::integer('Max results', null, 25, 1, 100),
             ],
         ];
     }

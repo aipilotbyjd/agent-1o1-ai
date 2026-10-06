@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GoogleCalendar;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GoogleCalendarDeleteEventNode extends AbstractGoogleCalendarNode
 {
@@ -33,10 +34,9 @@ class GoogleCalendarDeleteEventNode extends AbstractGoogleCalendarNode
             'type' => 'object',
             'required' => ['event_id'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'calendar_id' => ['type' => 'string'],
-                'event_id' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'calendar_id' => Field::dynamic('Calendar', 'google_calendar.calendars', 'Defaults to your primary calendar.', 'primary'),
+                'event_id' => Field::dynamic('Event', 'google_calendar.events', 'Pick an upcoming event, or map an event ID.', uses: ['calendar_id']),
             ],
         ];
     }

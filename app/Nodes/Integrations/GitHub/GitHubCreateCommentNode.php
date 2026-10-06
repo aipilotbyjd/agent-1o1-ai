@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\GitHub;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class GitHubCreateCommentNode extends AbstractGitHubNode
 {
@@ -33,11 +34,10 @@ class GitHubCreateCommentNode extends AbstractGitHubNode
             'type' => 'object',
             'required' => ['repo', 'issue_number', 'body'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'repo' => ['type' => 'string'],
-                'issue_number' => ['type' => 'integer'],
-                'body' => ['type' => 'string'],
+                ...$this->credentialFields(),
+                'repo' => Field::dynamic('Repository', 'github.repos', 'In owner/name form.', 'acme/widgets'),
+                'issue_number' => Field::dynamic('Issue or pull request', 'github.issues', dependsOn: ['repo'], type: 'integer'),
+                'body' => Field::textarea('Comment', 'Markdown supported.'),
             ],
         ];
     }

@@ -9,6 +9,7 @@ use App\Contracts\NodeContract;
 use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 use App\Services\Ai\ModelCatalogResolver;
 
 /**
@@ -56,11 +57,11 @@ class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['prompt'],
             'properties' => [
-                'instructions' => ['type' => 'string'],
-                'prompt' => ['type' => 'string'],
-                'model_catalog_slug' => ['type' => 'string'],
-                'provider' => ['type' => 'string'],
-                'model' => ['type' => 'string'],
+                'model_catalog_slug' => Field::dynamic('Model', 'ai.models', 'Leave empty to use the default model.', allowCustom: false),
+                'instructions' => Field::advanced(Field::textarea('Instructions', 'How the AI should behave (system prompt).', 'You are a helpful assistant.')),
+                'prompt' => Field::textarea('Prompt', 'What to ask. Use {{templates}} to include data from earlier steps.'),
+                'provider' => Field::hidden('Legacy provider override; use Model instead.'),
+                'model' => Field::hidden('Legacy model override; use Model instead.'),
             ],
         ];
     }

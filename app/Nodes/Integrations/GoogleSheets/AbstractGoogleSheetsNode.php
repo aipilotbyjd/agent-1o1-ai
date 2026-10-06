@@ -27,6 +27,20 @@ abstract class AbstractGoogleSheetsNode implements DeclaresEffect, NodeContract
     }
 
     /**
+     * `/spreadsheets/{id}/values/{range}` with both segments URL-encoded — a
+     * tab name may hold spaces, quotes or `#` (`'Q1 Sales'!A1:B2`). `!` and
+     * `:` are left readable; Sheets accepts them either way.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    protected function valuesPath(array $config): string
+    {
+        $range = str_replace(['%21', '%3A'], ['!', ':'], rawurlencode((string) $config['range']));
+
+        return '/spreadsheets/'.rawurlencode((string) $config['spreadsheet_id'])."/values/{$range}";
+    }
+
+    /**
      * @param  array<string, mixed>  $config
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>

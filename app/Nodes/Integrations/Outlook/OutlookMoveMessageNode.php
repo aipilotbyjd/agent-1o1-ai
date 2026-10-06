@@ -4,6 +4,7 @@ namespace App\Nodes\Integrations\Outlook;
 
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
 
 class OutlookMoveMessageNode extends AbstractOutlookNode
 {
@@ -33,10 +34,9 @@ class OutlookMoveMessageNode extends AbstractOutlookNode
             'type' => 'object',
             'required' => ['message_id', 'folder'],
             'properties' => [
-                'access_token' => ['type' => 'string'],
-                'credential_id' => ['type' => 'string'],
-                'message_id' => ['type' => 'string'],
-                'folder' => ['type' => 'string', 'description' => 'A folder id or a well-known name: inbox, archive, junkemail, deleteditems.'],
+                ...$this->credentialFields(),
+                'message_id' => Field::dynamic('Message', 'outlook.messages', 'Pick a recent email, or map a message ID from an earlier step.'),
+                'folder' => Field::dynamic('Move to folder', 'outlook.folders', 'A folder, or a well-known name: inbox, archive, junkemail, deleteditems.', 'archive'),
             ],
         ];
     }
