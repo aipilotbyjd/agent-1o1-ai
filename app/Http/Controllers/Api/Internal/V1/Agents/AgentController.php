@@ -93,4 +93,50 @@ class AgentController extends Controller
 
         return ApiResponse::noContent();
     }
+
+    /**
+     * `destroy` only soft-deletes, so the trash is every trashed agent —
+     * most recently trashed first.
+     */
+    public function trash(Workspace $workspace)
+    {
+        $this->requirePermission(Permission::AgentView);
+
+        $agents = $workspace->agents()
+            ->onlyTrashed()
+            ->with('tags')
+            ->latest('deleted_at')
+            ->get();
+
+        return ApiResponse::success([
+            'agents' => AgentResource::collection($agents),
+        ]);
+    }
+
+    /**
+     * A trashed agent stops counting toward `PlanLimit::Agents`, so bringing
+     * one back has to fit under the cap like creating one would.
+     */
+    public function restore(Workspace $workspace, Agent $agent, PlanLimitGate $limits)
+    {
+        $this->requirePermission(Permission::AgentManage);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+        abort_unless($agent->trashed(), 404);
+        $limits->assertCanCreate($workspace, PlanLimit::Agents);
+
+        $agent->restore();
+
+        return ApiResponse::success(['agent' => AgentResource::make($agent->load('tags'))], 'Agent restored successfully.');
+    }
+
+    public function forceDestroy(Workspace $workspace, Agent $agent)
+    {
+        $this->requirePermission(Permission::AgentManage);
+        $this->ensureBelongsToWorkspace($workspace, $agent);
+        abort_unless($agent->trashed(), 404);
+
+        $agent->forceDelete();
+
+        return ApiResponse::noContent();
+    }
 }

@@ -13,8 +13,8 @@ use App\Http\Controllers\Api\Internal\V1\Agents\AgentKnowledgeSourceController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentMemoryController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentPlanController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionController;
-use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionTurnController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionEvaluationController;
+use App\Http\Controllers\Api\Internal\V1\Agents\AgentSessionTurnController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSkillController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentSubagentController;
 use App\Http\Controllers\Api\Internal\V1\Agents\AgentToolBindingController;
@@ -35,9 +35,12 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('/', [AgentController::class, 'index'])->name('index');
         Route::post('/', [AgentController::class, 'store'])->name('store');
         Route::post('draft', AgentDraftController::class)->name('draft');
+        Route::get('trash', [AgentController::class, 'trash'])->name('trash');
         Route::get('{agent}', [AgentController::class, 'show'])->name('show');
         Route::patch('{agent}', [AgentController::class, 'update'])->name('update');
         Route::delete('{agent}', [AgentController::class, 'destroy'])->name('destroy');
+        Route::post('{agent}/restore', [AgentController::class, 'restore'])->withTrashed()->name('restore');
+        Route::delete('{agent}/force', [AgentController::class, 'forceDestroy'])->withTrashed()->name('force-destroy');
         Route::post('{agent}/duplicate', [AgentController::class, 'duplicate'])->name('duplicate');
         Route::post('{agent}/instructions/improve', AgentInstructionsController::class)->name('instructions.improve');
 

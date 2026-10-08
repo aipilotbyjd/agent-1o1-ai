@@ -15,9 +15,12 @@ Route::middleware(['auth:api', 'workspace.context'])
     ->group(function () {
         Route::get('/', [WorkflowController::class, 'index'])->name('index');
         Route::post('/', [WorkflowController::class, 'store'])->name('store');
+        Route::get('trash', [WorkflowController::class, 'trash'])->name('trash');
         Route::get('{workflow}', [WorkflowController::class, 'show'])->name('show');
         Route::patch('{workflow}', [WorkflowController::class, 'update'])->name('update');
         Route::delete('{workflow}', [WorkflowController::class, 'destroy'])->name('destroy');
+        Route::post('{workflow}/restore', [WorkflowController::class, 'restore'])->withTrashed()->name('restore');
+        Route::delete('{workflow}/force', [WorkflowController::class, 'forceDestroy'])->withTrashed()->name('force-destroy');
         Route::post('{workflow}/duplicate', [WorkflowController::class, 'duplicate'])->name('duplicate');
 
         Route::get('{workflow}/versions', [WorkflowVersionController::class, 'index'])->name('versions.index');

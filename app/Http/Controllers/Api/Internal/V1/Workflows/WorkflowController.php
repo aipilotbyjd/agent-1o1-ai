@@ -16,6 +16,7 @@ use App\Models\Workflows\WorkflowNode;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\PlanLimitGate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class WorkflowController extends Controller
@@ -95,6 +96,66 @@ class WorkflowController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $workflow);
 
         $workflow->delete();
+
+        return ApiResponse::noContent();
+    }
+
+    /**
+     * `destroy` only soft-deletes, so the trash is every trashed workflow —
+     * most recently trashed first.
+     */
+    public function trash(Workspace $workspace)
+    {
+        $this->requirePermission(Permission::WorkflowView);
+
+        $workflows = $workspace->workflows()
+            ->onlyTrashed()
+            ->visible()
+            ->latest('deleted_at')
+            ->get();
+
+        return ApiResponse::success([
+            'workflows' => WorkflowResource::collection($workflows),
+        ]);
+    }
+
+    /**
+     * A trashed workflow stops counting toward `PlanLimit::Workflows`, so
+     * bringing one back has to fit under the cap like creating one would.
+     */
+    public function restore(Workspace $workspace, Workflow $workflow, PlanLimitGate $limits)
+    {
+        $this->requirePermission(Permission::WorkflowManage);
+        $this->ensureBelongsToWorkspace($workspace, $workflow);
+        abort_unless($workflow->trashed(), 404);
+        $limits->assertCanCreate($workspace, PlanLimit::Workflows);
+
+        $workflow->restore();
+
+        return ApiResponse::success(['workflow' => WorkflowResource::make($workflow)], 'Workflow restored successfully.');
+    }
+
+    /**
+     * Only from the trash. Takes the hidden loop-mode children with it —
+     * `LoopModeCompiler` names them `loop-{id}-{node}`, and nothing else
+     * would ever clean them up once their parent is gone.
+     */
+    public function forceDestroy(Workspace $workspace, Workflow $workflow)
+    {
+        $this->requirePermission(Permission::WorkflowManage);
+        $this->ensureBelongsToWorkspace($workspace, $workflow);
+        abort_unless($workflow->trashed(), 404);
+
+        DB::transaction(function () use ($workspace, $workflow): void {
+            $workspace->workflows()
+                ->withTrashed()
+                ->where('is_internal', true)
+                ->where('slug', 'like', "loop-{$workflow->id}-%")
+                ->get()
+                ->each->forceDelete();
+
+            $workflow->forceDelete();
+        });
 
         return ApiResponse::noContent();
     }
