@@ -62,7 +62,7 @@ class DryRunner
 
         foreach ($this->topologicalOrder($nodes, $edges) as $key) {
             $node = $nodesByKey[$key];
-            $config = $node['config'] ?? [];
+            $config = EditorMetadata::strip($node['config'] ?? []);
 
             foreach ($this->unresolvedPaths($config, $context) as $path) {
                 $source = $this->referencedNodeKey($path);

@@ -50,6 +50,7 @@ class NodeTester
         private readonly NodeRegistry $registry,
         private readonly ConfigSchemaValidator $configValidator,
         private readonly TemplateResolver $templateResolver,
+        private readonly ResolvedConfigCaster $resolvedConfigCaster,
         private readonly SecretResolver $secretResolver,
         private readonly SecretRedactor $secretRedactor,
         private readonly CreditGate $creditGate,
@@ -70,7 +71,7 @@ class NodeTester
         ?User $triggeredBy = null,
         ?array $configOverride = null,
     ): NodeRun {
-        $config = $configOverride ?? $node->config ?? [];
+        $config = EditorMetadata::strip($configOverride ?? $node->config ?? []);
 
         $contract = $this->executableContract($node);
         $this->assertConfigValid($contract, $node, $config);
@@ -91,7 +92,7 @@ class NodeTester
 
         try {
             $output = $this->secretRedactor->redact(
-                $contract->execute($run, $resolvedConfig, $context),
+                $contract->execute($run, $this->resolvedConfigCaster->cast($contract->configSchema(), $config, $resolvedConfig), $context),
                 $secrets->sensitiveValues(),
             );
 

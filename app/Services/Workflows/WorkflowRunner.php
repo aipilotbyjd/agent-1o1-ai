@@ -50,6 +50,7 @@ class WorkflowRunner
         private readonly SubWorkflowCoordinator $subWorkflowCoordinator,
         private readonly LoopCoordinator $loopCoordinator,
         private readonly TemplateResolver $templateResolver,
+        private readonly ResolvedConfigCaster $resolvedConfigCaster,
         private readonly NotificationDispatcher $notifications,
         private readonly SecretResolver $secretResolver,
         private readonly SecretRedactor $secretRedactor,
@@ -122,7 +123,7 @@ class WorkflowRunner
 
         return [
             ...$nodeDefinition,
-            'config' => $this->templateResolver->resolve($nodeDefinition['config'] ?? [], $context),
+            'config' => $this->templateResolver->resolve(EditorMetadata::strip($nodeDefinition['config'] ?? []), $context),
         ];
     }
 
@@ -137,7 +138,7 @@ class WorkflowRunner
     {
         $config = collect($graph['nodes'])->firstWhere('key', $key)['config'] ?? [];
 
-        return $this->secretResolver->forConfig($run->workspace_id, $config);
+        return $this->secretResolver->forConfig($run->workspace_id, EditorMetadata::strip($config));
     }
 
     /**
@@ -169,13 +170,18 @@ class WorkflowRunner
 
         try {
             $node = $this->registry->resolve($nodeRun->type);
+            $config = $this->resolvedConfigCaster->cast(
+                $node->configSchema(),
+                EditorMetadata::strip(collect($graph['nodes'])->firstWhere('key', $nodeRun->key)['config'] ?? []),
+                $nodeDefinition['config'] ?? [],
+            );
 
             // A node that echoes its own config back (an HTTP node returning
             // the request it made, an API replying with the token it was
             // called with) would otherwise write the plaintext secret into
             // `node_runs`, readable by every run-viewer in the workspace.
             $output = $this->secretRedactor->redact(
-                $node->execute($run, $nodeDefinition['config'] ?? [], $context),
+                $node->execute($run, $config, $context),
                 $secrets->sensitiveValues(),
             );
 

@@ -3,6 +3,7 @@
 namespace App\Ai\Tools\WorkflowBuilder;
 
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Services\Workflows\EditorMetadata;
 use App\Services\Workflows\Engine\GraphAdvancer;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -39,7 +40,7 @@ class ReadDraftTool implements Tool
             'nodes' => array_map(fn (array $node): array => [
                 'key' => $node['key'],
                 'type' => $node['type'],
-                'config' => $node['config'] ?? [],
+                'config' => EditorMetadata::strip($node['config'] ?? []),
             ], $graph['nodes']),
             'edges' => array_map(fn (array $edge): array => [
                 'from' => $edge['from'],

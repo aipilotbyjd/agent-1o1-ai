@@ -9,29 +9,38 @@ namespace App\Services\Workflows;
  * string/integer/boolean, `required`, `properties`, `items`, `enum`) — not a
  * general-purpose JSON Schema implementation, and deliberately not a new
  * Composer dependency.
+ *
+ * A value that is exactly one `{{ }}` template (`SafePattern::WHOLE`) is
+ * accepted for any type when saving or publishing: its real value only
+ * exists at run time, where `ResolvedConfigCaster` converts and checks it.
  */
 class ConfigSchemaValidator
 {
     /**
      * @param  array<string, mixed>  $schema
      * @param  array<string, mixed>  $config
+     * @param  bool  $allowTemplates  false once templates have been resolved, so a leftover one is reported
      * @return array<int, string>
      */
-    public function validate(array $schema, array $config): array
+    public function validate(array $schema, array $config, bool $allowTemplates = true): array
     {
-        return $this->validateValue($schema, $config, '');
+        return $this->validateValue($schema, $config, '', $allowTemplates);
     }
 
     /**
      * @param  array<string, mixed>  $schema
      */
-    private function validateValue(array $schema, mixed $value, string $path): array
+    private function validateValue(array $schema, mixed $value, string $path, bool $allowTemplates): array
     {
+        if ($allowTemplates && is_string($value) && preg_match(SafePattern::WHOLE, $value) === 1) {
+            return [];
+        }
+
         $type = $schema['type'] ?? null;
 
         return match ($type) {
-            'object' => $this->validateObject($schema, $value, $path),
-            'array' => $this->validateArray($schema, $value, $path),
+            'object' => $this->validateObject($schema, $value, $path, $allowTemplates),
+            'array' => $this->validateArray($schema, $value, $path, $allowTemplates),
             'string' => $this->validateScalar($schema, $value, $path, 'is_string', 'a string'),
             'integer' => $this->validateScalar($schema, $value, $path, 'is_int', 'an integer'),
             'boolean' => $this->validateScalar($schema, $value, $path, 'is_bool', 'a boolean'),
@@ -42,7 +51,7 @@ class ConfigSchemaValidator
     /**
      * @param  array<string, mixed>  $schema
      */
-    private function validateObject(array $schema, mixed $value, string $path): array
+    private function validateObject(array $schema, mixed $value, string $path, bool $allowTemplates): array
     {
         if (! is_array($value)) {
             return [$this->label($path).' must be an object.'];
@@ -58,7 +67,7 @@ class ConfigSchemaValidator
 
         foreach ($schema['properties'] ?? [] as $field => $fieldSchema) {
             if (array_key_exists($field, $value)) {
-                $errors = [...$errors, ...$this->validateValue($fieldSchema, $value[$field], $this->child($path, $field))];
+                $errors = [...$errors, ...$this->validateValue($fieldSchema, $value[$field], $this->child($path, $field), $allowTemplates)];
             }
         }
 
@@ -68,7 +77,7 @@ class ConfigSchemaValidator
     /**
      * @param  array<string, mixed>  $schema
      */
-    private function validateArray(array $schema, mixed $value, string $path): array
+    private function validateArray(array $schema, mixed $value, string $path, bool $allowTemplates): array
     {
         if (! is_array($value) || ! array_is_list($value)) {
             return [$this->label($path).' must be an array.'];
@@ -81,7 +90,7 @@ class ConfigSchemaValidator
         $errors = [];
 
         foreach ($value as $index => $item) {
-            $errors = [...$errors, ...$this->validateValue($schema['items'], $item, "{$path}[{$index}]")];
+            $errors = [...$errors, ...$this->validateValue($schema['items'], $item, "{$path}[{$index}]", $allowTemplates)];
         }
 
         return $errors;

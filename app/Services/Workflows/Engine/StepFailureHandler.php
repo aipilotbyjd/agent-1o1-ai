@@ -5,6 +5,7 @@ namespace App\Services\Workflows\Engine;
 use App\Enums\NodeRunStatus;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunFailed;
+use App\Exceptions\InvalidNodeInputException;
 use App\Jobs\Workflows\DispatchNextNodesJob;
 use App\Jobs\Workflows\ExecuteNodeJob;
 use App\Models\Runs\NodeRun;
@@ -40,7 +41,7 @@ class StepFailureHandler
         // Only a node still `running` can fail or be retried: one cancelled
         // meanwhile stays cancelled, and neither retries nor a failed run
         // may resurrect it.
-        if ($nodeRun->attempt < $options->maxAttempts) {
+        if ($nodeRun->attempt < $options->maxAttempts && ! $e instanceof InvalidNodeInputException) {
             $this->retry($nodeRun, $options, $message);
 
             return;

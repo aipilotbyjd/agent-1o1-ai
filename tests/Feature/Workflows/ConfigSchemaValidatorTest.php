@@ -67,3 +67,33 @@ it('validates nested array items against their item schema', function () {
 
     expect($errors)->toBe(['config.operations[1].op is required.']);
 });
+
+it('accepts a whole {{ }} template for any field type until it is resolved', function () {
+    $schema = [
+        'type' => 'object',
+        'properties' => [
+            'limit' => ['type' => 'integer'],
+            'enabled' => ['type' => 'boolean'],
+            'tags' => ['type' => 'array', 'items' => ['type' => 'string']],
+            'method' => ['type' => 'string', 'enum' => ['GET', 'POST']],
+        ],
+    ];
+    $config = [
+        'limit' => '{{ nodes.a.count }}',
+        'enabled' => '{{nodes.a.flag}}',
+        'tags' => '{{ nodes.a.tags }}',
+        'method' => '{{ input.method }}',
+    ];
+
+    expect((new ConfigSchemaValidator)->validate($schema, $config))->toBe([]);
+    expect((new ConfigSchemaValidator)->validate($schema, $config, allowTemplates: false))->toHaveCount(4);
+});
+
+it('still rejects a template embedded in a non-string field', function () {
+    $errors = (new ConfigSchemaValidator)->validate(
+        ['type' => 'object', 'properties' => ['limit' => ['type' => 'integer']]],
+        ['limit' => '{{ nodes.a.count }}0'],
+    );
+
+    expect($errors)->toBe(['config.limit must be an integer.']);
+});
