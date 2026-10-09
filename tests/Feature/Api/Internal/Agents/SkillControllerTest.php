@@ -165,7 +165,7 @@ it('shows, lists and deletes skills, and forbids a viewer from managing them', f
 
     Passport::actingAs($owner);
     $this->deleteJson("/api/v1/workspaces/{$workspace->id}/skills/{$skill->id}")->assertNoContent();
-    expect($skill->fresh())->toBeNull();
+    $this->assertSoftDeleted($skill);
 });
 
 it('does not reach into another workspace\'s skill', function () {

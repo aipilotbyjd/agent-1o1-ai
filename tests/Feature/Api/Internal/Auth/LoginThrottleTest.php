@@ -19,6 +19,7 @@ beforeEach(function () {
 });
 
 it('locks the account after five failed attempts', function () {
+    $this->freezeTime();
     User::factory()->create(['email' => 'jane@example.com', 'password' => 'Password1!']);
 
     foreach (range(1, 5) as $attempt) {

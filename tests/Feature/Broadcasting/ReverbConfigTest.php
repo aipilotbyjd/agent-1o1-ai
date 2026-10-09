@@ -10,24 +10,36 @@
 function reverbApp(array $env = []): array
 {
     $keys = ['REVERB_ALLOWED_ORIGINS', 'APP_FRONTEND_URL', 'REVERB_APP_ACCEPT_CLIENT_EVENTS_FROM', 'REVERB_APP_RATE_LIMITING_ENABLED'];
-    $previous = array_map(fn (string $key) => $_ENV[$key] ?? null, array_combine($keys, $keys));
+    $previous = array_map(fn (string $key) => [$_ENV[$key] ?? null, $_SERVER[$key] ?? null, getenv($key)], array_combine($keys, $keys));
 
     foreach ($keys as $key) {
         unset($_ENV[$key], $_SERVER[$key]);
+        putenv($key);
     }
 
     foreach ($env as $key => $value) {
         $_ENV[$key] = $_SERVER[$key] = $value;
+        putenv("{$key}={$value}");
     }
 
     try {
         return (require config_path('reverb.php'))['apps']['apps'][0];
     } finally {
         foreach ($keys as $key) {
+            [$envValue, $serverValue, $processValue] = $previous[$key];
             unset($_ENV[$key], $_SERVER[$key]);
+            putenv($key);
 
-            if ($previous[$key] !== null) {
-                $_ENV[$key] = $previous[$key];
+            if ($envValue !== null) {
+                $_ENV[$key] = $envValue;
+            }
+
+            if ($serverValue !== null) {
+                $_SERVER[$key] = $serverValue;
+            }
+
+            if ($processValue !== false) {
+                putenv("{$key}={$processValue}");
             }
         }
     }

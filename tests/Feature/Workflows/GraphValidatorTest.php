@@ -48,13 +48,10 @@ it('rejects a cycle', function () {
     expect($errors)->toBe(['The graph contains a cycle.']);
 });
 
-it('rejects a graph with no entry node', function () {
-    // An empty graph has no node with a missing incoming edge to start
-    // from — checked after cycle detection (which trivially passes on zero
-    // nodes) and before reachability, per GraphValidator's documented order.
+it('rejects an empty graph', function () {
     $errors = app(GraphValidator::class)->validate([], []);
 
-    expect($errors)->toBe(['The graph has no entry node — every node has an incoming edge.']);
+    expect($errors)->toBe(['The workflow has no nodes. Add at least one node before publishing.']);
 });
 
 it('treats a node with no incoming edge as its own entry rather than unreachable', function () {

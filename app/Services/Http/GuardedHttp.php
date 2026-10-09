@@ -3,8 +3,11 @@
 namespace App\Services\Http;
 
 use App\Exceptions\Http\BlockedUrlException;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Throwable;
 
 /**
  * The one way to fetch a tenant-supplied URL. Wraps Laravel's HTTP client so
@@ -103,7 +106,8 @@ class GuardedHttp
         }
 
         if ($retries > 0) {
-            $request = $request->retry($retries, 250, throw: false);
+            $request = $request->retry($retries, 250, fn (Throwable $exception): bool => $exception instanceof ConnectionException
+                || ($exception instanceof RequestException && ($exception->response->serverError() || in_array($exception->response->status(), [408, 429], true))), throw: false);
         }
 
         return $request->send($method, $url, $json === null ? [] : ['json' => $json]);

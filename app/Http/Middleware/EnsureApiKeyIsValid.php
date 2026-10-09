@@ -38,7 +38,7 @@ class EnsureApiKeyIsValid
             // Only touched when the stored time is stale — "last used" doesn't
             // need a write on every request.
             if ($apiKey->last_used_at === null || $apiKey->last_used_at->lt(now()->subMinutes(self::LAST_USED_RESOLUTION_MINUTES))) {
-                $apiKey->update(['last_used_at' => now()]);
+                $apiKey->forceFill(['last_used_at' => now()])->save();
             }
 
             $request->attributes->set('api_key', $apiKey);

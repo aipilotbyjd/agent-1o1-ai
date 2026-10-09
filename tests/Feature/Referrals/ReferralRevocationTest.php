@@ -167,7 +167,7 @@ it('withdraws a payment whose refund arrived before the payment was recorded', f
     ['program' => $program] = refundableReferral();
     ReferralRewardRule::factory()->forProgram($program)->on(ReferralTrigger::FirstPayment)->credits(2000)->create();
 
-    $this->postJson('/api/stripe/webhook', refundPayload('evt_pay', 'pi_evt_pay'))->assertOk();
+    $this->postJson('/api/stripe/webhook', refundPayload('evt_early_refund', 'pi_evt_pay'))->assertOk();
     $this->postJson('/api/stripe/webhook', referralInvoicePaidPayload('evt_pay', 'cus_refund', 9900))->assertOk();
 
     expect(ReferralReward::query()->count())->toBe(0)

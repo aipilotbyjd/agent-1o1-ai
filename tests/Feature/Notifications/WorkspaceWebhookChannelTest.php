@@ -7,6 +7,7 @@ use App\Notifications\Channels\WorkspaceWebhookChannel;
 use App\Services\Http\SsrfGuard;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Http\Client\Request;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Laravel\Passport\Passport;
@@ -124,7 +125,7 @@ it('hands each endpoint its own queued delivery instead of sending inline', func
     ]);
     $workspaceId = $this->workspace->id;
 
-    app(WorkspaceWebhookChannel::class)->send($this->owner, new class($workspaceId, $channel->id)
+    app(WorkspaceWebhookChannel::class)->send($this->owner, new class($workspaceId, $channel->id) extends Notification
     {
         public function __construct(private readonly string $workspaceId, private readonly string $channelId) {}
 

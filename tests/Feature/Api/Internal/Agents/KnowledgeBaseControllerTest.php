@@ -373,7 +373,7 @@ it('rejects collection names that cannot be addressed in a URL or that are reser
 
     $this->postJson("/api/v1/workspaces/{$workspace->id}/knowledge-base", ['text' => 'a', 'collection' => $collection])
         ->assertJsonValidationErrors('collection');
-})->with(['a/b', 'a?b', 'artifacts:123', ' lead']);
+})->with(['a/b', 'a?b', 'artifacts:123', '-lead']);
 
 it('caps per_page when listing chunks', function () {
     [$workspace, $owner] = ownerWorkspaceForKnowledgeBase();

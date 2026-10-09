@@ -29,6 +29,10 @@ class GraphValidator
      */
     public function validate(array $nodes, array $edges): array
     {
+        if ($nodes === []) {
+            return ['The workflow has no nodes. Add at least one node before publishing.'];
+        }
+
         if (($errors = $this->structuralErrors($nodes, $edges)) !== []) {
             return $errors;
         }
