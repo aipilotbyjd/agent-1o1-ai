@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\DB;
  * default-account resolution — see `ConnectorCredentialScope` and
  * `Nodes\Integrations\Concerns\ResolvesConnectorCredential`.
  */
-#[Fillable(['workspace_id', 'connector_id', 'created_by', 'scope', 'is_default', 'name', 'data', 'last_used_at', 'expires_at'])]
+#[Fillable(['workspace_id', 'connector_id', 'created_by', 'scope', 'is_default', 'name', 'account_label', 'data', 'last_used_at', 'expires_at'])]
 #[Hidden(['data'])]
 class ConnectorCredential extends Model
 {
@@ -54,6 +54,8 @@ class ConnectorCredential extends Model
             'is_default' => 'boolean',
             'data' => 'encrypted:array',
             'last_used_at' => 'datetime',
+            'last_tested_at' => 'datetime',
+            'last_test_ok' => 'boolean',
             'expires_at' => 'datetime',
         ];
     }

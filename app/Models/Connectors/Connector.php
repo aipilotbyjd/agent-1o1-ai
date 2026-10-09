@@ -3,6 +3,7 @@
 namespace App\Models\Connectors;
 
 use App\Enums\Connectors\ConnectorAuthType;
+use App\Enums\Connectors\ConnectorCategory;
 use Database\Factories\Connectors\ConnectorFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * `data` must satisfy; `oauth` carries the authorize/token URLs and default
  * scopes for `auth_type = oauth2` connectors. See docs/PLAN.md Phase 6.
  */
-#[Fillable(['key', 'name', 'description', 'icon', 'color', 'auth_type', 'fields', 'oauth', 'is_active', 'sort_order'])]
+#[Fillable(['key', 'name', 'description', 'icon', 'color', 'category', 'is_featured', 'auth_type', 'fields', 'oauth', 'is_active', 'sort_order'])]
 class Connector extends Model
 {
     /** @use HasFactory<ConnectorFactory> */
@@ -28,6 +29,8 @@ class Connector extends Model
      */
     protected $attributes = [
         'is_active' => true,
+        'is_featured' => false,
+        'category' => 'other',
         'sort_order' => 0,
     ];
 
@@ -38,6 +41,8 @@ class Connector extends Model
     {
         return [
             'auth_type' => ConnectorAuthType::class,
+            'category' => ConnectorCategory::class,
+            'is_featured' => 'boolean',
             'fields' => 'array',
             'oauth' => 'array',
             'is_active' => 'boolean',

@@ -23,6 +23,7 @@ class InitiateOAuthConnectorRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'redirect_uri' => ['required', 'url'],
             'scope' => ['sometimes', new Enum(ConnectorCredentialScope::class)],
+            'credential_id' => ['sometimes', 'nullable', 'uuid'],
         ];
     }
 }

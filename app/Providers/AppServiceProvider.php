@@ -182,6 +182,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('workflow-builder-messages', fn (Request $request): Limit => Limit::perMinute(10)
             ->by($request->user()?->id ?? $request->ip()));
 
+        // Each check calls the provider's API, so a member can't hammer it.
+        RateLimiter::for('connector-tests', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by($request->user()?->id ?? $request->ip()));
+
         RateLimiter::for('workflow-builder-assist', fn (Request $request): Limit => Limit::perMinute(20)
             ->by($request->user()?->id ?? $request->ip()));
 

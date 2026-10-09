@@ -26,9 +26,13 @@ class ConnectorCredentialResource extends JsonResource
             'scope' => $this->scope->value,
             'is_default' => $this->is_default,
             'name' => $this->name,
+            'account_label' => $this->account_label,
             // Expired for the member: the token lapsed and can't be refreshed.
             'is_expired' => ! $this->isUsable(),
             'last_used_at' => $this->last_used_at,
+            'last_tested_at' => $this->last_tested_at,
+            'last_test_ok' => $this->last_test_ok,
+            'last_test_message' => $this->last_test_message,
             'expires_at' => $this->expires_at,
             'created_by' => $this->created_by,
             'created_at' => $this->created_at,

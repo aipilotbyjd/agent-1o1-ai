@@ -201,3 +201,62 @@ it('keeps the provider\'s error body out of the callback response and refuses a 
     $this->getJson($query)->assertUnprocessable();
     Http::assertSentCount(1);
 });
+
+it('reconnects an existing account in place instead of creating a second one', function () {
+    [$workspace, $owner] = ownerWorkspaceForOAuth();
+    $connector = Connector::factory()->oauth()->create(['key' => 'github']);
+    config(['services.github.client_id' => 'client-123', 'services.github.client_secret' => 'secret-123']);
+
+    $credential = ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($connector)->create([
+        'name' => 'Work GitHub',
+        'created_by' => $owner->id,
+        'data' => ['access_token' => 'dead-token', 'refresh_token' => 'dead-refresh', 'refresh_rejected_at' => now()->toIso8601String()],
+        'expires_at' => now()->subDay(),
+    ]);
+
+    Passport::actingAs($owner);
+
+    $initiate = $this->postJson("/api/v1/workspaces/{$workspace->id}/connector-credentials/oauth/initiate", [
+        'connector_id' => $connector->id,
+        'name' => 'Ignored for a reconnect',
+        'redirect_uri' => 'https://app.test/callback',
+        'credential_id' => $credential->id,
+    ])->assertOk();
+
+    Http::fake([$connector->oauth['token_url'] => Http::response(['access_token' => 'fresh-token', 'refresh_token' => 'fresh-refresh', 'expires_in' => 3600])]);
+
+    $this->getJson('/api/oauth/connectors/callback?'.http_build_query([
+        'state' => $initiate->json('data.state'),
+        'code' => 'auth-code-123',
+    ]))->assertCreated()->assertJsonPath('data.connector_credential.id', $credential->id);
+
+    $credential->refresh();
+    expect(ConnectorCredential::query()->where('workspace_id', $workspace->id)->count())->toBe(1)
+        ->and($credential->name)->toBe('Work GitHub')
+        ->and($credential->data)->toBe(['access_token' => 'fresh-token', 'refresh_token' => 'fresh-refresh'])
+        ->and($credential->isUsable())->toBeTrue();
+});
+
+it('refuses to reconnect a credential from another workspace or connector', function () {
+    [$workspace, $owner] = ownerWorkspaceForOAuth();
+    $connector = Connector::factory()->oauth()->create(['key' => 'github']);
+    $otherConnector = Connector::factory()->oauth()->create(['key' => 'slack']);
+    config(['services.github.client_id' => 'client-123', 'services.github.client_secret' => 'secret-123']);
+
+    [$otherWorkspace] = ownerWorkspaceForOAuth();
+    $foreign = ConnectorCredential::factory()->forWorkspace($otherWorkspace)->forConnector($connector)->create();
+    $wrongConnector = ConnectorCredential::factory()->forWorkspace($workspace)->forConnector($otherConnector)->create(['created_by' => $owner->id]);
+
+    Passport::actingAs($owner);
+
+    foreach ([$foreign, $wrongConnector] as $credential) {
+        $this->postJson("/api/v1/workspaces/{$workspace->id}/connector-credentials/oauth/initiate", [
+            'connector_id' => $connector->id,
+            'name' => 'Nope',
+            'redirect_uri' => 'https://app.test/callback',
+            'credential_id' => $credential->id,
+        ])->assertNotFound();
+    }
+
+    expect(OAuthConnectorState::query()->count())->toBe(0);
+});

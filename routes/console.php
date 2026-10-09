@@ -32,6 +32,7 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
 
     // Connectors, knowledge & skills
     Schedule::command('connectors:refresh-expiring')->everyFiveMinutes();
+    Schedule::command('connectors:check-health')->hourly();
     Schedule::command('knowledge:sync-sources')->everyFifteenMinutes();
     Schedule::command('skills:sync-sources')->everyFifteenMinutes();
 

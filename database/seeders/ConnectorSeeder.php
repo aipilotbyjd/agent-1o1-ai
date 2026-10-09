@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\Connectors\ConnectorAuthType;
+use App\Enums\Connectors\ConnectorCategory;
 use App\Models\Connectors\Connector;
 use Illuminate\Database\Seeder;
 
@@ -42,6 +43,8 @@ class ConnectorSeeder extends Seeder
                     'description' => $connector['description'],
                     'icon' => $connector['icon'],
                     'color' => $connector['color'],
+                    'category' => $connector['category'],
+                    'is_featured' => $connector['is_featured'],
                     'auth_type' => $connector['auth_type'],
                     'fields' => $connector['fields'],
                     'oauth' => $connector['oauth'],
@@ -58,6 +61,8 @@ class ConnectorSeeder extends Seeder
      *     description: string,
      *     icon: string,
      *     color: string,
+     *     category: ConnectorCategory,
+     *     is_featured: bool,
      *     auth_type: ConnectorAuthType,
      *     fields: array<int, mixed>,
      *     oauth: array{authorize_url: string, token_url: string, scopes: array<int, string>},
@@ -73,6 +78,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'Manage repositories, issues, pull requests, and commits on GitHub.',
                 'icon' => 'github',
                 'color' => '#24292E',
+                'category' => ConnectorCategory::Developer,
+                'is_featured' => true,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [
@@ -88,6 +95,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'Post messages, manage channels, and look up users in Slack.',
                 'icon' => 'slack',
                 'color' => '#4A154B',
+                'category' => ConnectorCategory::Communication,
+                'is_featured' => true,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [
@@ -103,6 +112,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'Send, read, and organize email in Gmail.',
                 'icon' => 'mail',
                 'color' => '#EA4335',
+                'category' => ConnectorCategory::Communication,
+                'is_featured' => true,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [
@@ -119,6 +130,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'List, fetch, and delete files in Google Drive.',
                 'icon' => 'drive',
                 'color' => '#0F9D58',
+                'category' => ConnectorCategory::Storage,
+                'is_featured' => false,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [
@@ -135,6 +148,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'Read, append, and update values in Google Sheets.',
                 'icon' => 'sheets',
                 'color' => '#0F9D58',
+                'category' => ConnectorCategory::Productivity,
+                'is_featured' => true,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [
@@ -151,6 +166,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'Create and edit Google Docs.',
                 'icon' => 'docs',
                 'color' => '#4285F4',
+                'category' => ConnectorCategory::Productivity,
+                'is_featured' => false,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [
@@ -167,6 +184,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'List, create, and delete events on Google Calendar.',
                 'icon' => 'calendar',
                 'color' => '#4285F4',
+                'category' => ConnectorCategory::Productivity,
+                'is_featured' => false,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [
@@ -185,6 +204,8 @@ class ConnectorSeeder extends Seeder
                 'description' => 'Read, draft and send email, and manage your calendar in Outlook (Microsoft 365).',
                 'icon' => 'mail',
                 'color' => '#0078D4',
+                'category' => ConnectorCategory::Communication,
+                'is_featured' => false,
                 'auth_type' => ConnectorAuthType::OAuth2,
                 'fields' => [],
                 'oauth' => [

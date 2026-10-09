@@ -3,6 +3,7 @@
 namespace Database\Factories\Connectors;
 
 use App\Enums\Connectors\ConnectorAuthType;
+use App\Enums\Connectors\ConnectorCategory;
 use App\Models\Connectors\Connector;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -27,6 +28,8 @@ class ConnectorFactory extends Factory
             'description' => fake()->sentence(),
             'icon' => 'plug',
             'color' => '#6366f1',
+            'category' => ConnectorCategory::Other,
+            'is_featured' => false,
             'auth_type' => ConnectorAuthType::ApiKey,
             'fields' => [
                 ['name' => 'api_key', 'label' => 'API Key', 'type' => 'string', 'secret' => true, 'required' => true],

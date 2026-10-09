@@ -28,9 +28,12 @@ class ConnectorTokens
     public function __construct(private readonly OAuthConnectorFlowService $flow) {}
 
     /**
+     * `$markUsed` is off only for a connection check, which shouldn't read
+     * as the account having been used.
+     *
      * @throws ConnectorException when the connection has expired and can't be renewed
      */
-    public function accessToken(ConnectorCredential $credential): string
+    public function accessToken(ConnectorCredential $credential, bool $markUsed = true): string
     {
         if ($this->expiresSoon($credential)) {
             $credential = $this->refresh($credential);
@@ -42,7 +45,9 @@ class ConnectorTokens
             throw new ConnectorException("Connector credential [{$credential->id}] has no usable access token. Reconnect it in Apps.");
         }
 
-        $credential->forceFill(['last_used_at' => now()])->saveQuietly();
+        if ($markUsed) {
+            $credential->forceFill(['last_used_at' => now()])->saveQuietly();
+        }
 
         return $token;
     }

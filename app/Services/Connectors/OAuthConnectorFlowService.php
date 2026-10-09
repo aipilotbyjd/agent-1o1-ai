@@ -38,6 +38,7 @@ class OAuthConnectorFlowService
         string $name,
         string $redirectUri,
         ?string $scope = null,
+        ?ConnectorCredential $reconnecting = null,
     ): array {
         if (! $connector->isOAuth()) {
             throw new ConnectorException("Connector [{$connector->key}] does not support OAuth.");
@@ -53,10 +54,11 @@ class OAuthConnectorFlowService
             'workspace_id' => $workspace->id,
             'user_id' => $user->id,
             'connector_id' => $connector->id,
+            'connector_credential_id' => $reconnecting?->id,
             'state' => $state,
-            'name' => $name,
+            'name' => $reconnecting?->name ?? $name,
             'redirect_uri' => $redirectUri,
-            'scope' => $scope ?? ConnectorCredentialScope::Team->value,
+            'scope' => $reconnecting?->scope->value ?? $scope ?? ConnectorCredentialScope::Team->value,
             'expires_at' => now()->addMinutes(self::STATE_TTL_MINUTES),
         ]);
 
@@ -112,6 +114,15 @@ class OAuthConnectorFlowService
 
         $body = $this->validatedTokenBody($response->json());
 
+        $reconnecting = $pending->connector_credential_id === null ? null : ConnectorCredential::query()
+            ->where('workspace_id', $pending->workspace_id)
+            ->where('connector_id', $connector->id)
+            ->find($pending->connector_credential_id);
+
+        if ($reconnecting !== null) {
+            return $this->renew($reconnecting, $body);
+        }
+
         $credential = ConnectorCredential::create([
             'workspace_id' => $pending->workspace_id,
             'connector_id' => $connector->id,
@@ -119,6 +130,31 @@ class OAuthConnectorFlowService
             'scope' => $pending->scope,
             'name' => $pending->name,
             'data' => $this->tokenData($body),
+            'expires_at' => $this->expiresAt($body),
+        ]);
+
+        return $credential;
+    }
+
+    /**
+     * Fresh tokens for an existing account. The new token set replaces the
+     * old one (and with it any `refresh_rejected_at` mark); a provider that
+     * doesn't re-issue a refresh token keeps the old one, unless that was
+     * the one it rejected.
+     *
+     * @param  array<string, mixed>  $body
+     */
+    private function renew(ConnectorCredential $credential, array $body): ConnectorCredential
+    {
+        $data = $this->tokenData($body);
+        $previous = $credential->data;
+
+        if (! isset($data['refresh_token']) && filled($previous['refresh_token'] ?? null) && blank($previous['refresh_rejected_at'] ?? null)) {
+            $data['refresh_token'] = $previous['refresh_token'];
+        }
+
+        $credential->update([
+            'data' => $data,
             'expires_at' => $this->expiresAt($body),
         ]);
 
