@@ -105,3 +105,32 @@ it('floors a near-instant, tokenless agent turn at 1 compute credit plus its orc
     // reasoning 0 + tool calls 0 + compute floor 1 = subtotal 1; fee ceil(1*0.08) = 1.
     expect(app(CreditMeter::class)->costForAgentMessage($message))->toBe(2);
 });
+
+it('bills no token credits for a call served by the workspace\'s own provider key', function () {
+    config(['billing.model_prices.openai:gpt-4o' => ['input' => 2.5, 'output' => 10.0]]);
+
+    $byok = NodeRun::factory()->make([
+        'type' => 'ask_ai',
+        'usage' => ['prompt_tokens' => 400_000, 'completion_tokens' => 100_000, 'provider' => 'byok-01a1b2c3', 'model' => 'gpt-4o'],
+    ]);
+    $platform = NodeRun::factory()->make([
+        'type' => 'ask_ai',
+        'usage' => ['prompt_tokens' => 400_000, 'completion_tokens' => 100_000, 'provider' => 'openai', 'model' => 'gpt-4o'],
+    ]);
+
+    $meter = app(CreditMeter::class);
+
+    expect($meter->costForNodeRun($byok))->toBe(1 + (int) config('billing.node_costs.ask_ai', 0))
+        ->and($meter->costForNodeRun($platform))->toBeGreaterThan($meter->costForNodeRun($byok));
+});
+
+it('still bills tool calls and compute on a chat turn served by the workspace\'s own key', function () {
+    config(['billing.orchestration_fee_rate' => 0]);
+
+    $message = AgentMessage::factory()->assistant()->make([
+        'usage' => ['prompt_tokens' => 50_000, 'completion_tokens' => 10_000, 'provider' => 'byok-01a1b2c3', 'model' => 'gpt-4o', 'tool_call_count' => 2, 'duration_seconds' => 30],
+    ]);
+
+    // 0 token credits + 2 tool calls + ceil(0.5 min × 5) = 3 compute credits
+    expect(app(CreditMeter::class)->costForAgentMessage($message))->toBe(5);
+});

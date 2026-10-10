@@ -1,5 +1,14 @@
 # Bring Your Own Key (BYOK) Plan
 
+**Status: implemented (all four phases).** Entry points: `App\Models\Ai\AiProviderCredential`, `App\Services\Ai\ByokProviderRegistrar`, `App\Services\Ai\AiProviderKeyChecker`, `App\Http\Controllers\Api\Internal\V1\Ai\AiProviderCredentialController`, `App\Jobs\Ai\CheckAiProviderCredentialJob` (`ai-credentials:check`, hourly), supported providers in `config/byok.php`. Where the build differs from the plan below:
+
+- The workspace's key is put *ahead of* the platform hop for the same provider, not swapped in for it, so a failover-worthy error (rate limit, quota) still lands on the platform's key. A rejected key (401) is not failover-worthy to the SDK; the hourly re-check takes it out of rotation and notifies whoever relies on it.
+- A key the provider rejects is refused on save (422), not stored as invalid. A key the provider couldn't be reached about is stored unvalidated and re-checked in the background.
+- Permissions are three, not two: `ai-credential.view` (viewer), `ai-credential.use-personal` (member — add keys only you use), `ai-credential.manage` (admin — team keys).
+- Billing went with option 3: a call served by a BYOK key costs no token credits (`CreditMeter::tokenCost`), its tokens still recorded; base/tool/compute/orchestration credits still apply.
+- `model_routes.connector_credential_id` is dropped.
+- `GET /model-catalog?workspace_id=` counts the member's usable BYOK keys towards `is_available`.
+
 ## Context
 
 The model catalog abstraction (`model_catalog`/`model_routes`, `Services\Ai\ModelCatalogResolver`) decouples the public model a user/agent picks from the real backend that executes it — see `app/Services/Ai/ModelCatalogResolver.php`'s docblock and `database/migrations/2026_08_29_130000_create_model_catalog_table.php`. Every route today authenticates with this platform's own `.env`-configured provider key (`config('ai.providers.*')`) — there is no way for a workspace to run a route on its own key. This doc plans that gap: a workspace connecting its own OpenAI/Anthropic/Fireworks/etc. API key so its agent and workflow calls to that provider run on its own account and billing instead of the platform's.

@@ -15,6 +15,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Workspaces\Workspace;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\CreditMeter;
@@ -32,6 +33,7 @@ class AgentDraftController extends Controller
         DraftAgentRequest $request,
         Workspace $workspace,
         ModelCatalogResolver $modelCatalog,
+        ByokProviderRegistrar $byok,
         CreditGate $creditGate,
         CreditMeter $meter,
         DeductCreditsAction $deductCredits,
@@ -41,11 +43,13 @@ class AgentDraftController extends Controller
 
         $catalog = ModelCatalog::query()->findOrFail($request->validated('model_catalog_id'));
 
+        [$provider] = $byok->apply($modelCatalog->providerChain($catalog->slug), null, $workspace->id, $request->user()->id);
+
         $startedAt = now();
 
         $response = (new AgentDraftAgent)->prompt(
             $request->validated('prompt'),
-            provider: $modelCatalog->providerChain($catalog->slug),
+            provider: $provider,
         );
 
         $draft = Arr::only(

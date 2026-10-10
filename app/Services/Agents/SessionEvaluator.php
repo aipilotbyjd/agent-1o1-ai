@@ -16,6 +16,7 @@ use App\Models\Agents\AgentSession;
 use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Runs\Run;
 use App\Notifications\Agents\SessionEvaluationNotifyNotification;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Notifications\NotificationDispatcher;
@@ -42,6 +43,7 @@ class SessionEvaluator
         private readonly SessionEvaluationGrader $grader,
         private readonly NotificationDispatcher $notifications,
         private readonly ModelCatalogResolver $modelCatalog,
+        private readonly ByokProviderRegistrar $byok,
     ) {}
 
     /**
@@ -126,7 +128,7 @@ class SessionEvaluator
     {
         $agent = $session->agent;
         $transcript = $this->transcriptFor($session);
-        [$provider, $model] = $this->modelCatalog->forJudging($agent, $settings->model);
+        [$provider, $model] = $this->byok->apply(...$this->modelCatalog->forJudging($agent, $settings->model), workspaceId: $session->workspace_id, userId: $session->user_id);
 
         $startedAt = now();
 

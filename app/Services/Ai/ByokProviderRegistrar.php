@@ -1,0 +1,166 @@
+<?php
+
+namespace App\Services\Ai;
+
+use App\Enums\Ai\AiProviderCredentialStatus;
+use App\Enums\Connectors\ConnectorCredentialScope;
+use App\Models\Ai\AiProviderCredential;
+use Illuminate\Support\Collection;
+use Laravel\Ai\AiManager;
+
+/**
+ * Bring your own key, at call time. `ModelCatalogResolver` stays global —
+ * it answers "which backends serve this model" — and this answers "whose
+ * key pays for each of them" for one workspace and one acting member.
+ *
+ * For every hop of a provider chain whose provider has a usable key here
+ * (the member's own personal key first, then the workspace's team key),
+ * the key is registered as a runtime provider (`byok-{credential id}`, the
+ * same driver and URL as the static entry it stands in for) and put just
+ * ahead of that hop:
+ *
+ *     ['openai' => 'gpt-4o']  →  ['byok-9f…' => 'gpt-4o', 'openai' => 'gpt-4o']
+ *
+ * The platform's own hop stays behind it (when the platform has a key for
+ * it), so a failover-worthy error on the workspace's key — rate limited,
+ * out of quota — still lands on a working backend. A rejected key is not
+ * failover-worthy to the SDK; the scheduled re-check takes such a key out
+ * of rotation instead (`CheckAiProviderCredentialJob`).
+ *
+ * The SDK reports the serving provider's config name back on every
+ * response, so `isByok()` on a usage record says whose key ran the call —
+ * which is how `CreditMeter` knows not to bill its tokens.
+ */
+class ByokProviderRegistrar
+{
+    public const string PREFIX = 'byok-';
+
+    /**
+     * How stale `last_used_at` may get before a call refreshes it — one
+     * write per key per few minutes rather than one per call.
+     */
+    private const int LAST_USED_RESOLUTION_SECONDS = 300;
+
+    public function __construct(private readonly AiManager $ai) {}
+
+    /**
+     * `$provider`/`$model` exactly as `ModelCatalogResolver` (or an agent's
+     * own columns) hand them over; the result is the same shape, ready for
+     * `->prompt(provider:, model:)`.
+     *
+     * @param  string|array<string, string>|null  $provider
+     * @return array{0: string|array<string, string>|null, 1: ?string}
+     */
+    public function apply(string|array|null $provider, ?string $model, string $workspaceId, ?string $userId): array
+    {
+        if ($provider === null || $provider === []) {
+            return [$provider, $model];
+        }
+
+        $chain = is_array($provider) ? $provider : [$provider => $model];
+        $credentials = $this->credentialsFor($workspaceId, $userId, array_keys($chain));
+
+        if ($credentials->isEmpty()) {
+            return [$provider, $model];
+        }
+
+        // A bare provider with no model leaves the model to the driver's
+        // default, which only a single-provider call can express.
+        if (! is_array($provider) && $model === null) {
+            return [$this->register($credentials[$provider], $provider), null];
+        }
+
+        $result = [];
+
+        foreach ($chain as $hop => $hopModel) {
+            if ($credentials->has($hop)) {
+                $result[$this->register($credentials[$hop], $hop)] = $hopModel;
+
+                if (! ModelCatalogResolver::providerIsConfigured($hop)) {
+                    continue;
+                }
+            }
+
+            $result[$hop] = $hopModel;
+        }
+
+        return [$result, null];
+    }
+
+    /**
+     * Whether a provider name (as the SDK reports it on a response's meta,
+     * and so on every usage record) is a workspace's own key.
+     */
+    public static function isByok(mixed $provider): bool
+    {
+        return is_string($provider) && str_starts_with($provider, self::PREFIX);
+    }
+
+    /**
+     * Which providers this member's calls would run on their workspace's own
+     * key — for marking catalog models usable that the platform can't serve.
+     *
+     * @return array<int, string>
+     */
+    public function coveredProviders(string $workspaceId, ?string $userId): array
+    {
+        return $this->credentialsFor($workspaceId, $userId, array_keys((array) config('byok.providers')))->keys()->all();
+    }
+
+    /**
+     * The one usable key per provider: the member's personal key before the
+     * team's, a group's default before its other keys, oldest first.
+     *
+     * @param  array<int, string>  $providers
+     * @return Collection<string, AiProviderCredential>
+     */
+    private function credentialsFor(string $workspaceId, ?string $userId, array $providers): Collection
+    {
+        $providers = array_values(array_intersect($providers, array_keys((array) config('byok.providers'))));
+
+        if ($providers === []) {
+            return collect();
+        }
+
+        return AiProviderCredential::query()
+            ->where('workspace_id', $workspaceId)
+            ->whereIn('execution_provider', $providers)
+            ->where('validation_status', AiProviderCredentialStatus::Valid->value)
+            ->where(fn ($query) => $query
+                ->where('scope', ConnectorCredentialScope::Team->value)
+                ->when($userId !== null, fn ($query) => $query->orWhere(fn ($query) => $query
+                    ->where('scope', ConnectorCredentialScope::Personal->value)
+                    ->where('created_by', $userId))))
+            ->get()
+            ->sortBy(fn (AiProviderCredential $credential): array => [
+                $credential->scope === ConnectorCredentialScope::Personal ? 0 : 1,
+                $credential->is_default ? 0 : 1,
+                $credential->created_at?->getTimestamp() ?? 0,
+            ])
+            ->unique('execution_provider')
+            ->keyBy('execution_provider');
+    }
+
+    /**
+     * Registers the key as a runtime provider and returns its name. The
+     * cached SDK instance is dropped every time, so a long-running worker
+     * never keeps calling with a key that has since been replaced.
+     */
+    private function register(AiProviderCredential $credential, string $provider): string
+    {
+        $name = self::PREFIX.$credential->id;
+
+        config(["ai.providers.{$name}" => [
+            ...(array) config("ai.providers.{$provider}", ['driver' => $provider]),
+            'key' => $credential->apiKey(),
+        ]]);
+
+        $this->ai->purge($name);
+
+        if ($credential->last_used_at === null || $credential->last_used_at->diffInSeconds(now()) > self::LAST_USED_RESOLUTION_SECONDS) {
+            AiProviderCredential::query()->whereKey($credential->id)->update(['last_used_at' => now()]);
+        }
+
+        return $name;
+    }
+}

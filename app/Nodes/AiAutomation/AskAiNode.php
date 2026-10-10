@@ -10,6 +10,7 @@ use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 
 /**
@@ -19,7 +20,10 @@ use App\Services\Ai\ModelCatalogResolver;
  */
 class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
 {
-    public function __construct(private readonly ModelCatalogResolver $modelCatalog) {}
+    public function __construct(
+        private readonly ModelCatalogResolver $modelCatalog,
+        private readonly ByokProviderRegistrar $byok,
+    ) {}
 
     public function type(): string
     {
@@ -77,6 +81,8 @@ class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
             $provider = $config['provider'] ?? null;
             $model = $config['model'] ?? null;
         }
+
+        [$provider, $model] = $this->byok->apply($provider, $model, $run->workspace_id, $run->triggered_by);
 
         $response = $agent->prompt($config['prompt'], provider: $provider, model: $model);
 

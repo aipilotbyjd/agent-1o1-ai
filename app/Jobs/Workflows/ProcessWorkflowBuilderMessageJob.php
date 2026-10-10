@@ -14,6 +14,7 @@ use App\Enums\Workflows\BuilderMessageStatus;
 use App\Events\Workflows\WorkflowBuilderActivity;
 use App\Models\Workflows\Builder\WorkflowBuilderMessage;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditMeter;
 use App\Services\Workflows\DraftDiff;
@@ -69,7 +70,7 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         $this->onQueue(Queue::WorkflowBuilder->value);
     }
 
-    public function handle(ModelCatalogResolver $modelCatalog, CreditMeter $meter, DeductCreditsAction $deductCredits): void
+    public function handle(ModelCatalogResolver $modelCatalog, ByokProviderRegistrar $byok, CreditMeter $meter, DeductCreditsAction $deductCredits): void
     {
         $session = WorkflowBuilderSession::find($this->sessionId);
         $userMessage = WorkflowBuilderMessage::find($this->userMessageId);
@@ -85,9 +86,11 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         $graphBefore = $session->currentGraph();
         $lockVersionBefore = $session->draft_lock_version;
 
+        $provider = $this->provider($modelCatalog, $byok, $session, $userMessage);
+
         try {
-            $response = $this->streamTurn($session, $userMessage, $modelCatalog);
-            $titleUsage = $this->autoTitle($session, $userMessage, $modelCatalog);
+            $response = $this->streamTurn($session, $userMessage, $provider);
+            $titleUsage = $this->autoTitle($session, $userMessage, $provider);
         } catch (Throwable $exception) {
             report($exception);
             $this->markFailed($session, $reply, $graphBefore);
@@ -141,14 +144,17 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     /**
      * @return array{text: string, usage: array<string, mixed>}
      */
-    private function streamTurn(WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage, ModelCatalogResolver $modelCatalog): array
+    /**
+     * @param  array<string, string>|null  $provider
+     */
+    private function streamTurn(WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage, ?array $provider): array
     {
         $startedAt = now();
         $finished = null;
         $lastBroadcastLockVersion = $session->draft_lock_version;
 
         $stream = (new WorkflowBuilderAgent($session, $userMessage->id, $userMessage->user))
-            ->stream($userMessage->content, provider: $this->provider($modelCatalog));
+            ->stream($userMessage->content, provider: $provider);
 
         $stream->then(function (StreamedAgentResponse $response) use (&$finished): void {
             $finished = $response;
@@ -201,7 +207,10 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
      *
      * @return array<string, mixed>|null The title call's usage, to be charged with the turn.
      */
-    private function autoTitle(WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage, ModelCatalogResolver $modelCatalog): ?array
+    /**
+     * @param  array<string, string>|null  $provider
+     */
+    private function autoTitle(WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage, ?array $provider): ?array
     {
         if ($session->title !== WorkflowBuilderSession::DEFAULT_TITLE) {
             return null;
@@ -212,7 +221,7 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         try {
             $response = (new WorkflowBuilderTitleAgent)->prompt(
                 Str::limit($userMessage->content, 2000),
-                provider: $this->provider($modelCatalog),
+                provider: $provider,
             );
 
             $title = trim((string) (ToolSubmission::arguments($response, SubmitWorkflowTitleTool::NAME)['title'] ?? ''));
@@ -267,15 +276,21 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
      * Falls back to `laravel/ai`'s own default provider (`config('ai.default')`)
      * when the `workflow-builder-assistant` catalog entry hasn't been seeded
      * or has no enabled route — so a fresh install isn't broken by this.
+     * Runs on the workspace's own provider key where the member sending the
+     * message has one — see `ByokProviderRegistrar`.
      *
      * @return array<string, string>|null
      */
-    private function provider(ModelCatalogResolver $modelCatalog): ?array
+    private function provider(ModelCatalogResolver $modelCatalog, ByokProviderRegistrar $byok, WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage): ?array
     {
         try {
-            return $modelCatalog->providerChain(self::MODEL_CATALOG_SLUG);
+            $chain = $modelCatalog->providerChain(self::MODEL_CATALOG_SLUG);
         } catch (RuntimeException) {
             return null;
         }
+
+        [$provider] = $byok->apply($chain, null, $session->workspace_id, $userMessage->user_id);
+
+        return $provider;
     }
 }

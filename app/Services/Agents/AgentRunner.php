@@ -27,6 +27,7 @@ use App\Services\Agents\Approvals\AgentActionExecutor;
 use App\Services\Agents\Approvals\AutonomyResolver;
 use App\Services\Agents\Approvals\PausedTurn;
 use App\Services\Agents\Approvals\Resumption;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use Illuminate\Http\UploadedFile;
@@ -70,6 +71,7 @@ class AgentRunner
         private readonly SkillInjector $skillInjector,
         private readonly CreditGate $creditGate,
         private readonly ModelCatalogResolver $modelCatalog,
+        private readonly ByokProviderRegistrar $byok,
         private readonly CreateAgentSessionAction $createSession,
         private readonly StoreArtifactAction $storeArtifact,
         private readonly AutonomyResolver $autonomy,
@@ -269,7 +271,7 @@ class AgentRunner
             $instructions .= "\n\n".$this->skillInjector->chosenSkillSection($skill);
         }
 
-        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+        [$provider, $model] = $this->modelFor($agent, $run);
         $tools = $this->tools->toolsFor($agent, $run);
 
         $this->recordContext($run, $instructions, $provider, $model, $tools, $skill);
@@ -288,6 +290,19 @@ class AgentRunner
             $model,
             array_map(fn (Artifact $artifact) => $artifact->toPromptAttachment(), $storedAttachments),
         );
+    }
+
+    /**
+     * The agent's model, on the workspace's own provider key where it has
+     * one for whoever started the run — see `ByokProviderRegistrar`.
+     *
+     * @return array{0: string|array<string, string>|null, 1: ?string}
+     */
+    private function modelFor(AgentModel $agent, Run $run): array
+    {
+        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+
+        return $this->byok->apply($provider, $model, $run->workspace_id, $run->triggered_by);
     }
 
     /**
@@ -521,7 +536,7 @@ class AgentRunner
         $settled = $this->executor->settle($actions, $tools);
 
         $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
-        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+        [$provider, $model] = $this->modelFor($agent, $run);
 
         return new Resumption(
             new AgentTurn(
@@ -702,7 +717,7 @@ class AgentRunner
     public function ask(AgentModel $agent, Run $run, string $prompt, bool $simulateActions = false): array
     {
         $instructions = $this->skillInjector->instructionsFor($agent, $run->triggered_by);
-        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+        [$provider, $model] = $this->modelFor($agent, $run);
 
         $startedAt = now();
 
@@ -754,7 +769,7 @@ class AgentRunner
             : $this->conversationFor($agent, $run, $previousConversationId);
 
         $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
-        [$provider, $model] = $this->modelCatalog->forAgent($agent);
+        [$provider, $model] = $this->modelFor($agent, $run);
 
         $userMessage = $session->messages()->create([
             'role' => AgentMessageRole::User,

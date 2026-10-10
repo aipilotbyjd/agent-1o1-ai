@@ -31,6 +31,11 @@ enum AuditAction: string
     case ConnectorCredentialDefaultChanged = 'connector_credential.default_changed';
     case ConnectorCredentialReassigned = 'connector_credential.reassigned';
 
+    case AiProviderCredentialCreated = 'ai_provider_credential.created';
+    case AiProviderCredentialUpdated = 'ai_provider_credential.updated';
+    case AiProviderCredentialDeleted = 'ai_provider_credential.deleted';
+    case AiProviderCredentialDefaultChanged = 'ai_provider_credential.default_changed';
+
     case NotificationChannelCreated = 'notification_channel.created';
     case NotificationChannelUpdated = 'notification_channel.updated';
     case NotificationChannelDeleted = 'notification_channel.deleted';

@@ -7,14 +7,21 @@ use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
 use App\Models\Runs\NodeRun;
+use App\Services\Ai\ByokProviderRegistrar;
 
 /**
  * The per-node/per-agent-step cost table docs/PLAN.md's "Architecture
  * Overview" describes: "1 base credit/run, AI nodes billed by tokens, some
  * integration nodes have fixed costs". Per-node fixed costs are read from
  * `config('billing.node_costs')` — see that file for how to price a node
- * type. BYOK's "halve AI credit cost" still lands alongside real Connector
- * credentials (docs/PLAN.md Phase 6/7).
+ * type.
+ *
+ * A call served by a workspace's own provider key (bring your own key —
+ * see `ByokProviderRegistrar`) costs no token credits: the workspace pays
+ * the provider directly. Its tokens still sit on the usage record for
+ * visibility, and the rest of the formula — base credit, node surcharge,
+ * tool calls, compute, orchestration — is still billed, since that work
+ * runs here either way.
  *
  * Workflow node runs and agent chat turns are priced by two different
  * Gumloop formulas (see docs/gumloop/output/raw/core-concepts/credits.md):
@@ -205,7 +212,7 @@ class CreditMeter
      */
     private function tokenCost(?array $usage): int
     {
-        if ($usage === null) {
+        if ($usage === null || ByokProviderRegistrar::isByok($usage['provider'] ?? null)) {
             return 0;
         }
 

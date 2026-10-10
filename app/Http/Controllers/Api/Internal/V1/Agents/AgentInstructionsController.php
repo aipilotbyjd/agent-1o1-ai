@@ -16,6 +16,7 @@ use App\Models\Agents\Agent;
 use App\Models\Runs\Run;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\ToolRegistry;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\CreditMeter;
@@ -41,6 +42,7 @@ class AgentInstructionsController extends Controller
         Agent $agent,
         ToolRegistry $tools,
         ModelCatalogResolver $modelCatalog,
+        ByokProviderRegistrar $byok,
         CreditGate $creditGate,
         CreditMeter $meter,
         DeductCreditsAction $deductCredits,
@@ -49,7 +51,7 @@ class AgentInstructionsController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         $creditGate->assertCanStartRun($workspace);
 
-        [$provider, $model] = $modelCatalog->forAgent($agent);
+        [$provider, $model] = $byok->apply(...$modelCatalog->forAgent($agent), workspaceId: $workspace->id, userId: $request->user()->id);
 
         $startedAt = now();
 

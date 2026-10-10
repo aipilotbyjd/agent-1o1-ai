@@ -17,9 +17,28 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * submit a selection. Deliberately excludes `routes` — which real
  * backend(s), credentials, and priorities serve this entry is never exposed
  * to agent/workflow-facing API responses. See `Services\Ai\ModelCatalogResolver`.
+ *
+ * `is_available` counts a route the platform has no key for as usable when
+ * the asking member's workspace has its own key for that provider — see
+ * `withOwnKeysFor()` and `ByokProviderRegistrar::coveredProviders()`.
  */
 class ModelCatalogResource extends JsonResource
 {
+    /**
+     * @var array<int, string>
+     */
+    private array $ownKeyProviders = [];
+
+    /**
+     * @param  array<int, string>  $providers
+     */
+    public function withOwnKeysFor(array $providers): static
+    {
+        $this->ownKeyProviders = $providers;
+
+        return $this;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -32,7 +51,8 @@ class ModelCatalogResource extends JsonResource
             'brand' => $this->brand,
             'capabilities' => $this->capabilities,
             'is_available' => $this->whenLoaded('routes', fn (): bool => $this->routes->contains(
-                fn (ModelRoute $route): bool => ModelCatalogResolver::providerIsConfigured($route->execution_provider),
+                fn (ModelRoute $route): bool => in_array($route->execution_provider, $this->ownKeyProviders, true)
+                    || ModelCatalogResolver::providerIsConfigured($route->execution_provider),
             )),
         ];
     }

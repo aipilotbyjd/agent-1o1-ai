@@ -23,6 +23,7 @@ use App\Models\Agents\ReflectionSettings;
 use App\Models\Agents\Skill;
 use App\Models\Runs\Run;
 use App\Notifications\Agents\ReflectionReportNotification;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Notifications\NotificationDispatcher;
@@ -77,6 +78,7 @@ class ReflectionAnalyzer
         private readonly CreditGate $creditGate,
         private readonly NotificationDispatcher $notifications,
         private readonly ModelCatalogResolver $modelCatalog,
+        private readonly ByokProviderRegistrar $byok,
     ) {}
 
     public function run(Agent $agent): ReflectionRun
@@ -260,7 +262,7 @@ class ReflectionAnalyzer
         // Reviewing an agent's own sessions is grading work: a stronger
         // model chosen as the grader catches mistakes the agent's own model
         // would repeat.
-        [$provider, $model] = $this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model);
+        [$provider, $model] = $this->byok->apply(...$this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model), workspaceId: $agent->workspace_id, userId: null);
 
         $startedAt = now();
 

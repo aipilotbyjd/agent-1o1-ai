@@ -37,6 +37,15 @@ enum Permission: string
     case ConnectorView = 'connector.view';
     case ConnectorManage = 'connector.manage';
 
+    /**
+     * The workspace's own AI provider keys (bring your own key). Anyone can
+     * see the team keys exist; a member can add keys only they use
+     * (personal); only admins can add keys the whole workspace uses (team).
+     */
+    case AiCredentialView = 'ai-credential.view';
+    case AiCredentialUsePersonal = 'ai-credential.use-personal';
+    case AiCredentialManage = 'ai-credential.manage';
+
     case SecretView = 'secret.view';
     case SecretManage = 'secret.manage';
 
@@ -76,6 +85,7 @@ enum Permission: string
             self::NodeView,
             self::AgentView,
             self::ConnectorView,
+            self::AiCredentialView,
             self::SecretView,
             self::ArtifactView,
             self::RunView,
@@ -95,6 +105,7 @@ enum Permission: string
         return [
             self::AgentChat,
             self::AssistantUse,
+            self::AiCredentialUsePersonal,
             self::WorkflowTrigger,
             self::RunTrigger,
         ];
@@ -131,6 +142,7 @@ enum Permission: string
             self::MemberUpdateRole,
             self::MemberRemove,
             self::ConnectorManage,
+            self::AiCredentialManage,
             self::SecretManage,
             self::ApiKeyManage,
             self::BillingManage,

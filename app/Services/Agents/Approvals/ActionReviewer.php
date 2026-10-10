@@ -10,6 +10,7 @@ use App\Enums\Agents\ActionRisk;
 use App\Enums\Agents\AgentMessageRole;
 use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\AgentAction;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditMeter;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +35,7 @@ class ActionReviewer
 
     public function __construct(
         private readonly ModelCatalogResolver $modelCatalog,
+        private readonly ByokProviderRegistrar $byok,
         private readonly DeductCreditsAction $deductCredits,
         private readonly CreditMeter $meter,
     ) {}
@@ -46,7 +48,7 @@ class ActionReviewer
         $agent = $context->agent;
 
         try {
-            [$provider, $model] = $this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model);
+            [$provider, $model] = $this->byok->apply(...$this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model), workspaceId: $context->run->workspace_id, userId: $context->run->triggered_by);
 
             $response = (new ActionReviewerAgent)->prompt(
                 ActionReviewerAgent::promptFor(

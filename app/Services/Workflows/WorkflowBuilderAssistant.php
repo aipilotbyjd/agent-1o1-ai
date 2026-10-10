@@ -17,6 +17,7 @@ use App\Enums\Billing\CreditTransactionType;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Jobs\Workflows\ProcessWorkflowBuilderMessageJob;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\CreditMeter;
@@ -46,6 +47,7 @@ class WorkflowBuilderAssistant
         private readonly GraphValidator $graphValidator,
         private readonly NodeOutputShapes $outputShapes,
         private readonly ModelCatalogResolver $modelCatalog,
+        private readonly ByokProviderRegistrar $byok,
         private readonly CreditGate $creditGate,
         private readonly CreditMeter $meter,
         private readonly DeductCreditsAction $deductCredits,
@@ -186,7 +188,7 @@ class WorkflowBuilderAssistant
         $startedAt = now();
 
         /** @var TextResponse $response */
-        $response = $agent->prompt($prompt, provider: $this->provider());
+        $response = $agent->prompt($prompt, provider: $this->provider($session));
 
         $arguments = ToolSubmission::arguments($response, $toolName);
 
@@ -249,16 +251,21 @@ class WorkflowBuilderAssistant
 
     /**
      * The same model the builder chat runs on — see
-     * `ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG`.
+     * `ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG` — on the
+     * session owner's own provider key where there is one.
      *
      * @return array<string, string>|null
      */
-    private function provider(): ?array
+    private function provider(WorkflowBuilderSession $session): ?array
     {
         try {
-            return $this->modelCatalog->providerChain(ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG);
+            $chain = $this->modelCatalog->providerChain(ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG);
         } catch (RuntimeException) {
             return null;
         }
+
+        [$provider] = $this->byok->apply($chain, null, $session->workspace_id, $session->user_id);
+
+        return $provider;
     }
 }

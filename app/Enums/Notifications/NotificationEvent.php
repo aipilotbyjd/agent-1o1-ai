@@ -17,6 +17,7 @@ enum NotificationEvent: string
     case MemberRoleChanged = 'workspace.member_role_changed';
     case RunApprovalRequested = 'run.approval_requested';
     case ConnectorCredentialExpired = 'connector.credential_expired';
+    case AiProviderCredentialInvalid = 'ai.provider_credential_invalid';
     case PaymentFailed = 'billing.payment_failed';
     case PaymentRecovered = 'billing.payment_recovered';
     case SubscriptionCanceled = 'billing.subscription_canceled';
@@ -48,6 +49,7 @@ enum NotificationEvent: string
             self::MemberRoleChanged => 'Member role changed',
             self::RunApprovalRequested => 'Run approval requested',
             self::ConnectorCredentialExpired => 'Connector credential expired',
+            self::AiProviderCredentialInvalid => 'AI provider key stopped working',
             self::PaymentFailed => 'Payment failed',
             self::PaymentRecovered => 'Payment recovered',
             self::SubscriptionCanceled => 'Subscription canceled',
@@ -77,6 +79,7 @@ enum NotificationEvent: string
             self::MemberRoleChanged => "A member's role in the workspace changes.",
             self::RunApprovalRequested => 'A workflow run pauses awaiting human approval.',
             self::ConnectorCredentialExpired => 'A connector credential expires and could not be automatically refreshed.',
+            self::AiProviderCredentialInvalid => 'An AI provider key you rely on is rejected by its provider, so the platform\'s own key is used again.',
             self::PaymentFailed => 'A subscription invoice charge fails.',
             self::PaymentRecovered => 'A previously failed subscription charge succeeds and the plan is restored.',
             self::SubscriptionCanceled => 'A subscription ends, including when Stripe gives up after repeated failed charges.',

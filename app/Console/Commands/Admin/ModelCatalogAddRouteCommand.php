@@ -19,7 +19,6 @@ class ModelCatalogAddRouteCommand extends Command
         {provider : A Lab provider name or a config/ai.php provider key (e.g. fireworks, together, openrouter)}
         {model : The model id that provider expects}
         {--priority=0 : Lower runs first}
-        {--credential= : A connector_credentials.id to use for this route}
         {--disabled : Seed the route disabled}';
 
     protected $description = 'Adds or updates an execution backend for a model catalog entry.';
@@ -41,7 +40,6 @@ class ModelCatalogAddRouteCommand extends Command
             ],
             [
                 'priority' => (int) $this->option('priority'),
-                'connector_credential_id' => $this->option('credential'),
                 'is_enabled' => ! $this->option('disabled'),
             ],
         );

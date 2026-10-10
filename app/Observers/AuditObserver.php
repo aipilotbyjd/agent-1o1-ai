@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Enums\Workspaces\AuditAction;
 use App\Models\Agents\WorkspaceAgentPolicy;
+use App\Models\Ai\AiProviderCredential;
 use App\Models\Auth\ApiKey;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Notifications\NotificationChannel;
@@ -44,6 +45,14 @@ class AuditObserver
      */
     private const array WORKSPACE_COLUMNS = ['name', 'slug', 'avatar', 'owner_id'];
 
+    /**
+     * AI provider key columns a person changes — the rest are re-check
+     * results and the default flag, which has its own audit entry.
+     *
+     * @var list<string>
+     */
+    private const array AI_PROVIDER_CREDENTIAL_COLUMNS = ['name', 'data'];
+
     public function __construct(private readonly AuditLogger $audit) {}
 
     public function created(Model $model): void
@@ -72,6 +81,10 @@ class AuditObserver
 
         if ($model instanceof Workspace) {
             $changed = array_values(array_intersect($changed, self::WORKSPACE_COLUMNS));
+        }
+
+        if ($model instanceof AiProviderCredential) {
+            $changed = array_values(array_intersect($changed, self::AI_PROVIDER_CREDENTIAL_COLUMNS));
         }
 
         // The policy row is only ever persisted by saving it, never implicitly
@@ -134,6 +147,12 @@ class AuditObserver
                 'deleted' => AuditAction::ConnectorCredentialDeleted,
                 default => null,
             },
+            $model instanceof AiProviderCredential => match (true) {
+                $event === 'created' => AuditAction::AiProviderCredentialCreated,
+                $updated => AuditAction::AiProviderCredentialUpdated,
+                $event === 'deleted' => AuditAction::AiProviderCredentialDeleted,
+                default => null,
+            },
             $model instanceof NotificationChannel => match (true) {
                 $event === 'created' => AuditAction::NotificationChannelCreated,
                 $updated => AuditAction::NotificationChannelUpdated,
@@ -161,6 +180,7 @@ class AuditObserver
             $model instanceof ApiKey => ['name' => $model->name, 'abilities' => $model->abilities],
             $model instanceof Secret => ['key' => $model->key],
             $model instanceof ConnectorCredential => ['name' => $model->name, 'connector_id' => $model->connector_id, 'scope' => $this->scalar($model->scope)],
+            $model instanceof AiProviderCredential => ['name' => $model->name, 'execution_provider' => $model->execution_provider, 'scope' => $this->scalar($model->scope)],
             $model instanceof NotificationChannel => ['type' => $model->type, 'name' => $model->name],
             default => [],
         };

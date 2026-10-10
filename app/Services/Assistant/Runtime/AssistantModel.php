@@ -4,22 +4,38 @@ namespace App\Services\Assistant\Runtime;
 
 use App\Models\Ai\ModelCatalog;
 use App\Models\Assistant\Assistant;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use RuntimeException;
 
 /**
  * Which model the assistant runs on, and how big its context window is.
  * The owner's catalog pick wins; then the operator's internal
- * `personal-assistant` entry; then the raw configured provider.
+ * `personal-assistant` entry; then the raw configured provider. Whichever
+ * it is runs on the owner's own provider key where they have one — see
+ * `ByokProviderRegistrar`.
  */
 class AssistantModel
 {
-    public function __construct(private readonly ModelCatalogResolver $resolver) {}
+    public function __construct(
+        private readonly ModelCatalogResolver $resolver,
+        private readonly ByokProviderRegistrar $byok,
+    ) {}
 
     /**
      * @return array{0: string|array<string, string>, 1: ?string}
      */
     public function for(Assistant $assistant): array
+    {
+        [$provider, $model] = $this->platformModelFor($assistant);
+
+        return $this->byok->apply($provider, $model, $assistant->workspace_id, $assistant->user_id);
+    }
+
+    /**
+     * @return array{0: string|array<string, string>, 1: ?string}
+     */
+    private function platformModelFor(Assistant $assistant): array
     {
         $catalog = $this->catalogFor($assistant);
 

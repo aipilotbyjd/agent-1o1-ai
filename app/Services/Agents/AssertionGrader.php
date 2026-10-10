@@ -7,6 +7,7 @@ use App\Ai\Tools\SubmitVerdictTool;
 use App\Ai\ToolSubmission;
 use App\Enums\Agents\EvalAssertionType;
 use App\Models\Agents\Agent;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use Throwable;
 
@@ -21,7 +22,10 @@ use Throwable;
  */
 class AssertionGrader
 {
-    public function __construct(private readonly ModelCatalogResolver $modelCatalog) {}
+    public function __construct(
+        private readonly ModelCatalogResolver $modelCatalog,
+        private readonly ByokProviderRegistrar $byok,
+    ) {}
 
     /**
      * `$agent` is the agent under test; an `llm_rubric` is judged with the
@@ -83,7 +87,7 @@ class AssertionGrader
      */
     private function gradeWithJudge(string $rubric, string $output, Agent $agent): array
     {
-        [$provider, $model] = $this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model);
+        [$provider, $model] = $this->byok->apply(...$this->modelCatalog->forJudging($agent, $agent->evaluationSettings?->model), workspaceId: $agent->workspace_id, userId: null);
 
         $response = (new EvalJudgeAgent)->prompt(EvalJudgeAgent::promptFor($rubric, $output), provider: $provider, model: $model);
 

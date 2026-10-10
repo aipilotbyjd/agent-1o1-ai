@@ -16,6 +16,7 @@ use App\Models\Agents\Skill;
 use App\Models\Agents\SkillScript;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Workspaces\Workspace;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\CreditMeter;
@@ -33,6 +34,7 @@ class SkillDraftController extends Controller
         DraftSkillRequest $request,
         Workspace $workspace,
         ModelCatalogResolver $modelCatalog,
+        ByokProviderRegistrar $byok,
         CreditGate $creditGate,
         CreditMeter $meter,
         DeductCreditsAction $deductCredits,
@@ -42,11 +44,13 @@ class SkillDraftController extends Controller
 
         $catalog = ModelCatalog::query()->findOrFail($request->validated('model_catalog_id'));
 
+        [$provider] = $byok->apply($modelCatalog->providerChain($catalog->slug), null, $workspace->id, $request->user()->id);
+
         $startedAt = now();
 
         $response = (new SkillDraftAgent)->prompt(
             $request->validated('prompt'),
-            provider: $modelCatalog->providerChain($catalog->slug),
+            provider: $provider,
         );
 
         $submission = ToolSubmission::arguments($response, SubmitSkillDraftTool::NAME);
