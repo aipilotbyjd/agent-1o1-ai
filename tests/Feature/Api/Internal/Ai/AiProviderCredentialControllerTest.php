@@ -50,6 +50,7 @@ it('lists the supported providers with the catalog models each key would run', f
     $openai = collect($response->json('data.providers'))->firstWhere('key', 'openai');
     expect($openai['label'])->toBe('OpenAI')
         ->and($openai['models'])->toBe(['GPT-4o'])
+        ->and($openai['covers_knowledge_base'])->toBe(config('ai.default_for_embeddings') === 'openai')
         ->and(collect($response->json('data.providers'))->pluck('key'))->not->toContain('xkiro')
         ->and($response->json('data.can_add_team'))->toBeTrue()
         ->and($response->json('data.can_add_personal'))->toBeTrue();

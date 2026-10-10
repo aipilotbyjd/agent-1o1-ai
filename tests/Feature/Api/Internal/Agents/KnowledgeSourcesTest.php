@@ -10,6 +10,7 @@ use App\Models\Connectors\Connector;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\User;
 use App\Services\Agents\Knowledge\KnowledgeSync;
+use App\Services\Agents\KnowledgeBase;
 use App\Services\Http\SsrfGuard;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Http\Client\Request as HttpRequest;
@@ -46,7 +47,7 @@ it('keeps private knowledge to its owner and out of agents', function () {
     $this->getJson("{$this->base}/document?source=Career%20notes")->assertNotFound();
     $this->deleteJson("{$this->base}/{$chunk->id}")->assertNotFound();
 
-    $agentSearch = (string) (new SearchKnowledgeTool($this->workspace))->handle(new Request(['query' => 'salary target']));
+    $agentSearch = (string) (new SearchKnowledgeTool($this->workspace, app(KnowledgeBase::class)))->handle(new Request(['query' => 'salary target']));
     expect($agentSearch)->toContain('Nothing in the knowledge base matches');
 });
 

@@ -37,7 +37,8 @@ class AiProviderCredentialController extends Controller
 
     /**
      * The providers a key can be added for, with the catalog models each
-     * would run, and what the asking member may add.
+     * would run (plus knowledge-base embeddings for the platform's embeddings
+     * provider), and what the asking member may add.
      */
     public function providers(Request $request, Workspace $workspace)
     {
@@ -65,6 +66,7 @@ class AiProviderCredentialController extends Controller
                 'key_url' => $provider['key_url'],
                 'key_placeholder' => $provider['key_placeholder'] ?: null,
                 'models' => $modelsByProvider->get($key, []),
+                'covers_knowledge_base' => $key === config('ai.default_for_embeddings'),
             ])
             ->values();
 

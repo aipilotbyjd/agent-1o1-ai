@@ -22,7 +22,7 @@ it('ranks the closest-by-construction chunk first and drops unrelated ones', fun
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'far', 'chunk_text' => 'far chunk', 'embedding' => [0.0, 1.0, 0.0]]);
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'opposite', 'chunk_text' => 'opposite chunk', 'embedding' => [-1.0, 0.0, 0.0]]);
 
-    $tool = new SearchKnowledgeTool($workspace);
+    $tool = new SearchKnowledgeTool($workspace, app(KnowledgeBase::class));
     $result = json_decode($tool->handle(new Request(['query' => 'anything'])), true);
 
     expect(array_column($result, 'source'))->toBe(['close', 'nearer']);
@@ -38,7 +38,7 @@ it('lifts a chunk containing the exact term above a merely similar one', functio
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'similar', 'chunk_text' => 'Our invoices are sent monthly.', 'embedding' => [0.8, 0.6]]);
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'exact', 'chunk_text' => 'Invoice INV-2043 was refunded on May 3.', 'embedding' => [0.5, 0.866]]);
 
-    $result = json_decode((new SearchKnowledgeTool($workspace))->handle(new Request(['query' => 'INV-2043'])), true);
+    $result = json_decode((new SearchKnowledgeTool($workspace, app(KnowledgeBase::class)))->handle(new Request(['query' => 'INV-2043'])), true);
 
     expect($result[0]['source'])->toBe('exact');
 });
@@ -51,7 +51,7 @@ it('keeps a chunk that shares a word with the query even when its embedding is u
 
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'sku', 'chunk_text' => 'SKU ZX-9 ships from Leeds.', 'embedding' => [0.0, 1.0]]);
 
-    $result = json_decode((new SearchKnowledgeTool($workspace))->handle(new Request(['query' => 'where does zx-9 ship from'])), true);
+    $result = json_decode((new SearchKnowledgeTool($workspace, app(KnowledgeBase::class)))->handle(new Request(['query' => 'where does zx-9 ship from'])), true);
 
     expect($result[0]['source'])->toBe('sku');
 });
@@ -64,7 +64,7 @@ it('tells the model when nothing relevant was found', function () {
 
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'source' => 'unrelated', 'chunk_text' => 'Office plants are watered on Fridays.', 'embedding' => [0.0, 1.0]]);
 
-    $result = (new SearchKnowledgeTool($workspace))->handle(new Request(['query' => 'refund policy']));
+    $result = (new SearchKnowledgeTool($workspace, app(KnowledgeBase::class)))->handle(new Request(['query' => 'refund policy']));
 
     expect($result)->toContain('Nothing in the knowledge base matches');
 });
@@ -78,7 +78,7 @@ it('scopes results to the given collection', function () {
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'collection' => 'docs', 'source' => 'in-collection', 'chunk_text' => 'a', 'embedding' => [1.0, 0.0]]);
     DocumentEmbedding::create(['workspace_id' => $workspace->id, 'collection' => 'other', 'source' => 'out-of-collection', 'chunk_text' => 'b', 'embedding' => [1.0, 0.0]]);
 
-    $tool = new SearchKnowledgeTool($workspace, collection: 'docs');
+    $tool = new SearchKnowledgeTool($workspace, app(KnowledgeBase::class), collection: 'docs');
     $result = json_decode($tool->handle(new Request(['query' => 'anything'])), true);
 
     expect($result)->toHaveCount(1);
@@ -94,7 +94,7 @@ it('does not leak results from another workspace', function () {
 
     DocumentEmbedding::create(['workspace_id' => $otherWorkspace->id, 'source' => 'foreign', 'chunk_text' => 'c', 'embedding' => [1.0, 0.0]]);
 
-    $tool = new SearchKnowledgeTool($workspace);
+    $tool = new SearchKnowledgeTool($workspace, app(KnowledgeBase::class));
     $result = $tool->handle(new Request(['query' => 'anything']));
 
     expect($result)->toContain('Nothing in the knowledge base matches');

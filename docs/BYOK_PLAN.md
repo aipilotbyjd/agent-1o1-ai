@@ -8,6 +8,7 @@
 - Billing went with option 3: a call served by a BYOK key costs no token credits (`CreditMeter::tokenCost`), its tokens still recorded; base/tool/compute/orchestration credits still apply.
 - `model_routes.connector_credential_id` is dropped.
 - `GET /model-catalog?workspace_id=` counts the member's usable BYOK keys towards `is_available`.
+- Knowledge-base embeddings use a BYOK key too, but only for the platform's own embeddings provider (`ai.default_for_embeddings`) and its same model, so stored vectors stay comparable (`ByokProviderRegistrar::embeddingsProvider()`). Private chunks embed on the owner's personal key, searches on the viewer's.
 
 ## Context
 

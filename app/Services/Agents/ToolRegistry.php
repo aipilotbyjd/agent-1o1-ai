@@ -327,8 +327,8 @@ class ToolRegistry
         }
 
         return [
-            new SearchKnowledgeTool($agent->workspace, $collection, $this->knowledgeBase),
-            new ReadKnowledgeDocumentTool($agent->workspace, $collection, $this->knowledgeBase),
+            new SearchKnowledgeTool($agent->workspace, $this->knowledgeBase, $collection),
+            new ReadKnowledgeDocumentTool($agent->workspace, $this->knowledgeBase, $collection),
         ];
     }
 }

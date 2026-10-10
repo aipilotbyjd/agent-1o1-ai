@@ -88,6 +88,24 @@ class ByokProviderRegistrar
     }
 
     /**
+     * The embeddings provider for `Embeddings::for()->generate()`, on the
+     * workspace's own key where it has one for the platform's embeddings
+     * provider. Never a different provider or model: stored vectors are
+     * only comparable with ones from the same model, so only whose account
+     * pays changes — the model, read from the same provider config, doesn't.
+     *
+     * @return string|array<string, null>
+     */
+    public function embeddingsProvider(string $workspaceId, ?string $userId): string|array
+    {
+        $platform = (string) config('ai.default_for_embeddings');
+
+        [$chain] = $this->apply([$platform => null], null, $workspaceId, $userId);
+
+        return $chain === [$platform => null] ? $platform : $chain;
+    }
+
+    /**
      * Whether a provider name (as the SDK reports it on a response's meta,
      * and so on every usage record) is a workspace's own key.
      */

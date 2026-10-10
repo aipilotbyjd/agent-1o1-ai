@@ -57,7 +57,7 @@ class StoreArtifactAction
     private const int VERSION_ATTEMPTS = 5;
 
     public function __construct(
-        private readonly KnowledgeBase $knowledgeBase = new KnowledgeBase,
+        private readonly KnowledgeBase $knowledgeBase,
     ) {}
 
     /**

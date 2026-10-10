@@ -23,8 +23,8 @@ class ReadKnowledgeDocumentTool implements Tool
      */
     public function __construct(
         private readonly Workspace $workspace,
+        private readonly KnowledgeBase $knowledgeBase,
         private readonly string|array|null $collection = null,
-        private readonly KnowledgeBase $knowledgeBase = new KnowledgeBase,
     ) {}
 
     public function description(): Stringable|string

@@ -7,6 +7,7 @@ use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\DocumentEmbedding;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Billing\CreditMeter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -42,6 +43,8 @@ use RuntimeException;
 class KnowledgeBase
 {
     public const int DEFAULT_TOP_N = 5;
+
+    public function __construct(private readonly ByokProviderRegistrar $byok) {}
 
     /**
      * The cosine similarity below which a chunk with no word in common with
@@ -91,6 +94,9 @@ class KnowledgeBase
      * Split text into chunks, embed them, and store one row per chunk. The
      * embedding tokens are charged to `$workspace` — see `chargeForEmbeddings()`.
      * With `$ownerId` the chunks are private to that member (their Brain).
+     * Embedding runs on the workspace's own provider key where it has one —
+     * the owner's personal key for private chunks, else the team key — and
+     * then costs no token credits.
      *
      * Embedding happens first and everything is written in one transaction,
      * so a provider failure or a billing failure never leaves a half-ingested
@@ -121,7 +127,7 @@ class KnowledgeBase
             return collect();
         }
 
-        ['vectors' => $vectors, 'usage' => $usage] = $this->embed($chunks);
+        ['vectors' => $vectors, 'usage' => $usage] = $this->embed($chunks, $this->byok->embeddingsProvider($workspace->id, $ownerId));
 
         $store = function () use ($workspace, $chunks, $vectors, $usage, $source, $collection, $metadata, $ownerId, $knowledgeSourceId, $externalId, $replaceSource, $revision): Collection {
             if ($replaceSource && $source !== null) {
@@ -178,15 +184,16 @@ class KnowledgeBase
      * Embeds texts in provider-sized batches.
      *
      * @param  array<int, string>  $texts
+     * @param  string|array<string, null>  $provider
      * @return array{vectors: array<int, array<int, float>>, usage: array{prompt_tokens: int, provider: string|null, model: string|null}}
      */
-    private function embed(array $texts): array
+    private function embed(array $texts, string|array $provider): array
     {
         $vectors = [];
         $usage = ['prompt_tokens' => 0, 'provider' => null, 'model' => null];
 
         foreach (array_chunk(array_values($texts), self::EMBED_BATCH) as $batch) {
-            $response = Embeddings::for($batch)->generate();
+            $response = Embeddings::for($batch)->generate($provider);
 
             if (count($response->embeddings) !== count($batch)) {
                 throw new RuntimeException(sprintf(
@@ -269,7 +276,9 @@ class KnowledgeBase
         bool $includeShared = true,
         bool $excludeArtifactCollections = false,
     ): Collection {
-        $queryVector = Embeddings::for([$query])->generate()->embeddings[0] ?? [];
+        $queryVector = Embeddings::for([$query])
+            ->generate($this->byok->embeddingsProvider($workspace->id, $viewer?->id))
+            ->embeddings[0] ?? [];
 
         // Chunks are read in batches and only the running top N is kept, so
         // memory stays flat however large the workspace's knowledge base is.
