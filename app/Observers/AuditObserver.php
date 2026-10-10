@@ -152,6 +152,7 @@ class AuditObserver
                 $event === 'created' => AuditAction::AiProviderCredentialCreated,
                 $updated => AuditAction::AiProviderCredentialUpdated,
                 $event === 'deleted' => AuditAction::AiProviderCredentialDeleted,
+                $event === 'restored' => AuditAction::AiProviderCredentialRestored,
                 default => null,
             },
             $model instanceof NotificationChannel => match (true) {

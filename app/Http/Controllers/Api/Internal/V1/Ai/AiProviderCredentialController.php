@@ -66,6 +66,8 @@ class AiProviderCredentialController extends Controller
                 'label' => $provider['label'],
                 'key_url' => $provider['key_url'],
                 'key_placeholder' => $provider['key_placeholder'] ?: null,
+                'key_prefix' => $provider['key_prefix'] ?: null,
+                'key_guide' => $provider['key_guide'] ?? [],
                 'models' => $modelsByProvider->get($key, []),
                 'covers_knowledge_base' => $key === config('ai.default_for_embeddings'),
             ])
@@ -176,6 +178,26 @@ class AiProviderCredentialController extends Controller
         }
 
         return ApiResponse::noContent();
+    }
+
+    /**
+     * Brings back a removed key (the screen's "Undo"). It returns as its
+     * group's default only if the group has none by now.
+     */
+    public function restore(Request $request, Workspace $workspace, AiProviderCredential $aiProviderCredential)
+    {
+        $this->authorizeManage($request, $workspace, $aiProviderCredential);
+        abort_unless($aiProviderCredential->trashed(), 404);
+
+        $aiProviderCredential->restore();
+
+        if (! $aiProviderCredential->groupHasDefault()) {
+            $aiProviderCredential->markAsDefault();
+        } elseif ($aiProviderCredential->is_default) {
+            $aiProviderCredential->forceFill(['is_default' => false])->save();
+        }
+
+        return ApiResponse::success(['ai_provider_credential' => AiProviderCredentialResource::make($aiProviderCredential->fresh())], 'AI provider key restored.');
     }
 
     public function setDefault(Request $request, Workspace $workspace, AiProviderCredential $aiProviderCredential)

@@ -34,6 +34,7 @@ enum AuditAction: string
     case AiProviderCredentialCreated = 'ai_provider_credential.created';
     case AiProviderCredentialUpdated = 'ai_provider_credential.updated';
     case AiProviderCredentialDeleted = 'ai_provider_credential.deleted';
+    case AiProviderCredentialRestored = 'ai_provider_credential.restored';
     case AiProviderCredentialDefaultChanged = 'ai_provider_credential.default_changed';
     case AiKeyPolicyUpdated = 'ai_key_policy.updated';
 

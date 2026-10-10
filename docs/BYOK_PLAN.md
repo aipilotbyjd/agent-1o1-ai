@@ -11,6 +11,7 @@
 - Knowledge-base embeddings use a BYOK key too, but only for the platform's own embeddings provider (`ai.default_for_embeddings`) and its same model, so stored vectors stay comparable (`ByokProviderRegistrar::embeddingsProvider()`). Private chunks embed on the owner's personal key, searches on the viewer's.
 - A provider hop nobody has a key for (no platform key, no workspace key) is skipped, so routes can be enabled for providers only BYOK workspaces pay for.
 - Workspace key policy (`WorkspaceAiKeyPolicy`, `GET/PUT /workspaces/{ws}/ai-key-policy`, admins only): `platform_usage` = `fallback` (default) / `when_no_key` (no platform hops once a workspace key covers the call) / `never` (workspace keys only; uncovered models throw `OwnAiKeyRequiredException` and show unavailable), and `allow_personal_keys` (off: personal keys kept but ignored, new ones refused).
+- `POST /ai-key-policy/preview` (`AiKeyPolicyImpact`) lists what a stricter policy would break — models becoming unavailable, agents on them, models losing the platform backup, personal keys going unused — so the screen can warn before saving. `POST /ai-provider-credentials/{id}/restore` backs the screen's Undo. `config/byok.php` carries each provider's `key_prefix` and `key_guide` for the connect dialog.
 
 ## Context
 
