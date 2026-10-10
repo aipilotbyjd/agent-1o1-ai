@@ -23,7 +23,11 @@ use Laravel\Ai\AiManager;
  *
  * The platform's own hop stays behind it (when the platform has a key for
  * it), so a failover-worthy error on the workspace's key — rate limited,
- * out of quota — still lands on a working backend. A rejected key is not
+ * out of quota — still lands on a working backend. A hop nobody has a key
+ * for — no platform key, no workspace key — is left out, so a route can be
+ * enabled for a provider the platform doesn't pay for and only workspaces
+ * that brought a key for it will use it; everyone else goes straight to
+ * the next hop instead of failing on a keyless call. A rejected key is not
  * failover-worthy to the SDK; the scheduled re-check takes such a key out
  * of rotation instead (`CheckAiProviderCredentialJob`).
  *
@@ -60,14 +64,12 @@ class ByokProviderRegistrar
         $chain = is_array($provider) ? $provider : [$provider => $model];
         $credentials = $this->credentialsFor($workspaceId, $userId, array_keys($chain));
 
-        if ($credentials->isEmpty()) {
-            return [$provider, $model];
-        }
-
         // A bare provider with no model leaves the model to the driver's
         // default, which only a single-provider call can express.
         if (! is_array($provider) && $model === null) {
-            return [$this->register($credentials[$provider], $provider), null];
+            return $credentials->has($provider)
+                ? [$this->register($credentials[$provider], $provider), null]
+                : [$provider, $model];
         }
 
         $result = [];
@@ -75,16 +77,20 @@ class ByokProviderRegistrar
         foreach ($chain as $hop => $hopModel) {
             if ($credentials->has($hop)) {
                 $result[$this->register($credentials[$hop], $hop)] = $hopModel;
-
-                if (! ModelCatalogResolver::providerIsConfigured($hop)) {
-                    continue;
-                }
             }
 
-            $result[$hop] = $hopModel;
+            if (ModelCatalogResolver::providerIsConfigured($hop)) {
+                $result[$hop] = $hopModel;
+            }
         }
 
-        return [$result, null];
+        // Nothing here has a key at all: hand the chain over untouched, so the
+        // call fails the way it always has rather than with no provider.
+        if ($result === []) {
+            return [$provider, $model];
+        }
+
+        return $result === $chain && ! is_array($provider) ? [$provider, $model] : [$result, null];
     }
 
     /**

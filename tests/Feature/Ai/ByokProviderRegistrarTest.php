@@ -27,6 +27,7 @@ it('leaves the chain alone when the workspace has no key', function () {
 });
 
 it('puts a team key ahead of the platform hop it stands in for', function () {
+    config(['ai.providers.openrouter.key' => 'platform-openrouter-key']);
     $workspace = byokRegistrarWorkspace();
     $credential = AiProviderCredential::factory()->forWorkspace($workspace)->default()->create(['data' => ['api_key' => 'sk-team']]);
 
@@ -159,4 +160,30 @@ it('picks up a replaced key in the same process', function () {
     $registrar->apply(['openai' => 'gpt-4o'], null, $workspace->id, null);
 
     expect(app(AiManager::class)->textProvider("byok-{$credential->id}")->providerCredentials()['key'])->toBe('sk-second');
+});
+
+it('skips a hop nobody has a key for, so a workspace without one goes straight to the next', function () {
+    config(['ai.providers.openrouter.key' => null]);
+    $workspace = byokRegistrarWorkspace();
+
+    expect(app(ByokProviderRegistrar::class)->apply(['openrouter' => 'mistralai/mistral-small-2603', 'openai' => 'gpt-4o'], null, $workspace->id, null))
+        ->toBe([['openai' => 'gpt-4o'], null]);
+});
+
+it('runs a route the platform has no key for on a workspace that brought one', function () {
+    config(['ai.providers.openrouter.key' => null]);
+    $workspace = byokRegistrarWorkspace();
+    $credential = AiProviderCredential::factory()->forWorkspace($workspace)->provider('openrouter')->create();
+
+    [$provider] = app(ByokProviderRegistrar::class)->apply(['openrouter' => 'mistralai/mistral-small-2603', 'openai' => 'gpt-4o'], null, $workspace->id, null);
+
+    expect($provider)->toBe(["byok-{$credential->id}" => 'mistralai/mistral-small-2603', 'openai' => 'gpt-4o']);
+});
+
+it('leaves a chain nobody has any key for untouched', function () {
+    config(['ai.providers.openrouter.key' => null, 'ai.providers.openai.key' => null]);
+    $workspace = byokRegistrarWorkspace();
+
+    expect(app(ByokProviderRegistrar::class)->apply(['openrouter' => 'x', 'openai' => 'y'], null, $workspace->id, null))
+        ->toBe([['openrouter' => 'x', 'openai' => 'y'], null]);
 });
