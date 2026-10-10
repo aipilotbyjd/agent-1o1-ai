@@ -35,6 +35,9 @@ class AiProviderCredentialResource extends JsonResource
             'validation_message' => $this->validation_message,
             'last_validated_at' => $this->last_validated_at,
             'last_used_at' => $this->last_used_at,
+            // A personal key kept while the workspace has personal keys off.
+            'ignored_by_policy' => $this->scope === ConnectorCredentialScope::Personal
+                && ! ($this->workspace->aiKeyPolicy->allow_personal_keys ?? true),
             'can_manage' => $request->user()->can(
                 $this->scope === ConnectorCredentialScope::Team ? Permission::AiCredentialManage->value : Permission::AiCredentialUsePersonal->value,
             ),

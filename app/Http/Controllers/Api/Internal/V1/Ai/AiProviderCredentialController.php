@@ -14,6 +14,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Ai\AiProviderCredential;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Ai\ModelRoute;
+use App\Models\Ai\WorkspaceAiKeyPolicy;
 use App\Models\Workspaces\Workspace;
 use App\Services\Ai\AiProviderKeyChecker;
 use App\Services\Workspaces\AuditLogger;
@@ -73,7 +74,8 @@ class AiProviderCredentialController extends Controller
         return ApiResponse::success([
             'providers' => $providers,
             'can_add_team' => $request->user()->can(Permission::AiCredentialManage->value),
-            'can_add_personal' => $request->user()->can(Permission::AiCredentialUsePersonal->value),
+            'can_add_personal' => $request->user()->can(Permission::AiCredentialUsePersonal->value)
+                && WorkspaceAiKeyPolicy::forWorkspace($workspace->id)->allow_personal_keys,
         ]);
     }
 
@@ -83,6 +85,7 @@ class AiProviderCredentialController extends Controller
 
         $credentials = $workspace->aiProviderCredentials()
             ->visibleTo($request->user())
+            ->with('workspace.aiKeyPolicy')
             ->orderBy('execution_provider')
             ->orderBy('created_at')
             ->get();
@@ -94,6 +97,10 @@ class AiProviderCredentialController extends Controller
     {
         $scope = ConnectorCredentialScope::tryFrom((string) $request->validated('scope', ConnectorCredentialScope::Team->value));
         $this->requireScopePermission($scope);
+
+        if ($scope === ConnectorCredentialScope::Personal && ! WorkspaceAiKeyPolicy::forWorkspace($workspace->id)->allow_personal_keys) {
+            throw ValidationException::withMessages(['scope' => 'Personal keys are turned off in this workspace. Ask an admin to add a team key.']);
+        }
 
         $provider = $request->validated('execution_provider');
         $apiKey = trim($request->validated('api_key'));

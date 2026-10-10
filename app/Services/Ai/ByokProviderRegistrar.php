@@ -3,8 +3,11 @@
 namespace App\Services\Ai;
 
 use App\Enums\Ai\AiProviderCredentialStatus;
+use App\Enums\Ai\PlatformKeyUsage;
 use App\Enums\Connectors\ConnectorCredentialScope;
+use App\Exceptions\OwnAiKeyRequiredException;
 use App\Models\Ai\AiProviderCredential;
+use App\Models\Ai\WorkspaceAiKeyPolicy;
 use Illuminate\Support\Collection;
 use Laravel\Ai\AiManager;
 
@@ -30,6 +33,12 @@ use Laravel\Ai\AiManager;
  * the next hop instead of failing on a keyless call. A rejected key is not
  * failover-worthy to the SDK; the scheduled re-check takes such a key out
  * of rotation instead (`CheckAiProviderCredentialJob`).
+ *
+ * The workspace's `WorkspaceAiKeyPolicy` can narrow this: personal keys
+ * switched off are skipped, and the platform's hops are dropped once the
+ * workspace has a key for the call (`WhenNoKey`) or always (`Never` — a
+ * call nothing of the workspace's covers then throws
+ * `OwnAiKeyRequiredException`).
  *
  * The SDK reports the serving provider's config name back on every
  * response, so `isByok()` on a usage record says whose key ran the call —
@@ -62,14 +71,22 @@ class ByokProviderRegistrar
         }
 
         $chain = is_array($provider) ? $provider : [$provider => $model];
-        $credentials = $this->credentialsFor($workspaceId, $userId, array_keys($chain));
+        $policy = WorkspaceAiKeyPolicy::forWorkspace($workspaceId);
+        $credentials = $this->credentialsFor($workspaceId, $policy->allow_personal_keys ? $userId : null, array_keys($chain));
+        $platformAllowed = match ($policy->platform_usage) {
+            PlatformKeyUsage::Fallback => true,
+            PlatformKeyUsage::WhenNoKey => $credentials->isEmpty(),
+            PlatformKeyUsage::Never => false,
+        };
 
         // A bare provider with no model leaves the model to the driver's
         // default, which only a single-provider call can express.
         if (! is_array($provider) && $model === null) {
-            return $credentials->has($provider)
-                ? [$this->register($credentials[$provider], $provider), null]
-                : [$provider, $model];
+            return match (true) {
+                $credentials->has($provider) => [$this->register($credentials[$provider], $provider), null],
+                ! $platformAllowed => throw $this->ownKeyRequired($chain),
+                default => [$provider, $model],
+            };
         }
 
         $result = [];
@@ -79,15 +96,19 @@ class ByokProviderRegistrar
                 $result[$this->register($credentials[$hop], $hop)] = $hopModel;
             }
 
-            if (ModelCatalogResolver::providerIsConfigured($hop)) {
+            if ($platformAllowed && ModelCatalogResolver::providerIsConfigured($hop)) {
                 $result[$hop] = $hopModel;
             }
         }
 
-        // Nothing here has a key at all: hand the chain over untouched, so the
-        // call fails the way it always has rather than with no provider.
         if ($result === []) {
-            return [$provider, $model];
+            // Nothing here has a key at all: hand the chain over untouched, so
+            // the call fails the way it always has rather than with no provider.
+            if ($platformAllowed) {
+                return [$provider, $model];
+            }
+
+            throw $this->ownKeyRequired($chain);
         }
 
         return $result === $chain && ! is_array($provider) ? [$provider, $model] : [$result, null];
@@ -128,7 +149,20 @@ class ByokProviderRegistrar
      */
     public function coveredProviders(string $workspaceId, ?string $userId): array
     {
+        $userId = WorkspaceAiKeyPolicy::forWorkspace($workspaceId)->allow_personal_keys ? $userId : null;
+
         return $this->credentialsFor($workspaceId, $userId, array_keys((array) config('byok.providers')))->keys()->all();
+    }
+
+    /**
+     * @param  array<string, string|null>  $chain
+     */
+    private function ownKeyRequired(array $chain): OwnAiKeyRequiredException
+    {
+        return OwnAiKeyRequiredException::forProviders(array_values(array_map(
+            fn (string $hop): string => (string) config("byok.providers.{$hop}.label"),
+            array_filter(array_keys($chain), fn (string $hop): bool => config("byok.providers.{$hop}") !== null),
+        )));
     }
 
     /**

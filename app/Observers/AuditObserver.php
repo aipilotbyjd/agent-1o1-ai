@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Enums\Workspaces\AuditAction;
 use App\Models\Agents\WorkspaceAgentPolicy;
 use App\Models\Ai\AiProviderCredential;
+use App\Models\Ai\WorkspaceAiKeyPolicy;
 use App\Models\Auth\ApiKey;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Notifications\NotificationChannel;
@@ -90,7 +91,7 @@ class AuditObserver
         // The policy row is only ever persisted by saving it, never implicitly
         // (`forWorkspace()` hands back an unsaved default), so its first save
         // is a change to the workspace's policy like any later one.
-        if ($model instanceof WorkspaceAgentPolicy && $event === 'created') {
+        if (($model instanceof WorkspaceAgentPolicy || $model instanceof WorkspaceAiKeyPolicy) && $event === 'created') {
             $event = 'updated';
             $changed = array_values(array_diff(array_keys($model->getAttributes()), ['id', 'workspace_id', 'created_at', 'updated_at']));
         }
@@ -160,6 +161,7 @@ class AuditObserver
                 default => null,
             },
             $model instanceof WorkspaceAgentPolicy => $updated ? AuditAction::AgentPolicyUpdated : null,
+            $model instanceof WorkspaceAiKeyPolicy => $updated ? AuditAction::AiKeyPolicyUpdated : null,
             default => null,
         };
     }
@@ -182,6 +184,7 @@ class AuditObserver
             $model instanceof ConnectorCredential => ['name' => $model->name, 'connector_id' => $model->connector_id, 'scope' => $this->scalar($model->scope)],
             $model instanceof AiProviderCredential => ['name' => $model->name, 'execution_provider' => $model->execution_provider, 'scope' => $this->scalar($model->scope)],
             $model instanceof NotificationChannel => ['type' => $model->type, 'name' => $model->name],
+            $model instanceof WorkspaceAiKeyPolicy => ['platform_usage' => $this->scalar($model->platform_usage), 'allow_personal_keys' => $model->allow_personal_keys],
             default => [],
         };
 

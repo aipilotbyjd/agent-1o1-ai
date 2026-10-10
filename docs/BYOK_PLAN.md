@@ -9,6 +9,8 @@
 - `model_routes.connector_credential_id` is dropped.
 - `GET /model-catalog?workspace_id=` counts the member's usable BYOK keys towards `is_available`.
 - Knowledge-base embeddings use a BYOK key too, but only for the platform's own embeddings provider (`ai.default_for_embeddings`) and its same model, so stored vectors stay comparable (`ByokProviderRegistrar::embeddingsProvider()`). Private chunks embed on the owner's personal key, searches on the viewer's.
+- A provider hop nobody has a key for (no platform key, no workspace key) is skipped, so routes can be enabled for providers only BYOK workspaces pay for.
+- Workspace key policy (`WorkspaceAiKeyPolicy`, `GET/PUT /workspaces/{ws}/ai-key-policy`, admins only): `platform_usage` = `fallback` (default) / `when_no_key` (no platform hops once a workspace key covers the call) / `never` (workspace keys only; uncovered models throw `OwnAiKeyRequiredException` and show unavailable), and `allow_personal_keys` (off: personal keys kept but ignored, new ones refused).
 
 ## Context
 

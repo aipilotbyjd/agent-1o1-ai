@@ -20,7 +20,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * `is_available` counts a route the platform has no key for as usable when
  * the asking member's workspace has its own key for that provider — see
- * `withOwnKeysFor()` and `ByokProviderRegistrar::coveredProviders()`.
+ * `withOwnKeysFor()` and `ByokProviderRegistrar::coveredProviders()`. A
+ * workspace that never uses the platform's keys counts only its own.
  */
 class ModelCatalogResource extends JsonResource
 {
@@ -29,12 +30,15 @@ class ModelCatalogResource extends JsonResource
      */
     private array $ownKeyProviders = [];
 
+    private bool $platformKeysAllowed = true;
+
     /**
      * @param  array<int, string>  $providers
      */
-    public function withOwnKeysFor(array $providers): static
+    public function withOwnKeysFor(array $providers, bool $platformKeysAllowed = true): static
     {
         $this->ownKeyProviders = $providers;
+        $this->platformKeysAllowed = $platformKeysAllowed;
 
         return $this;
     }
@@ -52,7 +56,7 @@ class ModelCatalogResource extends JsonResource
             'capabilities' => $this->capabilities,
             'is_available' => $this->whenLoaded('routes', fn (): bool => $this->routes->contains(
                 fn (ModelRoute $route): bool => in_array($route->execution_provider, $this->ownKeyProviders, true)
-                    || ModelCatalogResolver::providerIsConfigured($route->execution_provider),
+                    || ($this->platformKeysAllowed && ModelCatalogResolver::providerIsConfigured($route->execution_provider)),
             )),
         ];
     }

@@ -8,6 +8,7 @@ use App\Models\Agents\DocumentEmbedding;
 use App\Models\Agents\Skill;
 use App\Models\Agents\SkillSource;
 use App\Models\Ai\AiProviderCredential;
+use App\Models\Ai\WorkspaceAiKeyPolicy;
 use App\Models\Artifacts\Artifact;
 use App\Models\Auth\ApiKey;
 use App\Models\Billing\CreditPack;
@@ -39,6 +40,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Cashier\Billable;
 
@@ -180,6 +182,11 @@ class Workspace extends Model
     public function aiProviderCredentials(): HasMany
     {
         return $this->hasMany(AiProviderCredential::class);
+    }
+
+    public function aiKeyPolicy(): HasOne
+    {
+        return $this->hasOne(WorkspaceAiKeyPolicy::class);
     }
 
     public function secrets(): HasMany

@@ -14,6 +14,7 @@ use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
 use App\Models\Agents\WorkspaceAgentPolicy;
 use App\Models\Ai\AiProviderCredential;
+use App\Models\Ai\WorkspaceAiKeyPolicy;
 use App\Models\Auth\ApiKey;
 use App\Models\Auth\PassportToken;
 use App\Models\Billing\Subscription as BillingSubscription;
@@ -251,6 +252,7 @@ class AppServiceProvider extends ServiceProvider
             AiProviderCredential::class,
             NotificationChannel::class,
             WorkspaceAgentPolicy::class,
+            WorkspaceAiKeyPolicy::class,
         ] as $audited) {
             $audited::observe(AuditObserver::class);
         }
