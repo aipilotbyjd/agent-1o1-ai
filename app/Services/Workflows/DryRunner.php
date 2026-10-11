@@ -23,6 +23,10 @@ use App\Services\Workflows\Engine\GraphAdvancer;
  * field is caught. A reference into a node whose shape is *not* known can't
  * be judged either way; it is reported under `unverified` rather than as a
  * warning, so a first-time graph isn't buried in false alarms.
+ *
+ * `warnings` are worded for the workflow builder's model; `findings` carry
+ * the same problems placed on their step and config field, worded for the
+ * person editing, which the editor lists alongside what blocks publishing.
  */
 class DryRunner
 {
@@ -50,13 +54,14 @@ class DryRunner
         // it would only produce noise on top of problems the author must
         // fix first — same short-circuit `GraphValidator` itself uses.
         if ($issues !== []) {
-            return ['ok' => false, 'issues' => $issues, 'warnings' => [], 'unverified' => [], 'steps' => []];
+            return ['ok' => false, 'issues' => $issues, 'warnings' => [], 'findings' => [], 'unverified' => [], 'steps' => []];
         }
 
         $nodesByKey = collect($nodes)->keyBy('key');
         $context = ['input' => $input, 'nodes' => []];
         $unknownShapes = [];
-        $warnings = $this->alwaysAndOnErrorWarnings($edges);
+        $findings = $this->alwaysAndOnErrorFindings($edges);
+        $warnings = array_map(fn (ValidationIssue $finding): string => $finding->text(), $findings);
         $unverified = [];
         $trace = [];
 
@@ -64,16 +69,32 @@ class DryRunner
             $node = $nodesByKey[$key];
             $config = EditorMetadata::strip($node['config'] ?? []);
 
-            foreach ($this->unresolvedPaths($config, $context) as $path) {
-                $source = $this->referencedNodeKey($path);
+            foreach ($config as $field => $value) {
+                foreach ($this->unresolvedPaths([$field => $value], $context) as $path) {
+                    $source = $this->referencedNodeKey($path);
 
-                if ($source !== null && isset($unknownShapes[$source])) {
-                    $unverified[] = "Node [{$key}] references [{$path}]; node [{$source}]'s output shape isn't known yet (it hasn't run or been pinned), so the field couldn't be checked.";
-                } elseif ($source !== null && isset($context['nodes'][$source])) {
-                    $known = implode(', ', array_keys($context['nodes'][$source])) ?: 'none';
-                    $warnings[] = "Node [{$key}] references [{$path}], but node [{$source}] isn't known to output that. Known fields: {$known}.";
-                } else {
-                    $warnings[] = "Node [{$key}] references [{$path}], which nothing provides at that point.";
+                    if ($source !== null && isset($unknownShapes[$source])) {
+                        $unverified[] = "Node [{$key}] references [{$path}]; node [{$source}]'s output shape isn't known yet (it hasn't run or been pinned), so the field couldn't be checked.";
+
+                        continue;
+                    }
+
+                    $finding = $source !== null && isset($context['nodes'][$source])
+                        ? new ValidationIssue(
+                            "Uses {{ {$path} }}, but step \"{$source}\" doesn't output that.",
+                            $key,
+                            (string) $field,
+                            "Node [{$key}] references [{$path}], but node [{$source}] isn't known to output that. Known fields: ".(implode(', ', array_keys($context['nodes'][$source])) ?: 'none').'.',
+                        )
+                        : new ValidationIssue(
+                            "Uses {{ {$path} }}, but no step before this one provides it.",
+                            $key,
+                            (string) $field,
+                            "Node [{$key}] references [{$path}], which nothing provides at that point.",
+                        );
+
+                    $findings[] = $finding;
+                    $warnings[] = $finding->text();
                 }
             }
 
@@ -97,6 +118,7 @@ class DryRunner
             'ok' => $warnings === [],
             'issues' => [],
             'warnings' => $warnings,
+            'findings' => array_map(fn (ValidationIssue $finding): array => $finding->toArray(), $findings),
             'unverified' => $unverified,
             'steps' => $trace,
         ];
@@ -192,9 +214,9 @@ class DryRunner
      * can't refuse it) but rarely meant.
      *
      * @param  array<int, array<string, mixed>>  $edges
-     * @return array<int, string>
+     * @return array<int, ValidationIssue>
      */
-    private function alwaysAndOnErrorWarnings(array $edges): array
+    private function alwaysAndOnErrorFindings(array $edges): array
     {
         $conditionsByPair = [];
 
@@ -202,16 +224,20 @@ class DryRunner
             $conditionsByPair["{$edge['from']}\0{$edge['to']}"][] = $edge['condition'] ?? null;
         }
 
-        $warnings = [];
+        $findings = [];
 
         foreach ($conditionsByPair as $pair => $conditions) {
             if (in_array(null, $conditions, true) && in_array(WorkflowEdge::ERROR_CONDITION, $conditions, true)) {
                 [$from, $to] = explode("\0", $pair);
-                $warnings[] = "Node [{$from}] connects to [{$to}] both always and on error, so [{$to}] runs even when [{$from}] succeeds. Remove the unconditional edge if [{$to}] should only run when [{$from}] fails.";
+                $findings[] = new ValidationIssue(
+                    "Connects to \"{$to}\" both always and on error, so \"{$to}\" also runs when this step succeeds.",
+                    $from,
+                    detail: "Node [{$from}] connects to [{$to}] both always and on error, so [{$to}] runs even when [{$from}] succeeds. Remove the unconditional edge if [{$to}] should only run when [{$from}] fails.",
+                );
             }
         }
 
-        return $warnings;
+        return $findings;
     }
 
     /**

@@ -118,3 +118,36 @@ it('warns when a failure path forgot to drop the always-edge it replaced', funct
     expect($result['warnings'])->toHaveCount(1);
     expect($result['warnings'][0])->toContain('both always and on error');
 });
+
+it('places each finding on its step and field for the editor', function () {
+    $graph = [
+        'nodes' => [
+            ['key' => 'a', 'type' => 'run_code', 'config' => [
+                'operations' => [['op' => 'set', 'output' => 'result', 'value' => '1']],
+            ], 'pinned_data' => ['result' => 'anything']],
+            ['key' => 'b', 'type' => 'run_code', 'config' => [
+                'operations' => [
+                    ['op' => 'set', 'output' => 'typo', 'value' => '{{ nodes.a.reslt }}'],
+                    ['op' => 'set', 'output' => 'later', 'value' => '{{ nodes.c.result }}'],
+                ],
+            ]],
+            ['key' => 'c', 'type' => 'run_code', 'config' => [
+                'operations' => [['op' => 'set', 'output' => 'result', 'value' => '1']],
+            ]],
+        ],
+        'edges' => [
+            ['from' => 'a', 'to' => 'b', 'condition' => null],
+            ['from' => 'b', 'to' => 'c', 'condition' => null],
+            ['from' => 'b', 'to' => 'c', 'condition' => 'error'],
+        ],
+    ];
+
+    $result = app(DryRunner::class)->run($graph);
+
+    expect($result['findings'])->toBe([
+        ['node_key' => 'b', 'field' => null, 'message' => 'Connects to "c" both always and on error, so "c" also runs when this step succeeds.'],
+        ['node_key' => 'b', 'field' => 'operations', 'message' => 'Uses {{ nodes.a.reslt }}, but step "a" doesn\'t output that.'],
+        ['node_key' => 'b', 'field' => 'operations', 'message' => 'Uses {{ nodes.c.result }}, but no step before this one provides it.'],
+    ]);
+    expect($result['warnings'])->toHaveCount(3);
+});
