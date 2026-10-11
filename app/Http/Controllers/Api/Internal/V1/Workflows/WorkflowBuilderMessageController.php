@@ -29,7 +29,7 @@ class WorkflowBuilderMessageController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $session);
 
         return ApiResponse::success([
-            'messages' => WorkflowBuilderMessageResource::collection($session->messages()->oldest()->oldest('id')->get()),
+            'messages' => WorkflowBuilderMessageResource::collection($session->messages()->with('attachments')->oldest()->oldest('id')->get()),
         ]);
     }
 
@@ -38,7 +38,7 @@ class WorkflowBuilderMessageController extends Controller
         $this->requirePermission(Permission::WorkflowBuilderUse);
         $this->ensureBelongsToWorkspace($workspace, $session);
 
-        $reply = $this->sendMessage->execute($session, $request->validated('message'), $request->user());
+        $reply = $this->sendMessage->execute($session, $request->validated('message'), $request->user(), $request->attachmentFiles(), $request->mode());
 
         return ApiResponse::success(
             ['message' => WorkflowBuilderMessageResource::make($reply)],
@@ -53,6 +53,6 @@ class WorkflowBuilderMessageController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $session);
         abort_if($message->session_id !== $session->id, 404);
 
-        return ApiResponse::success(['message' => WorkflowBuilderMessageResource::make($message)]);
+        return ApiResponse::success(['message' => WorkflowBuilderMessageResource::make($message->load('attachments'))]);
     }
 }

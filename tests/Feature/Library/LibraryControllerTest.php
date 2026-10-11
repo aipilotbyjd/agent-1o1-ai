@@ -7,6 +7,7 @@ use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Artifacts\Artifact;
 use App\Models\User;
+use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -97,4 +98,24 @@ it('serves a file through its signed view link and downloads it', function () {
     $this->get(URL::route('library.view', ['artifact' => $image->id]))->assertForbidden();
 
     $this->get("{$this->url}/{$image->id}/download")->assertOk();
+});
+
+it('includes files sent to the workflow builder, as uploads without an agent', function () {
+    $builderSession = WorkflowBuilderSession::factory()->forWorkspace($this->workspace, $this->owner)->create();
+    $message = $builderSession->messages()->create(['role' => 'user', 'content' => 'Build this.']);
+    $file = ($this->file)('spec.txt', 'text/plain', [
+        'agent_id' => null,
+        'agent_session_id' => null,
+        'workflow_builder_message_id' => $message->id,
+    ]);
+
+    $this->getJson($this->url)
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.filename', 'spec.txt')
+        ->assertJsonPath('data.0.source', 'uploaded')
+        ->assertJsonPath('data.0.agent', null)
+        ->assertJsonPath('data.0.chat', null);
+
+    $this->get("{$this->url}/{$file->id}/download")->assertOk();
 });

@@ -15,7 +15,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * The Library: a gallery of the files that passed through agent chats —
- * what members uploaded and what agents made — newest first. A read-only
+ * what members uploaded and what agents made — and what members sent the
+ * workflow builder, newest first. A read-only
  * view, separate from the Artifacts file manager (which owns uploading,
  * sharing and versions); both read the same stored files, since a chat file
  * is stored once, as an artifact.
@@ -35,7 +36,7 @@ class LibraryController extends Controller
 
         $items = Artifact::query()
             ->where('workspace_id', $workspace->id)
-            ->whereNotNull('agent_session_id')
+            ->where(fn ($query) => $query->whereNotNull('agent_session_id')->orWhereNotNull('workflow_builder_message_id'))
             ->latestPerGroup()
             ->accessibleBy($user, $user->can(Permission::ArtifactManage->value))
             ->with(['agent', 'agentSession', 'agentMessage'])
@@ -84,7 +85,7 @@ class LibraryController extends Controller
 
         abort_unless(
             $artifact->workspace_id === $workspace->id
-                && $artifact->agent_session_id !== null
+                && ($artifact->agent_session_id !== null || $artifact->workflow_builder_message_id !== null)
                 && $artifact->isAccessibleBy($user, $user->can(Permission::ArtifactManage->value)),
             404,
         );

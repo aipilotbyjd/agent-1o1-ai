@@ -3,6 +3,7 @@
 use App\Ai\Agents\WorkflowBuilderAgent;
 use App\Ai\Agents\WorkflowBuilderTitleAgent;
 use App\Enums\Queue as QueueName;
+use App\Enums\Workflows\BuilderMessageMode;
 use App\Enums\Workflows\BuilderMessageStatus;
 use App\Enums\Workflows\BuilderSessionStatus;
 use App\Enums\Workspaces\Role;
@@ -159,4 +160,47 @@ it('records who sent each message and credits their edits to them', function () 
         ->handle(new ToolRequest(['key' => 'a', 'type' => 'transform', 'config_json' => '{"mapping": {}}'], 'call-1'));
 
     expect($session->draftVersions()->value('triggered_by'))->toBe($colleague->id);
+});
+
+it('answers an ask-mode message without the tools that edit the draft', function () {
+    WorkflowBuilderAgent::fake(['It posts to Slack.']);
+    WorkflowBuilderTitleAgent::fake([]);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+
+    Passport::actingAs($owner);
+
+    $url = "/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}/messages";
+    $this->postJson($url, ['message' => 'What does this do?', 'mode' => 'ask'])->assertAccepted();
+
+    // Stored as asked — the instruction lives on the turn, not in the text.
+    $this->getJson($url)
+        ->assertOk()
+        ->assertJsonPath('data.messages.0.content', 'What does this do?')
+        ->assertJsonPath('data.messages.0.mode', 'ask')
+        ->assertJsonPath('data.messages.1.mode', 'ask');
+
+    WorkflowBuilderAgent::assertPrompted(fn ($prompt): bool => $prompt->prompt === 'What does this do?'
+        && $prompt->agent->mode === BuilderMessageMode::Ask
+        && ! collect(iterator_to_array($prompt->agent->tools()))->contains(fn ($tool) => $tool->name() === 'add_node'));
+});
+
+it('builds by default and refuses an unknown mode', function () {
+    WorkflowBuilderAgent::fake(['Done.']);
+    WorkflowBuilderTitleAgent::fake([]);
+
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+
+    Passport::actingAs($owner);
+
+    $url = "/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}/messages";
+    $this->postJson($url, ['message' => 'Add a Slack step.'])->assertAccepted();
+    $this->postJson($url, ['message' => 'Hmm', 'mode' => 'explain'])->assertUnprocessable()->assertJsonValidationErrors('mode');
+
+    expect($session->messages()->where('role', 'user')->sole()->mode)->toBe(BuilderMessageMode::Build);
+    WorkflowBuilderAgent::assertPrompted(fn ($prompt): bool => $prompt->agent->mode === BuilderMessageMode::Build);
 });

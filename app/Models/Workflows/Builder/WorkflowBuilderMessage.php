@@ -2,7 +2,9 @@
 
 namespace App\Models\Workflows\Builder;
 
+use App\Enums\Workflows\BuilderMessageMode;
 use App\Enums\Workflows\BuilderMessageStatus;
+use App\Models\Artifacts\Artifact;
 use App\Models\User;
 use Database\Factories\Workflows\Builder\WorkflowBuilderMessageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,8 +12,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['session_id', 'user_id', 'draft_version_id', 'role', 'content', 'actions', 'processing_status', 'error_message'])]
+#[Fillable(['session_id', 'user_id', 'draft_version_id', 'role', 'mode', 'content', 'actions', 'processing_status', 'error_message'])]
 class WorkflowBuilderMessage extends Model
 {
     /** @use HasFactory<WorkflowBuilderMessageFactory> */
@@ -22,6 +25,7 @@ class WorkflowBuilderMessage extends Model
      */
     protected $attributes = [
         'processing_status' => 'completed',
+        'mode' => 'build',
     ];
 
     /**
@@ -32,6 +36,7 @@ class WorkflowBuilderMessage extends Model
         return [
             'actions' => 'array',
             'processing_status' => BuilderMessageStatus::class,
+            'mode' => BuilderMessageMode::class,
         ];
     }
 
@@ -51,5 +56,15 @@ class WorkflowBuilderMessage extends Model
     public function draftVersion(): BelongsTo
     {
         return $this->belongsTo(WorkflowBuilderDraftVersion::class, 'draft_version_id');
+    }
+
+    /**
+     * Files a member sent along with this (user) message. Stored as
+     * `Artifact`s and handed to the model with the message on every turn —
+     * see `ProcessWorkflowBuilderMessageJob` and `WorkflowBuilderAgent::messages()`.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Artifact::class);
     }
 }

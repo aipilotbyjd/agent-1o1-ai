@@ -8,6 +8,7 @@ use App\Models\Agents\AgentMessage;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
 use App\Models\User;
+use App\Models\Workflows\Builder\WorkflowBuilderMessage;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,7 +23,7 @@ use Laravel\Ai\Files\Document;
 use Laravel\Ai\Files\Image;
 
 #[Fillable([
-    'workspace_id', 'agent_id', 'agent_session_id', 'assistant_session_id', 'agent_message_id', 'run_id', 'created_by',
+    'workspace_id', 'agent_id', 'agent_session_id', 'assistant_session_id', 'agent_message_id', 'workflow_builder_message_id', 'run_id', 'created_by',
     'group_id', 'version', 'filename', 'mime_type', 'size', 'disk', 'path', 'metadata',
     'general_access',
 ])]
@@ -62,6 +63,15 @@ class Artifact extends Model
     public function agentMessage(): BelongsTo
     {
         return $this->belongsTo(AgentMessage::class);
+    }
+
+    /**
+     * The workflow-builder chat message a member attached this file to, if
+     * any — see `WorkflowBuilderMessage::attachments()`.
+     */
+    public function workflowBuilderMessage(): BelongsTo
+    {
+        return $this->belongsTo(WorkflowBuilderMessage::class);
     }
 
     public function run(): BelongsTo

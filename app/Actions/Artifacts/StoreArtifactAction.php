@@ -9,6 +9,7 @@ use App\Models\Agents\AgentSession;
 use App\Models\Artifacts\Artifact;
 use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
+use App\Models\Workflows\Builder\WorkflowBuilderMessage;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\KnowledgeBase;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -83,6 +84,7 @@ class StoreArtifactAction
         ?AgentMessage $message = null,
         bool $searchable = true,
         ?AssistantSession $assistantSession = null,
+        ?WorkflowBuilderMessage $builderMessage = null,
     ): Artifact {
         $disk = (string) config('artifacts.disk');
 
@@ -97,7 +99,7 @@ class StoreArtifactAction
         try {
             $artifact = $this->createVersion(
                 $workspace, $filename, $mimeType, $contents, $disk, $agent, $session, $run,
-                $createdBy, $groupId, $metadata, $message, $assistantSession,
+                $createdBy, $groupId, $metadata, $message, $assistantSession, $builderMessage,
             );
 
             if (! Storage::disk($disk)->move($stagingPath, $artifact->path)) {
@@ -145,6 +147,7 @@ class StoreArtifactAction
         ?array $metadata,
         ?AgentMessage $message,
         ?AssistantSession $assistantSession,
+        ?WorkflowBuilderMessage $builderMessage,
     ): Artifact {
         for ($attempt = 1; ; $attempt++) {
             // `withTrashed()`: a soft-deleted group must still be found here, both
@@ -185,6 +188,7 @@ class StoreArtifactAction
                     'agent_session_id' => $session?->id,
                     'assistant_session_id' => $assistantSession?->id,
                     'agent_message_id' => $message?->id,
+                    'workflow_builder_message_id' => $builderMessage?->id,
                     'run_id' => $run?->id,
                     'created_by' => $createdBy,
                     'group_id' => $resolvedGroupId,

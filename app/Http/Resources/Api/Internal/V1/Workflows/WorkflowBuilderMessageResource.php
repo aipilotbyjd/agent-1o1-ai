@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\Internal\V1\Workflows;
 
+use App\Http\Resources\Api\Internal\V1\Artifacts\ArtifactResource;
 use App\Models\Workflows\Builder\WorkflowBuilderMessage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,10 +23,12 @@ class WorkflowBuilderMessageResource extends JsonResource
             'draft_version_id' => $this->draft_version_id,
             'user_id' => $this->user_id,
             'role' => $this->role,
+            'mode' => $this->mode,
             'content' => $this->content,
             'actions' => $this->actions,
             'processing_status' => $this->processing_status,
             'error_message' => $this->error_message,
+            'attachments' => ArtifactResource::collection($this->whenLoaded('attachments')),
             'created_at' => $this->created_at,
         ];
     }

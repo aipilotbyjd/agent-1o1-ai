@@ -5,6 +5,7 @@ namespace App\Jobs\Workflows;
 use App\Actions\Billing\DeductCreditsAction;
 use App\Ai\Agents\WorkflowBuilderAgent;
 use App\Ai\Agents\WorkflowBuilderTitleAgent;
+use App\Ai\InlinedAttachments;
 use App\Ai\ResponseUsage;
 use App\Ai\Tools\WorkflowBuilder\SubmitWorkflowTitleTool;
 use App\Ai\ToolSubmission;
@@ -23,8 +24,10 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Str;
+use Laravel\Ai\Responses\Data\FinishReason;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Laravel\Ai\Streaming\Events\Error as StreamError;
+use Laravel\Ai\Streaming\Events\StreamEnd;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall;
 use Laravel\Ai\Streaming\Events\ToolResult;
@@ -48,6 +51,12 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable;
 
     public const string FAILURE_MESSAGE = "The assistant couldn't finish this reply. Any changes it already made to the draft are kept — send your message again to continue.";
+
+    /**
+     * Appended when the agent used its whole step budget while still calling
+     * tools, so a half-built draft isn't presented as a finished one.
+     */
+    public const string OUT_OF_STEPS_NOTE = "I ran out of steps before finishing. Everything I've built so far is on the canvas — say \"continue\" and I'll pick up where I left off.";
 
     /**
      * The `model_catalog` slug for the workflow-builder assistant itself
@@ -101,7 +110,9 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         $session->refresh();
 
         $reply->update([
-            'content' => $response['text'],
+            'content' => $response['cut_off']
+                ? trim($response['text']."\n\n".self::OUT_OF_STEPS_NOTE)
+                : $response['text'],
             'processing_status' => BuilderMessageStatus::Completed,
             'actions' => DraftDiff::between($graphBefore, $session->currentGraph()),
             'draft_version_id' => $session->draft_lock_version > $lockVersionBefore
@@ -142,7 +153,7 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     }
 
     /**
-     * @return array{text: string, usage: array<string, mixed>}
+     * @return array{text: string, usage: array<string, mixed>, cut_off: bool}
      */
     /**
      * @param  array<string, string>|null  $provider
@@ -151,10 +162,13 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     {
         $startedAt = now();
         $finished = null;
+        $endReason = null;
         $lastBroadcastLockVersion = $session->draft_lock_version;
 
-        $stream = (new WorkflowBuilderAgent($session, $userMessage->id, $userMessage->user))
-            ->stream($userMessage->content, provider: $provider);
+        [$prompt, $attachments] = InlinedAttachments::split($userMessage->content, $userMessage->attachments);
+
+        $stream = (new WorkflowBuilderAgent($session, $userMessage->id, $userMessage->user, $userMessage->mode))
+            ->stream($prompt, $attachments, provider: $provider);
 
         $stream->then(function (StreamedAgentResponse $response) use (&$finished): void {
             $finished = $response;
@@ -175,6 +189,7 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
                     'successful' => $event->successful,
                 ]),
                 $event instanceof StreamError && ! $event->recoverable => throw new RuntimeException("Provider stream error: {$event->message}"),
+                $event instanceof StreamEnd => $endReason = $event->reason,
                 default => null,
             };
 
@@ -197,6 +212,8 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         return [
             'text' => (string) ($stream->text ?? $finished->text),
             'usage' => ResponseUsage::from($finished, $startedAt),
+            // The loop only ends on a tool-call step when MaxSteps ran out.
+            'cut_off' => $endReason === FinishReason::ToolCalls->value,
         ];
     }
 

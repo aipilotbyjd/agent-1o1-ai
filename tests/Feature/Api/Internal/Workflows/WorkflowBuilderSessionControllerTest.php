@@ -372,3 +372,19 @@ it('syncs a canvas whose steps are not filled in yet, like any draft', function 
         'draft_lock_version' => $session->draft_lock_version,
     ])->assertOk();
 });
+
+it('returns messages saved in the same second in the order they were sent', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+    $sentAt = now()->startOfSecond();
+
+    // Ids are time-ordered; created_at alone ties within a second.
+    $session->messages()->forceCreate(['role' => 'assistant', 'content' => 'reply', 'created_at' => $sentAt, 'id' => '01a12b73-d132-724d-ba2a-e6b2ab0aa2a3']);
+    $session->messages()->forceCreate(['role' => 'user', 'content' => 'question', 'created_at' => $sentAt, 'id' => '01a12b73-d12b-7079-8e17-031e55277a9b']);
+
+    Passport::actingAs($owner);
+
+    $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}")->assertOk();
+
+    expect(collect($response->json('data.session.messages'))->pluck('content')->all())->toBe(['question', 'reply']);
+});

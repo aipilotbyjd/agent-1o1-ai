@@ -87,7 +87,7 @@ class WorkflowBuilderSessionController extends Controller
         $session = $this->createSession->execute($workspace, $request->user(), $request->validated('title'), $workflow);
 
         $reply = $request->validated('prompt')
-            ? $this->sendMessage->execute($session, $request->validated('prompt'), $request->user())
+            ? $this->sendMessage->execute($session, $request->validated('prompt'), $request->user(), mode: $request->mode())
             : null;
 
         return ApiResponse::created([
@@ -102,7 +102,7 @@ class WorkflowBuilderSessionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $session);
 
         return ApiResponse::success([
-            'session' => WorkflowBuilderSessionResource::make($session->load(['messages' => fn ($query) => $query->oldest()])),
+            'session' => WorkflowBuilderSessionResource::make($session->load(['messages' => fn ($query) => $query->oldest()->oldest('id')->with('attachments')])),
         ]);
     }
 

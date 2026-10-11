@@ -26,7 +26,7 @@ class LibraryItemResource extends JsonResource
             'size' => $this->size,
             // A file attached to a member's message was uploaded; anything
             // else in a chat was made by the agent.
-            'source' => $this->agentMessage?->role === AgentMessageRole::User ? 'uploaded' : 'generated',
+            'source' => $this->workflow_builder_message_id !== null || $this->agentMessage?->role === AgentMessageRole::User ? 'uploaded' : 'generated',
             'agent' => $this->agent === null ? null : [
                 'id' => $this->agent->id,
                 'name' => $this->agent->name,

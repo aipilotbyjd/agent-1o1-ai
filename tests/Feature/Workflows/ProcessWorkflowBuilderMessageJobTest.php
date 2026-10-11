@@ -41,6 +41,26 @@ it('writes the reply, what it changed, and the draft version it produced', funct
     expect($reply->draft_version_id)->toBe($session->draftVersions()->value('id'));
 });
 
+it('tells the user when the agent runs out of steps mid-build', function () {
+    $toolCalls = array_map(fn (int $i) => new ToolCall("call_{$i}", 'read_draft', []), range(1, 100));
+    WorkflowBuilderAgent::fake($toolCalls);
+    $session = builderJobSession(['title' => 'Signup Alerts']);
+
+    $reply = app(SendWorkflowBuilderMessageAction::class)->execute($session, 'Build a big flow')->fresh();
+
+    expect($reply->processing_status)->toBe(BuilderMessageStatus::Completed);
+    expect($reply->content)->toBe(ProcessWorkflowBuilderMessageJob::OUT_OF_STEPS_NOTE);
+});
+
+it('does not add the out-of-steps note to a turn that finished', function () {
+    WorkflowBuilderAgent::fake([new ToolCall('call_1', 'read_draft', []), 'All done.']);
+    $session = builderJobSession(['title' => 'Signup Alerts']);
+
+    $reply = app(SendWorkflowBuilderMessageAction::class)->execute($session, 'hello')->fresh();
+
+    expect($reply->content)->toBe('All done.');
+});
+
 it('charges the turn once, against its reply', function () {
     WorkflowBuilderAgent::fake(['Done.']);
     $session = builderJobSession(['title' => 'Signup Alerts']);

@@ -6,6 +6,7 @@ use App\Ai\Agents\WorkflowBuilderTitleAgent;
 use App\Ai\Tools\WorkflowBuilder\AddNodeTool;
 use App\Ai\Tools\WorkflowBuilder\ConnectNodesTool;
 use App\Ai\Tools\WorkflowBuilder\ValidateWorkflowTool;
+use App\Enums\Workflows\BuilderMessageMode;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Ai\ModelRoute;
 use App\Models\User;
@@ -138,4 +139,18 @@ it('sends only the latest messages as history, starting on a user turn', functio
     expect($history)->toHaveCount(WorkflowBuilderAgent::HISTORY_LIMIT - 1);
     expect($history->first()->role->value)->toBe('user');
     expect($history->last()->content)->toBe('late reply');
+});
+
+it('gives an ask-mode turn only the tools that read the draft', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+
+    $agent = new WorkflowBuilderAgent($session, mode: BuilderMessageMode::Ask);
+
+    expect(collect(iterator_to_array($agent->tools()))->map->name()->all())->toBe([
+        'read_draft', 'list_available_nodes', 'inspect_node_schema', 'inspect_node_output', 'list_workflows',
+        'validate_workflow', 'dry_run_workflow',
+    ]);
+    expect($agent->instructions())->toContain('Ask mode')->toContain('switch to Build mode');
 });
