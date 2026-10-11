@@ -12,6 +12,7 @@ enum NodeCategory: string
 {
     case AiAutomation = 'ai-automation';
     case TriggersEvents = 'triggers-events';
+    case InputsOutputs = 'inputs-outputs';
     case FlowLogic = 'flow-logic';
     case DataTransform = 'data-transform';
     case Custom = 'custom';
@@ -21,6 +22,7 @@ enum NodeCategory: string
         return match ($this) {
             self::AiAutomation => 'AI / Automation',
             self::TriggersEvents => 'Triggers & Events',
+            self::InputsOutputs => 'Inputs & Outputs',
             self::FlowLogic => 'Flow Logic',
             self::DataTransform => 'Data Transform',
             self::Custom => 'Your Custom Nodes',

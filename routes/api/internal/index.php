@@ -11,6 +11,7 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/onboarding.php';
     require __DIR__.'/triggers.php';
     require __DIR__.'/workflows.php';
+    require __DIR__.'/workflow_pages.php';
     require __DIR__.'/workflow_builder.php';
     require __DIR__.'/nodes.php';
     require __DIR__.'/model_catalog.php';

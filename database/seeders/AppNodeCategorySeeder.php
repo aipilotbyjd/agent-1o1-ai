@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 /**
  * One row per integration family (`kind: 'app'`) — separate from
- * `NodeCategorySeeder`'s five core, built-in categories, since this file is
+ * `NodeCategorySeeder`'s core, built-in categories, since this file is
  * the one that grows with every new Stage 11 integration
  * (docs/WORKFLOWS_AGENTS_BUILD_PLAN.md), while the core list never changes.
  */

@@ -2,6 +2,7 @@
 
 namespace App\Services\Workflows;
 
+use App\Contracts\DeclaresOutputSchema;
 use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\Workflows\FlowControlNodeType;
@@ -106,7 +107,7 @@ class NodeRegistry
      * the catalog entry without the display-only fields, and without the
      * `NodeCategory` query `catalog()` needs.
      *
-     * @return array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}|null
+     * @return array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema?: array<string, mixed>}|null
      */
     public function describe(string $type): ?array
     {
@@ -119,6 +120,7 @@ class NodeRegistry
                 'name' => $node->name(),
                 'description' => $node->description(),
                 'config_schema' => $node->configSchema(),
+                ...($node instanceof DeclaresOutputSchema ? ['output_schema' => $node->outputSchema()] : []),
             ];
         }
 
@@ -183,7 +185,7 @@ class NodeRegistry
      * `color` come from the node's `NodeCategory` row; `requires_connector`
      * is derived from whether the class uses `ResolvesConnectorCredential`.
      *
-     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, icon: ?string, color: ?string, requires_connector: bool}>
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema: array<string, mixed>|null, icon: ?string, color: ?string, requires_connector: bool}>
      */
     public function catalog(): array
     {
@@ -200,6 +202,7 @@ class NodeRegistry
                     'name' => $node->name(),
                     'description' => $node->description(),
                     'config_schema' => $node->configSchema(),
+                    'output_schema' => $node instanceof DeclaresOutputSchema ? $node->outputSchema() : null,
                     'icon' => $node instanceof HasIcon ? $node->icon() : $category?->icon,
                     'color' => $category?->color,
                     'requires_connector' => $this->usesConnectorCredential($class),
@@ -223,7 +226,7 @@ class NodeRegistry
      * `execute()`, so there's no `NodeContract` instance to read from.
      *
      * @param  Collection<string, NodeCategory>  $categories  keyed by slug
-     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, icon: ?string, color: ?string, requires_connector: bool}>
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema: null, icon: ?string, color: ?string, requires_connector: bool}>
      */
     private function flowControlCatalog(Collection $categories): array
     {
@@ -232,6 +235,7 @@ class NodeRegistry
         return array_map(fn (array $node): array => [
             ...$node,
             'category' => 'flow-logic',
+            'output_schema' => null,
             'color' => $flowLogic?->color,
             'requires_connector' => false,
         ], $this->flowControlDefinitions());

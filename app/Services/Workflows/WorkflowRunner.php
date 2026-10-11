@@ -78,7 +78,7 @@ class WorkflowRunner
             return;
         }
         $graph = $run->workflowVersion->graph;
-        $context = $this->buildContext($run, $nodeRun);
+        $context = $this->buildContext($run, $nodeRun, $graph);
 
         // Workspace secrets are merged into the *templating* context only —
         // never into the `$context` handed to `NodeContract::execute()`, so a
@@ -423,7 +423,7 @@ class WorkflowRunner
 
         $run = $nodeRun->run;
         $graph = $run->workflowVersion->graph;
-        $context = $this->buildContext($run, $nodeRun);
+        $context = $this->buildContext($run, $nodeRun, $graph);
         $nodeDefinition = $this->resolvedNodeDefinition($graph, $nodeRun->key, $context);
         $continueOnTimeout = (bool) ($nodeDefinition['config']['continue_on_timeout'] ?? false);
 
@@ -483,9 +483,13 @@ class WorkflowRunner
     }
 
     /**
+     * Input steps' outputs are seeded from the run input (see `WorkflowIo`),
+     * so a step reading one doesn't depend on it having finished first.
+     *
+     * @param  array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}  $graph
      * @return array{input: array<string, mixed>, nodes: array<string, mixed>}
      */
-    private function buildContext(Run $run, NodeRun $nodeRun): array
+    private function buildContext(Run $run, NodeRun $nodeRun, array $graph): array
     {
         $upstreamOutputs = $run->nodeRuns()
             ->where('status', NodeRunStatus::Completed)
@@ -495,7 +499,7 @@ class WorkflowRunner
 
         return [
             'input' => $run->input ?? [],
-            'nodes' => $upstreamOutputs,
+            'nodes' => [...WorkflowIo::inputOutputs($graph, $run->input ?? []), ...$upstreamOutputs],
         ];
     }
 }

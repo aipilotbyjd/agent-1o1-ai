@@ -206,6 +206,19 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('referral-claims', fn (Request $request): Limit => Limit::perMinute(5)
             ->by($request->user()?->id ?? $request->ip()));
+
+        // Workflow pages at their public link. Every submission is a paid
+        // run on the owner's credits, so one visitor gets a handful a minute
+        // per page; wrong passwords are slowed down harder still. Result
+        // polls are cheap reads but still capped.
+        RateLimiter::for('page-submissions', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('page-submit:'.$request->route('token').'|'.$request->ip()));
+
+        RateLimiter::for('page-unlock', fn (Request $request): Limit => Limit::perMinute(5)
+            ->by('page-unlock:'.$request->route('token').'|'.$request->ip()));
+
+        RateLimiter::for('page-reads', fn (Request $request): Limit => Limit::perMinute(120)
+            ->by('page-read:'.$request->ip()));
     }
 
     /**

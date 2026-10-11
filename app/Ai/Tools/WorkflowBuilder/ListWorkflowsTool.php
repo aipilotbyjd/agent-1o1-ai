@@ -4,6 +4,9 @@ namespace App\Ai\Tools\WorkflowBuilder;
 
 use App\Ai\Tools\WorkflowBuilder\Concerns\ReadsToolArguments;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Models\Workflows\Workflow;
+use App\Services\Workflows\WorkflowInterface;
+use App\Services\Workflows\WorkflowIo;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -31,7 +34,7 @@ class ListWorkflowsTool implements Tool
 
     public function description(): Stringable|string
     {
-        return "List this workspace's published workflows (id, name, description) — the workflow_id a subflow or loop node runs as its child workflow. Pass 'search' to filter by name.";
+        return "List this workspace's published workflows (id, name, description, the inputs a run takes and the outputs it returns) — the workflow_id a subflow or loop node runs as its child workflow. A subflow's \"input\" is keyed by the child's input names, and its output by the child's output names. Pass 'search' to filter by name.";
     }
 
     public function handle(Request $request): Stringable|string
@@ -49,7 +52,8 @@ class ListWorkflowsTool implements Tool
             ->when($search !== '', fn ($query) => $query->whereLike('name', "%{$search}%"))
             ->orderBy('name')
             ->limit(self::LIMIT)
-            ->get(['id', 'name', 'description', 'input_schema']);
+            ->with('currentVersion')
+            ->get();
 
         if ($workflows->isEmpty()) {
             return $search === ''
@@ -57,12 +61,21 @@ class ListWorkflowsTool implements Tool
                 : "No published workflow matches [{$search}].";
         }
 
-        return json_encode($workflows->map(fn ($workflow) => array_filter([
+        $interface = app(WorkflowInterface::class);
+
+        return json_encode($workflows->map(fn (Workflow $workflow) => array_filter([
             'id' => $workflow->id,
             'name' => $workflow->name,
             'description' => $workflow->description,
-            'input_schema' => $workflow->input_schema,
-        ], fn ($value) => $value !== null))->all(), JSON_THROW_ON_ERROR);
+            'inputs' => array_map(
+                fn (array $field): array => ['name' => $field['key'], 'type' => $field['type'], 'required' => $field['required']],
+                $interface->describe($workflow)['fields'],
+            ),
+            'outputs' => array_values(array_filter(array_map(
+                fn (array $node): string => (string) ($node['config']['name'] ?? ''),
+                WorkflowIo::outputNodes($workflow->currentVersion?->graph ?? []),
+            ))),
+        ], fn ($value) => $value !== null && $value !== []))->all(), JSON_THROW_ON_ERROR);
     }
 
     /**

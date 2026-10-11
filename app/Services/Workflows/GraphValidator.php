@@ -71,7 +71,7 @@ class GraphValidator
             return $issues;
         }
 
-        return [...$this->unknownTypeErrors($nodes), ...$this->nodeConfigErrors($nodes)];
+        return [...$this->unknownTypeErrors($nodes), ...$this->nodeConfigErrors($nodes), ...WorkflowIo::issues($nodes)];
     }
 
     /**

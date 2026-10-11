@@ -11,32 +11,54 @@ use Illuminate\Validation\Rule;
  * run's `input`. This is what turns "POST some arbitrary JSON at a workflow"
  * into a form a non-author can fill in.
  *
- * Two sources, in order:
+ * Three sources, in order:
  *
- * 1. **Declared** — `workflows.input_schema`, authored deliberately, with
- *    labels, types, defaults and required-ness.
- * 2. **Derived** — every `{{ input.* }}` reference in the graph the workflow
- *    would actually run, so a workflow nobody has annotated still presents a
- *    usable interface instead of an empty one.
+ * 1. **Nodes** — the graph's Input steps (`WorkflowIo::fields()`), which
+ *    carry their own labels, types, defaults and required-ness.
+ * 2. **Declared** — `workflows.input_schema`, authored deliberately in the
+ *    run form editor or through the API.
+ * 3. **Derived** — every `{{ input.* }}` reference in the graph, so a
+ *    workflow nobody has annotated still presents a usable interface
+ *    instead of an empty one.
  *
- * Derivation reads the *published* version when there is one, falling back to
- * the draft: the interface should describe what a run will really execute,
- * and a run is always pinned to the published version.
+ * The graph is read from the *published* version when there is one, falling
+ * back to the draft: the interface should describe what a run will really
+ * execute, and a run is always pinned to the published version.
  */
 class WorkflowInterface
 {
     /**
-     * @return array{source: 'declared'|'derived', fields: array<int, array<string, mixed>>}
+     * @return array{source: 'nodes'|'declared'|'derived', fields: array<int, array<string, mixed>>}
      */
     public function describe(Workflow $workflow): array
     {
+        $fromNodes = WorkflowIo::fields($this->editorGraph($workflow));
+
+        if ($fromNodes !== []) {
+            return ['source' => 'nodes', 'fields' => array_map($this->normalizeField(...), $fromNodes)];
+        }
+
         $declared = $workflow->input_schema['fields'] ?? null;
 
         if (is_array($declared) && $declared !== []) {
             return ['source' => 'declared', 'fields' => array_values(array_map($this->normalizeField(...), $declared))];
         }
 
-        return ['source' => 'derived', 'fields' => $this->derive($workflow)];
+        return ['source' => 'derived', 'fields' => $this->derive($workflow->currentVersion?->graph ?? $workflow->draftGraph())];
+    }
+
+    /**
+     * The values a finished run returns, by name — what a page can show as
+     * the workflow's result. Read from the same graph as `describe()`.
+     *
+     * @return array<int, array{name: string}>
+     */
+    public function outputs(Workflow $workflow): array
+    {
+        return array_map(
+            fn (string $name): array => ['name' => $name],
+            WorkflowIo::outputNames($this->editorGraph($workflow)),
+        );
     }
 
     /**
@@ -91,12 +113,11 @@ class WorkflowInterface
      * `customer.email`, and run input is a flat top-level array. A reference
      * that goes deeper is therefore reported as a `json` field.
      *
+     * @param  array{nodes?: array<int, array<string, mixed>>}  $graph
      * @return array<int, array<string, mixed>>
      */
-    private function derive(Workflow $workflow): array
+    private function derive(array $graph): array
     {
-        $graph = $workflow->currentVersion?->graph ?? $workflow->draftGraph();
-
         $fields = [];
 
         foreach ($graph['nodes'] ?? [] as $node) {
@@ -136,6 +157,17 @@ class WorkflowInterface
         ksort($fields);
 
         return array_values($fields);
+    }
+
+    /**
+     * The canvas as it would run — published when there is a published
+     * version — with positions, so Input steps keep their on-canvas order.
+     *
+     * @return array{nodes?: array<int, array<string, mixed>>, edges?: array<int, array<string, mixed>>}
+     */
+    private function editorGraph(Workflow $workflow): array
+    {
+        return $workflow->currentVersion?->editorGraph() ?? $workflow->editorGraph();
     }
 
     /**

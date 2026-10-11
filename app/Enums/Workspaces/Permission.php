@@ -28,6 +28,9 @@ enum Permission: string
      */
     case WorkflowApprovePublish = 'workflow.approve-publish';
 
+    case PageView = 'page.view';
+    case PageManage = 'page.manage';
+
     case NodeView = 'node.view';
     case NodeManage = 'node.manage';
 
@@ -88,6 +91,7 @@ enum Permission: string
             self::MemberView,
             self::InvitationView,
             self::WorkflowView,
+            self::PageView,
             self::NodeView,
             self::AgentView,
             self::ConnectorView,
@@ -127,6 +131,7 @@ enum Permission: string
             self::WorkflowPublish,
             self::WorkflowVersion,
             self::WorkflowBuilderUse,
+            self::PageManage,
             self::NodeManage,
             self::AgentManage,
             self::AgentSkillManage,

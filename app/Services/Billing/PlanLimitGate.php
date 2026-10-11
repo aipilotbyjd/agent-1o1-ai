@@ -65,6 +65,7 @@ class PlanLimitGate
             PlanLimit::Agents => $workspace->agents()->count(),
             PlanLimit::Members => $workspace->members()->count()
                 + $workspace->invitations()->pending()->count(),
+            PlanLimit::Pages => $workspace->workflowPages()->count(),
         };
     }
 }

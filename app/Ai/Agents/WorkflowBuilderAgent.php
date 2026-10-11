@@ -133,9 +133,20 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
 
         How workflows work: list_available_nodes shows which node types exist, and
         inspect_node_schema shows what one expects. A later node reads an earlier node's
-        output through a template like {{ nodes.<key>.<field> }}, or the run input with
-        {{ input.<field> }}; inspect_node_output shows which fields a node is known to
-        produce. Credentials never go in a config — a stored secret is referenced with
+        output through a template like {{ nodes.<key>.<field> }}; inspect_node_output shows
+        which fields a node is known to produce.
+
+        When the workflow needs something from the person running it (a topic, an email
+        address, a file link), add a workflow_input node for each value, connect it to the
+        nodes that use it, and reference it as {{ nodes.<input key>.value }}. Every
+        workflow_input becomes a field on the run form; give it a clear "name", the right
+        "input_type", and "required": true when the workflow can't work without it. Don't
+        use run_code, transform or {{ input.<field> }} to stand in for an input. When the
+        workflow produces a result (a summary, a draft, a score), finish with a
+        workflow_output node whose "value" references it; the run returns each output's
+        value under its "name".
+
+        Credentials never go in a config — a stored secret is referenced with
         {{ secrets.<NAME> }}. Every node has a short, unique, descriptive key (e.g.
         "send_confirmation_email"). Edges run in order; a router node has one edge per branch
         with the matching "condition" value, and an edge with the condition "error" handles

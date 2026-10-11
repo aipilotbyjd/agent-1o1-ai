@@ -11,11 +11,11 @@ use App\Models\Workflows\WorkflowNode;
 use Database\Seeders\NodeCategorySeeder;
 use Illuminate\Database\UniqueConstraintViolationException;
 
-it('seeds the five core node categories', function () {
+it('seeds the core node categories', function () {
     $this->seed(NodeCategorySeeder::class);
 
     expect(NodeCategory::query()->pluck('slug')->sort()->values()->all())->toBe([
-        'ai-automation', 'custom', 'data-transform', 'flow-logic', 'triggers-events',
+        'ai-automation', 'custom', 'data-transform', 'flow-logic', 'inputs-outputs', 'triggers-events',
     ]);
 });
 

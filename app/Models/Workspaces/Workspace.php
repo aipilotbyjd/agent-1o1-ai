@@ -34,6 +34,7 @@ use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Models\Workflows\Folder;
 use App\Models\Workflows\Tag;
 use App\Models\Workflows\Workflow;
+use App\Models\Workflows\WorkflowPage;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -125,6 +126,11 @@ class Workspace extends Model
     public function workflows(): HasMany
     {
         return $this->hasMany(Workflow::class);
+    }
+
+    public function workflowPages(): HasMany
+    {
+        return $this->hasMany(WorkflowPage::class);
     }
 
     public function folders(): HasMany

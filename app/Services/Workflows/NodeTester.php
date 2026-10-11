@@ -86,7 +86,7 @@ class NodeTester
         ]);
         $nodeRun->forceFill(['status' => NodeRunStatus::Running, 'started_at' => now()])->save();
 
-        $context = ['input' => $input, 'nodes' => $upstreamOutputs];
+        $context = ['input' => $input, 'nodes' => [...WorkflowIo::inputOutputs($workflow->draftGraph(), $input), ...$upstreamOutputs]];
         $secrets = $this->secretResolver->forConfig($workflow->workspace_id, $config);
         $resolvedConfig = $this->templateResolver->resolve($config, [...$context, ...$secrets->context()]);
 

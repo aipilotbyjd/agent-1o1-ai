@@ -51,6 +51,12 @@ enum AuditAction: string
     case PublishRequestRejected = 'publish_request.rejected';
     case PublishRequestWithdrawn = 'publish_request.withdrawn';
 
+    case PagePublished = 'page.published';
+    case PageUnpublished = 'page.unpublished';
+    case PageAccessChanged = 'page.access_changed';
+    case PageLinkRotated = 'page.link_rotated';
+    case PageDeleted = 'page.deleted';
+
     case SubscriptionCheckoutStarted = 'billing.checkout_started';
     case SubscriptionCanceled = 'billing.subscription_canceled';
     case SubscriptionResumed = 'billing.subscription_resumed';

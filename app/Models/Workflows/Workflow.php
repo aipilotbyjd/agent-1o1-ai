@@ -102,6 +102,11 @@ class Workflow extends Model
         return $this->hasMany(Run::class);
     }
 
+    public function pages(): HasMany
+    {
+        return $this->hasMany(WorkflowPage::class);
+    }
+
     public function publishRequests(): HasMany
     {
         return $this->hasMany(WorkflowPublishRequest::class);

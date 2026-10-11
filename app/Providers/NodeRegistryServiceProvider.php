@@ -11,6 +11,8 @@ use App\Nodes\DataTransform\TransformNode;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
+use App\Nodes\InputsOutputs\WorkflowInputNode;
+use App\Nodes\InputsOutputs\WorkflowOutputNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestNode;
@@ -95,6 +97,8 @@ class NodeRegistryServiceProvider extends ServiceProvider
     private function builtins(): array
     {
         return [
+            'workflow_input' => WorkflowInputNode::class,
+            'workflow_output' => WorkflowOutputNode::class,
             'transform' => TransformNode::class,
             'call_api' => CallApiNode::class,
             'run_code' => RunCodeNode::class,

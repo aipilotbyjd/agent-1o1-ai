@@ -11,6 +11,7 @@ use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\Workflows\WorkflowEdge;
 use App\Services\Workflows\StepOptions;
+use App\Services\Workflows\WorkflowIo;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -308,7 +309,8 @@ class GraphAdvancer
      * Completes the run once nothing is left in flight — under
      * `lockForUpdate()` so two branches settling simultaneously can't both
      * observe "nothing pending" and race to complete a run whose sibling
-     * node is about to be created.
+     * node is about to be created. The run's output is its Output steps'
+     * values when the graph has any, otherwise every completed step's output.
      */
     public function finishIfDone(Run $run): void
     {
@@ -335,14 +337,14 @@ class GraphAdvancer
                 return null;
             }
 
-            $output = $locked->nodeRuns()
+            $completedOutputs = $locked->nodeRuns()
                 ->where('status', NodeRunStatus::Completed)
                 ->pluck('output', 'key')
                 ->all();
 
             $locked->forceFill([
                 'status' => RunStatus::Completed,
-                'output' => $output,
+                'output' => WorkflowIo::runResult($locked->workflowVersion?->graph ?? [], $completedOutputs) ?? $completedOutputs,
                 'finished_at' => now(),
             ])->save();
 

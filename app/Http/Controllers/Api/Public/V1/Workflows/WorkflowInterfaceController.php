@@ -25,6 +25,7 @@ class WorkflowInterfaceController extends Controller
         return ApiResponse::success([
             'interface' => [
                 ...$interface->describe($workflow),
+                'outputs' => $interface->outputs($workflow),
                 'workflow_id' => $workflow->id,
                 'published' => $workflow->isPublished(),
             ],

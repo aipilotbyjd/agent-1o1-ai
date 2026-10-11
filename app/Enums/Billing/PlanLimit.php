@@ -16,6 +16,7 @@ enum PlanLimit: string
     case Workflows = 'workflows';
     case Agents = 'agents';
     case Members = 'members';
+    case Pages = 'pages';
 
     public function label(): string
     {
@@ -23,6 +24,7 @@ enum PlanLimit: string
             self::Workflows => 'workflows',
             self::Agents => 'agents',
             self::Members => 'members',
+            self::Pages => 'pages',
         };
     }
 }

@@ -16,6 +16,11 @@ enum Feature: string
     case PrioritySupport = 'priority_support';
 
     /**
+     * Workflow pages anyone with the link can use, not just workspace members.
+     */
+    case PublicPages = 'public_pages';
+
+    /**
      * The personal assistant's Smart Inbox (labels new mail, drafts replies).
      */
     case SmartInbox = 'smart_inbox';

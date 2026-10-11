@@ -5,6 +5,8 @@ namespace App\Services\Workflows;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Workflows\WorkflowEdge;
 use App\Models\Workspaces\Workspace;
+use App\Nodes\InputsOutputs\WorkflowInputNode;
+use App\Nodes\InputsOutputs\WorkflowOutputNode;
 use App\Services\Workflows\Engine\GraphAdvancer;
 
 /**
@@ -58,7 +60,8 @@ class DryRunner
         }
 
         $nodesByKey = collect($nodes)->keyBy('key');
-        $context = ['input' => $input, 'nodes' => []];
+        $inputOutputs = $this->simulatedInputs($graph, $input);
+        $context = ['input' => $input, 'nodes' => $inputOutputs];
         $unknownShapes = [];
         $findings = $this->alwaysAndOnErrorFindings($edges);
         $warnings = array_map(fn (ValidationIssue $finding): string => $finding->text(), $findings);
@@ -98,7 +101,11 @@ class DryRunner
                 }
             }
 
-            $output = $this->sampleOutput($node, $workspace);
+            $output = match ($node['type']) {
+                WorkflowInputNode::TYPE => $inputOutputs[$key],
+                WorkflowOutputNode::TYPE => ['value' => $this->templateResolver->resolve($config['value'] ?? null, $context)],
+                default => $this->sampleOutput($node, $workspace),
+            };
 
             if ($output === null) {
                 $unknownShapes[$key] = true;
@@ -205,6 +212,23 @@ class DryRunner
         }
 
         return $shaped;
+    }
+
+    /**
+     * Each Input step's output for the dry-run input, with a placeholder
+     * standing in for any value neither the input nor a default supplies —
+     * a real run would have one from the form.
+     *
+     * @param  array{nodes?: array<int, array<string, mixed>>, edges?: array<int, array<string, mixed>>}  $graph
+     * @param  array<string, mixed>  $input
+     * @return array<string, array{value: mixed}>
+     */
+    private function simulatedInputs(array $graph, array $input): array
+    {
+        return array_map(
+            fn (array $output): array => ['value' => $output['value'] ?? '<string>'],
+            WorkflowIo::inputOutputs($graph, $input),
+        );
     }
 
     /**
