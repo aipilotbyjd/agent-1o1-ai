@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Services\Workflows\ValidationIssue;
 use RuntimeException;
 
 /**
@@ -9,14 +10,29 @@ use RuntimeException;
  * `Workflow::publishVersion()` (full `GraphValidator` run) — mapped to a 422
  * response in `bootstrap/app.php`. See docs/WORKFLOWS_PLAN.md's "Validation"
  * section for the checks that can produce these errors.
+ *
+ * The response carries both `errors` (the technical wording existing
+ * clients read) and `issues` — each pointed at its node and config field,
+ * with a message for the person building the workflow — which the editor
+ * uses to list what to fix and jump to it.
  */
 class WorkflowValidationException extends RuntimeException
 {
     /**
-     * @param  array<int, string>  $errors
+     * @var array<int, ValidationIssue>
      */
-    public function __construct(private readonly array $errors)
+    private readonly array $issues;
+
+    /**
+     * @param  array<int, string|ValidationIssue>  $problems
+     */
+    public function __construct(array $problems)
     {
+        $this->issues = array_map(
+            fn (string|ValidationIssue $problem): ValidationIssue => $problem instanceof ValidationIssue ? $problem : new ValidationIssue($problem),
+            array_values($problems),
+        );
+
         parent::__construct('The workflow graph is invalid.');
     }
 
@@ -25,6 +41,14 @@ class WorkflowValidationException extends RuntimeException
      */
     public function errors(): array
     {
-        return $this->errors;
+        return array_map(fn (ValidationIssue $issue): string => $issue->text(), $this->issues);
+    }
+
+    /**
+     * @return array<int, array{node_key: ?string, field: ?string, message: string}>
+     */
+    public function issues(): array
+    {
+        return array_map(fn (ValidationIssue $issue): array => $issue->toArray(), $this->issues);
     }
 }

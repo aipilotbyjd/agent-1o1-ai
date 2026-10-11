@@ -223,7 +223,7 @@ it('leaves no workflow behind when the workflow refuses the draft', function () 
     [$workspace, $owner] = ownerWorkspaceForBuilderSession();
     // Valid when it was drafted; the node's schema has since tightened.
     $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create([
-        'draft_graph' => ['nodes' => [['key' => 'a', 'type' => 'transform', 'config' => []]], 'edges' => []],
+        'draft_graph' => ['nodes' => [['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => 'not-an-object']]], 'edges' => []],
     ]);
 
     Passport::actingAs($owner);
@@ -358,4 +358,17 @@ it('syncs the canvas of a session opened on a workflow holding a custom node', f
         ],
         'edges' => [['from' => 'c', 'to' => 'recovery', 'condition' => 'error']],
     ])->assertOk()->assertJsonCount(2, 'data.session.draft_graph.nodes');
+});
+
+it('syncs a canvas whose steps are not filled in yet, like any draft', function () {
+    [$workspace, $owner] = ownerWorkspaceForBuilderSession();
+    $session = WorkflowBuilderSession::factory()->forWorkspace($workspace, $owner)->create();
+
+    Passport::actingAs($owner);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}/draft", [
+        'nodes' => [['key' => 'ask', 'type' => 'ask_ai', 'config' => ['instructions' => 'Be brief.', 'prompt' => null]]],
+        'edges' => [],
+        'draft_lock_version' => $session->draft_lock_version,
+    ])->assertOk();
 });

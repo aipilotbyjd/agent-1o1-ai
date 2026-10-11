@@ -29,33 +29,58 @@ class GraphValidator
      */
     public function validate(array $nodes, array $edges): array
     {
+        return self::texts($this->issues($nodes, $edges));
+    }
+
+    /**
+     * The same checks as `validate()`, each pointed at the node (and config
+     * field) it's about, with a message for the person building the workflow.
+     *
+     * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
+     * @param  array<int, array{from: string, to: string, condition: string|null}>  $edges
+     * @return array<int, ValidationIssue>
+     */
+    public function issues(array $nodes, array $edges): array
+    {
         if ($nodes === []) {
-            return ['The workflow has no nodes. Add at least one node before publishing.'];
+            return [new ValidationIssue('Add at least one step before publishing.', detail: 'The workflow has no nodes. Add at least one node before publishing.')];
         }
 
-        if (($errors = $this->structuralErrors($nodes, $edges)) !== []) {
-            return $errors;
+        if (($issues = $this->structuralIssues($nodes, $edges)) !== []) {
+            return $issues;
         }
 
         $keys = array_map(fn (array $node) => $node['key'], $nodes);
 
         $adjacency = $this->buildAdjacency($edges);
 
-        if (($errors = $this->cycleErrors($keys, $adjacency)) !== []) {
-            return $errors;
+        if (($issues = $this->cycleErrors($keys, $adjacency)) !== []) {
+            return $issues;
         }
 
         $entryKeys = $this->entryNodeKeys($keys, $adjacency);
 
         if ($entryKeys === []) {
-            return ['The graph has no entry node — every node has an incoming edge.'];
+            return [new ValidationIssue(
+                'Every step has a connection coming into it, so the workflow has nowhere to start.',
+                detail: 'The graph has no entry node — every node has an incoming edge.',
+            )];
         }
 
-        if (($errors = $this->unreachableNodeErrors($keys, $entryKeys, $adjacency)) !== []) {
-            return $errors;
+        if (($issues = $this->unreachableNodeErrors($keys, $entryKeys, $adjacency)) !== []) {
+            return $issues;
         }
 
         return [...$this->unknownTypeErrors($nodes), ...$this->nodeConfigErrors($nodes)];
+    }
+
+    /**
+     * @param  array<int, ValidationIssue>  $issues
+     * @return array<int, string>
+     */
+    public static function texts(array $issues): array
+    {
+        return array_map(fn (ValidationIssue $issue): string => $issue->text(), $issues);
     }
 
     /**
@@ -73,8 +98,18 @@ class GraphValidator
      */
     public function structuralErrors(array $nodes, array $edges): array
     {
-        if (($errors = $this->duplicateKeyErrors($nodes)) !== []) {
-            return $errors;
+        return self::texts($this->structuralIssues($nodes, $edges));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $nodes
+     * @param  array<int, array<string, mixed>>  $edges
+     * @return array<int, ValidationIssue>
+     */
+    public function structuralIssues(array $nodes, array $edges): array
+    {
+        if (($issues = $this->duplicateKeyErrors($nodes)) !== []) {
+            return $issues;
         }
 
         $keys = array_map(fn (array $node) => $node['key'], $nodes);
@@ -111,7 +146,7 @@ class GraphValidator
 
     /**
      * @param  array<int, array<string, mixed>>  $nodes
-     * @return array<int, string>
+     * @return array<int, ValidationIssue>
      */
     private function duplicateKeyErrors(array $nodes): array
     {
@@ -120,7 +155,7 @@ class GraphValidator
 
         foreach ($nodes as $node) {
             if (isset($seen[$node['key']])) {
-                $errors[] = "Duplicate node key '{$node['key']}'.";
+                $errors[] = new ValidationIssue("Two steps share the key '{$node['key']}'.", $node['key'], detail: "Duplicate node key '{$node['key']}'.");
 
                 continue;
             }
@@ -134,7 +169,7 @@ class GraphValidator
     /**
      * @param  array<int, string>  $keys
      * @param  array<int, array<string, mixed>>  $edges
-     * @return array<int, string>
+     * @return array<int, ValidationIssue>
      */
     private function danglingEdgeErrors(array $keys, array $edges): array
     {
@@ -143,11 +178,11 @@ class GraphValidator
 
         foreach ($edges as $edge) {
             if (! isset($known[$edge['from']])) {
-                $errors[] = "Edge references unknown source node '{$edge['from']}'.";
+                $errors[] = new ValidationIssue('A connection starts from a step that no longer exists.', detail: "Edge references unknown source node '{$edge['from']}'.");
             }
 
             if (! isset($known[$edge['to']])) {
-                $errors[] = "Edge references unknown target node '{$edge['to']}'.";
+                $errors[] = new ValidationIssue('A connection points to a step that no longer exists.', detail: "Edge references unknown target node '{$edge['to']}'.");
             }
         }
 
@@ -180,7 +215,7 @@ class GraphValidator
     /**
      * @param  array<int, string>  $keys
      * @param  array<string, array<int, string>>  $adjacency
-     * @return array<int, string>
+     * @return array<int, ValidationIssue>
      */
     private function cycleErrors(array $keys, array $adjacency): array
     {
@@ -188,7 +223,7 @@ class GraphValidator
 
         foreach ($keys as $key) {
             if ($state[$key] === 'unvisited' && $this->hasCycleFrom($key, $adjacency, $state)) {
-                return ['The graph contains a cycle.'];
+                return [new ValidationIssue('The workflow loops back on itself. Remove the connection that closes the loop, or use a Loop step.', detail: 'The graph contains a cycle.')];
             }
         }
 
@@ -238,7 +273,7 @@ class GraphValidator
      * @param  array<int, string>  $keys
      * @param  array<int, string>  $entryKeys
      * @param  array<string, array<int, string>>  $adjacency
-     * @return array<int, string>
+     * @return array<int, ValidationIssue>
      */
     private function unreachableNodeErrors(array $keys, array $entryKeys, array $adjacency): array
     {
@@ -262,7 +297,11 @@ class GraphValidator
             return [];
         }
 
-        return array_map(fn (string $key) => "Node '{$key}' is unreachable from any entry node.", $unreachable);
+        return array_map(fn (string $key) => new ValidationIssue(
+            "This step isn't connected to the start of the workflow, so it would never run.",
+            $key,
+            detail: "Node '{$key}' is unreachable from any entry node.",
+        ), $unreachable);
     }
 
     /**
@@ -273,7 +312,7 @@ class GraphValidator
      * publish by design and fail only at run time (see `NodeRegistry::isCustom()`).
      *
      * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
-     * @return array<int, string>
+     * @return array<int, ValidationIssue>
      */
     private function unknownTypeErrors(array $nodes): array
     {
@@ -281,7 +320,11 @@ class GraphValidator
 
         foreach ($nodes as $node) {
             if (! $this->registry->isPlaceable($node['type']) && ! $this->registry->isCustom($node['type'])) {
-                $errors[] = "Node '{$node['key']}': there is no node type [{$node['type']}].";
+                $errors[] = new ValidationIssue(
+                    "This step's type no longer exists. Replace or remove it.",
+                    $node['key'],
+                    detail: "Node '{$node['key']}': there is no node type [{$node['type']}].",
+                );
             }
         }
 
@@ -290,7 +333,7 @@ class GraphValidator
 
     /**
      * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
-     * @return array<int, string>
+     * @return array<int, ValidationIssue>
      */
     private function nodeConfigErrors(array $nodes): array
     {
@@ -300,7 +343,11 @@ class GraphValidator
             // Parsed nowhere that could act on it: a running node can't be
             // interrupted, so promising a per-step timeout would be a lie.
             if (isset($node['config']['_options']['timeout_seconds'])) {
-                $errors[] = "Node '{$node['key']}': _options.timeout_seconds is not supported — a running node cannot be interrupted.";
+                $errors[] = new ValidationIssue(
+                    "Per-step timeouts aren't supported — a running step can't be interrupted.",
+                    $node['key'],
+                    detail: "Node '{$node['key']}': _options.timeout_seconds is not supported — a running node cannot be interrupted.",
+                );
             }
 
             // Flow-control types (loop, subflow, human_approval, wait, ...)
@@ -313,8 +360,8 @@ class GraphValidator
                 continue;
             }
 
-            foreach ($this->configValidator->validate($schema, $node['config']) as $error) {
-                $errors[] = "Node '{$node['key']}': {$error}";
+            foreach ($this->configValidator->issues($schema, $node['config']) as $issue) {
+                $errors[] = ValidationIssue::forNodeConfig($node['key'], $issue);
             }
         }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Workspaces\Role;
+use App\Exceptions\WorkflowValidationException;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Folder;
@@ -87,13 +88,30 @@ it('rejects a draft graph with a schema-invalid node config', function () {
 
     $response = $this->putJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/graph", [
         'nodes' => [
-            ['key' => 'a', 'type' => 'call_api', 'config' => ['url' => 'https://example.com']],
+            ['key' => 'a', 'type' => 'call_api', 'config' => ['url' => 'https://example.com', 'method' => 123]],
         ],
         'edges' => [],
     ]);
 
     $response->assertStatus(422);
-    expect($response->json('errors'))->toContain("Node 'a': config.method is required.");
+    expect(collect($response->json('errors'))->implode(' '))->toContain("Node 'a': config.method must be");
+});
+
+it('saves a draft with a node whose required fields are not filled in yet, but will not publish it', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->putJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/graph", [
+        'nodes' => [
+            ['key' => 'a', 'type' => 'ask_ai', 'config' => ['instructions' => 'You are a helpful assistant.']],
+        ],
+        'edges' => [],
+    ])->assertOk();
+
+    expect(fn () => $workflow->fresh()->publishVersion())
+        ->toThrow(WorkflowValidationException::class);
 });
 
 it('422s a draft graph that could not be stored, leaving the saved draft untouched', function (array $graph, string $error) {
@@ -274,4 +292,38 @@ it('includes node counts, node types, and last run time on the list', function (
     expect($listed['node_types'])->toBe(['slack.send_message']);
     expect($listed['last_run_at'])->not->toBeNull();
     expect(Carbon::parse($listed['last_run_at']))->toEqual($run->finished_at);
+});
+
+it('says exactly which step and field stop a workflow from publishing, in plain words', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph([
+        'nodes' => [
+            ['key' => 'ask', 'type' => 'ask_ai', 'config' => ['instructions' => 'Be brief.', 'prompt' => '   ']],
+        ],
+        'edges' => [],
+    ]);
+
+    Passport::actingAs($owner);
+
+    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/versions")->assertUnprocessable();
+
+    expect($response->json('issues'))->toContain(['node_key' => 'ask', 'field' => 'prompt', 'message' => 'Prompt is required.'])
+        ->and($response->json('errors'))->toContain("Node 'ask': config.prompt is required.");
+});
+
+it('saves a draft whose field the author cleared (sent as null), and still refuses to publish it', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+
+    Passport::actingAs($owner);
+
+    $this->putJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/graph", [
+        'nodes' => [['key' => 'ask', 'type' => 'ask_ai', 'config' => ['instructions' => 'Be brief.', 'prompt' => null]]],
+        'edges' => [],
+    ])->assertOk();
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/versions")
+        ->assertUnprocessable()
+        ->assertJsonFragment(['node_key' => 'ask', 'field' => 'prompt', 'message' => 'Prompt is required.']);
 });

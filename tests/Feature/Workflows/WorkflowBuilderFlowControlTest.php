@@ -182,8 +182,10 @@ it('refuses to publish a subflow with no workflow_id', function () {
     [, $workspace, $owner] = flowControlSession();
     $workflow = Workflow::factory()->forWorkspace($workspace)->create();
 
-    expect(fn () => $workflow->replaceGraph([
+    $workflow->replaceGraph([
         'nodes' => [['key' => 'sub', 'type' => 'subflow', 'config' => []]],
         'edges' => [],
-    ]))->toThrow(WorkflowValidationException::class);
+    ]);
+
+    expect(fn () => $workflow->fresh()->publishVersion())->toThrow(WorkflowValidationException::class);
 });

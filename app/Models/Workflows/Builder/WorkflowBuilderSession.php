@@ -183,10 +183,13 @@ class WorkflowBuilderSession extends Model
      *
      * `$requireKnownType` is off only where a canvas sync must be able to
      * save around a type the catalog can't check — see `replaceDraft()`.
+     * `$requireFields` is off there too: a canvas the author is still
+     * filling in saves like any draft, while a node the agent adds must come
+     * complete, so it hears what's missing and fixes it.
      *
      * @param  array<string, mixed>  $node
      */
-    private function assertNodeIsValid(array $node, bool $requireKnownType = true): void
+    private function assertNodeIsValid(array $node, bool $requireKnownType = true, bool $requireFields = true): void
     {
         $registry = app(NodeRegistry::class);
         $schema = $registry->configSchemaFor($node['type']);
@@ -202,7 +205,7 @@ class WorkflowBuilderSession extends Model
         }
 
         $config = $node['config'] ?? [];
-        $errors = app(ConfigSchemaValidator::class)->validate($schema, $config);
+        $errors = app(ConfigSchemaValidator::class)->validate($schema, $config, requireFields: $requireFields);
 
         if ($errors !== []) {
             throw new InvalidArgumentException("Node '{$node['key']}': ".implode(' ', $errors));
@@ -353,7 +356,7 @@ class WorkflowBuilderSession extends Model
         foreach ($normalized['nodes'] as $node) {
             $isCarriedOver = $currentTypes->get($node['key']) === $node['type'];
 
-            $this->assertNodeIsValid($node, requireKnownType: ! $isCarriedOver && ! $registry->isCustom($node['type']));
+            $this->assertNodeIsValid($node, requireKnownType: ! $isCarriedOver && ! $registry->isCustom($node['type']), requireFields: false);
         }
 
         $this->applyGraph($normalized, $by, 'Synced from canvas');

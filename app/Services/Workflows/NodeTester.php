@@ -162,8 +162,8 @@ class NodeTester
     private function assertConfigValid(NodeContract $contract, WorkflowNode $node, array $config): void
     {
         $errors = array_map(
-            fn (string $error): string => "Node '{$node->key}': {$error}",
-            $this->configValidator->validate($contract->configSchema(), $config),
+            fn (array $issue): ValidationIssue => ValidationIssue::forNodeConfig($node->key, $issue),
+            $this->configValidator->issues($contract->configSchema(), $config),
         );
 
         if ($errors !== []) {

@@ -88,7 +88,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (WorkflowValidationException $e, Request $request) {
             if ($request->is('api/*')) {
-                return ApiResponse::validationError($e->errors(), $e->getMessage());
+                $response = ApiResponse::validationError($e->errors(), $e->getMessage());
+
+                return $response->setData([...$response->getData(true), 'issues' => $e->issues()]);
             }
         });
 

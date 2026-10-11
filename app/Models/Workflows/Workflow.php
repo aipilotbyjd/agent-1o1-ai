@@ -10,6 +10,7 @@ use App\Services\Workflows\ConfigSchemaValidator;
 use App\Services\Workflows\GraphValidator;
 use App\Services\Workflows\LoopModeCompiler;
 use App\Services\Workflows\NodeRegistry;
+use App\Services\Workflows\ValidationIssue;
 use Database\Factories\Workflows\WorkflowFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -122,8 +123,9 @@ class Workflow extends Model
     /**
      * Replace the draft graph wholesale. Only per-node config-schema issues
      * are checked here (not the full `GraphValidator` sequence — a draft is
-     * allowed to be mid-edit, e.g. temporarily missing an entry node) — see
-     * docs/WORKFLOWS_PLAN.md's "Validation" section.
+     * allowed to be mid-edit, e.g. temporarily missing an entry node, or a
+     * newly added node whose required fields aren't filled in yet; publishing
+     * still requires them) — see docs/WORKFLOWS_PLAN.md's "Validation" section.
      *
      * @param  array{nodes?: array<int, array{key: string, type: string, config?: array<string, mixed>, position?: array<string, mixed>|null}>, edges?: array<int, array{from: string, to: string, condition?: string|null}>}  $graph
      *
@@ -137,7 +139,7 @@ class Workflow extends Model
         $registry = app(NodeRegistry::class);
         $configValidator = app(ConfigSchemaValidator::class);
 
-        $errors = app(GraphValidator::class)->structuralErrors($nodes, $edges);
+        $errors = app(GraphValidator::class)->structuralIssues($nodes, $edges);
 
         if ($errors !== []) {
             throw new WorkflowValidationException($errors);
@@ -150,8 +152,8 @@ class Workflow extends Model
                 continue;
             }
 
-            foreach ($configValidator->validate($schema, $node['config'] ?? []) as $error) {
-                $errors[] = "Node '{$node['key']}': {$error}";
+            foreach ($configValidator->issues($schema, $node['config'] ?? [], requireFields: false) as $issue) {
+                $errors[] = ValidationIssue::forNodeConfig($node['key'], $issue);
             }
         }
 
@@ -282,7 +284,7 @@ class Workflow extends Model
     {
         ['nodes' => $nodes, 'edges' => $edges] = $this->draftGraph();
 
-        $errors = app(GraphValidator::class)->validate($nodes, $edges);
+        $errors = app(GraphValidator::class)->issues($nodes, $edges);
 
         if ($errors !== []) {
             throw new WorkflowValidationException($errors);
