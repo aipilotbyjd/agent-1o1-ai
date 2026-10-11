@@ -15,6 +15,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Templates\AgentTemplate;
 use App\Models\Workspaces\Workspace;
+use App\Services\Ai\WorkspaceModels;
 use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Str;
 
@@ -123,7 +124,7 @@ class AgentTemplateController extends Controller
             'instructions' => $config['instructions'] ?? '',
             'provider' => $config['provider'] ?? 'anthropic',
             'model' => $config['model'] ?? null,
-            'model_catalog_id' => $request->validated('model_catalog_id') ?? $config['model_catalog_id'] ?? null,
+            'model_catalog_id' => $request->validated('model_catalog_id') ?? $config['model_catalog_id'] ?? app(WorkspaceModels::class)->default($workspace->id)?->id,
             'temperature' => $config['temperature'] ?? null,
             'settings' => $config['settings'] ?? null,
             'created_by' => $request->user()->id,

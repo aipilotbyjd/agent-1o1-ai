@@ -63,6 +63,14 @@ class CreditMeter
      */
     private const int CREDITS_PER_TOOL_CALL = 1;
 
+    /**
+     * The message `estimateChatMessage()` prices: a short conversation with
+     * instructions in, a paragraph or two out.
+     */
+    private const int TYPICAL_PROMPT_TOKENS = 2000;
+
+    private const int TYPICAL_COMPLETION_TOKENS = 500;
+
     public function costForNodeRun(NodeRun $nodeRun): int
     {
         return self::BASE_CREDITS_PER_RUN
@@ -110,6 +118,16 @@ class CreditMeter
      * @param  array<string, mixed>  $usage
      */
     public function costForSkillDraft(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
+     * Trying a model from the picker — priced as the chat turn it is.
+     *
+     * @param  array<string, mixed>  $usage
+     */
+    public function costForModelTrial(array $usage): int
     {
         return $this->costForChatTurn($usage);
     }
@@ -167,6 +185,23 @@ class CreditMeter
     public function costForEmbeddings(array $usage): int
     {
         return $this->tokenCost($usage);
+    }
+
+    /**
+     * Roughly what one typical chat message costs on `$provider`/`$model` —
+     * `TYPICAL_PROMPT_TOKENS` in, `TYPICAL_COMPLETION_TOKENS` out, no tool
+     * calls, the compute floor — for the model picker's cost hint. A
+     * workspace's own key (`ByokProviderRegistrar::PREFIX`) makes the token
+     * part free, as it does for a real call.
+     */
+    public function estimateChatMessage(?string $provider, ?string $model): int
+    {
+        return $this->costForChatTurn([
+            'prompt_tokens' => self::TYPICAL_PROMPT_TOKENS,
+            'completion_tokens' => self::TYPICAL_COMPLETION_TOKENS,
+            'provider' => $provider,
+            'model' => $model,
+        ]);
     }
 
     /**

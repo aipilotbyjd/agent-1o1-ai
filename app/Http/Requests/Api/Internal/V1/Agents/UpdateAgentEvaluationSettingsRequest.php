@@ -6,6 +6,7 @@ use App\Enums\Agents\EvaluationCriterionAction;
 use App\Enums\Agents\EvaluationCriterionType;
 use App\Enums\Agents\EvaluationDataPointType;
 use App\Models\Agents\AgentEvaluationSettings;
+use App\Rules\AllowedModel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,7 @@ class UpdateAgentEvaluationSettingsRequest extends FormRequest
     {
         return [
             'is_enabled' => ['sometimes', 'boolean'],
-            'model' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'model' => ['sometimes', 'nullable', 'string', 'max:255', new AllowedModel($this->route('workspace'), bySlug: true)],
             'sentiment_enabled' => ['sometimes', 'boolean'],
             'sentiment_affects_grade' => ['sometimes', 'boolean'],
             'sentiment_guidance' => ['sometimes', 'nullable', 'string', 'max:2000'],

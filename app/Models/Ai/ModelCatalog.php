@@ -2,6 +2,7 @@
 
 namespace App\Models\Ai;
 
+use App\Enums\Ai\ModelSpeed;
 use App\Models\Agents\Agent;
 use Database\Factories\Ai\ModelCatalogFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * in `ModelRoute` and is never exposed through user-facing API responses.
  * See `Services\Ai\ModelCatalogResolver`.
  */
-#[Fillable(['slug', 'display_name', 'brand', 'capabilities', 'is_active', 'is_internal', 'sort_order'])]
+#[Fillable(['slug', 'display_name', 'brand', 'description', 'strengths', 'speed', 'cost_tier', 'capabilities', 'is_active', 'is_internal', 'sort_order', 'retires_at', 'replacement_slug'])]
 class ModelCatalog extends Model
 {
     /** @use HasFactory<ModelCatalogFactory> */
@@ -33,8 +34,12 @@ class ModelCatalog extends Model
     {
         return [
             'capabilities' => 'array',
+            'strengths' => 'array',
+            'speed' => ModelSpeed::class,
+            'cost_tier' => 'integer',
             'is_active' => 'boolean',
             'is_internal' => 'boolean',
+            'retires_at' => 'datetime',
         ];
     }
 

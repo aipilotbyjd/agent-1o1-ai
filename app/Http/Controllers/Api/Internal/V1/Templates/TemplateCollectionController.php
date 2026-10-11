@@ -17,6 +17,7 @@ use App\Models\Templates\TemplateCollection;
 use App\Models\Templates\WorkflowTemplate;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Services\Ai\WorkspaceModels;
 use App\Services\Billing\PlanLimitGate;
 use Illuminate\Support\Str;
 
@@ -145,6 +146,7 @@ class TemplateCollectionController extends Controller
             'instructions' => $config['instructions'] ?? '',
             'provider' => $config['provider'] ?? 'anthropic',
             'model' => $config['model'] ?? null,
+            'model_catalog_id' => $config['model_catalog_id'] ?? app(WorkspaceModels::class)->default($workspace->id)?->id,
             'temperature' => $config['temperature'] ?? null,
             'settings' => $config['settings'] ?? null,
             'created_by' => auth()->id(),

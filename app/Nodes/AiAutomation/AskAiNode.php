@@ -12,6 +12,7 @@ use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
 use App\Services\Ai\ByokProviderRegistrar;
 use App\Services\Ai\ModelCatalogResolver;
+use App\Services\Ai\WorkspaceModels;
 
 /**
  * Gumloop's "Ask AI" node — a provider-agnostic single-turn LLM call routed
@@ -23,6 +24,7 @@ class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
     public function __construct(
         private readonly ModelCatalogResolver $modelCatalog,
         private readonly ByokProviderRegistrar $byok,
+        private readonly WorkspaceModels $workspaceModels,
     ) {}
 
     public function type(): string
@@ -61,7 +63,7 @@ class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['prompt'],
             'properties' => [
-                'model_catalog_slug' => Field::dynamic('Model', 'ai.models', 'Leave empty to use the default model.', allowCustom: false),
+                'model_catalog_slug' => Field::dynamic('Model', 'ai.models', 'Leave empty to use the workspace default model.', allowCustom: false),
                 'instructions' => Field::advanced(Field::textarea('Instructions', 'How the AI should behave (system prompt).', 'You are a helpful assistant.')),
                 'prompt' => Field::textarea('Prompt', 'What to ask. Use {{templates}} to include data from earlier steps.'),
                 'provider' => Field::hidden('Legacy provider override; use Model instead.'),
@@ -74,8 +76,13 @@ class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
     {
         $agent = new AdHocPromptAgent($config['instructions'] ?? 'You are a helpful assistant.');
 
-        if (isset($config['model_catalog_slug'])) {
-            $provider = $this->modelCatalog->providerChain($config['model_catalog_slug']);
+        // No model picked and no legacy override: the workspace's default.
+        $slug = filled($config['model_catalog_slug'] ?? null)
+            ? $config['model_catalog_slug']
+            : (filled($config['provider'] ?? null) || filled($config['model'] ?? null) ? null : $this->workspaceModels->default($run->workspace_id)?->slug);
+
+        if ($slug !== null) {
+            $provider = $this->modelCatalog->providerChain($slug);
             $model = null;
         } else {
             $provider = $config['provider'] ?? null;

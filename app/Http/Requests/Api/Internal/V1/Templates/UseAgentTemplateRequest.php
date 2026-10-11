@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Templates;
 
+use App\Rules\AllowedModel;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UseAgentTemplateRequest extends FormRequest
@@ -18,7 +19,7 @@ class UseAgentTemplateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id'],
+            'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id', new AllowedModel($this->route('workspace'))],
         ];
     }
 }

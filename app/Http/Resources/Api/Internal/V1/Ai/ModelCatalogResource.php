@@ -3,8 +3,7 @@
 namespace App\Http\Resources\Api\Internal\V1\Ai;
 
 use App\Models\Ai\ModelCatalog;
-use App\Models\Ai\ModelRoute;
-use App\Services\Ai\ModelCatalogResolver;
+use App\Services\Ai\WorkspaceModelView;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,27 +17,18 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * backend(s), credentials, and priorities serve this entry is never exposed
  * to agent/workflow-facing API responses. See `Services\Ai\ModelCatalogResolver`.
  *
- * `is_available` counts a route the platform has no key for as usable when
- * the asking member's workspace has its own key for that provider — see
- * `withOwnKeysFor()` and `ByokProviderRegistrar::coveredProviders()`. A
- * workspace that never uses the platform's keys counts only its own.
+ * Availability, the reason a model can't run, whether it runs on the
+ * workspace's own key, the admin's allow-list and default, and the cost
+ * hint all come from the `WorkspaceModelView` it's given — the platform's
+ * view when none is.
  */
 class ModelCatalogResource extends JsonResource
 {
-    /**
-     * @var array<int, string>
-     */
-    private array $ownKeyProviders = [];
+    private ?WorkspaceModelView $view = null;
 
-    private bool $platformKeysAllowed = true;
-
-    /**
-     * @param  array<int, string>  $providers
-     */
-    public function withOwnKeysFor(array $providers, bool $platformKeysAllowed = true): static
+    public function withView(WorkspaceModelView $view): static
     {
-        $this->ownKeyProviders = $providers;
-        $this->platformKeysAllowed = $platformKeysAllowed;
+        $this->view = $view;
 
         return $this;
     }
@@ -53,11 +43,14 @@ class ModelCatalogResource extends JsonResource
             'slug' => $this->slug,
             'display_name' => $this->display_name,
             'brand' => $this->brand,
+            'description' => $this->description,
+            'strengths' => $this->strengths ?? [],
+            'speed' => $this->speed?->value,
+            'cost_tier' => $this->cost_tier,
             'capabilities' => $this->capabilities,
-            'is_available' => $this->whenLoaded('routes', fn (): bool => $this->routes->contains(
-                fn (ModelRoute $route): bool => in_array($route->execution_provider, $this->ownKeyProviders, true)
-                    || ($this->platformKeysAllowed && ModelCatalogResolver::providerIsConfigured($route->execution_provider)),
-            )),
+            'retires_at' => $this->retires_at,
+            'replacement_slug' => $this->replacement_slug,
+            ...$this->whenLoaded('routes', fn (): array => ($this->view ?? WorkspaceModelView::platform())->describe($this->resource), []),
         ];
     }
 }

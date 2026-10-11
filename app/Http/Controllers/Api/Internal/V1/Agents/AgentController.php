@@ -13,6 +13,7 @@ use App\Http\Resources\Api\Internal\V1\Agents\AgentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Agents\Agent;
 use App\Models\Workspaces\Workspace;
+use App\Services\Ai\WorkspaceModels;
 use App\Services\Billing\PlanLimitGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -38,13 +39,18 @@ class AgentController extends Controller
         ]);
     }
 
-    public function store(StoreAgentRequest $request, Workspace $workspace, PlanLimitGate $limits)
+    /**
+     * An agent created without a model starts on the workspace's default
+     * model, when one is set — see `WorkspaceModels`.
+     */
+    public function store(StoreAgentRequest $request, Workspace $workspace, PlanLimitGate $limits, WorkspaceModels $models)
     {
         $this->requirePermission(Permission::AgentManage);
         $limits->assertCanCreate($workspace, PlanLimit::Agents);
 
         $agent = $workspace->agents()->create([
             ...$request->validated(),
+            'model_catalog_id' => $request->validated('model_catalog_id') ?? ($request->filled('model') ? null : $models->default($workspace->id)?->id),
             'slug' => $request->validated('slug') ?: Str::slug($request->validated('name')).'-'.Str::random(6),
             'created_by' => $request->user()->id,
         ]);

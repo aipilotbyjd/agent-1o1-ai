@@ -24,6 +24,38 @@ use Illuminate\Database\Seeder;
  */
 class ModelCatalogSeeder extends Seeder
 {
+    /**
+     * What the model picker says about each entry. Speed and cost tiers place
+     * a model relative to the rest of this catalog (1 = cheapest), not against
+     * outside benchmarks.
+     *
+     * @var array<string, array{description: string, strengths: array<int, string>, speed: string, cost_tier: int}>
+     */
+    private const array DETAILS = [
+        'claude-fable-5' => ['description' => 'Anthropic\'s top model for the hardest reasoning, research and long, careful work.', 'strengths' => ['Deep reasoning', 'Long documents', 'Careful writing'], 'speed' => 'thorough', 'cost_tier' => 3],
+        'claude-opus-5' => ['description' => 'Anthropic\'s most capable everyday model for complex, multi-step tasks and agents.', 'strengths' => ['Complex tasks', 'Coding', 'Agents with many tools'], 'speed' => 'thorough', 'cost_tier' => 3],
+        'claude-sonnet-5' => ['description' => 'A balanced Anthropic model: strong quality at a moderate cost — a good default for agents.', 'strengths' => ['All-round', 'Coding', 'Tool use'], 'speed' => 'balanced', 'cost_tier' => 2],
+        'claude-haiku-4-5' => ['description' => 'Anthropic\'s fast, low-cost model for simple, high-volume work.', 'strengths' => ['Speed', 'Low cost', 'Classification'], 'speed' => 'fast', 'cost_tier' => 1],
+        'gpt-5.6-sol' => ['description' => 'OpenAI\'s most capable GPT-5.6 tier for demanding reasoning and long context.', 'strengths' => ['Deep reasoning', 'Very long context', 'Coding'], 'speed' => 'thorough', 'cost_tier' => 3],
+        'gpt-5.6-terra' => ['description' => 'The balanced GPT-5.6 tier for everyday agent work.', 'strengths' => ['All-round', 'Tool use', 'Writing'], 'speed' => 'balanced', 'cost_tier' => 2],
+        'gpt-5.6-luna' => ['description' => 'The fast, lightweight GPT-5.6 tier for quick, low-cost tasks.', 'strengths' => ['Speed', 'Low cost', 'Summaries'], 'speed' => 'fast', 'cost_tier' => 1],
+        'gpt-4o' => ['description' => 'An established OpenAI multimodal model that handles text and images.', 'strengths' => ['Images', 'All-round', 'Reliable'], 'speed' => 'balanced', 'cost_tier' => 2],
+        'gpt-4o-mini' => ['description' => 'A small, very cheap OpenAI model for simple tasks at volume.', 'strengths' => ['Low cost', 'Speed', 'Simple tasks'], 'speed' => 'fast', 'cost_tier' => 1],
+        'gemini-3.1-pro' => ['description' => 'Google\'s capable Gemini model with a very long context window.', 'strengths' => ['Very long context', 'Images', 'Research'], 'speed' => 'thorough', 'cost_tier' => 2],
+        'gemini-3.5-flash' => ['description' => 'A fast Gemini model with a long context window at low cost.', 'strengths' => ['Speed', 'Long context', 'Low cost'], 'speed' => 'fast', 'cost_tier' => 1],
+        'grok-4.6' => ['description' => 'xAI\'s Grok model for reasoning and conversational tasks.', 'strengths' => ['Reasoning', 'Conversation', 'Images'], 'speed' => 'balanced', 'cost_tier' => 2],
+        'mistral-medium-3.5' => ['description' => 'Mistral\'s mid-size model for solid quality at a moderate cost.', 'strengths' => ['All-round', 'Multilingual', 'Tool use'], 'speed' => 'balanced', 'cost_tier' => 2],
+        'mistral-small-4' => ['description' => 'Mistral\'s small, fast model — inexpensive and good for straightforward agents.', 'strengths' => ['Speed', 'Low cost', 'Multilingual'], 'speed' => 'fast', 'cost_tier' => 1],
+        'deepseek-v4-pro' => ['description' => 'DeepSeek\'s strong reasoning and coding model with a very long context.', 'strengths' => ['Reasoning', 'Coding', 'Very long context'], 'speed' => 'thorough', 'cost_tier' => 2],
+        'deepseek-v4-flash' => ['description' => 'A fast, low-cost DeepSeek model for everyday tasks.', 'strengths' => ['Speed', 'Low cost', 'Coding'], 'speed' => 'fast', 'cost_tier' => 1],
+        'llama-4-maverick' => ['description' => 'Meta\'s open-weight Llama 4 model with image understanding.', 'strengths' => ['Open weights', 'Images', 'Long context'], 'speed' => 'balanced', 'cost_tier' => 1],
+        'llama-3.1-405b' => ['description' => 'Meta\'s large open-weight Llama 3.1 model.', 'strengths' => ['Open weights', 'All-round'], 'speed' => 'thorough', 'cost_tier' => 2],
+        'kimi-k3' => ['description' => 'Moonshot\'s Kimi model with a very long context window.', 'strengths' => ['Very long context', 'Images', 'Agents'], 'speed' => 'balanced', 'cost_tier' => 2],
+        'glm-5.2' => ['description' => 'Zhipu\'s GLM model for reasoning and tool use.', 'strengths' => ['Reasoning', 'Tool use', 'Long context'], 'speed' => 'balanced', 'cost_tier' => 1],
+        'minimax-m3' => ['description' => 'MiniMax\'s long-context model for agents and documents.', 'strengths' => ['Long context', 'Agents'], 'speed' => 'balanced', 'cost_tier' => 1],
+        'qwen3.6' => ['description' => 'Alibaba\'s Qwen model — capable and inexpensive.', 'strengths' => ['Low cost', 'Multilingual', 'Coding'], 'speed' => 'balanced', 'cost_tier' => 1],
+    ];
+
     public function run(): void
     {
         // --- Anthropic ---------------------------------------------------
@@ -178,7 +210,7 @@ class ModelCatalogSeeder extends Seeder
     {
         $catalog = ModelCatalog::query()->updateOrCreate(
             ['slug' => $slug],
-            ['display_name' => $displayName, 'brand' => $brand, 'capabilities' => $capabilities, 'is_active' => true, 'is_internal' => $internal],
+            ['display_name' => $displayName, 'brand' => $brand, 'capabilities' => $capabilities, 'is_active' => true, 'is_internal' => $internal, ...(self::DETAILS[$slug] ?? [])],
         );
 
         foreach ($routes as $route) {

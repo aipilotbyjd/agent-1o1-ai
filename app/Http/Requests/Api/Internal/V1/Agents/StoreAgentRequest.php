@@ -6,6 +6,7 @@ use App\Enums\Agents\AutonomyMode;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Http\Requests\Api\Internal\V1\Workflows\Concerns\ValidatesWorkspaceFolder;
 use App\Models\Agents\Agent;
+use App\Rules\AllowedModel;
 use App\Services\Agents\GenerationSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,7 +35,7 @@ class StoreAgentRequest extends FormRequest
             'instructions' => ['nullable', 'string'],
             'provider' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
-            'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id'],
+            'model_catalog_id' => ['nullable', 'uuid', 'exists:model_catalog,id', new AllowedModel($this->route('workspace'))],
             'temperature' => ['nullable', 'numeric', 'between:0,1'],
             'settings' => ['nullable', 'array'],
             'settings.max_steps' => ['nullable', 'integer', 'min:1', 'max:'.GenerationSettings::MAX_STEPS],

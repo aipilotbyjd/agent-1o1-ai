@@ -15,6 +15,7 @@ use App\Models\Agents\ReflectionRun;
 use App\Models\Agents\WorkspaceAgentPolicy;
 use App\Models\Ai\AiProviderCredential;
 use App\Models\Ai\WorkspaceAiKeyPolicy;
+use App\Models\Ai\WorkspaceModelSettings;
 use App\Models\Auth\ApiKey;
 use App\Models\Auth\PassportToken;
 use App\Models\Billing\Subscription as BillingSubscription;
@@ -188,6 +189,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('connector-tests', fn (Request $request): Limit => Limit::perMinute(10)
             ->by($request->user()?->id ?? $request->ip()));
 
+        // Each trial runs a real (billed) model call.
+        RateLimiter::for('model-trials', fn (Request $request): Limit => Limit::perMinute(6)
+            ->by($request->user()?->id ?? $request->ip()));
+
         // Adding, replacing or re-checking an AI provider key calls the provider.
         RateLimiter::for('ai-credential-checks', fn (Request $request): Limit => Limit::perMinute(10)
             ->by($request->user()?->id ?? $request->ip()));
@@ -253,6 +258,7 @@ class AppServiceProvider extends ServiceProvider
             NotificationChannel::class,
             WorkspaceAgentPolicy::class,
             WorkspaceAiKeyPolicy::class,
+            WorkspaceModelSettings::class,
         ] as $audited) {
             $audited::observe(AuditObserver::class);
         }

@@ -47,6 +47,13 @@ enum CreditTransactionType: string
     case SkillDraft = 'skill_draft';
 
     /**
+     * Trying a model from the model picker with a sample prompt — see
+     * `ModelTrialController`. A trial saves nothing, so its charge carries
+     * an id of its own.
+     */
+    case ModelTrial = 'model_trial';
+
+    /**
      * One workflow-builder assistant turn (charged against its assistant
      * message's id) or one builder assist call — suggest, configure,
      * explain — which saves nothing and carries an id of its own. See

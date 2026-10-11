@@ -8,8 +8,10 @@ use App\Enums\Connectors\ConnectorCredentialScope;
 use App\Exceptions\OwnAiKeyRequiredException;
 use App\Models\Ai\AiProviderCredential;
 use App\Models\Ai\WorkspaceAiKeyPolicy;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Laravel\Ai\AiManager;
+use Throwable;
 
 /**
  * Bring your own key, at call time. `ModelCatalogResolver` stays global —
@@ -130,6 +132,32 @@ class ByokProviderRegistrar
         [$chain] = $this->apply([$platform => null], null, $workspaceId, $userId);
 
         return $chain === [$platform => null] ? $platform : $chain;
+    }
+
+    /**
+     * When a call led by a workspace key failed because the provider refused
+     * the key (401/403 — revoked, expired), re-checks that key straight away
+     * so it's marked rejected and stops being used, instead of failing calls
+     * until the scheduled re-check. Returns the key when it was to blame.
+     *
+     * @param  string|array<string, string|null>|null  $provider  the chain the call was made with
+     */
+    public function rejectedKey(Throwable $exception, string|array|null $provider): ?AiProviderCredential
+    {
+        $status = $exception instanceof RequestException ? $exception->response?->status() : null;
+        $lead = is_array($provider) ? array_key_first($provider) : $provider;
+
+        if (! in_array($status, [401, 403], true) || ! self::isByok($lead)) {
+            return null;
+        }
+
+        $credential = AiProviderCredential::query()->find(substr((string) $lead, strlen(self::PREFIX)));
+
+        if ($credential !== null) {
+            app(AiProviderKeyChecker::class)->validate($credential);
+        }
+
+        return $credential;
     }
 
     /**
