@@ -327,3 +327,23 @@ it('saves a draft whose field the author cleared (sent as null), and still refus
         ->assertUnprocessable()
         ->assertJsonFragment(['node_key' => 'ask', 'field' => 'prompt', 'message' => 'Prompt is required.']);
 });
+
+it('sums up a refused publish in plain words and leaves the details to the issues', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflow();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph([
+        'nodes' => [
+            ['key' => 'a', 'type' => 'transform', 'config' => ['mapping' => []]],
+            ['key' => 'b', 'type' => 'transform', 'config' => ['mapping' => []]],
+        ],
+        'edges' => [['from' => 'a', 'to' => 'b'], ['from' => 'b', 'to' => 'a']],
+    ]);
+
+    Passport::actingAs($owner);
+
+    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/workflows/{$workflow->id}/versions")
+        ->assertUnprocessable();
+
+    expect($response->json('message'))->toBe('One thing needs fixing before this workflow can run.');
+    expect($response->json('issues'))->toHaveCount(1);
+});

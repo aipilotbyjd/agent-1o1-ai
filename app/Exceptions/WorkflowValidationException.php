@@ -33,7 +33,18 @@ class WorkflowValidationException extends RuntimeException
             array_values($problems),
         );
 
-        parent::__construct('The workflow graph is invalid.');
+        parent::__construct(self::summary(count($this->issues)));
+    }
+
+    /**
+     * Shown to the person building the workflow, so it says how much needs
+     * fixing rather than naming the graph; `issues()` says what and where.
+     */
+    private static function summary(int $count): string
+    {
+        return $count === 1
+            ? 'One thing needs fixing before this workflow can run.'
+            : "{$count} things need fixing before this workflow can run.";
     }
 
     /**

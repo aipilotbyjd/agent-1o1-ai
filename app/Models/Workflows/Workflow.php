@@ -235,6 +235,56 @@ class Workflow extends Model
     }
 
     /**
+     * The draft as the editor sees it — `draftGraph()` plus each node's
+     * canvas position, minus pins. This is what a version records as its
+     * `editor_graph` and what `restoreVersion()` writes back.
+     *
+     * @return array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>, position: array<string, mixed>|null}>, edges: array<int, array{from: string, to: string, condition: string|null}>}
+     */
+    public function editorGraph(): array
+    {
+        $nodes = $this->nodes()->get();
+        $nodeKeysById = $nodes->pluck('key', 'id');
+
+        return [
+            'nodes' => $nodes
+                ->map(fn (WorkflowNode $node): array => [
+                    'key' => $node->key,
+                    'type' => $node->type,
+                    'config' => $node->config ?? [],
+                    'position' => $node->position,
+                ])
+                ->all(),
+            'edges' => $this->edges()->get()
+                ->map(fn (WorkflowEdge $edge): array => [
+                    'from' => $nodeKeysById[$edge->from_node_id],
+                    'to' => $nodeKeysById[$edge->to_node_id],
+                    'condition' => $edge->condition,
+                ])
+                ->all(),
+        ];
+    }
+
+    /**
+     * Replace the draft with what a published version looked like. Nothing
+     * goes live: the author reviews it and publishes like any other edit.
+     * Restoring the live version is "discard changes", so the draft is then
+     * no longer ahead of it.
+     *
+     * @throws WorkflowValidationException
+     */
+    public function restoreVersion(WorkflowVersion $version): void
+    {
+        DB::transaction(function () use ($version): void {
+            $this->replaceGraph($version->editorGraph());
+
+            if ($version->id === $this->current_version_id) {
+                $this->forceFill(['has_unpublished_changes' => false])->save();
+            }
+        });
+    }
+
+    /**
      * A hash of the draft graph as an author sees it — keys, types, configs,
      * positions and edges, independent of row order. Pins are left out:
      * pinning sample data isn't an edit to the workflow. A builder session
@@ -283,6 +333,7 @@ class Workflow extends Model
     public function publishVersion(?string $notes = null, ?User $publisher = null): WorkflowVersion
     {
         ['nodes' => $nodes, 'edges' => $edges] = $this->draftGraph();
+        $editorGraph = $this->editorGraph();
 
         $errors = app(GraphValidator::class)->issues($nodes, $edges);
 
@@ -297,7 +348,7 @@ class Workflow extends Model
         // about the graph's structure needs revalidating after this.
         $nodes = app(LoopModeCompiler::class)->compile($this, $nodes);
 
-        return DB::transaction(function () use ($nodes, $edges, $notes, $publisher): WorkflowVersion {
+        return DB::transaction(function () use ($nodes, $edges, $editorGraph, $notes, $publisher): WorkflowVersion {
             $graph = ['nodes' => $nodes, 'edges' => $edges];
 
             // `lockForUpdate()` on the watermark read, plus a retry on the
@@ -317,6 +368,7 @@ class Workflow extends Model
                 $version = DB::transaction(fn (): WorkflowVersion => $this->createVersion(
                     ((int) $this->versions()->lockForUpdate()->pluck('version')->max()) + 1,
                     $graph,
+                    $editorGraph,
                     $notes,
                     $publisher,
                 ));
@@ -324,6 +376,7 @@ class Workflow extends Model
                 $version = $this->createVersion(
                     ((int) $this->versions()->max('version')) + 1,
                     $graph,
+                    $editorGraph,
                     $notes,
                     $publisher,
                 );
@@ -341,12 +394,14 @@ class Workflow extends Model
 
     /**
      * @param  array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}  $graph
+     * @param  array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}  $editorGraph
      */
-    private function createVersion(int $version, array $graph, ?string $notes, ?User $publisher): WorkflowVersion
+    private function createVersion(int $version, array $graph, array $editorGraph, ?string $notes, ?User $publisher): WorkflowVersion
     {
         return $this->versions()->create([
             'version' => $version,
             'graph' => $graph,
+            'editor_graph' => $editorGraph,
             'notes' => $notes,
             'published_by' => $publisher?->id,
         ]);

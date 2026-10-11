@@ -26,6 +26,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{workflow}/versions', [WorkflowVersionController::class, 'index'])->name('versions.index');
         Route::post('{workflow}/versions', [WorkflowVersionController::class, 'store'])->name('versions.store');
         Route::get('{workflow}/versions/{version}', [WorkflowVersionController::class, 'show'])->name('versions.show');
+        Route::post('{workflow}/versions/{version}/restore', [WorkflowVersionController::class, 'restore'])->name('versions.restore');
 
         // The workflow's input contract and the form-run that submits it —
         // see WorkflowInterfaceController.

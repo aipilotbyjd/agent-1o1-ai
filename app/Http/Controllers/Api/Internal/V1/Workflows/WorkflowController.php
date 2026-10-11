@@ -11,7 +11,6 @@ use App\Http\Resources\Api\Internal\V1\Workflows\WorkflowResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
-use App\Models\Workflows\WorkflowEdge;
 use App\Models\Workflows\WorkflowNode;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\PlanLimitGate;
@@ -182,36 +181,8 @@ class WorkflowController extends Controller
             'created_by' => request()->user()->id,
         ]);
 
-        $duplicate->replaceGraph($this->currentGraph($workflow));
+        $duplicate->replaceGraph($workflow->editorGraph());
 
         return ApiResponse::created(['workflow' => WorkflowResource::make($duplicate->load(['nodes', 'edges']))], 'Workflow duplicated successfully.');
-    }
-
-    /**
-     * @return array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}
-     */
-    private function currentGraph(Workflow $workflow): array
-    {
-        $workflow->loadMissing(['nodes', 'edges']);
-
-        $nodeKeysById = $workflow->nodes->pluck('key', 'id');
-
-        return [
-            'nodes' => $workflow->nodes
-                ->map(fn (WorkflowNode $node): array => [
-                    'key' => $node->key,
-                    'type' => $node->type,
-                    'config' => $node->config ?? [],
-                    'position' => $node->position,
-                ])
-                ->all(),
-            'edges' => $workflow->edges
-                ->map(fn (WorkflowEdge $edge): array => [
-                    'from' => $nodeKeysById[$edge->from_node_id],
-                    'to' => $nodeKeysById[$edge->to_node_id],
-                    'condition' => $edge->condition,
-                ])
-                ->all(),
-        ];
     }
 }

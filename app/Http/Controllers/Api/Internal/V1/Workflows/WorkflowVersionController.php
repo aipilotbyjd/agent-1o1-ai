@@ -19,8 +19,15 @@ class WorkflowVersionController extends Controller
         $this->requirePermission(Permission::WorkflowVersion);
         $this->ensureBelongsToWorkspace($workspace, $workflow);
 
+        $versions = $workflow->versions()
+            ->select(['id', 'workflow_id', 'version', 'notes', 'published_by', 'created_at'])
+            ->with('publisher:id,name')
+            ->withCount('runs')
+            ->latest('version')
+            ->get();
+
         return ApiResponse::success([
-            'versions' => WorkflowVersionResource::collection($workflow->versions()->latest('version')->get()),
+            'versions' => WorkflowVersionResource::collection($versions),
         ]);
     }
 
@@ -30,7 +37,9 @@ class WorkflowVersionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $workflow);
         abort_if($version->workflow_id !== $workflow->id, 404);
 
-        return ApiResponse::success(['version' => WorkflowVersionResource::make($version)]);
+        return ApiResponse::success([
+            'version' => WorkflowVersionResource::make($version->load('publisher:id,name')->loadCount('runs')),
+        ]);
     }
 
     /**
@@ -49,5 +58,22 @@ class WorkflowVersionController extends Controller
             'version' => WorkflowVersionResource::make($version),
             'workflow' => WorkflowResource::make($workflow->fresh()),
         ], 'Workflow published successfully.');
+    }
+
+    /**
+     * Copy a published version back into the draft — see
+     * `Workflow::restoreVersion()`. Nothing goes live until it is published.
+     */
+    public function restore(Workspace $workspace, Workflow $workflow, WorkflowVersion $version)
+    {
+        $this->requirePermission(Permission::WorkflowBuilderUse);
+        $this->ensureBelongsToWorkspace($workspace, $workflow);
+        abort_if($version->workflow_id !== $workflow->id, 404);
+
+        $workflow->restoreVersion($version);
+
+        return ApiResponse::success([
+            'workflow' => WorkflowResource::make($workflow->fresh(['nodes', 'edges'])),
+        ], "Version {$version->version} restored to the draft.");
     }
 }
