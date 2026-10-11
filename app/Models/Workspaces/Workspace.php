@@ -2,6 +2,7 @@
 
 namespace App\Models\Workspaces;
 
+use App\Enums\Billing\Feature;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
 use App\Models\Agents\DocumentEmbedding;
@@ -56,6 +57,7 @@ class Workspace extends Model
         'topup_credits' => 0,
         'credit_overage_enabled' => false,
         'out_of_credits_notification_enabled' => true,
+        'require_publish_approval' => false,
     ];
 
     /**
@@ -69,6 +71,7 @@ class Workspace extends Model
             'credit_overage_limit' => 'integer',
             'credit_usage_notification_thresholds' => 'array',
             'out_of_credits_notification_enabled' => 'boolean',
+            'require_publish_approval' => 'boolean',
         ];
     }
 
@@ -267,6 +270,17 @@ class Workspace extends Model
      * (Free) plan when neither entitles, so "unsubscribed" means the free
      * tier and not an unmetered one.
      */
+    /**
+     * Whether changes must be reviewed before they go live — the admin's
+     * switch, honoured only while the plan includes approvals. A lapsed plan
+     * quietly lifts the rule rather than locking every workflow.
+     */
+    public function requiresPublishApproval(): bool
+    {
+        return $this->require_publish_approval
+            && (bool) $this->currentPlan()?->hasFeature(Feature::WorkflowApprovals);
+    }
+
     public function currentPlan(): ?Plan
     {
         $candidates = collect([

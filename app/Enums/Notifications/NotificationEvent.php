@@ -16,6 +16,8 @@ enum NotificationEvent: string
     case MemberRemoved = 'workspace.member_removed';
     case MemberRoleChanged = 'workspace.member_role_changed';
     case RunApprovalRequested = 'run.approval_requested';
+    case PublishReviewRequested = 'workflow.publish_review_requested';
+    case PublishRequestDecided = 'workflow.publish_request_decided';
     case ConnectorCredentialExpired = 'connector.credential_expired';
     case AiProviderCredentialInvalid = 'ai.provider_credential_invalid';
     case PaymentFailed = 'billing.payment_failed';
@@ -48,6 +50,8 @@ enum NotificationEvent: string
             self::MemberRemoved => 'Member removed',
             self::MemberRoleChanged => 'Member role changed',
             self::RunApprovalRequested => 'Run approval requested',
+            self::PublishReviewRequested => 'Workflow change needs review',
+            self::PublishRequestDecided => 'Workflow change reviewed',
             self::ConnectorCredentialExpired => 'Connector credential expired',
             self::AiProviderCredentialInvalid => 'AI provider key stopped working',
             self::PaymentFailed => 'Payment failed',
@@ -78,6 +82,8 @@ enum NotificationEvent: string
             self::MemberRemoved => 'A member is removed from the workspace.',
             self::MemberRoleChanged => "A member's role in the workspace changes.",
             self::RunApprovalRequested => 'A workflow run pauses awaiting human approval.',
+            self::PublishReviewRequested => 'Someone asks for a workflow change to be reviewed before it goes live.',
+            self::PublishRequestDecided => 'A change you asked to publish is approved and live, or rejected.',
             self::ConnectorCredentialExpired => 'A connector credential expires and could not be automatically refreshed.',
             self::AiProviderCredentialInvalid => 'An AI provider key you rely on is rejected by its provider, so the platform\'s own key is used again.',
             self::PaymentFailed => 'A subscription invoice charge fails.',

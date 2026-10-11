@@ -45,6 +45,12 @@ enum AuditAction: string
 
     case AgentPolicyUpdated = 'agent_policy.updated';
 
+    case PublishApprovalPolicyUpdated = 'publish_approval_policy.updated';
+    case PublishRequestCreated = 'publish_request.created';
+    case PublishRequestApproved = 'publish_request.approved';
+    case PublishRequestRejected = 'publish_request.rejected';
+    case PublishRequestWithdrawn = 'publish_request.withdrawn';
+
     case SubscriptionCheckoutStarted = 'billing.checkout_started';
     case SubscriptionCanceled = 'billing.subscription_canceled';
     case SubscriptionResumed = 'billing.subscription_resumed';

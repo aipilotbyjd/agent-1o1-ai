@@ -1,12 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Workflows\FolderController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\PublishApprovalPolicyController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\TagController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowFavoriteController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowInterfaceController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowNodePinController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowPublishRequestController;
 use App\Http\Controllers\Api\Internal\V1\Workflows\WorkflowVersionController;
+use App\Http\Controllers\Api\Internal\V1\Workflows\WorkspacePublishRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:api', 'workspace.context'])
@@ -27,6 +30,14 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('{workflow}/versions', [WorkflowVersionController::class, 'store'])->name('versions.store');
         Route::get('{workflow}/versions/{version}', [WorkflowVersionController::class, 'show'])->name('versions.show');
         Route::post('{workflow}/versions/{version}/restore', [WorkflowVersionController::class, 'restore'])->name('versions.restore');
+
+        // Review before publishing, in workspaces that require it — see PublishRequests.
+        Route::get('{workflow}/publish-requests', [WorkflowPublishRequestController::class, 'index'])->name('publish-requests.index');
+        Route::post('{workflow}/publish-requests', [WorkflowPublishRequestController::class, 'store'])->name('publish-requests.store');
+        Route::get('{workflow}/publish-requests/{publishRequest}', [WorkflowPublishRequestController::class, 'show'])->name('publish-requests.show');
+        Route::post('{workflow}/publish-requests/{publishRequest}/approve', [WorkflowPublishRequestController::class, 'approve'])->name('publish-requests.approve');
+        Route::post('{workflow}/publish-requests/{publishRequest}/reject', [WorkflowPublishRequestController::class, 'reject'])->name('publish-requests.reject');
+        Route::post('{workflow}/publish-requests/{publishRequest}/withdraw', [WorkflowPublishRequestController::class, 'withdraw'])->name('publish-requests.withdraw');
 
         // The workflow's input contract and the form-run that submits it —
         // see WorkflowInterfaceController.
@@ -62,4 +73,15 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('/', [TagController::class, 'store'])->name('store');
         Route::patch('{tag}', [TagController::class, 'update'])->name('update');
         Route::delete('{tag}', [TagController::class, 'destroy'])->name('destroy');
+    });
+
+Route::middleware(['auth:api', 'workspace.context'])
+    ->prefix('workspaces/{workspace}')
+    ->group(function () {
+        // Whether workflow changes need a review before they go live.
+        Route::get('publish-approval-policy', [PublishApprovalPolicyController::class, 'show'])->name('publish-approval-policy.show');
+        Route::put('publish-approval-policy', [PublishApprovalPolicyController::class, 'update'])->name('publish-approval-policy.update');
+
+        // Every change waiting for review, for the approvals inbox.
+        Route::get('publish-requests', [WorkspacePublishRequestController::class, 'index'])->name('publish-requests.index');
     });

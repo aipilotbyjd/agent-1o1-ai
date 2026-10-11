@@ -7,6 +7,7 @@ use App\Exceptions\InsufficientCreditsException;
 use App\Exceptions\ModelSubmissionException;
 use App\Exceptions\OwnAiKeyRequiredException;
 use App\Exceptions\PlanLimitExceededException;
+use App\Exceptions\PublishApprovalRequiredException;
 use App\Exceptions\RunStateException;
 use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
@@ -91,6 +92,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 $response = ApiResponse::validationError($e->errors(), $e->getMessage());
 
                 return $response->setData([...$response->getData(true), 'issues' => $e->issues()]);
+            }
+        });
+
+        $exceptions->render(function (PublishApprovalRequiredException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 409);
             }
         });
 

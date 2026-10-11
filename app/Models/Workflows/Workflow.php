@@ -2,6 +2,7 @@
 
 namespace App\Models\Workflows;
 
+use App\Exceptions\PublishApprovalRequiredException;
 use App\Exceptions\WorkflowValidationException;
 use App\Models\Runs\Run;
 use App\Models\User;
@@ -99,6 +100,11 @@ class Workflow extends Model
     public function runs(): HasMany
     {
         return $this->hasMany(Run::class);
+    }
+
+    public function publishRequests(): HasMany
+    {
+        return $this->hasMany(WorkflowPublishRequest::class);
     }
 
     public function isPublished(): bool
@@ -324,16 +330,39 @@ class Workflow extends Model
 
     /**
      * Snapshot the current draft graph as an immutable, publish-pinned
-     * `WorkflowVersion` after running the full `GraphValidator` sequence —
-     * see docs/WORKFLOWS_PLAN.md's `workflow_versions` section for why runs
-     * pin to a version rather than the live draft.
+     * `WorkflowVersion` — see `publishGraph()`. Refused while the workspace
+     * requires changes to be reviewed first: those go live through
+     * `PublishRequestService::approve()` instead. Hidden child workflows
+     * (`LoopModeCompiler`) are published as part of their parent and are
+     * never reviewed on their own.
      *
      * @throws WorkflowValidationException
+     * @throws PublishApprovalRequiredException
      */
     public function publishVersion(?string $notes = null, ?User $publisher = null): WorkflowVersion
     {
-        ['nodes' => $nodes, 'edges' => $edges] = $this->draftGraph();
-        $editorGraph = $this->editorGraph();
+        if (! $this->is_internal && $this->workspace->requiresPublishApproval()) {
+            throw new PublishApprovalRequiredException;
+        }
+
+        return $this->publishGraph($this->draftGraph(), $this->editorGraph(), $notes, $publisher);
+    }
+
+    /**
+     * Snapshot a graph as the next version after running the full
+     * `GraphValidator` sequence — see docs/WORKFLOWS_PLAN.md's
+     * `workflow_versions` section for why runs pin to a version rather than
+     * the live draft. The graph is normally the draft; an approved publish
+     * request passes the copy it was reviewed with.
+     *
+     * @param  array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}  $draft
+     * @param  array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}  $editorGraph
+     *
+     * @throws WorkflowValidationException
+     */
+    public function publishGraph(array $draft, array $editorGraph, ?string $notes = null, ?User $publisher = null): WorkflowVersion
+    {
+        ['nodes' => $nodes, 'edges' => $edges] = $draft;
 
         $errors = app(GraphValidator::class)->issues($nodes, $edges);
 

@@ -22,6 +22,12 @@ enum Permission: string
     case WorkflowTrigger = 'workflow.trigger';
     case WorkflowBuilderUse = 'workflow.builder.use';
 
+    /**
+     * Approve or reject someone else's request to publish, in a workspace
+     * that requires review before changes go live.
+     */
+    case WorkflowApprovePublish = 'workflow.approve-publish';
+
     case NodeView = 'node.view';
     case NodeManage = 'node.manage';
 
@@ -149,6 +155,7 @@ enum Permission: string
             self::NotificationChannelManage,
             self::AgentPolicyManage,
             self::AuditLogView,
+            self::WorkflowApprovePublish,
         ];
     }
 
