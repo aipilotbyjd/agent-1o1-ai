@@ -14,9 +14,17 @@
         <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
             <div class="flex items-center gap-6">
                 <a href="{{ route('panel.dashboard') }}" class="text-sm font-semibold">{{ config('app.name') }} Admin</a>
-                <nav class="flex gap-4 text-sm">
-                    <a href="{{ route('panel.dashboard') }}" @class(['text-zinc-900 font-medium' => request()->routeIs('panel.dashboard'), 'text-zinc-500 hover:text-zinc-900' => ! request()->routeIs('panel.dashboard')])>Dashboard</a>
-                    <a href="{{ route('panel.account') }}" @class(['text-zinc-900 font-medium' => request()->routeIs('panel.account'), 'text-zinc-500 hover:text-zinc-900' => ! request()->routeIs('panel.account')])>Account</a>
+                <nav class="flex flex-wrap gap-4 text-sm">
+                    @foreach ([
+                        'Dashboard' => ['panel.dashboard', 'panel.dashboard'],
+                        'Users' => ['panel.users.index', 'panel.users.*'],
+                        'Workspaces' => ['panel.workspaces.index', 'panel.workspaces.*'],
+                        'Runs' => ['panel.runs.index', 'panel.runs.*'],
+                        'Audit log' => ['panel.audit-log.index', 'panel.audit-log.*'],
+                        'Account' => ['panel.account', 'panel.account*'],
+                    ] as $label => [$routeName, $pattern])
+                        <a href="{{ route($routeName) }}" @class(['font-medium text-zinc-900' => request()->routeIs($pattern), 'text-zinc-500 hover:text-zinc-900' => ! request()->routeIs($pattern)])>{{ $label }}</a>
+                    @endforeach
                 </nav>
             </div>
 
