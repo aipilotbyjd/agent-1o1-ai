@@ -2,8 +2,8 @@
 
 use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\SuperAdmin\SuperAdminAuditLog;
-use App\Services\SuperAdmin\SuperAdminAuthenticator;
 use App\Services\Auth\LoginThrottle;
+use App\Services\SuperAdmin\SuperAdminAuthenticator;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
