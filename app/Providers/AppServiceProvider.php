@@ -162,6 +162,19 @@ class AppServiceProvider extends ServiceProvider
             $this->authEmailLimit($request),
         ]));
 
+        // The admin panel's password form, stricter than the customer one.
+        RateLimiter::for('admin-login', fn (Request $request): array => array_filter([
+            Limit::perMinute(5)->by($request->ip()),
+            $this->authEmailLimit($request),
+        ]));
+
+        // Second-factor attempts per browser; `AdminAuthenticator` also drops
+        // the pending sign-in after `admin_panel.max_challenge_attempts` wrong codes.
+        RateLimiter::for('admin-two-factor', fn (Request $request): array => [
+            Limit::perMinute(6)->by($request->session()->getId().'|'.$request->ip()),
+            Limit::perMinute(20)->by($request->ip()),
+        ]);
+
         RateLimiter::for('public-api', function ($request) {
             $key = $request->attributes->get('api_key');
 

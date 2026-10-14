@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * One change a platform admin made — see `AdminAuditLogger`. Append-only:
  * there is no `updated_at` and nothing edits a row once written.
  */
-#[Fillable(['admin_user_id', 'action', 'subject_type', 'subject_id', 'before', 'after', 'ip_address'])]
+#[Fillable(['admin_user_id', 'admin_id', 'action', 'subject_type', 'subject_id', 'before', 'after', 'ip_address'])]
 class AdminAuditLog extends Model
 {
     use HasUuids;
@@ -33,5 +33,13 @@ class AdminAuditLog extends Model
     public function admin(): BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_user_id');
+    }
+
+    /**
+     * The admin panel account that acted, when the change came from the panel.
+     */
+    public function panelAdmin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
     }
 }
