@@ -11,16 +11,16 @@ use App\Exceptions\PublishApprovalRequiredException;
 use App\Exceptions\RunStateException;
 use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
-use App\Http\Middleware\AdminSecurityHeaders;
 use App\Http\Middleware\AllowLongAgentTurn;
-use App\Http\Middleware\ConfigureAdminSession;
-use App\Http\Middleware\EnsureAdminSessionIsValid;
 use App\Http\Middleware\EnsureApiKeyIsValid;
-use App\Http\Middleware\EnsurePendingAdminLogin;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureWorkspaceScope;
-use App\Http\Middleware\RestrictAdminByIp;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SuperAdmin\ConfigureSuperAdminSession;
+use App\Http\Middleware\SuperAdmin\EnsurePendingSuperAdminLogin;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminSessionIsValid;
+use App\Http\Middleware\SuperAdmin\RestrictSuperAdminByIp;
+use App\Http\Middleware\SuperAdmin\SuperAdminSecurityHeaders;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -44,7 +44,7 @@ use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web/index.php',
+        web: __DIR__.'/../routes/web.php',
         api: [
             __DIR__.'/../routes/api/internal/index.php',
             __DIR__.'/../routes/api/public/index.php',
@@ -54,7 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            Route::group([], __DIR__.'/../routes/web/admin/index.php');
+            Route::group([], __DIR__.'/../routes/super_admin/index.php');
         },
     )
     // Registered explicitly rather than through `withRouting(channels: ...)`
@@ -71,22 +71,22 @@ return Application::configure(basePath: dirname(__DIR__))
             'api-key' => EnsureApiKeyIsValid::class,
             'long-agent-turn' => AllowLongAgentTurn::class,
             'platform.admin' => EnsurePlatformAdmin::class,
-            'admin.session' => EnsureAdminSessionIsValid::class,
-            'admin.pending' => EnsurePendingAdminLogin::class,
+            'super-admin.session' => EnsureSuperAdminSessionIsValid::class,
+            'super-admin.pending' => EnsurePendingSuperAdminLogin::class,
         ]);
 
-        // The admin panel's own stack instead of `web`: its session cookie
-        // is swapped in before the session starts (see ConfigureAdminSession).
-        $middleware->group('admin', [
-            RestrictAdminByIp::class,
-            ConfigureAdminSession::class,
+        // The super admin panel's own stack instead of `web`: its session cookie
+        // is swapped in before the session starts (see ConfigureSuperAdminSession).
+        $middleware->group('super-admin', [
+            RestrictSuperAdminByIp::class,
+            ConfigureSuperAdminSession::class,
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
             StartSession::class,
             ShareErrorsFromSession::class,
             ValidateCsrfToken::class,
             SubstituteBindings::class,
-            AdminSecurityHeaders::class,
+            SuperAdminSecurityHeaders::class,
         ]);
 
         $middleware->append(SecurityHeaders::class);
@@ -95,11 +95,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
             $request->is('api/*') => null,
-            $request->routeIs('panel.*') => route('panel.login'),
+            $request->routeIs('super-admin.*') => route('super-admin.login'),
             default => route('login'),
         });
 
-        $middleware->redirectUsersTo(fn (Request $request) => $request->routeIs('panel.*') ? route('panel.dashboard') : '/');
+        $middleware->redirectUsersTo(fn (Request $request) => $request->routeIs('super-admin.*') ? route('super-admin.dashboard') : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

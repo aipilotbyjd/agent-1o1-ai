@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Admin\Admin;
+use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\User;
 
 return [
@@ -49,9 +49,9 @@ return [
             'provider' => 'users',
         ],
 
-        'admin' => [
+        'super_admin' => [
             'driver' => 'session',
-            'provider' => 'admins',
+            'provider' => 'super_admins',
         ],
     ],
 
@@ -78,9 +78,9 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
-        'admins' => [
+        'super_admins' => [
             'driver' => 'eloquent',
-            'model' => Admin::class,
+            'model' => SuperAdmin::class,
         ],
 
         // 'users' => [
