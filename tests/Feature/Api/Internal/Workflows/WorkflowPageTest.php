@@ -294,3 +294,17 @@ it('will not build a page on another workspace’s workflow', function () {
 
     $this->postJson($this->base, ['workflow_id' => $theirs->id])->assertNotFound();
 });
+
+it('saves the link card and shows the preview it makes', function () {
+    $page = pageCreate();
+
+    $this->patchJson("{$this->base}/{$page['id']}", ['share_title' => '  Note writer  ', 'share_description' => '', 'share_image_url' => 'https://images.example.com/og.png'])
+        ->assertOk()
+        ->assertJsonPath('data.page.share', ['title' => 'Note writer', 'description' => null, 'image_url' => 'https://images.example.com/og.png'])
+        ->assertJsonPath('data.page.share_preview.title', 'Note writer')
+        ->assertJsonPath('data.page.share_preview.image_url', 'https://images.example.com/og.png');
+
+    $this->patchJson("{$this->base}/{$page['id']}", ['share_image_url' => 'javascript:alert(1)'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('share_image_url');
+});

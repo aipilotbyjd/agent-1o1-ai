@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\V1\Templates\AgentTemplateController;
+use App\Http\Controllers\Api\Internal\V1\Templates\PageTemplateController;
 use App\Http\Controllers\Api\Internal\V1\Templates\TemplateCollectionController;
 use App\Http\Controllers\Api\Internal\V1\Templates\TemplateCollectionItemController;
 use App\Http\Controllers\Api\Internal\V1\Templates\WorkflowTemplateController;
@@ -27,6 +28,13 @@ Route::middleware(['auth:api', 'workspace.context'])
             Route::post('{agentTemplate}/use', [AgentTemplateController::class, 'use'])->name('use');
         });
 
+        Route::prefix('page-templates')->as('page-templates.')->group(function () {
+            Route::get('/', [PageTemplateController::class, 'index'])->name('index');
+            Route::get('{pageTemplate}', [PageTemplateController::class, 'show'])->name('show');
+            Route::patch('{pageTemplate}', [PageTemplateController::class, 'update'])->name('update');
+            Route::delete('{pageTemplate}', [PageTemplateController::class, 'destroy'])->name('destroy');
+        });
+
         Route::prefix('template-collections')->as('template-collections.')->group(function () {
             Route::get('/', [TemplateCollectionController::class, 'index'])->name('index');
             Route::post('/', [TemplateCollectionController::class, 'store'])->name('store');
@@ -41,5 +49,6 @@ Route::middleware(['auth:api', 'workspace.context'])
         });
 
         Route::post('workflows/{workflow}/save-as-template', [WorkflowTemplateController::class, 'storeFromWorkflow'])->name('workflows.save-as-template');
+        Route::post('pages/{page}/save-as-template', [PageTemplateController::class, 'storeFromPage'])->name('pages.save-as-template');
         Route::post('agents/{agent}/save-as-template', [AgentTemplateController::class, 'storeFromAgent'])->name('agents.save-as-template');
     });

@@ -20,6 +20,7 @@ class StoreWorkflowPageRequest extends FormRequest
             'workflow_id' => ['required', 'uuid'],
             'name' => ['nullable', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'template_id' => ['nullable', 'uuid'],
         ];
     }
 }

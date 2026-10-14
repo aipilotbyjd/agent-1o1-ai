@@ -37,11 +37,20 @@ class UpdateWorkflowPageRequest extends FormRequest
             'content.blocks.*.type' => ['required', Rule::enum(PageBlockType::class)],
             'content.blocks.*.width' => ['nullable', Rule::in(PageSchema::WIDTHS)],
             'content.blocks.*.props' => ['nullable', 'array'],
+            'content.blocks.*.children' => ['nullable', 'array'],
             'content.theme' => ['nullable', 'array'],
+            'variant_content' => ['sometimes', 'required', 'array'],
+            'variant_content.blocks' => ['present_with:variant_content', 'array', 'max:'.PageSchema::MAX_BLOCKS],
+            'variant_content.theme' => ['nullable', 'array'],
+            'variant_split' => ['sometimes', 'integer', 'min:1', 'max:99'],
+            'base_revision' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'access' => ['sometimes', 'required', Rule::enum(PageAccess::class)],
             'password' => ['sometimes', 'nullable', 'string', 'min:6', 'max:200'],
             'is_enabled' => ['sometimes', 'boolean'],
             'max_runs_per_day' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100000'],
+            'share_title' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'share_description' => ['sometimes', 'nullable', 'string', 'max:300'],
+            'share_image_url' => ['sometimes', 'nullable', 'string', 'max:2048', 'url:http,https'],
         ];
     }
 }

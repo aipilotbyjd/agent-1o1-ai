@@ -40,11 +40,24 @@ class PagePresenter
             return $view;
         }
 
-        $fields = collect($this->interface->describe($page->workflow)['fields'])->keyBy('key');
+        $fields = collect($this->interface->describe($page->workflow)['fields'])->keyBy('key')->all();
+        $view['blocks'] = $this->withFields($content['blocks'], $fields);
 
-        foreach ($content['blocks'] as $block) {
+        return $view;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $blocks
+     * @param  array<string, array<string, mixed>>  $fields
+     * @return array<int, array<string, mixed>>
+     */
+    private function withFields(array $blocks, array $fields): array
+    {
+        $presented = [];
+
+        foreach ($blocks as $block) {
             if ($block['type'] === PageBlockType::Field->value) {
-                $field = $fields->get($block['props']['field_key']);
+                $field = $fields[$block['props']['field_key']] ?? null;
 
                 if ($field === null) {
                     continue;
@@ -53,9 +66,13 @@ class PagePresenter
                 $block['field'] = $field;
             }
 
-            $view['blocks'][] = $block;
+            if (isset($block['children'])) {
+                $block['children'] = $this->withFields($block['children'], $fields);
+            }
+
+            $presented[] = $block;
         }
 
-        return $view;
+        return $presented;
     }
 }

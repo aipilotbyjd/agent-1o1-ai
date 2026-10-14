@@ -26,12 +26,14 @@ use App\Models\Referrals\ReferralReward;
 use App\Models\Runs\Run;
 use App\Models\Secrets\Secret;
 use App\Models\Templates\AgentTemplate;
+use App\Models\Templates\PageTemplate;
 use App\Models\Templates\TemplateCollection;
 use App\Models\Templates\WorkflowTemplate;
 use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Models\Workflows\Folder;
+use App\Models\Workflows\PageSection;
 use App\Models\Workflows\Tag;
 use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowPage;
@@ -244,6 +246,16 @@ class Workspace extends Model
     public function agentTemplates(): HasMany
     {
         return $this->hasMany(AgentTemplate::class);
+    }
+
+    public function pageSections(): HasMany
+    {
+        return $this->hasMany(PageSection::class);
+    }
+
+    public function pageTemplates(): HasMany
+    {
+        return $this->hasMany(PageTemplate::class);
     }
 
     public function templateCollections(): HasMany

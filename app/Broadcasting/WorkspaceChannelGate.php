@@ -10,6 +10,7 @@ use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Models\Workflows\WorkflowPage;
 use App\Models\Workspaces\Workspace;
 
 /**
@@ -77,6 +78,15 @@ class WorkspaceChannelGate
         }
 
         return Assistant::query()->whereKey($assistantId)->where('workspace_id', $workspaceId)->where('user_id', $user->id)->exists();
+    }
+
+    public function page(User $user, string $workspaceId, string $pageId): bool
+    {
+        if (! $this->allows($user, $workspaceId, Permission::PageView)) {
+            return false;
+        }
+
+        return WorkflowPage::whereKey($pageId)->where('workspace_id', $workspaceId)->exists();
     }
 
     private function allows(User $user, string $workspaceId, Permission $permission): bool

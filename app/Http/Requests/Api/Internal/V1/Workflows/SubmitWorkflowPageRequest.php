@@ -24,6 +24,8 @@ class SubmitWorkflowPageRequest extends FormRequest
         return [
             'input' => ['nullable', 'array'],
             'test' => ['sometimes', 'boolean'],
+            // Which draft a test run from the builder uses.
+            'variant' => ['sometimes', 'in:a,b'],
         ];
     }
 }

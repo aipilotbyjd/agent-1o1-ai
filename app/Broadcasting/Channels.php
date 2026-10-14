@@ -7,6 +7,7 @@ use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Models\Workflows\WorkflowPage;
 
 /**
  * The one place channel names are spelled out. Both halves of broadcasting —
@@ -37,6 +38,8 @@ final class Channels
     public const string ASSISTANT_SESSION_PATTERN = 'workspaces.{workspaceId}.assistant-sessions.{sessionId}';
 
     public const string ASSISTANT_PATTERN = 'workspaces.{workspaceId}.assistants.{assistantId}';
+
+    public const string PAGE_PATTERN = 'workspaces.{workspaceId}.pages.{pageId}';
 
     /**
      * Workspace-wide firehose of run state transitions — what a "Runs" list
@@ -69,6 +72,15 @@ final class Channels
      * One workflow-builder session's stream — the assistant's reply as it is
      * written, its tool calls, and each change it makes to the draft.
      */
+    /**
+     * One workflow page's stream for the people building it — comments as
+     * they change and AI generations as they finish. Never a visitor's.
+     */
+    public static function page(WorkflowPage $page): string
+    {
+        return "workspaces.{$page->workspace_id}.pages.{$page->id}";
+    }
+
     public static function workflowBuilderSession(WorkflowBuilderSession $session): string
     {
         return "workspaces.{$session->workspace_id}.workflow-builder-sessions.{$session->id}";

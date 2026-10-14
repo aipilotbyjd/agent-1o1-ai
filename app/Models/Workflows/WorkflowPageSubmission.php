@@ -16,9 +16,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * their address, kept to enforce the page's limits, and by the hash of the
  * secret handed back on submit — the only thing that lets them read the
  * result. `is_test` marks runs started from the builder's preview, which
- * don't count toward the page's daily limit.
+ * don't count toward the page's daily limit. `variant` is the version of the
+ * page (`a`, or `b` during an A/B test) the submission came from.
  */
-#[Fillable(['workspace_id', 'workflow_page_id', 'run_id', 'user_id', 'visitor_hash', 'secret_hash', 'is_test'])]
+#[Fillable(['workspace_id', 'workflow_page_id', 'run_id', 'user_id', 'visitor_hash', 'secret_hash', 'is_test', 'variant', 'input'])]
 #[Hidden(['secret_hash', 'visitor_hash'])]
 class WorkflowPageSubmission extends Model
 {
@@ -31,6 +32,7 @@ class WorkflowPageSubmission extends Model
     {
         return [
             'is_test' => 'boolean',
+            'input' => 'array',
         ];
     }
 

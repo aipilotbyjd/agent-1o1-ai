@@ -152,3 +152,44 @@ it('tells a visitor only that the page cannot run when the workspace is out of c
 
     expect($this->page->submissions()->count())->toBe(0);
 });
+
+it('describes the link card from the published page', function () {
+    $content = app(PageSchema::class)->normalize([
+        'blocks' => [
+            ['id' => 'title', 'type' => 'heading', 'props' => ['text' => 'Write a note']],
+            ['id' => 'intro', 'type' => 'text', 'props' => ['markdown' => "## Hello\n\nGet a **short** note about [any topic](https://example.com) in seconds."]],
+            ['id' => 'topic', 'type' => 'field', 'props' => ['field_key' => 'topic']],
+            ['id' => 'go', 'type' => 'submit', 'props' => []],
+        ],
+        'theme' => ['accent' => '#16a34a', 'cover_url' => 'https://images.example.com/cover.jpg'],
+    ]);
+    $this->page->forceFill(['published_content' => $content])->save();
+
+    $this->getJson("{$this->url}/meta")
+        ->assertOk()
+        ->assertJsonPath('data.meta', [
+            'title' => 'Notes',
+            'description' => 'Get a short note about any topic in seconds.',
+            'image_url' => 'https://images.example.com/cover.jpg',
+            'theme_color' => '#16a34a',
+            'site_name' => 'Acme',
+        ]);
+});
+
+it('uses the link card the builder chose over the page', function () {
+    $this->page->update(['share_title' => 'Free note writer', 'share_description' => 'Try it now.', 'share_image_url' => 'https://images.example.com/og.png']);
+
+    $this->getJson("{$this->url}/meta")
+        ->assertOk()
+        ->assertJsonPath('data.meta.title', 'Free note writer')
+        ->assertJsonPath('data.meta.description', 'Try it now.')
+        ->assertJsonPath('data.meta.image_url', 'https://images.example.com/og.png');
+});
+
+it('describes a password page’s card but hides a private page’s', function () {
+    $this->page->forceFill(['access' => 'password', 'password' => 'secret-pass'])->save();
+    $this->getJson("{$this->url}/meta")->assertOk()->assertJsonPath('data.meta.title', 'Notes');
+
+    $this->page->forceFill(['access' => 'workspace', 'password' => null])->save();
+    $this->getJson("{$this->url}/meta")->assertNotFound();
+});

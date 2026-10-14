@@ -30,5 +30,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ConnectorSeeder::class);
         $this->call(ModelCatalogSeeder::class);
         $this->call(AgentTemplateSeeder::class);
+        $this->call(PageTemplateSeeder::class);
     }
 }

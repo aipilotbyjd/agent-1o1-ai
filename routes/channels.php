@@ -39,3 +39,4 @@ Broadcast::channel(Channels::AGENT_SESSION_PATTERN, $gate->agentSession(...));
 Broadcast::channel(Channels::WORKFLOW_BUILDER_SESSION_PATTERN, $gate->workflowBuilderSession(...));
 Broadcast::channel(Channels::ASSISTANT_SESSION_PATTERN, $gate->assistantSession(...));
 Broadcast::channel(Channels::ASSISTANT_PATTERN, $gate->assistant(...));
+Broadcast::channel(Channels::PAGE_PATTERN, $gate->page(...));

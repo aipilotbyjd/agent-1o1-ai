@@ -144,6 +144,17 @@ class CreditMeter
     }
 
     /**
+     * One AI page design (`GeneratePageJob`) — priced like a builder assist
+     * call: the tokens, the one forced tool call and the compute time.
+     *
+     * @param  array<string, mixed>  $usage
+     */
+    public function costForPageGeneration(array $usage): int
+    {
+        return $this->costForChatTurn($usage);
+    }
+
+    /**
      * One Smart-mode review of an agent action — priced as the judge call
      * it is.
      *

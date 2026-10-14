@@ -62,6 +62,12 @@ enum CreditTransactionType: string
     case WorkflowBuilder = 'workflow_builder';
 
     /**
+     * Having AI design or rework a page — see `GeneratePageJob`. Charged
+     * against the generation's id, whether or not its result is applied.
+     */
+    case PageGeneration = 'page_generation';
+
+    /**
      * A node an agent ran as a tool (`Ai\Tools\NodeTool`) — the node's own
      * cost beyond the one credit its tool call already adds to the turn: a
      * fixed `billing.node_costs` surcharge, and the tokens an AI node spent

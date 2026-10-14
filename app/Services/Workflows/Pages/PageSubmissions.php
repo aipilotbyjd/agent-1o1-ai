@@ -33,7 +33,7 @@ class PageSubmissions
      * @param  array<string, mixed>  $input
      * @return array{0: WorkflowPageSubmission, 1: string} the submission and the secret that reads its result
      */
-    public function submit(WorkflowPage $page, array $input, ?User $user, ?string $visitorHash = null, bool $test = false): array
+    public function submit(WorkflowPage $page, array $input, ?User $user, ?string $visitorHash = null, bool $test = false, string $variant = 'a'): array
     {
         $workflow = $page->workflow;
 
@@ -52,9 +52,11 @@ class PageSubmissions
                 ->all(),
         )->validate();
 
+        $input = $this->interface->applyDefaults($workflow, $validated['input'] ?? []);
+
         $run = $this->startWorkflowRun->execute(
             $workflow,
-            $this->interface->applyDefaults($workflow, $validated['input'] ?? []),
+            $input,
             // An anonymous visitor runs the workflow on behalf of whoever
             // published the page, the way a trigger runs as its creator.
             $user ?? $page->publisher ?? $page->creator,
@@ -70,6 +72,8 @@ class PageSubmissions
             'visitor_hash' => $visitorHash,
             'secret_hash' => hash('sha256', $secret),
             'is_test' => $test,
+            'variant' => $variant === 'b' ? 'b' : 'a',
+            'input' => $input,
         ]);
 
         return [$submission->setRelation('run', $run), $secret];

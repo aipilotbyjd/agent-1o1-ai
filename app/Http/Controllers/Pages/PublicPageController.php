@@ -8,9 +8,12 @@ use App\Exceptions\WorkflowValidationException;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
 use App\Models\Workflows\WorkflowPage;
+use App\Models\Workflows\WorkflowPageEvent;
 use App\Models\Workflows\WorkflowPageSubmission;
 use App\Services\Workflows\Pages\PageAccessTokens;
+use App\Services\Workflows\Pages\PageInsights;
 use App\Services\Workflows\Pages\PagePresenter;
+use App\Services\Workflows\Pages\PageSharePreview;
 use App\Services\Workflows\Pages\PageSubmissions;
 use Illuminate\Http\Request;
 
@@ -32,15 +35,48 @@ class PublicPageController extends Controller
         private readonly PagePresenter $presenter,
         private readonly PageSubmissions $submissions,
         private readonly PageAccessTokens $tokens,
+        private readonly PageInsights $insights,
     ) {}
 
+    /**
+     * The page as this visitor gets it — version B when an A/B test puts
+     * them there — counted as a view.
+     */
     public function show(Request $request, string $token)
     {
         $page = $this->available($token);
+        $visitor = $this->insights->visitor($page, $request);
+        $variant = $this->insights->variantFor($page, $visitor);
+
+        $this->insights->record($page, WorkflowPageEvent::View, $variant, $visitor);
 
         return ApiResponse::success([
-            'page' => $this->presenter->present($page, $page->published_content, locked: ! $this->unlocked($page, $request)),
+            'page' => $this->presenter->present($page, $page->contentFor($variant), locked: ! $this->unlocked($page, $request)),
         ]);
+    }
+
+    /**
+     * The visitor started filling in the page.
+     */
+    public function event(Request $request, string $token)
+    {
+        $page = $this->available($token);
+        $request->validate(['type' => ['required', 'in:'.WorkflowPageEvent::Start]]);
+        $visitor = $this->insights->visitor($page, $request);
+
+        $this->insights->record($page, WorkflowPageEvent::Start, $this->insights->variantFor($page, $visitor), $visitor);
+
+        return ApiResponse::noContent();
+    }
+
+    /**
+     * The page's link card, for the server that renders the page's HTML to
+     * put in its head. Answers for a password page too: its title and
+     * description are what the owner chose to show before the password.
+     */
+    public function meta(string $token, PageSharePreview $preview)
+    {
+        return ApiResponse::success(['meta' => $preview->for($this->available($token))]);
     }
 
     public function unlock(Request $request, string $token)
@@ -56,9 +92,11 @@ class PublicPageController extends Controller
             return ApiResponse::validationError(['password' => ["That password isn't right."]]);
         }
 
+        $variant = $this->insights->variantFor($page, $this->insights->visitor($page, $request));
+
         return ApiResponse::success([
             'access_token' => $access,
-            'page' => $this->presenter->present($page, $page->published_content),
+            'page' => $this->presenter->present($page, $page->contentFor($variant)),
         ]);
     }
 
@@ -76,13 +114,14 @@ class PublicPageController extends Controller
                 $validated['input'] ?? [],
                 null,
                 hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
+                variant: $this->insights->variantFor($page, $this->insights->visitor($page, $request)),
             );
         } catch (InsufficientCreditsException|WorkflowValidationException) {
             return ApiResponse::error("This page can't run right now. Please try again later.", 503);
         }
 
         return ApiResponse::success([
-            'submission' => $this->submissions->result($submission, $page->published_content, forMember: false),
+            'submission' => $this->submissions->result($submission, $page->contentFor($submission->variant) ?? $page->published_content, forMember: false),
             'secret' => $secret,
         ], 'Run started.', 202);
     }
@@ -100,7 +139,7 @@ class PublicPageController extends Controller
         abort_if($found === null || ! $this->submissions->secretMatches($found, $request->header(self::SECRET_HEADER)), 404);
 
         return ApiResponse::success([
-            'submission' => $this->submissions->result($found, $page->published_content, forMember: false),
+            'submission' => $this->submissions->result($found, $page->contentFor($found->variant) ?? $page->published_content, forMember: false),
         ]);
     }
 
