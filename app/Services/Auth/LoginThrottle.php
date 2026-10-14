@@ -18,9 +18,14 @@ use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
  * and counted for addresses that don't resolve to an account too: revealing
  * "this one isn't locked, so it doesn't exist" would hand over an account
  * enumeration oracle.
+ *
+ * `$prefix` keeps separate account kinds (customers, admin panel) from
+ * sharing counters when the same address exists in both.
  */
 class LoginThrottle
 {
+    public function __construct(private readonly string $prefix = 'auth-throttle') {}
+
     public function assertNotLocked(string $email): void
     {
         $lockedUntil = Cache::get($this->lockKey($email));
@@ -101,17 +106,17 @@ class LoginThrottle
 
     private function attemptKey(string $email): string
     {
-        return 'auth-throttle:attempts:'.$this->hash($email);
+        return $this->prefix.':attempts:'.$this->hash($email);
     }
 
     private function lockKey(string $email): string
     {
-        return 'auth-throttle:locked:'.$this->hash($email);
+        return $this->prefix.':locked:'.$this->hash($email);
     }
 
     private function lockoutCountKey(string $email): string
     {
-        return 'auth-throttle:lockouts:'.$this->hash($email);
+        return $this->prefix.':lockouts:'.$this->hash($email);
     }
 
     private function hash(string $email): string

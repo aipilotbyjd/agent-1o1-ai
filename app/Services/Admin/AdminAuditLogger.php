@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use App\Models\Admin\Admin;
 use App\Models\Admin\AdminAuditLog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -10,8 +11,10 @@ use Illuminate\Support\Str;
 /**
  * Records every change a platform admin makes, from the admin API or its
  * artisan equivalents, so "who gave this workspace a year of Pro?" always
- * has an answer. `$subject` is stored as a snake_case label of its class
- * plus its key — not a morph type — so a new model never needs registering.
+ * has an answer. The actor is a platform-admin `User` (admin API) or an
+ * admin panel `Admin`, each landing in its own column. `$subject` is stored
+ * as a snake_case label of its class plus its key — not a morph type — so a
+ * new model never needs registering.
  */
 class AdminAuditLogger
 {
@@ -19,10 +22,11 @@ class AdminAuditLogger
      * @param  array<string, mixed>|null  $before
      * @param  array<string, mixed>|null  $after
      */
-    public function record(?User $admin, string $action, ?Model $subject = null, ?array $before = null, ?array $after = null): AdminAuditLog
+    public function record(User|Admin|null $admin, string $action, ?Model $subject = null, ?array $before = null, ?array $after = null): AdminAuditLog
     {
         return AdminAuditLog::query()->create([
-            'admin_user_id' => $admin?->id,
+            'admin_user_id' => $admin instanceof User ? $admin->id : null,
+            'admin_id' => $admin instanceof Admin ? $admin->id : null,
             'action' => $action,
             'subject_type' => $subject !== null ? Str::snake(class_basename($subject)) : null,
             'subject_id' => $subject?->getKey(),
@@ -38,7 +42,7 @@ class AdminAuditLogger
      *
      * @param  array<string, mixed>  $original
      */
-    public function recordChanges(?User $admin, string $action, Model $subject, array $original): ?AdminAuditLog
+    public function recordChanges(User|Admin|null $admin, string $action, Model $subject, array $original): ?AdminAuditLog
     {
         $changes = collect($subject->getChanges())->except(['updated_at']);
 

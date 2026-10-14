@@ -11,29 +11,40 @@ use App\Exceptions\PublishApprovalRequiredException;
 use App\Exceptions\RunStateException;
 use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
+use App\Http\Middleware\AdminSecurityHeaders;
 use App\Http\Middleware\AllowLongAgentTurn;
+use App\Http\Middleware\ConfigureAdminSession;
+use App\Http\Middleware\EnsureAdminSessionIsValid;
 use App\Http\Middleware\EnsureApiKeyIsValid;
+use App\Http\Middleware\EnsurePendingAdminLogin;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureWorkspaceScope;
+use App\Http\Middleware\RestrictAdminByIp;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
+        web: __DIR__.'/../routes/web/index.php',
         api: [
             __DIR__.'/../routes/api/internal/index.php',
             __DIR__.'/../routes/api/public/index.php',
@@ -42,6 +53,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ],
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            Route::group([], __DIR__.'/../routes/web/admin/index.php');
+        },
     )
     // Registered explicitly rather than through `withRouting(channels: ...)`
     // so the authorization endpoint sits behind Passport on the API prefix
@@ -57,13 +71,35 @@ return Application::configure(basePath: dirname(__DIR__))
             'api-key' => EnsureApiKeyIsValid::class,
             'long-agent-turn' => AllowLongAgentTurn::class,
             'platform.admin' => EnsurePlatformAdmin::class,
+            'admin.session' => EnsureAdminSessionIsValid::class,
+            'admin.pending' => EnsurePendingAdminLogin::class,
+        ]);
+
+        // The admin panel's own stack instead of `web`: its session cookie
+        // is swapped in before the session starts (see ConfigureAdminSession).
+        $middleware->group('admin', [
+            RestrictAdminByIp::class,
+            ConfigureAdminSession::class,
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            ValidateCsrfToken::class,
+            SubstituteBindings::class,
+            AdminSecurityHeaders::class,
         ]);
 
         $middleware->append(SecurityHeaders::class);
 
         $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
 
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
+        $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
+            $request->is('api/*') => null,
+            $request->routeIs('panel.*') => route('panel.login'),
+            default => route('login'),
+        });
+
+        $middleware->redirectUsersTo(fn (Request $request) => $request->routeIs('panel.*') ? route('panel.dashboard') : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

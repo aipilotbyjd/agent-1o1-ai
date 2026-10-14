@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Referrals\AttributeReferralAction;
+use App\Models\Admin\Admin;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralProgram;
 use App\Models\User;
@@ -10,6 +11,7 @@ use App\Services\Referrals\ReferralCodes;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\Client;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 /*
@@ -110,6 +112,39 @@ function platformAdmin(): User
     $admin->forceFill(['is_platform_admin' => true, 'two_factor_confirmed_at' => now()])->save();
 
     return $admin;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin panel helpers
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * An admin panel account with two-factor already set up. Password: `password`.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function panelAdmin(array $attributes = []): Admin
+{
+    return Admin::factory()->withTwoFactor()->create($attributes);
+}
+
+/**
+ * The authenticator code `$admin`'s app would show right now.
+ */
+function panelTotp(Admin $admin): string
+{
+    return app(Google2FA::class)->getCurrentOtp($admin->fresh()->two_factor_secret);
+}
+
+/**
+ * Signs in through the real password + two-factor flow.
+ */
+function signInToPanel(Admin $admin): void
+{
+    test()->post(route('panel.login.store'), ['email' => $admin->email, 'password' => 'password']);
+    test()->post(route('panel.two-factor.verify'), ['code' => panelTotp($admin)]);
 }
 
 /**
