@@ -34,13 +34,32 @@ it('counts users, workspaces and top-level runs only', function () {
     Run::factory()->forWorkspace($completed->workspace)->create(['parent_run_id' => $completed->id]);
     Run::factory()->forWorkspace($completed->workspace)->create(['created_at' => now()->subDays(2)]);
 
-    Cache::flush();
-    $stats = app(SuperAdminDashboardStats::class)->overview();
+    Run::factory()->forWorkspace($completed->workspace)->create(['created_at' => now()->subDays(10)]);
 
-    expect($stats['runs_today'])->toBe(2)
-        ->and($stats['runs_failed_today'])->toBe(1)
-        ->and($stats['users_total'])->toBe(User::query()->count())
-        ->and($stats['workspaces_total'])->toBe(Workspace::query()->count());
+    Cache::flush();
+    $stats = app(SuperAdminDashboardStats::class)->overview(7);
+
+    expect($stats['runs']['total'])->toBe(3)
+        ->and($stats['runs']['failed'])->toBe(1)
+        ->and($stats['runs']['previous_total'])->toBe(1)
+        ->and($stats['run_series'])->toHaveCount(7)
+        ->and(array_sum(array_column($stats['run_series'], 'total')))->toBe(3)
+        ->and($stats['top_workspaces'][0]['runs'])->toBe(3)
+        ->and($stats['users']['total'])->toBe(User::query()->count())
+        ->and($stats['workspaces']['total'])->toBe(Workspace::query()->count());
+});
+
+it('switches the dashboard window and ignores unknown ones', function () {
+    signInAsSuperAdmin(superAdmin());
+
+    $this->get(route('super-admin.dashboard', ['days' => 7]))
+        ->assertOk()
+        ->assertViewHas('days', 7)
+        ->assertSee('Platform health over the last 7 days');
+
+    $this->get(route('super-admin.dashboard', ['days' => 365]))
+        ->assertOk()
+        ->assertViewHas('days', 30);
 });
 
 it('names the actor of recent activity', function () {

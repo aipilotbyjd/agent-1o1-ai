@@ -1,64 +1,66 @@
-<x-super-admin.layout title="Account">
-    <div class="grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-2">
-        <section class="rounded-xl border border-zinc-200 bg-white p-5 lg:col-span-2">
-            <h2 class="text-sm font-semibold">Details</h2>
-            <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-                <div>
-                    <dt class="text-zinc-500">Name</dt>
-                    <dd>{{ $superAdmin->name }}</dd>
+<x-super-admin.layout title="Account" description="Your super admin profile and sign-in security">
+    <div class="grid max-w-5xl grid-cols-1 gap-6 lg:grid-cols-2">
+        <x-super-admin.card class="lg:col-span-2">
+            <div class="flex flex-wrap items-center gap-5 px-6 py-6">
+                <x-super-admin.avatar :name="$superAdmin->name ?: $superAdmin->email" size="size-14" class="text-lg" />
+                <div class="min-w-0 flex-1">
+                    <p class="text-lg font-semibold text-zinc-900">{{ $superAdmin->name }}</p>
+                    <p class="text-sm text-zinc-500">{{ $superAdmin->email }}</p>
                 </div>
-                <div>
-                    <dt class="text-zinc-500">Email</dt>
-                    <dd>{{ $superAdmin->email }}</dd>
+                <div class="text-sm sm:text-right">
+                    <p class="text-zinc-500">Last sign-in</p>
+                    <p class="font-medium text-zinc-900">{{ $superAdmin->last_login_at?->toDayDateTimeString() ?? '—' }}</p>
+                    @if ($superAdmin->last_login_ip)
+                        <p class="font-mono text-xs text-zinc-500">{{ $superAdmin->last_login_ip }}</p>
+                    @endif
                 </div>
-                <div>
-                    <dt class="text-zinc-500">Last sign-in</dt>
-                    <dd>{{ $superAdmin->last_login_at?->toDayDateTimeString() ?? '—' }} <span class="text-zinc-500">{{ $superAdmin->last_login_ip }}</span></dd>
-                </div>
-            </dl>
-        </section>
+            </div>
+        </x-super-admin.card>
 
-        <section class="rounded-xl border border-zinc-200 bg-white p-5">
-            <h2 class="text-sm font-semibold">Change password</h2>
-            <p class="mt-1 text-sm text-zinc-500">Every other session is signed out.</p>
-
-            <form method="POST" action="{{ route('super-admin.account.password') }}" class="mt-4 space-y-3">
+        <x-super-admin.card title="Change password" description="Every other session is signed out.">
+            <form method="POST" action="{{ route('super-admin.account.password') }}" class="space-y-4 px-5 py-5">
                 @csrf
                 @method('PUT')
 
                 @foreach (['current_password' => 'Current password', 'password' => 'New password', 'password_confirmation' => 'Confirm new password'] as $field => $label)
                     <div>
-                        <label for="{{ $field }}" class="block text-sm font-medium">{{ $label }}</label>
-                        <input id="{{ $field }}" name="{{ $field }}" type="password" required autocomplete="{{ $field === 'current_password' ? 'current-password' : 'new-password' }}"
-                            class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none">
+                        <label for="{{ $field }}" class="sa-label">{{ $label }}</label>
+                        <input id="{{ $field }}" name="{{ $field }}" type="password" required autocomplete="{{ $field === 'current_password' ? 'current-password' : 'new-password' }}" class="sa-input">
                         @error($field)
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 @endforeach
 
-                <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-700">Update password</button>
+                <button type="submit" class="sa-btn-primary">Update password</button>
             </form>
-        </section>
+        </x-super-admin.card>
 
-        <section class="rounded-xl border border-zinc-200 bg-white p-5">
-            <h2 class="text-sm font-semibold">Recovery codes</h2>
-            <p class="mt-1 text-sm text-zinc-500">{{ $remainingRecoveryCodes }} unused {{ str('code')->plural($remainingRecoveryCodes) }} left. Generating new codes invalidates the old ones.</p>
-
-            <form method="POST" action="{{ route('super-admin.account.recovery-codes') }}" class="mt-4 space-y-3">
-                @csrf
-
-                <div>
-                    <label for="recovery_current_password" class="block text-sm font-medium">Current password</label>
-                    <input id="recovery_current_password" name="current_password" type="password" required autocomplete="current-password"
-                        class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none">
-                    @error('current_password', 'recoveryCodes')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+        <x-super-admin.card title="Recovery codes" :description="$remainingRecoveryCodes.' unused '.str('code')->plural($remainingRecoveryCodes).' left'">
+            <div class="px-5 py-5">
+                <div @class([
+                    'flex items-center gap-3 rounded-xl px-4 py-3 text-sm ring-1',
+                    'bg-amber-50 text-amber-900 ring-amber-600/20' => $remainingRecoveryCodes <= 2,
+                    'bg-zinc-50 text-zinc-700 ring-zinc-200' => $remainingRecoveryCodes > 2,
+                ])>
+                    <x-super-admin.icon :name="$remainingRecoveryCodes <= 2 ? 'warning' : 'shield'" class="size-5" />
+                    Generating new codes invalidates the old ones.
                 </div>
 
-                <button type="submit" class="rounded-md border border-zinc-300 px-3 py-2 text-sm font-semibold hover:bg-zinc-100">Generate new codes</button>
-            </form>
-        </section>
+                <form method="POST" action="{{ route('super-admin.account.recovery-codes') }}" class="mt-4 space-y-4">
+                    @csrf
+
+                    <div>
+                        <label for="recovery_current_password" class="sa-label">Current password</label>
+                        <input id="recovery_current_password" name="current_password" type="password" required autocomplete="current-password" class="sa-input">
+                        @error('current_password', 'recoveryCodes')
+                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <button type="submit" class="sa-btn-secondary">Generate new codes</button>
+                </form>
+            </div>
+        </x-super-admin.card>
     </div>
 </x-super-admin.layout>

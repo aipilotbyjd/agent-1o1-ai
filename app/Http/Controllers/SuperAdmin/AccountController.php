@@ -26,7 +26,7 @@ class AccountController extends Controller
         $superAdmin = $this->superAdmin($request);
 
         return view('super-admin.account', [
-            'super_admin' => $superAdmin,
+            'superAdmin' => $superAdmin,
             'remainingRecoveryCodes' => $this->twoFactor->remainingRecoveryCodes($superAdmin),
         ]);
     }

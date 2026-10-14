@@ -1,59 +1,58 @@
-<x-super-admin.layout title="Workspaces">
-    <form method="GET" action="{{ route('super-admin.workspaces.index') }}" class="flex flex-wrap items-end gap-3">
-        <div class="min-w-64 flex-1">
-            <label for="q" class="block text-xs font-medium text-zinc-500">Search</label>
-            <input id="q" name="q" type="search" value="{{ $filters['q'] ?? '' }}" placeholder="Name, slug, ID or owner email"
-                class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none">
-        </div>
+<x-super-admin.layout title="Workspaces" :description="number_format($workspaces->total()).' '.str('workspace')->plural($workspaces->total())">
+    <x-super-admin.filters :action="route('super-admin.workspaces.index')" :active="(bool) array_filter($filters)">
+        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Name, slug, ID or owner email" />
         <div>
-            <label for="deleted" class="block text-xs font-medium text-zinc-500">Deleted</label>
-            <select id="deleted" name="deleted" class="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm">
+            <label for="deleted" class="sa-label">Deleted</label>
+            <select id="deleted" name="deleted" class="sa-input pr-8">
                 <option value="">Hide</option>
                 <option value="with" @selected(($filters['deleted'] ?? '') === 'with')>Include</option>
                 <option value="only" @selected(($filters['deleted'] ?? '') === 'only')>Only deleted</option>
             </select>
         </div>
-        <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-700">Filter</button>
-        @if (array_filter($filters))
-            <a href="{{ route('super-admin.workspaces.index') }}" class="py-2 text-sm text-zinc-500 hover:text-zinc-900">Clear</a>
-        @endif
-    </form>
+    </x-super-admin.filters>
 
     <x-super-admin.card class="mt-6">
         @if ($workspaces->isEmpty())
-            <p class="px-5 py-6 text-sm text-zinc-500">No workspaces match.</p>
+            <x-super-admin.empty icon="workspace">No workspaces match.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="text-xs text-zinc-500 uppercase">
+                <table class="sa-table">
+                    <thead>
                         <tr>
-                            <th class="px-5 py-2 font-medium">Workspace</th>
-                            <th class="px-5 py-2 font-medium">Owner</th>
-                            <th class="px-5 py-2 font-medium">Members</th>
-                            <th class="px-5 py-2 font-medium">Workflows</th>
-                            <th class="px-5 py-2 font-medium">Created</th>
+                            <th>Workspace</th>
+                            <th>Owner</th>
+                            <th class="text-right">Members</th>
+                            <th class="text-right">Workflows</th>
+                            <th class="text-right">Created</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-100">
+                    <tbody>
                         @foreach ($workspaces as $workspace)
-                            <tr class="hover:bg-zinc-50">
-                                <td class="px-5 py-2">
-                                    <a href="{{ route('super-admin.workspaces.show', $workspace) }}" class="font-medium hover:underline">{{ $workspace->name }}</a>
-                                    @if ($workspace->trashed())
-                                        <x-super-admin.status-badge status="deleted" class="ml-1" />
-                                    @endif
-                                    <p class="font-mono text-xs text-zinc-500">{{ $workspace->slug }}</p>
+                            <tr class="relative transition hover:bg-zinc-50/80">
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500">
+                                            <x-super-admin.icon name="workspace" class="size-4" />
+                                        </span>
+                                        <div class="min-w-0">
+                                            <a href="{{ route('super-admin.workspaces.show', $workspace) }}" class="font-medium text-zinc-900 after:absolute after:inset-0">{{ $workspace->name }}</a>
+                                            @if ($workspace->trashed())
+                                                <x-super-admin.status-badge status="deleted" class="ml-1" />
+                                            @endif
+                                            <p class="font-mono text-xs text-zinc-400">{{ $workspace->slug }}</p>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="px-5 py-2">
+                                <td class="text-zinc-600">
                                     @if ($workspace->owner)
-                                        <a href="{{ route('super-admin.users.show', $workspace->owner) }}" class="hover:underline">{{ $workspace->owner->email }}</a>
+                                        <a href="{{ route('super-admin.users.show', $workspace->owner) }}" class="relative z-10 hover:text-zinc-900 hover:underline">{{ $workspace->owner->email }}</a>
                                     @else
                                         —
                                     @endif
                                 </td>
-                                <td class="px-5 py-2 tabular-nums">{{ $workspace->members_count }}</td>
-                                <td class="px-5 py-2 tabular-nums">{{ $workspace->workflows_count }}</td>
-                                <td class="px-5 py-2 whitespace-nowrap text-zinc-500">{{ $workspace->created_at?->toFormattedDateString() }}</td>
+                                <td class="text-right text-zinc-700 tabular-nums">{{ $workspace->members_count }}</td>
+                                <td class="text-right text-zinc-700 tabular-nums">{{ $workspace->workflows_count }}</td>
+                                <td class="text-right whitespace-nowrap text-zinc-500">{{ $workspace->created_at?->toFormattedDateString() }}</td>
                             </tr>
                         @endforeach
                     </tbody>

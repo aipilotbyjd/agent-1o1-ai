@@ -45,7 +45,7 @@ it('shows a workspace with its owner, members and recent runs', function () {
         ->assertOk()
         ->assertSee("Dana's Workspace")
         ->assertSee('owner@acme.test')
-        ->assertSee('Members (1)')
+        ->assertSee('1 member')
         ->assertSee('All runs for this workspace');
 });
 

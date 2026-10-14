@@ -1,50 +1,56 @@
 @if ($entries->isEmpty())
-    <p class="px-5 py-6 text-sm text-zinc-500">{{ $empty ?? 'No entries.' }}</p>
+    <x-super-admin.empty icon="shield">{{ $empty ?? 'No entries.' }}</x-super-admin.empty>
 @else
     <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-            <thead class="text-xs text-zinc-500 uppercase">
+        <table class="sa-table">
+            <thead>
                 <tr>
-                    <th class="px-5 py-2 font-medium">When</th>
-                    <th class="px-5 py-2 font-medium">Who</th>
-                    <th class="px-5 py-2 font-medium">Action</th>
-                    <th class="px-5 py-2 font-medium">Subject</th>
-                    <th class="px-5 py-2 font-medium">IP</th>
-                    <th class="px-5 py-2 font-medium">Details</th>
+                    <th>When</th>
+                    <th>Who</th>
+                    <th>Action</th>
+                    <th>Subject</th>
+                    <th>IP</th>
+                    <th>Details</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-zinc-100">
+            <tbody>
                 @foreach ($entries as $entry)
                     <tr class="align-top">
-                        <td class="px-5 py-2 whitespace-nowrap text-zinc-500" title="{{ $entry->created_at }}">{{ $entry->created_at?->diffForHumans() }}</td>
-                        <td class="px-5 py-2">
-                            @if ($entry->superAdmin)
-                                {{ $entry->superAdmin->email }}
-                            @else
-                                <span class="text-zinc-500">System / CLI</span>
-                            @endif
+                        <td class="whitespace-nowrap text-zinc-500" title="{{ $entry->created_at }}">{{ $entry->created_at?->diffForHumans() }}</td>
+                        <td>
+                            <div class="flex items-center gap-2.5">
+                                <x-super-admin.avatar :name="$entry->superAdmin?->name ?: ($entry->superAdmin?->email ?? 'System')" size="size-7" />
+                                @if ($entry->superAdmin)
+                                    <span class="text-zinc-900">{{ $entry->superAdmin->email }}</span>
+                                @else
+                                    <span class="text-zinc-500">System / CLI</span>
+                                @endif
+                            </div>
                         </td>
-                        <td class="px-5 py-2 font-mono text-xs">{{ $entry->action }}</td>
-                        <td class="px-5 py-2 text-xs">
+                        <td><code class="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-700">{{ $entry->action }}</code></td>
+                        <td class="text-xs">
                             @if ($entry->subject_type)
-                                {{ $entry->subject_type }}
-                                <span class="block font-mono text-zinc-500">{{ $entry->subject_id }}</span>
+                                <span class="text-zinc-700">{{ $entry->subject_type }}</span>
+                                <span class="block font-mono text-zinc-400" title="{{ $entry->subject_id }}">{{ \Illuminate\Support\Str::limit((string) $entry->subject_id, 8, '…') }}</span>
                             @else
-                                —
+                                <span class="text-zinc-400">—</span>
                             @endif
                         </td>
-                        <td class="px-5 py-2 font-mono text-xs text-zinc-500">{{ $entry->ip_address ?? '—' }}</td>
-                        <td class="px-5 py-2 text-xs">
+                        <td class="font-mono text-xs text-zinc-500">{{ $entry->ip_address ?? '—' }}</td>
+                        <td class="text-xs">
                             @if ($entry->before || $entry->after)
-                                <details>
-                                    <summary class="cursor-pointer text-zinc-500 hover:text-zinc-900">View</summary>
+                                <details class="group">
+                                    <summary class="inline-flex cursor-pointer list-none items-center gap-1 font-medium text-zinc-500 hover:text-zinc-900">
+                                        <x-super-admin.icon name="chevron-right" class="size-3.5 transition group-open:rotate-90" />
+                                        View
+                                    </summary>
                                     @if ($entry->before)
-                                        <p class="mt-2 font-medium">Before</p>
-                                        <pre class="mt-1 max-w-md overflow-x-auto rounded bg-zinc-50 p-2">{{ json_encode($entry->before, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
+                                        <p class="mt-2 font-medium text-zinc-700">Before</p>
+                                        <pre class="mt-1 max-w-md overflow-x-auto rounded-lg bg-zinc-950 p-3 text-zinc-200">{{ json_encode($entry->before, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
                                     @endif
                                     @if ($entry->after)
-                                        <p class="mt-2 font-medium">After</p>
-                                        <pre class="mt-1 max-w-md overflow-x-auto rounded bg-zinc-50 p-2">{{ json_encode($entry->after, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
+                                        <p class="mt-2 font-medium text-zinc-700">After</p>
+                                        <pre class="mt-1 max-w-md overflow-x-auto rounded-lg bg-zinc-950 p-3 text-zinc-200">{{ json_encode($entry->after, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
                                     @endif
                                 </details>
                             @else

@@ -71,7 +71,7 @@ class AuditLogController extends Controller
         $actionPrefix = $request->actionPrefix();
 
         return SuperAdminAuditLog::query()
-            ->when($actionPrefix !== null, fn (Builder $query) => $query->where('action', 'like', $actionPrefix))
+            ->when($actionPrefix !== null, fn (Builder $query) => $query->whereRaw('action like ? escape ?', [$actionPrefix, '\\']))
             ->when($filters['super_admin'] ?? null, fn (Builder $query, string $superAdmin) => $query->where('super_admin_id', $superAdmin))
             ->when($filters['subject'] ?? null, fn (Builder $query, string $subject) => $query->where('subject_id', $subject))
             ->when($filters['from'] ?? null, fn (Builder $query, string $from) => $query->where('created_at', '>=', Carbon::parse($from)->startOfDay()))
