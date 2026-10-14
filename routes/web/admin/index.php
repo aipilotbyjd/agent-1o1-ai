@@ -23,6 +23,10 @@ Route::domain(config('admin_panel.domain'))
 
         Route::middleware(['auth:admin', 'admin.session'])->group(function () {
             require __DIR__.'/dashboard.php';
+            require __DIR__.'/users.php';
+            require __DIR__.'/workspaces.php';
+            require __DIR__.'/runs.php';
+            require __DIR__.'/audit_log.php';
             require __DIR__.'/account.php';
         });
     });
