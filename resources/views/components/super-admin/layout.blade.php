@@ -20,6 +20,7 @@
                         'Users' => ['super-admin.users.index', 'super-admin.users.*'],
                         'Workspaces' => ['super-admin.workspaces.index', 'super-admin.workspaces.*'],
                         'Runs' => ['super-admin.runs.index', 'super-admin.runs.*'],
+                        'Team' => ['super-admin.team.index', 'super-admin.team.*'],
                         'Audit log' => ['super-admin.audit-log.index', 'super-admin.audit-log.*'],
                         'Account' => ['super-admin.account', 'super-admin.account*'],
                     ] as $label => [$routeName, $pattern])

@@ -23,6 +23,7 @@
             <input id="to" name="to" type="date" value="{{ $filters['to'] ?? '' }}" class="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm">
         </div>
         <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-700">Filter</button>
+        <a href="{{ route('super-admin.audit-log.export', $filters) }}" class="py-2 text-sm text-zinc-500 hover:text-zinc-900">Export CSV</a>
         @if (array_filter($filters))
             <a href="{{ route('super-admin.audit-log.index') }}" class="py-2 text-sm text-zinc-500 hover:text-zinc-900">Clear</a>
         @endif

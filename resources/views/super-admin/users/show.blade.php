@@ -88,6 +88,28 @@
             @endif
         </x-super-admin.card>
 
+        <x-super-admin.card title="Support actions" class="lg:col-span-3">
+            <form method="POST" class="flex flex-wrap items-end gap-3 px-5 py-4"
+                  onsubmit="return confirm('Run this action on {{ e($user->email) }}?')">
+                @csrf
+                <div class="min-w-56">
+                    <label for="current_password" class="block text-xs font-medium text-zinc-500">Your password (to confirm)</label>
+                    <input id="current_password" name="current_password" type="password" required autocomplete="current-password"
+                        class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none">
+                    @error('current_password', 'support')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+                <button type="submit" formaction="{{ route('super-admin.users.sign-out-everywhere', $user) }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100">Sign out of all API sessions</button>
+                @if ($user->hasTwoFactorEnabled())
+                    <button type="submit" formaction="{{ route('super-admin.users.reset-two-factor', $user) }}" class="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Reset two-factor</button>
+                @endif
+                @unless ($user->hasVerifiedEmail())
+                    <button type="submit" formaction="{{ route('super-admin.users.resend-verification', $user) }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100">Resend verification email</button>
+                @endunless
+            </form>
+        </x-super-admin.card>
+
         <x-super-admin.card title="SuperAdmin actions on this user" class="lg:col-span-3">
             @include('super-admin.audit-log.partials.entries', ['entries' => $superAdminActivity, 'empty' => 'No super admin has acted on this user.'])
         </x-super-admin.card>
