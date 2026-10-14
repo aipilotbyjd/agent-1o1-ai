@@ -1,58 +1,55 @@
-<x-super-admin.layout title="Users">
-    <form method="GET" action="{{ route('super-admin.users.index') }}" class="flex flex-wrap items-end gap-3">
-        <div class="min-w-64 flex-1">
-            <label for="q" class="block text-xs font-medium text-zinc-500">Search</label>
-            <input id="q" name="q" type="search" value="{{ $filters['q'] ?? '' }}" placeholder="Email, name or ID"
-                class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none">
-        </div>
+<x-super-admin.layout title="Users" :description="number_format($users->total()).' '.str('account')->plural($users->total()).' on the platform'">
+    <x-super-admin.filters :action="route('super-admin.users.index')" :active="(bool) array_filter($filters)">
+        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Email, name or ID" />
         <div>
-            <label for="two_factor" class="block text-xs font-medium text-zinc-500">2FA</label>
-            <select id="two_factor" name="two_factor" class="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm">
+            <label for="two_factor" class="sa-label">2FA</label>
+            <select id="two_factor" name="two_factor" class="sa-input pr-8">
                 <option value="">Any</option>
                 <option value="enabled" @selected(($filters['two_factor'] ?? '') === 'enabled')>Enabled</option>
                 <option value="disabled" @selected(($filters['two_factor'] ?? '') === 'disabled')>Not enabled</option>
             </select>
         </div>
         <div>
-            <label for="verified" class="block text-xs font-medium text-zinc-500">Email verified</label>
-            <select id="verified" name="verified" class="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm">
+            <label for="verified" class="sa-label">Email verified</label>
+            <select id="verified" name="verified" class="sa-input pr-8">
                 <option value="">Any</option>
                 <option value="yes" @selected(($filters['verified'] ?? '') === 'yes')>Yes</option>
                 <option value="no" @selected(($filters['verified'] ?? '') === 'no')>No</option>
             </select>
         </div>
-        <button type="submit" class="rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-700">Filter</button>
-        @if (array_filter($filters))
-            <a href="{{ route('super-admin.users.index') }}" class="py-2 text-sm text-zinc-500 hover:text-zinc-900">Clear</a>
-        @endif
-    </form>
+    </x-super-admin.filters>
 
     <x-super-admin.card class="mt-6">
         @if ($users->isEmpty())
-            <p class="px-5 py-6 text-sm text-zinc-500">No users match.</p>
+            <x-super-admin.empty icon="user">No users match.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="text-xs text-zinc-500 uppercase">
+                <table class="sa-table">
+                    <thead>
                         <tr>
-                            <th class="px-5 py-2 font-medium">User</th>
-                            <th class="px-5 py-2 font-medium">Workspaces</th>
-                            <th class="px-5 py-2 font-medium">Verified</th>
-                            <th class="px-5 py-2 font-medium">2FA</th>
-                            <th class="px-5 py-2 font-medium">Joined</th>
+                            <th>User</th>
+                            <th class="text-right">Workspaces</th>
+                            <th>Verified</th>
+                            <th>2FA</th>
+                            <th class="text-right">Joined</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-100">
+                    <tbody>
                         @foreach ($users as $user)
-                            <tr class="hover:bg-zinc-50">
-                                <td class="px-5 py-2">
-                                    <a href="{{ route('super-admin.users.show', $user) }}" class="font-medium hover:underline">{{ $user->email }}</a>
-                                    <p class="text-xs text-zinc-500">{{ $user->name }}</p>
+                            <tr class="relative transition hover:bg-zinc-50/80">
+                                <td>
+                                    <div class="flex items-center gap-3">
+                                        <x-super-admin.avatar :name="$user->name ?: $user->email" />
+                                        <div class="min-w-0">
+                                            <a href="{{ route('super-admin.users.show', $user) }}" class="font-medium text-zinc-900 after:absolute after:inset-0">{{ $user->name }}</a>
+                                            <p class="truncate text-xs text-zinc-500">{{ $user->email }}</p>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="px-5 py-2 tabular-nums">{{ $user->workspaces_count }}</td>
-                                <td class="px-5 py-2"><x-super-admin.status-badge :status="$user->email_verified_at ? 'yes' : 'no'" /></td>
-                                <td class="px-5 py-2"><x-super-admin.status-badge :status="$user->hasTwoFactorEnabled() ? 'enabled' : 'off'" /></td>
-                                <td class="px-5 py-2 whitespace-nowrap text-zinc-500" title="{{ $user->created_at }}">{{ $user->created_at?->toFormattedDateString() }}</td>
+                                <td class="text-right text-zinc-700 tabular-nums">{{ $user->workspaces_count }}</td>
+                                <td><x-super-admin.status-badge :status="$user->email_verified_at ? 'yes' : 'no'" /></td>
+                                <td><x-super-admin.status-badge :status="$user->hasTwoFactorEnabled() ? 'enabled' : 'off'" /></td>
+                                <td class="text-right whitespace-nowrap text-zinc-500" title="{{ $user->created_at }}">{{ $user->created_at?->toFormattedDateString() }}</td>
                             </tr>
                         @endforeach
                     </tbody>

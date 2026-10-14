@@ -1,27 +1,27 @@
-<x-super-admin.layout title="Team">
+<x-super-admin.layout title="Team" description="Everyone with a super admin account.">
     <x-super-admin.card>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+            <table class="sa-table">
                 <thead class="text-xs text-zinc-500 uppercase">
                     <tr>
-                        <th class="px-5 py-2 font-medium">Super admin</th>
-                        <th class="px-5 py-2 font-medium">Two-factor</th>
-                        <th class="px-5 py-2 font-medium">Status</th>
-                        <th class="px-5 py-2 font-medium">Last sign-in</th>
-                        <th class="px-5 py-2 font-medium">Last IP</th>
+                        <th>Super admin</th>
+                        <th>Two-factor</th>
+                        <th>Status</th>
+                        <th>Last sign-in</th>
+                        <th>Last IP</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-100">
                     @foreach ($team as $member)
                         <tr>
-                            <td class="px-5 py-2">
-                                <a href="{{ route('super-admin.audit-log.index', ['super_admin' => $member->id]) }}" class="font-medium hover:underline">{{ $member->email }}</a>
+                            <td>
+                                <a href="{{ route('super-admin.audit-log.index', ['super_admin' => $member->id]) }}" class="sa-link">{{ $member->email }}</a>
                                 <div class="text-xs text-zinc-500">{{ $member->name }}</div>
                             </td>
-                            <td class="px-5 py-2"><x-super-admin.status-badge :status="$member->hasTwoFactorEnabled() ? 'enabled' : 'off'" /></td>
-                            <td class="px-5 py-2"><x-super-admin.status-badge :status="$member->isDisabled() ? 'disabled' : 'active'" /></td>
-                            <td class="px-5 py-2 text-zinc-500" title="{{ $member->last_login_at }}">{{ $member->last_login_at?->diffForHumans() ?? 'Never' }}</td>
-                            <td class="px-5 py-2 font-mono text-xs">{{ $member->last_login_ip ?? '—' }}</td>
+                            <td><x-super-admin.status-badge :status="$member->hasTwoFactorEnabled() ? 'enabled' : 'off'" /></td>
+                            <td><x-super-admin.status-badge :status="$member->isDisabled() ? 'disabled' : 'active'" /></td>
+                            <td class="text-zinc-500" title="{{ $member->last_login_at }}">{{ $member->last_login_at?->diffForHumans() ?? 'Never' }}</td>
+                            <td class="font-mono text-xs">{{ $member->last_login_ip ?? '—' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

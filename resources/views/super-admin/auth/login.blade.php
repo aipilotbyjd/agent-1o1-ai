@@ -1,25 +1,23 @@
-<x-super-admin.guest-layout title="Sign in">
+<x-super-admin.guest-layout title="Sign in" description="Use your super admin credentials. You'll confirm with your authenticator next.">
     <form method="POST" action="{{ route('super-admin.login.store') }}" class="space-y-4">
         @csrf
 
         <div>
-            <label for="email" class="block text-sm font-medium">Email</label>
-            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none">
+            <label for="email" class="sa-label">Email</label>
+            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" class="sa-input">
             @error('email')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
 
         <div>
-            <label for="password" class="block text-sm font-medium">Password</label>
-            <input id="password" name="password" type="password" required autocomplete="current-password"
-                class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none">
+            <label for="password" class="sa-label">Password</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password" class="sa-input">
             @error('password')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
 
-        <button type="submit" class="w-full rounded-md bg-zinc-900 px-3 py-2 text-sm font-semibold text-white hover:bg-zinc-700">Continue</button>
+        <button type="submit" class="sa-btn-primary w-full py-2.5">Continue</button>
     </form>
 </x-super-admin.guest-layout>
