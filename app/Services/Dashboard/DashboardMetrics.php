@@ -393,7 +393,7 @@ final class DashboardMetrics
      * string rather than a date/timestamp: every driver then returns the same
      * PHP type, so the zero-fill can key straight off it.
      */
-    private function dayBucket(string $column): string
+    public static function dayBucket(string $column): string
     {
         return match (DB::connection()->getDriverName()) {
             'pgsql' => "to_char({$column}, 'YYYY-MM-DD')",
@@ -407,7 +407,7 @@ final class DashboardMetrics
      * driver with no known expression — `averageRunDurationMs()` reports no
      * average rather than guessing at one.
      */
-    private function durationMs(string $start, string $end): ?string
+    public static function durationMs(string $start, string $end): ?string
     {
         return match (DB::connection()->getDriverName()) {
             'pgsql' => "extract(epoch from ({$end} - {$start})) * 1000",
