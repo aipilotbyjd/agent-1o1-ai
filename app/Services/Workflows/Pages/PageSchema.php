@@ -39,6 +39,12 @@ class PageSchema
 
     public const array COLUMN_LAYOUTS = ['1-1', '1-2', '2-1', '1-1-1', '1-1-1-1'];
 
+    public const array FONTS = [
+        'sans', 'serif', 'mono',
+        'inter', 'dm_sans', 'manrope', 'poppins', 'space_grotesk', 'outfit',
+        'playfair', 'lora', 'fraunces', 'jetbrains_mono',
+    ];
+
     private const array ALIGN = ['left', 'center', 'right'];
 
     private const string ID_PATTERN = '/^[A-Za-z0-9_-]{1,64}$/';
@@ -771,7 +777,7 @@ class PageSchema
             'appearance' => self::oneOf($t['appearance'] ?? null, ['light', 'dark', 'auto']),
             'background' => self::oneOf($t['background'] ?? null, ['soft', 'plain', 'dots', 'gradient']),
             'radius' => self::oneOf($t['radius'] ?? null, ['lg', 'none', 'sm', 'md', 'xl']),
-            'font' => self::oneOf($t['font'] ?? null, ['sans', 'serif', 'mono']),
+            'font' => self::oneOf($t['font'] ?? null, self::FONTS),
             'width' => self::oneOf($t['width'] ?? null, ['medium', 'narrow', 'wide']),
             'logo_url' => self::url($t['logo_url'] ?? null),
             'cover_url' => self::url($t['cover_url'] ?? null),

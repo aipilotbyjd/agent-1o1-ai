@@ -46,7 +46,7 @@ class SubmitPageTool implements Tool
                 'appearance' => $schema->string()->enum(['light', 'dark'])->required(),
                 'background' => $schema->string()->enum(['soft', 'plain', 'dots', 'gradient'])->required(),
                 'radius' => $schema->string()->enum(['none', 'sm', 'md', 'lg', 'xl'])->required(),
-                'font' => $schema->string()->enum(['sans', 'serif', 'mono'])->required(),
+                'font' => $schema->string()->enum(PageSchema::FONTS)->required(),
                 'width' => $schema->string()->enum(['narrow', 'medium', 'wide'])->required(),
             ])->required(),
             'blocks' => $schema->array()->items($schema->object([
