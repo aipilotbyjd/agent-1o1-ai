@@ -26,6 +26,8 @@ Route::domain(config('super_admin.domain'))
             require __DIR__.'/users.php';
             require __DIR__.'/workspaces.php';
             require __DIR__.'/runs.php';
+            require __DIR__.'/billing.php';
+            require __DIR__.'/system.php';
             require __DIR__.'/audit_log.php';
             require __DIR__.'/team.php';
             require __DIR__.'/account.php';

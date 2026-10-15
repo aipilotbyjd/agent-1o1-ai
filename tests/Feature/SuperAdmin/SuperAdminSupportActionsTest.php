@@ -4,6 +4,7 @@ use App\Models\SuperAdmin\SuperAdminAuditLog;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
+use Laravel\Passport\ClientRepository;
 use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
 
@@ -24,6 +25,7 @@ it('needs the super admin sign-in and password for every support action', functi
 });
 
 it('revokes a user\'s API tokens and logs it', function () {
+    app(ClientRepository::class)->createPersonalAccessGrantClient('Testing Personal Access Client', 'users');
     $user = User::factory()->create();
     $token = $user->createToken('test')->token;
     $admin = superAdmin();

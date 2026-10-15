@@ -11,6 +11,16 @@
             ['Workspaces', 'workspace', 'super-admin.workspaces.index', 'super-admin.workspaces.*'],
             ['Runs', 'bolt', 'super-admin.runs.index', 'super-admin.runs.*'],
         ],
+        'Billing' => [
+            ['Subscriptions', 'card', 'super-admin.billing.subscriptions.index', 'super-admin.billing.subscriptions.*'],
+            ['Credit charges', 'coins', 'super-admin.billing.credits.index', 'super-admin.billing.credits.*'],
+            ['Plan grants', 'gift', 'super-admin.billing.plan-grants.index', 'super-admin.billing.plan-grants.*'],
+            ['Plans', 'tag', 'super-admin.billing.plans.index', 'super-admin.billing.plans.*'],
+        ],
+        'System' => [
+            ['Queues', 'queue', 'super-admin.system.queues.index', 'super-admin.system.queues.*'],
+            ['Failed jobs', 'warning', 'super-admin.system.failed-jobs.index', 'super-admin.system.failed-jobs.*'],
+        ],
         'Security' => [
             ['Team', 'account', 'super-admin.team.index', 'super-admin.team.*'],
             ['Audit log', 'shield', 'super-admin.audit-log.index', 'super-admin.audit-log.*'],
@@ -134,5 +144,16 @@
             </div>
         </main>
     </div>
+
+    {{-- Inline handlers are blocked by the CSP, so confirmations are wired here. --}}
+    <script nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}">
+        document.addEventListener('submit', (event) => {
+            const message = event.submitter?.dataset.confirm ?? event.target.dataset.confirm;
+
+            if (message && ! window.confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    </script>
 </body>
 </html>

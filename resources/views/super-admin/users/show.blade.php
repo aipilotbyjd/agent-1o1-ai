@@ -89,7 +89,7 @@
         </x-super-admin.card>
 
         <x-super-admin.card title="Support actions" description="Needs your password. Every action is written to the audit log." class="lg:col-span-3">
-            <form method="POST" class="flex flex-wrap items-end gap-3 px-5 py-4" onsubmit="return confirm('Run this action on {{ e($user->email) }}?')">
+            <form method="POST" class="flex flex-wrap items-end gap-3 px-5 py-4" data-confirm="Run this action on {{ $user->email }}?">
                 @csrf
                 <div class="min-w-56">
                     <label for="current_password" class="sa-label">Your password</label>

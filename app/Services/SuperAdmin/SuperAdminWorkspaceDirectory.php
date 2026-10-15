@@ -2,6 +2,7 @@
 
 namespace App\Services\SuperAdmin;
 
+use App\Models\Billing\Plan;
 use App\Models\Workspaces\Workspace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -68,6 +69,8 @@ class SuperAdminWorkspaceDirectory
                 ->limit(self::RECENT_LIMIT)
                 ->get(),
             'creditTransactions' => $workspace->creditTransactions()->latest()->limit(self::RECENT_LIMIT)->get(),
+            'planGrants' => $workspace->planGrants()->with('plan:id,name')->latest()->limit(self::RECENT_LIMIT)->get(),
+            'grantablePlans' => Plan::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
         ];
     }
 }

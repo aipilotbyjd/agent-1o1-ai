@@ -151,4 +151,6 @@
             @endif
         </x-super-admin.card>
     </div>
+
+    @include('super-admin.workspaces.partials.billing-actions')
 </x-super-admin.layout>
