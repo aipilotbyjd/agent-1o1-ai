@@ -4,6 +4,7 @@ use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\SuperAdmin\SuperAdminAuditLog;
 use App\Notifications\SuperAdmin\SuperAdminSignedInNotification;
 use App\Services\SuperAdmin\SuperAdminAuthenticator;
+use App\Services\SuperAdmin\SuperAdminTwoFactor;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
@@ -125,6 +126,21 @@ it('enrolls a super admin without two-factor before signing them in', function (
 
     $this->get(route('super-admin.recovery-codes'))->assertOk()->assertSee("won't be shown again", false);
     $this->get(route('super-admin.recovery-codes'))->assertRedirect(route('super-admin.account'));
+});
+
+it('shows a QR code rendered on the server during enrollment', function () {
+    $superAdmin = SuperAdmin::factory()->create();
+    enterPassword($superAdmin);
+
+    $response = $this->get(route('super-admin.two-factor.setup'))->assertOk();
+
+    expect($response->getContent())
+        ->toContain('<svg')
+        ->not->toContain('<?xml')
+        ->not->toMatch('/<img[^>]+src="https?:/');
+
+    $qrCode = app(SuperAdminTwoFactor::class)->qrCodeSvg($superAdmin->fresh());
+    expect($qrCode)->toStartWith('<svg')->toEndWith('</svg>');
 });
 
 it('keeps the same setup key across refreshes of the setup page', function () {

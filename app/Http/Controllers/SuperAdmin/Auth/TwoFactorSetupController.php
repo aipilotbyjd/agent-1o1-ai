@@ -40,6 +40,7 @@ class TwoFactorSetupController extends Controller
         return view('super-admin.auth.two-factor-setup', [
             'secret' => trim(chunk_split((string) $superAdmin->two_factor_secret, 4, ' ')),
             'otpauthUrl' => $this->twoFactor->otpauthUrl($superAdmin),
+            'qrCodeSvg' => $this->twoFactor->qrCodeSvg($superAdmin),
         ]);
     }
 

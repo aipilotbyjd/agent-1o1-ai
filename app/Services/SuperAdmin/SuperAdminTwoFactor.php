@@ -3,6 +3,12 @@
 namespace App\Services\SuperAdmin;
 
 use App\Models\SuperAdmin\SuperAdmin;
+use BaconQrCode\Renderer\Color\Rgb;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\Fill;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -43,6 +49,20 @@ class SuperAdminTwoFactor
     public function otpauthUrl(SuperAdmin $superAdmin): string
     {
         return $this->google2fa->getQRCodeUrl(config('app.name').' SuperAdmin', $superAdmin->email, (string) $superAdmin->two_factor_secret);
+    }
+
+    /**
+     * Rendered on the server as inline SVG, so the secret never goes to a
+     * third-party QR service.
+     */
+    public function qrCodeSvg(SuperAdmin $superAdmin): string
+    {
+        $svg = (new Writer(new ImageRenderer(
+            new RendererStyle(192, 0, null, null, Fill::uniformColor(new Rgb(255, 255, 255), new Rgb(24, 24, 27))),
+            new SvgImageBackEnd,
+        )))->writeString($this->otpauthUrl($superAdmin));
+
+        return trim(substr($svg, strpos($svg, "\n") + 1));
     }
 
     /**
