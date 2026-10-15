@@ -38,9 +38,10 @@ class RunController extends Controller
             ->when($request->validated('status'), fn ($query, $status) => $query->where('status', $status))
             ->when($request->validated('workflow_id'), fn ($query, $workflowId) => $query->where('workflow_id', $workflowId))
             ->when($request->validated('agent_id'), fn ($query, $agentId) => $this->forAgent($query, $agentId))
+            ->when($request->validated('runnable_type'), fn ($query, $type) => $query->where('runnable_type', $type))
             ->when($request->validated('trigger_type'), fn ($query, $type) => $query->where('trigger_type', $type))
             ->when($request->validated('exclude_trigger_type'), fn ($query, $type) => $query->where('trigger_type', '!=', $type))
-            ->with(['nodeRuns.creditTransaction', ...Run::runnableWithAgent()])
+            ->with(['nodeRuns.creditTransaction', ...Run::withOwnerNames()])
             ->latest()
             ->paginate($request->validated('per_page') ?? 25)
             ->withQueryString();
@@ -70,7 +71,7 @@ class RunController extends Controller
         $this->requirePermission(Permission::RunView);
         $this->ensureBelongsToWorkspace($workspace, $run);
 
-        $run->load(['nodeRuns.creditTransaction', ...Run::runnableWithAgent()]);
+        $run->load(['nodeRuns.creditTransaction', ...Run::withOwnerNames()]);
 
         if ($run->runnable instanceof AgentSession) {
             $run->setRelation('agentReply', $this->agentReplyFor($run));

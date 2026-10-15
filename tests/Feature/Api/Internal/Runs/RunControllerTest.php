@@ -113,6 +113,44 @@ it('filters runs to everything done on one agent\'s behalf', function () {
     expect($ids->sort()->values()->all())->toBe(collect([$chatRun->id, $reviewRun->id])->sort()->values()->all());
 });
 
+it('still names a deleted agent and workflow behind a run', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create(['name' => 'Gone Agent']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create(['name' => 'Gone Flow']);
+
+    AgentSession::factory()->forAgent($agent)->create()
+        ->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    Run::factory()->forWorkflow($workflow)->create();
+    $agent->delete();
+    $workflow->delete();
+
+    Passport::actingAs($owner);
+
+    $runs = collect($this->getJson("/api/v1/workspaces/{$workspace->id}/runs")->assertOk()->json('data'))->keyBy('runnable_type');
+
+    expect($runs['agent_session']['agent']['name'])->toBe('Gone Agent');
+    expect($runs['workflow']['workflow']['name'])->toBe('Gone Flow');
+});
+
+it('filters runs by what ran', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $agent = Agent::factory()->forWorkspace($workspace)->create();
+
+    $chatRun = AgentSession::factory()->forAgent($agent)->create()
+        ->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
+    $workflowRun = Run::factory()->create(['workspace_id' => $workspace->id]);
+
+    Passport::actingAs($owner);
+
+    $ids = fn (string $type) => collect($this->getJson("/api/v1/workspaces/{$workspace->id}/runs?runnable_type={$type}")->assertOk()->json('data'))->pluck('id')->all();
+
+    expect($ids('workflow'))->toBe([$workflowRun->id]);
+    expect($ids('agent_session'))->toBe([$chatRun->id]);
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/runs?runnable_type=App%5CModels%5CRuns%5CRun")->assertStatus(422);
+});
+
 it('names the agent behind a run and shows a chat turn\'s reply with its tool calls', function () {
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);

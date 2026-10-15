@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
- * A single execution of either a `Workflow` (runnable_type = Workflow::class)
+ * A single execution of either a `Workflow` (runnable_type = 'workflow')
  * or an `AgentSession` (runnable_type = AgentSession::class, added in
  * docs/AGENTS_PLAN.md) — see docs/WORKFLOWS_PLAN.md's `runs` table section for
  * why this stays one shared, polymorphic table rather than two.
@@ -125,7 +125,7 @@ class Run extends Model
     /**
      * The agent this run was done on behalf of — its chat turn, reflection,
      * chat grading or eval suite — or null for a workflow run. Eager load
-     * `runnableWithAgent()` first to avoid a query per run.
+     * `withOwnerNames()` first to avoid a query per run.
      */
     public function owningAgent(): ?Agent
     {
@@ -139,18 +139,22 @@ class Run extends Model
     }
 
     /**
-     * The eager load `owningAgent()` needs, for `with()` or `load()`.
+     * The eager load `owningAgent()` and the run's workflow name need, for
+     * `with()` or `load()`.
      *
-     * @return array<string, Closure(MorphTo): MorphTo>
+     * @return array<string, Closure>
      */
-    public static function runnableWithAgent(): array
+    public static function withOwnerNames(): array
     {
+        // A run outlives its agent, and history should still name it.
+        $agent = ['agent' => fn (BelongsTo $agent) => $agent->withTrashed()];
+
         return ['runnable' => fn (MorphTo $morph) => $morph->morphWith([
-            AgentSession::class => ['agent'],
-            ReflectionRun::class => ['agent'],
-            AgentSessionEvaluation::class => ['agent'],
-            AgentEvalRun::class => ['suite.agent'],
-        ])];
+            AgentSession::class => $agent,
+            ReflectionRun::class => $agent,
+            AgentSessionEvaluation::class => $agent,
+            AgentEvalRun::class => ['suite.agent' => fn (BelongsTo $agent) => $agent->withTrashed()],
+        ]), 'workflow' => fn (BelongsTo $workflow) => $workflow->withTrashed()->select(['id', 'name'])];
     }
 
     /**
@@ -165,6 +169,11 @@ class Run extends Model
         }
 
         return $this->started_at->diffInMilliseconds($this->finished_at);
+    }
+
+    public function isWorkflowRun(): bool
+    {
+        return (Relation::getMorphedModel((string) $this->runnable_type) ?? $this->runnable_type) === Workflow::class;
     }
 
     /**

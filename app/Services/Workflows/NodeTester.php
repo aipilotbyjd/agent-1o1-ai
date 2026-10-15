@@ -182,7 +182,7 @@ class NodeTester
     {
         $run = $workflow->runs()->create([
             'workspace_id' => $workflow->workspace_id,
-            'runnable_type' => Workflow::class,
+            'runnable_type' => $workflow->getMorphClass(),
             'runnable_id' => $workflow->id,
             'workflow_id' => $workflow->id,
             'trigger_type' => self::TRIGGER_TYPE,

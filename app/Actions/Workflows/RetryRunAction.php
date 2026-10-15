@@ -9,7 +9,6 @@ use App\Jobs\Workflows\DispatchNextNodesJob;
 use App\Jobs\Workflows\ExecuteNodeJob;
 use App\Models\Runs\Run;
 use App\Models\User;
-use App\Models\Workflows\Workflow;
 use App\Services\Billing\CreditGate;
 use Illuminate\Support\Facades\DB;
 
@@ -48,7 +47,7 @@ class RetryRunAction
             throw RunStateException::stillRunning();
         }
 
-        if ($run->runnable_type !== Workflow::class || $run->workflow_version_id === null) {
+        if (! $run->isWorkflowRun() || $run->workflow_version_id === null) {
             throw RunStateException::notRetryable();
         }
 

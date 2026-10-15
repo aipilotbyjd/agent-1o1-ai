@@ -26,7 +26,7 @@ class RunFactory extends Factory
             'workspace_id' => fn () => app(WorkspaceService::class)
                 ->create(User::factory()->create(), ['name' => fake()->company()])
                 ->id,
-            'runnable_type' => Workflow::class,
+            'runnable_type' => (new Workflow)->getMorphClass(),
             'runnable_id' => Workflow::factory(),
             'status' => RunStatus::Pending,
             'trigger_type' => 'manual',
@@ -43,7 +43,7 @@ class RunFactory extends Factory
     {
         return $this->state(fn (): array => [
             'workspace_id' => $workflow->workspace_id,
-            'runnable_type' => Workflow::class,
+            'runnable_type' => $workflow->getMorphClass(),
             'runnable_id' => $workflow->id,
             'workflow_id' => $workflow->id,
             'workflow_version_id' => $workflow->current_version_id,

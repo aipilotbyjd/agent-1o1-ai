@@ -54,7 +54,7 @@ class StartWorkflowRunAction
         // them, so create first, then forceFill the status transition.
         $run = $workflow->runs()->create([
             'workspace_id' => $workflow->workspace_id,
-            'runnable_type' => Workflow::class,
+            'runnable_type' => $workflow->getMorphClass(),
             'runnable_id' => $workflow->id,
             'workflow_id' => $workflow->id,
             'workflow_version_id' => $workflow->current_version_id,

@@ -28,6 +28,7 @@ class IndexRunsRequest extends FormRequest
             'status' => ['nullable', Rule::enum(RunStatus::class)],
             'workflow_id' => ['nullable', 'uuid'],
             'agent_id' => ['nullable', 'uuid'],
+            'runnable_type' => ['nullable', Rule::in(['workflow', 'agent_session', 'reflection_run', 'agent_session_evaluation', 'agent_eval_run'])],
             'trigger_type' => ['nullable', 'string', 'max:255'],
             'exclude_trigger_type' => ['nullable', 'string', 'max:255'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

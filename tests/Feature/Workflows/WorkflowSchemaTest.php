@@ -55,7 +55,7 @@ it('creates a run pointed at a workflow and node runs pointed at the run', funct
 
     $run = Run::factory()->forWorkflow($workflow)->create();
 
-    expect($run->runnable_type)->toBe(Workflow::class);
+    expect($run->runnable_type)->toBe('workflow');
     expect($run->runnable_id)->toBe($workflow->id);
     expect($run->status)->toBe(RunStatus::Pending);
 
