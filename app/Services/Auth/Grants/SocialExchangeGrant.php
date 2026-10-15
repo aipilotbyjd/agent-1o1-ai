@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth\Grants;
 
+use App\Models\User;
 use App\Services\Auth\AuthService;
 use DateInterval;
 use Illuminate\Support\Facades\Cache;
@@ -73,6 +74,11 @@ class SocialExchangeGrant extends AbstractGrant
 
         if (! is_array($payload) || ! isset($payload['user_id'])) {
             throw OAuthServerException::invalidGrant('This sign-in link has expired.');
+        }
+
+        // Checked here too, so calling `/oauth/token` directly can't skip it.
+        if (User::query()->whereKey($payload['user_id'])->whereNotNull('suspended_at')->exists()) {
+            throw OAuthServerException::invalidGrant(AuthService::SUSPENDED_MESSAGE);
         }
 
         return new UserEntity((string) $payload['user_id']);

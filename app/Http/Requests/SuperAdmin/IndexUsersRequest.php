@@ -23,6 +23,7 @@ class IndexUsersRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:255'],
             'two_factor' => ['nullable', 'in:enabled,disabled'],
             'verified' => ['nullable', 'in:yes,no'],
+            'suspended' => ['nullable', 'in:yes,no'],
         ];
     }
 }

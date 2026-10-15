@@ -17,6 +17,19 @@
             ['Plan grants', 'gift', 'super-admin.billing.plan-grants.index', 'super-admin.billing.plan-grants.*'],
             ['Plans', 'tag', 'super-admin.billing.plans.index', 'super-admin.billing.plans.*'],
         ],
+        'Referrals' => [
+            ['Overview', 'gift', 'super-admin.referrals.overview', 'super-admin.referrals.overview'],
+            ['Programs', 'tag', 'super-admin.referrals.programs.index', 'super-admin.referrals.programs.*'],
+            ['Referrals', 'user', 'super-admin.referrals.referrals.index', 'super-admin.referrals.referrals.*'],
+            ['Rewards', 'coins', 'super-admin.referrals.rewards.index', 'super-admin.referrals.rewards.*'],
+            ['Codes', 'queue', 'super-admin.referrals.codes.index', 'super-admin.referrals.codes.*'],
+            ['Blocked domains', 'lock', 'super-admin.referrals.blocked-domains.index', 'super-admin.referrals.blocked-domains.*'],
+        ],
+        'Content' => [
+            ['Templates', 'dashboard', 'super-admin.templates.index', 'super-admin.templates.index'],
+            ['Collections', 'inbox', 'super-admin.templates.collections.index', 'super-admin.templates.collections.*'],
+            ['Model catalog', 'bolt', 'super-admin.models.index', 'super-admin.models.*'],
+        ],
         'System' => [
             ['Queues', 'queue', 'super-admin.system.queues.index', 'super-admin.system.queues.*'],
             ['Failed jobs', 'warning', 'super-admin.system.failed-jobs.index', 'super-admin.system.failed-jobs.*'],

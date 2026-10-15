@@ -21,15 +21,56 @@ class SuperAdminUserSupport
     public function signOutEverywhere(User $user, SuperAdmin $actor): int
     {
         return DB::transaction(function () use ($user, $actor): int {
-            $tokenIds = $user->tokens()->where('revoked', false)->pluck('id');
+            $revoked = $this->revokeTokens($user);
 
-            $user->tokens()->whereIn('id', $tokenIds)->update(['revoked' => true]);
-            RefreshToken::query()->whereIn('access_token_id', $tokenIds)->update(['revoked' => true]);
+            $this->audit->record($actor, 'user.signed_out_everywhere', $user, null, ['tokens_revoked' => $revoked]);
 
-            $this->audit->record($actor, 'user.signed_out_everywhere', $user, null, ['tokens_revoked' => $tokenIds->count()]);
-
-            return $tokenIds->count();
+            return $revoked;
         });
+    }
+
+    /**
+     * Blocks every way in — password, two-factor, social sign-in, existing
+     * tokens — and ends every session. The workspaces the user owns keep
+     * running for their other members.
+     */
+    public function suspend(User $user, string $reason, SuperAdmin $actor): void
+    {
+        DB::transaction(function () use ($user, $reason, $actor): void {
+            $user->forceFill(['suspended_at' => now(), 'suspension_reason' => $reason])->save();
+
+            $revoked = $this->revokeTokens($user);
+
+            $this->audit->record($actor, 'user.suspended', $user, ['suspended' => false], [
+                'suspended' => true,
+                'reason' => $reason,
+                'tokens_revoked' => $revoked,
+            ]);
+        });
+    }
+
+    public function unsuspend(User $user, SuperAdmin $actor): void
+    {
+        DB::transaction(function () use ($user, $actor): void {
+            $reason = $user->suspension_reason;
+
+            $user->forceFill(['suspended_at' => null, 'suspension_reason' => null])->save();
+
+            $this->audit->record($actor, 'user.unsuspended', $user, ['suspended' => true, 'reason' => $reason], ['suspended' => false]);
+        });
+    }
+
+    /**
+     * @return int How many access tokens were revoked.
+     */
+    private function revokeTokens(User $user): int
+    {
+        $tokenIds = $user->tokens()->where('revoked', false)->pluck('id');
+
+        $user->tokens()->whereIn('id', $tokenIds)->update(['revoked' => true]);
+        RefreshToken::query()->whereIn('access_token_id', $tokenIds)->update(['revoked' => true]);
+
+        return $tokenIds->count();
     }
 
     /**

@@ -10,6 +10,14 @@
             </select>
         </div>
         <div>
+            <label for="suspended" class="sa-label">Suspended</label>
+            <select id="suspended" name="suspended" class="sa-input pr-8">
+                <option value="">Any</option>
+                <option value="yes" @selected(($filters['suspended'] ?? '') === 'yes')>Suspended</option>
+                <option value="no" @selected(($filters['suspended'] ?? '') === 'no')>Not suspended</option>
+            </select>
+        </div>
+        <div>
             <label for="verified" class="sa-label">Email verified</label>
             <select id="verified" name="verified" class="sa-input pr-8">
                 <option value="">Any</option>
@@ -44,6 +52,9 @@
                                             <a href="{{ route('super-admin.users.show', $user) }}" class="font-medium text-zinc-900 after:absolute after:inset-0">{{ $user->name }}</a>
                                             <p class="truncate text-xs text-zinc-500">{{ $user->email }}</p>
                                         </div>
+                                        @if ($user->isSuspended())
+                                            <x-super-admin.status-badge status="suspended" />
+                                        @endif
                                     </div>
                                 </td>
                                 <td class="text-right text-zinc-700 tabular-nums">{{ $user->workspaces_count }}</td>

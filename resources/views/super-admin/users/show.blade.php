@@ -1,5 +1,8 @@
 <x-super-admin.layout :title="$user->name ?: $user->email" :description="$user->email" :back="route('super-admin.users.index')" back-label="All users">
     <x-slot:actions>
+        @if ($user->isSuspended())
+            <x-super-admin.status-badge status="suspended" />
+        @endif
         <x-super-admin.status-badge :status="$user->email_verified_at ? 'verified' : 'unverified'" />
         <x-super-admin.status-badge :status="$user->hasTwoFactorEnabled() ? 'enabled' : 'off'" />
     </x-slot:actions>
@@ -87,6 +90,40 @@
                 </div>
             @endif
         </x-super-admin.card>
+
+        @if ($user->isSuspended())
+            <x-super-admin.card title="Suspended" :description="'Since '.$user->suspended_at->toDayDateTimeString().'. They cannot sign in or use the API.'" class="lg:col-span-3 ring-red-200">
+                <div class="px-5 py-4">
+                    <p class="text-sm text-zinc-700"><span class="font-medium">Reason:</span> {{ $user->suspension_reason }}</p>
+                    <form method="POST" action="{{ route('super-admin.users.unsuspend', $user) }}" class="mt-4 flex flex-wrap items-end gap-3" data-confirm="Lift the suspension on {{ $user->email }}? They will be able to sign in again.">
+                        @csrf
+                        <div class="min-w-56">
+                            <label for="unsuspend_password" class="sa-label">Your password</label>
+                            <input id="unsuspend_password" name="current_password" type="password" required autocomplete="current-password" class="sa-input">
+                        </div>
+                        <button type="submit" class="sa-btn-secondary">Lift suspension</button>
+                    </form>
+                </div>
+            </x-super-admin.card>
+        @else
+            <x-super-admin.card title="Suspend account" description="Blocks every sign-in and ends all sessions. Their workspaces keep running for other members." class="lg:col-span-3">
+                <form method="POST" action="{{ route('super-admin.users.suspend', $user) }}" class="flex flex-wrap items-end gap-3 px-5 py-4" data-confirm="Suspend {{ $user->email }}? They will be signed out everywhere immediately.">
+                    @csrf
+                    <div class="min-w-72 flex-1">
+                        <label for="suspend_reason" class="sa-label">Reason (internal, not shown to the user)</label>
+                        <input id="suspend_reason" name="reason" type="text" required minlength="5" maxlength="500" value="{{ old('reason') }}" class="sa-input">
+                    </div>
+                    <div class="min-w-56">
+                        <label for="suspend_password" class="sa-label">Your password</label>
+                        <input id="suspend_password" name="current_password" type="password" required autocomplete="current-password" class="sa-input">
+                    </div>
+                    <button type="submit" class="sa-btn-secondary text-red-700">Suspend account</button>
+                    @if ($errors->suspend->any())
+                        <p class="w-full text-xs text-red-600">{{ $errors->suspend->first() }}</p>
+                    @endif
+                </form>
+            </x-super-admin.card>
+        @endif
 
         <x-super-admin.card title="Support actions" description="Needs your password. Every action is written to the audit log." class="lg:col-span-3">
             <form method="POST" class="flex flex-wrap items-end gap-3 px-5 py-4" data-confirm="Run this action on {{ $user->email }}?">

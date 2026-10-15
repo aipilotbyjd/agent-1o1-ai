@@ -34,6 +34,8 @@ class SuperAdminUserDirectory
             ->when(($filters['two_factor'] ?? null) === 'disabled', fn (Builder $query) => $query->whereNull('two_factor_confirmed_at'))
             ->when(($filters['verified'] ?? null) === 'yes', fn (Builder $query) => $query->whereNotNull('email_verified_at'))
             ->when(($filters['verified'] ?? null) === 'no', fn (Builder $query) => $query->whereNull('email_verified_at'))
+            ->when(($filters['suspended'] ?? null) === 'yes', fn (Builder $query) => $query->whereNotNull('suspended_at'))
+            ->when(($filters['suspended'] ?? null) === 'no', fn (Builder $query) => $query->whereNull('suspended_at'))
             ->withCount('workspaces')
             ->latest()
             ->paginate(self::PER_PAGE)

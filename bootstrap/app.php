@@ -14,6 +14,7 @@ use App\Exceptions\WorkflowValidationException;
 use App\Http\Middleware\AllowLongAgentTurn;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\EnsureUserIsNotSuspended;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SuperAdmin\ConfigureSuperAdminSession;
@@ -63,7 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
     // the session-based `web` guard, which this token-only API never uses.
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',
-        attributes: ['prefix' => 'api', 'middleware' => ['auth:api']],
+        attributes: ['prefix' => 'api', 'middleware' => ['auth:api', EnsureUserIsNotSuspended::class]],
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
@@ -91,7 +92,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->append(SecurityHeaders::class);
 
-        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
+        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class, EnsureUserIsNotSuspended::class]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
             $request->is('api/*') => null,
