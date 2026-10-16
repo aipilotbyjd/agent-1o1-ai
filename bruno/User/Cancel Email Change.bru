@@ -13,4 +13,6 @@ delete {
 docs {
   Drops a staged email change, leaving the account on its current
   address. Safe to call when nothing is pending.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user } }`.
 }

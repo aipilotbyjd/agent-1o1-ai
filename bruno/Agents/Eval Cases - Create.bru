@@ -52,9 +52,11 @@ docs {
   - `contains` — the answer includes `value`.
   - `not_contains` — the answer does not include `value`.
   - `equals` — the answer matches `value` exactly.
+  - `tool_called` — the answer called the tool named in `value`.
+  - `tool_not_called` — the answer did not call that tool.
   - `llm_rubric` — `value` is graded by a second model call.
 
-  The first three are deterministic: the same answer always grades the same
+  The first five are deterministic: the same answer always grades the same
   way. `llm_rubric` costs an extra model call and can disagree with itself
   between runs, so it's for expectations that genuinely can't be written as
   a string check ("politely declines", "doesn't invent a refund policy"),

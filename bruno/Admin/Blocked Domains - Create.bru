@@ -30,4 +30,6 @@ docs {
   Blocks a domain (lower-cased; must look like `example.com`).
 
   Stores `blockedDomainId`.
+
+  `reason` is optional. `201`, wrapped: `{ success, statusCode, message, data: { domain } }`.
 }

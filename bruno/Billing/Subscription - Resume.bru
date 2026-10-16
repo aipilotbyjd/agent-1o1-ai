@@ -16,7 +16,8 @@ params:path {
 
 docs {
   Resumes a subscription that was previously canceled (before the end of
-  its billing period). Requires the `billing.manage` permission.
+  its billing period). Requires the `billing.manage` permission. `404` if
+  the workspace has no subscription, `422` if it isn't on its grace period.
 
   Response is wrapped: `{ success, statusCode, message, data: { subscription } }`.
 }

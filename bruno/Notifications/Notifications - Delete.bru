@@ -11,5 +11,12 @@ delete {
 }
 
 params:path {
-  notification: replace-with-notification-id
+  notification: {{notificationId}}
+}
+
+docs {
+  Deletes one of the caller's notifications. Someone else's id answers
+  `404`. Uses `notificationId` from `Notifications - List`.
+
+  Answers `200` with `data: null` (not 204).
 }

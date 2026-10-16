@@ -26,7 +26,10 @@ script:post-response {
 
 docs {
   Referral codes with owner and referral/visit counts. `search` matches the
-  code or the owner's name or email; `program_id` filters by pinned program.
+  code or the owner's name or email; `program_id` filters by pinned program;
+  `per_page` defaults to 25.
 
   Stores the first code as `referralCodeId`.
+
+  Paginated: `{ success, statusCode, message, data: [...], meta }`.
 }

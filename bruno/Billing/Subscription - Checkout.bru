@@ -16,7 +16,7 @@ params:path {
 
 body:json {
   {
-    "plan_id": {{planId}},
+    "plan_id": "{{planId}}",
     "interval": "monthly"
   }
 }
@@ -47,5 +47,7 @@ docs {
   - Returns `422` on a lifetime purchase of a plan the workspace already
     holds an active grant for.
 
-  Response is wrapped: `{ success, statusCode, message, data }`.
+  Always `200`. Response is wrapped: `{ success, statusCode, message, data }`
+  where `data` is `{ checkout_url }` (new subscription), `{ subscription }`
+  (swap) or `{ plan_grant, checkout_url }` (lifetime).
 }

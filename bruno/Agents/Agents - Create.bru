@@ -39,9 +39,16 @@ docs {
   Creates an agent. Requires the `agent.manage` permission. Stores the
   new ID in the `agentId` collection variable.
 
-  `name` and `instructions` are required; `slug` is derived from `name`
-  when omitted. `temperature` must be between 0 and 1. `provider` and
-  `model` fall back to the application defaults when omitted.
+  Only `name` is required; `slug` is derived from `name` when omitted.
+  `temperature` must be between 0 and 1. `provider` and `model` fall back
+  to the workspace default model (else the application default) when
+  omitted. Returns `402` when the plan's agent limit is reached.
+
+  Also optional: `icon` and `color` (from `Agent::ICONS` / `COLORS`),
+  `folder_id` (an `agent` folder), `settings.max_steps` / `max_tokens` /
+  `top_p`, `autonomy_mode` (`read_only`, `ask`, `plan`, `smart`,
+  `autopilot`; default `ask`), and the booleans `allow_self_updates`,
+  `allow_skill_editing`, `allow_self_clone`, `test_mode`, `allow_web_fetch`.
 
   Optionally pass `model_catalog_id` (an ID from `Ai/Model Catalog -
   List`) instead of/alongside `provider`/`model` to run this agent on

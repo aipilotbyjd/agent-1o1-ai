@@ -16,5 +16,8 @@ params:path {
 }
 
 docs {
-  Deletes one chunk. Requires `agent.manage`. Returns 204.
+  Deletes one chunk. A shared chunk requires `agent.manage`; a private
+  chunk can only be deleted by its owner (anyone else gets 404).
+
+  Responds `204 No Content` with no envelope.
 }

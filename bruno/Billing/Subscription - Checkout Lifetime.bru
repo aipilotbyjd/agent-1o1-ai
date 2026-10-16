@@ -16,7 +16,7 @@ params:path {
 
 body:json {
   {
-    "plan_id": {{planId}},
+    "plan_id": "{{planId}}",
     "interval": "lifetime"
   }
 }
@@ -39,6 +39,6 @@ docs {
     says which. Check `available_intervals` from `Billing/Plans - List`.
   - `422` if the workspace already holds an active grant for this plan.
 
-  Response is wrapped:
+  Answers `200` (not 201). Response is wrapped:
   `{ success, statusCode, message, data: { plan_grant, checkout_url } }`.
 }

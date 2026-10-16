@@ -18,7 +18,7 @@ params:path {
 docs {
   A single invoice, read live from Stripe. Requires the `billing.view`
   permission. `invoiceId` is a Stripe invoice id (e.g. `in_...`), not a
-  local database id — grab one from `Invoices - List`.
+  local database id — `Invoices - List` stores the newest as `invoiceId`.
 
   404s (not 403) for an invoice belonging to another workspace's Stripe
   customer, so the endpoint never confirms someone else's invoice id

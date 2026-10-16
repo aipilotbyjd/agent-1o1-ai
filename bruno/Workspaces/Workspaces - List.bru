@@ -11,5 +11,8 @@ get {
 }
 
 docs {
-  Lists workspaces the authenticated user belongs to.
+  Lists workspaces the authenticated user belongs to, with workflow and
+  agent counts.
+
+  Response is wrapped: `{ success, statusCode, message, data: { workspaces } }`.
 }

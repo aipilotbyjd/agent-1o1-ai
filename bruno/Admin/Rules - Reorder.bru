@@ -25,4 +25,6 @@ body:json {
 docs {
   Sets the order of the program's rules. `rule_ids` must all belong to the
   program; the list order becomes `sort_order`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { rules } }`.
 }

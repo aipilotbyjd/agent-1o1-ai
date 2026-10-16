@@ -15,6 +15,9 @@ params:path {
 }
 
 docs {
-  Lists API keys for the workspace (hashed keys only). Requires the
-  `api-key.view` permission.
+  Lists API keys for the workspace, newest first. The key itself is never
+  returned (only its hash is stored). Requires the `api-key.view`
+  permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { api_keys } }`.
 }

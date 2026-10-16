@@ -25,7 +25,10 @@ docs {
   body — names come from the templates themselves rather than being
   supplied per item, unlike the single-template `Use` endpoints.
 
-  Response is wrapped:
+  The whole pack is checked against the plan's workflow and agent limits
+  first; `402` if it wouldn't fit, and nothing is created.
+
+  `201`, wrapped:
   `{ success, statusCode, message, data: { workflows, agents } }`, each a
   list of what was created.
 }

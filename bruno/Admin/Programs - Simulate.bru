@@ -28,7 +28,11 @@ body:json {
 docs {
   Dry run: what each rule would give for a hypothetical event. Writes
   nothing. `trigger` is required (`signup_verified`, `activated`,
-  `first_payment`, `repeat_payment`, `milestone`); payment fields apply to
-  payment triggers, `converted_referrals` to milestones, `multiplier`
-  mimics a referral code's multiplier.
+  `first_payment`, `repeat_payment`, `milestone`); payment fields
+  (`payment_cents`, `plan_id`, `billing_interval`, `payment_source`,
+  `payment_sequence`) apply to payment triggers, `converted_referrals` to
+  milestones, `multiplier` mimics a referral code's multiplier.
+
+  Response is wrapped:
+  `{ success, statusCode, message, data: { program_id, program_is_live, results } }`.
 }

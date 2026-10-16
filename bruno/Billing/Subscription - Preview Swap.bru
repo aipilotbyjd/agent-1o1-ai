@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/v1/workspaces/:workspace/billing/subscription/preview
+  url: {{baseUrl}}/v1/workspaces/:workspace/billing/subscription/preview?plan_id={{planId}}&interval=monthly
   body: none
   auth: inherit
 }
@@ -22,7 +22,8 @@ params:query {
 docs {
   Previews the invoice that swapping to `plan_id`/`interval` would
   produce (proration included), without actually changing the
-  subscription. Requires the `billing.view` permission.
+  subscription. Requires the `billing.view` permission. Both query params
+  are required (`plan_id` is a plan UUID).
 
   `interval` is one of `monthly`, `quarterly`, `yearly`, `lifetime` — see
   `Billing/Plans - List`'s `available_intervals` for what's actually on

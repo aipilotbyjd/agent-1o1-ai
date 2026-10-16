@@ -24,4 +24,6 @@ docs {
   required, plus the matching value: `credits`, `plan_id` + `duration_days`,
   `amount_cents`, or `trial_days`. `workspace_id` (a workspace the user
   belongs to) defaults to one they own; `notes` is stored on the reward.
+
+  `201`, wrapped: `{ success, statusCode, message, data: { reward } }`.
 }

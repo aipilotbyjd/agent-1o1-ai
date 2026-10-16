@@ -24,8 +24,8 @@ script:post-response {
 }
 
 docs {
-  Lists the active plans for the workspace. Requires the `billing.view`
-  permission.
+  Lists the active plans, in `sort_order`. Any workspace member can call
+  it — there is no `billing.*` permission check.
 
   Each plan carries a price for all four billing windows
   (`price_monthly`, `price_quarterly`, `price_yearly`, `price_lifetime`)

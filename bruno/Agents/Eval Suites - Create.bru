@@ -39,6 +39,9 @@ docs {
 
   - `name` — required, max 255.
   - `description` — optional, nullable.
+  - `run_on_change` — optional bool, default true; re-run this suite
+    automatically (simulated, after a short delay) whenever the agent's
+    behavior changes.
 
   Response is wrapped: `{ success, statusCode, message, data: { suite } }`.
 }

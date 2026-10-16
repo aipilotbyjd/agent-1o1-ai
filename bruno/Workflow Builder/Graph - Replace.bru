@@ -19,14 +19,18 @@ body:json {
   {
     "nodes": [
       {
-        "key": "trigger",
-        "type": "manual.trigger",
-        "config": {},
+        "key": "customer_email",
+        "type": "workflow_input",
+        "config": {
+          "name": "customer_email",
+          "input_type": "string",
+          "required": true
+        },
         "position": { "x": 0, "y": 0 }
       },
       {
         "key": "notify",
-        "type": "http.request",
+        "type": "call_api",
         "config": {
           "method": "POST",
           "url": "https://example.com/hooks/notify"
@@ -36,7 +40,7 @@ body:json {
     ],
     "edges": [
       {
-        "from": "trigger",
+        "from": "customer_email",
         "to": "notify",
         "condition": null
       }
@@ -47,13 +51,14 @@ body:json {
 docs {
   Replaces the workflow's draft graph wholesale — this is the editor's
   autosave, not a partial patch, so send the complete node/edge set every
-  time. Requires the `workflow-builder.use` permission.
+  time. Requires the `workflow.builder.use` permission.
 
   Both `nodes` and `edges` must be present (send `[]` to clear one).
   Each node needs a `key` and `type`; edges reference nodes by `key` via
   `from`/`to`. Node `type` must be registered in the node registry.
 
-  Publish the result through `Workflows/Versions - Publish`.
+  Publish the result through `Workflows/Versions - Publish` (or
+  `Workflows/Publish Requests - Create` when the workspace reviews changes).
 
   Response is wrapped: `{ success, statusCode, message, data: { workflow } }`.
 }

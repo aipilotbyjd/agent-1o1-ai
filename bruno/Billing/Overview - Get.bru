@@ -31,6 +31,9 @@ docs {
 
   Response is wrapped: `{ success, statusCode, message, data: {
   subscription, plan_grant, current_plan, usage_period, topup_credits,
-  credits_available } }`. `usage_period.credits_remaining` is `null` when
+  credits_available, limits, overage, dunning } }`.
+  `limits` maps each plan limit to `{ used, max }` (`max: null` = unlimited);
+  `overage` is a subset of `Overage - Get`; `dunning` is `null` unless a
+  failed payment is being retried (`{ started_at, attempts, invoice_id }`). `usage_period.credits_remaining` is `null` when
   the plan is unlimited.
 }

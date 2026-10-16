@@ -15,7 +15,8 @@ params:path {
 }
 
 docs {
-  Lists the workspace's tags, alphabetically, each with a `workflow_count`.
+  Lists the workspace's tags, alphabetically, each with a `workflow_count`
+  and an `agent_count`.
   Requires the `workflow.view` permission.
 
   Response is wrapped: `{ success, statusCode, message, data: { tags } }`.

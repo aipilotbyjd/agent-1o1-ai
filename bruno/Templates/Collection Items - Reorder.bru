@@ -18,8 +18,7 @@ params:path {
 body:json {
   {
     "items": [
-      { "id": 1, "position": 0 },
-      { "id": 2, "position": 1 }
+      { "id": "{{templateCollectionItemId}}", "position": 0 }
     ]
   }
 }
@@ -30,7 +29,7 @@ docs {
   workspace.
 
   - `items` — required, at least one entry. Each needs an `id` (the
-    collection item's ID, not the template's) and a `position` integer
+    collection item's UUID, not the template's) and a `position` integer
     from 0.
 
   Only the listed items move; anything omitted keeps its current position,

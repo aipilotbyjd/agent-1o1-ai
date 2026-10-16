@@ -27,7 +27,9 @@ script:post-response {
 docs {
   Every referral, unmasked, newest first. Filters: `status` (`pending`,
   `verified`, `activated`, `converted`, `rejected`), `program_id`,
-  `referrer_user_id`.
+  `referrer_user_id`; `per_page` defaults to 25.
 
   Stores the first referral as `referralId`.
+
+  Paginated: `{ success, statusCode, message, data: [...], meta }`.
 }

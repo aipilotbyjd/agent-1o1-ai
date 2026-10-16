@@ -24,5 +24,8 @@ body:json {
 docs {
   Changes a member's role. `member` is the target user's ID. Requires
   the `member.update-role` permission. `role` must be one of the
-  assignable roles (not `owner`).
+  assignable roles: `admin`, `editor`, `member` or `viewer` (not
+  `owner`). 404 if the user isn't a member.
+
+  Responds `204 No Content` with no envelope.
 }

@@ -39,8 +39,11 @@ docs {
   the `workflowId` collection variable with the new workflow.
 
   - `name` — required, max 255. The slug is derived from it.
-  - `folder_id` — optional, files the new workflow under a folder.
+  - `folder_id` — optional, files the new workflow under a workflow folder
+    of this workspace.
 
-  Response is wrapped: `{ success, statusCode, message, data: { workflow } }`
+  `402` if the plan's workflow limit is reached.
+
+  `201`, wrapped: `{ success, statusCode, message, data: { workflow } }`
   with `nodes` and `edges` eager-loaded.
 }

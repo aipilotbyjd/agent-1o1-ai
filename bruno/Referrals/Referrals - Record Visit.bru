@@ -34,5 +34,10 @@ docs {
   `visitor_id` for the frontend to keep and send back at signup; 404 for an
   unknown or switched-off code. Rate limited to 30/min per IP.
 
+  Optional: `visitor_id` (UUID, to reuse a known visitor), `landing_url`,
+  `referrer_url`, `utm` (`source`, `medium`, `campaign`, `term`, `content`).
+
   Stores `referralVisitorId`.
+
+  `201`, wrapped: `{ success, statusCode, message, data: { visitor_id, code } }`.
 }

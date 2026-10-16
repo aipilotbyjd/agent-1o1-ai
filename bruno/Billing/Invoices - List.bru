@@ -19,6 +19,15 @@ params:query {
   ~cursor:
 }
 
+script:post-response {
+  if (res.status === 200) {
+    const items = res.body.data;
+    if (Array.isArray(items) && items.length > 0) {
+      bru.setVar("invoiceId", items[0].id);
+    }
+  }
+}
+
 docs {
   Past invoices, newest first (including still-open/unpaid ones), read
   live from Stripe rather than a local mirror. Requires the
@@ -27,7 +36,9 @@ docs {
   Cursor-paginated — Stripe's list API has no total count or offset, so
   walk `meta.next_cursor` instead of a page number. A workspace with no
   Stripe customer yet (never reached checkout) gets an empty collection,
-  not an error.
+  not an error. `per_page` defaults to 24 (max 100).
+
+  Stores the first invoice's id as `invoiceId` for `Invoices - Get`.
 
   Response: `{ success, statusCode, message, data: [...], meta: { per_page, next_cursor, prev_cursor, has_more } }`.
 }

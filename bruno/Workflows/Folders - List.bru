@@ -10,14 +10,21 @@ get {
   auth: inherit
 }
 
+params:query {
+  ~type: agent
+}
+
 params:path {
   workspace: {{workspaceId}}
 }
 
 docs {
-  Lists the workspace's top-level folders, ordered by `position`, each with
-  its `children` nested one level deep and a `workflow_count`. Requires the
-  `workflow.view` permission.
+  Lists the workspace's top-level folders of one type, ordered by
+  `position`, each with its `children` nested one level deep plus
+  `workflow_count` and `agent_count`.
+
+  `?type=workflow` (the default) needs the `workflow.view` permission;
+  `?type=agent` lists agent folders and needs `agent.view`.
 
   Response is wrapped: `{ success, statusCode, message, data: { folders } }`.
 }

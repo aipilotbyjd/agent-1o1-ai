@@ -23,22 +23,25 @@ script:post-response {
     if (data.two_factor_challenge) {
       bru.setVar("challengeToken", data.two_factor_challenge);
     } else {
-      const tokens = data.tokens ?? {};
-      bru.setVar("accessToken", tokens.access_token);
-      bru.setVar("refreshToken", tokens.refresh_token);
+      bru.setVar("accessToken", data.tokens?.access_token);
     }
   }
 }
 
 docs {
-  Exchanges email/password for the user plus an access/refresh token
-  pair. Rate limited by the `auth` throttle. Stores `accessToken` and
-  `refreshToken` as collection variables for use by subsequent requests.
+  Exchanges email/password for the user plus an access token. Rate
+  limited by the `auth` throttle. Stores `accessToken` for use by
+  subsequent requests.
+
+  The refresh token is **not** in the body: it is set as an httpOnly,
+  Secure `refresh_token` cookie (30 days), which Bruno's cookie jar
+  keeps and `Refresh Token` sends back.
 
   If the account has two-factor authentication enabled, this instead
   returns `data: { "two_factor_challenge": "<token>" }` (no tokens yet)
   and stores it as `challengeToken` — run `2FA - Verify` next to
   complete login.
 
-  Response is wrapped: `{ success, statusCode, message, data: {...} }`.
+  Response is wrapped:
+  `{ success, statusCode, message, data: { user, tokens: { token_type, expires_in, access_token } } }`.
 }

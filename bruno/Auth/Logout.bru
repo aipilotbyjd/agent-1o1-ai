@@ -11,5 +11,8 @@ post {
 }
 
 docs {
-  Revokes the current access token. Requires a bearer token.
+  Revokes the current access token and clears the `refresh_token`
+  cookie. Requires a bearer token.
+
+  Responds `204 No Content` with no envelope.
 }

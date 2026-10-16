@@ -15,6 +15,9 @@ params:path {
 }
 
 docs {
-  Returns the OAuth redirect URL for the given social provider.
-  `provider` must be `google` or `github`.
+  Returns the provider's OAuth authorize URL for the frontend to send the
+  browser to (stateless — no session). `provider` must be `google` or
+  `github` (any other value is a 404).
+
+  Response is wrapped: `{ success, statusCode, message, data: { url } }`.
 }

@@ -14,4 +14,6 @@ docs {
   Returns the authenticated user's onboarding progress: `dismissed`,
   `completed`, `percent`, `current_step`, `steps[]`, and `meta` (plan
   catalog, job roles, discovery sources, workspace slug suggestion).
+
+  Response is wrapped: `{ success, statusCode, message, data }`.
 }

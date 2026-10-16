@@ -15,9 +15,12 @@ params:path {
 }
 
 docs {
-  Lists the workspace's collections with their chunk counts — derived from
-  the stored chunks, since a collection is just a string column. Requires
+  Lists the collections visible to the caller with their chunk counts —
+  derived from the stored chunks, since a collection is just a string
+  column. A name used both shared and privately appears once for each.
+  Agents' exported-artifact collections are left out. Requires
   `agent.view`.
 
-  Response is wrapped: `{ ..., data: { collections } }`.
+  Response is wrapped:
+  `{ ..., data: { collections: [{ collection, private, chunks_count }] } }`.
 }

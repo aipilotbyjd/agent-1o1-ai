@@ -15,6 +15,8 @@ body:multipart-form {
 }
 
 docs {
-  Uploads the authenticated user's avatar (image, max 2MB). Replaces and
-  deletes any existing avatar file.
+  Uploads the authenticated user's avatar (`avatar`: required image, max
+  2MB). Replaces and deletes any existing avatar file.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user } }`.
 }

@@ -36,7 +36,8 @@ docs {
   Stores the new ID in the `workflowId` collection variable.
 
   `slug` is optional — when omitted it's derived from `name` plus a random
-  suffix. `folder_id` optionally files the workflow under a folder.
+  suffix. `folder_id` optionally files the workflow under a workflow-type
+  folder. Refused when the workspace is at its plan's workflow limit.
 
   Response is wrapped: `{ success, statusCode, message, data: { workflow } }`.
 }

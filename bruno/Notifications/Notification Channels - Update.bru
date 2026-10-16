@@ -20,3 +20,11 @@ body:json {
     "is_active": false
   }
 }
+
+docs {
+  Partial update. Requires `notification-channel.manage`. `type` can't be
+  changed. Sending `config` replaces it whole, so `config.url` is then
+  required again; other fields as in `Create`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { channel } }`.
+}

@@ -28,7 +28,7 @@ body:json {
 docs {
   Partial update — send only what changes:
 
-  - `name`, `slug`, `description`, `is_active`, `starts_at`, `ends_at`
+  - `name`, `slug`, `description`, `is_active`, `is_default`, `starts_at`, `ends_at`
   - `attribution_window_days` (1–365), `claim_window_hours` (1–720), `require_verified_email`
   - `activation_event` (`first_successful_run` | `first_agent_session` | `run_or_agent_session`),
     `activation_min_count`, `activation_window_days`
@@ -39,4 +39,6 @@ docs {
   - `fraud_checks`: `shared_workspace`, `same_email_domain`, `disposable_email`,
     `card_fingerprint`, `ip_velocity {enabled, max, hours}`,
     `velocity_alert {enabled, max_per_hour}` — merged into the current values.
+
+  Response is wrapped: `{ success, statusCode, message, data: { program } }`.
 }

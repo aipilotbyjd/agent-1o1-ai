@@ -16,9 +16,10 @@ params:path {
 }
 
 docs {
-  Deletes a folder. Its workflows and any child folders fall back to no
-  folder (`folder_id` is nulled, not cascaded). Requires the
-  `workflow.manage` permission.
+  Deletes a folder. Its workflows or agents and any child folders fall
+  back to no folder (`folder_id` is nulled, not cascaded). Requires
+  `workflow.manage` for a workflow folder, `agent.manage` for an agent
+  folder.
 
   404s if `:folder` doesn't belong to `:workspace`.
 

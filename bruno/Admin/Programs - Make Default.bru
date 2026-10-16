@@ -17,4 +17,6 @@ params:path {
 docs {
   Makes an active program the default; the previous default is demoted.
   New signups whose code doesn't point at a program join the default.
+
+  Response is wrapped: `{ success, statusCode, message, data: { program } }`.
 }

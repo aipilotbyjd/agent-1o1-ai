@@ -17,7 +17,8 @@ params:path {
 
 body:json {
   {
-    "message": "Add an HTTP request node that posts the lead to our CRM."
+    "message": "Add an HTTP request node that posts the lead to our CRM.",
+    "mode": "build"
   }
 }
 
@@ -35,8 +36,15 @@ docs {
   pending assistant message; the reply is written by a queued job
   (`ProcessWorkflowBuilderMessageJob`). The agent edits the session's
   `draft_graph` through its tools, so a single message can change the
-  graph. Requires the `workflow-builder.use` permission. Stores the reply's
+  graph. Requires the `workflow.builder.use` permission. Stores the reply's
   ID as `builderMessageId`.
+
+  - `message` — required, max 10000 characters.
+  - `mode` — optional: `build` (default) edits the draft; `ask` answers
+    without touching it.
+  - `attachments[]` — optional files, sent as multipart form data instead
+    of JSON. Images and plain-text files only (no PDFs); each is stored as
+    an artifact on the message.
 
   Follow the reply live on the private channel
   `workspaces.{workspace}.workflow-builder-sessions.{session}` (events

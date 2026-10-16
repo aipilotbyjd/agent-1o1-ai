@@ -22,5 +22,7 @@ docs {
   These are the same records that drive the security alert emails, so a
   user can answer "was that me?" without contacting support.
 
-  Paginated: `per_page` defaults to 25 and is capped at 100.
+  `per_page` defaults to 25 and is capped at 100.
+
+  Paginated: `{ success, statusCode, message, data: [...], meta }`.
 }

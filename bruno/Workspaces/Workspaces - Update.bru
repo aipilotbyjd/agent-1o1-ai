@@ -21,5 +21,8 @@ body:json {
 }
 
 docs {
-  Updates a workspace. Requires the `workspace.update` permission.
+  Updates a workspace. `name` is optional (max 255) but can't be blank
+  when sent. Requires the `workspace.update` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { workspace } }`.
 }

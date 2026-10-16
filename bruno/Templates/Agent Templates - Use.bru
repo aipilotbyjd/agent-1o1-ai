@@ -39,6 +39,10 @@ docs {
   the `agentId` collection variable with the new agent.
 
   - `name` — required, max 255.
+  - `model_catalog_id` — optional model catalog UUID the workspace may use;
+    defaults to the template's model, then the workspace default.
 
-  Response is wrapped: `{ success, statusCode, message, data: { agent } }`.
+  `402` if the plan's agent limit is reached.
+
+  `201`, wrapped: `{ success, statusCode, message, data: { agent } }`.
 }

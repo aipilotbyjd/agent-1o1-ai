@@ -18,13 +18,17 @@ body:json {
 }
 
 docs {
-  Updates the authenticated user's profile. All fields are optional.
+  Updates the authenticated user's profile. Both fields are optional but
+  can't be blank when sent (`name` max 255, `email` max 255 and unique
+  among both current and pending addresses).
 
   `email` is **staged, not applied**: the account keeps its current
   address and `pending_email` is set, while a confirmation link goes to
   the new address and a security alert goes to the old one. The change
-  only lands when that link is followed (see `Auth / Confirm Email
+  only lands when that link is followed (see `Auth/Confirm Email
   Change`), and doing so revokes every session.
 
   Cancel a staged change with `Cancel Email Change`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user } }`.
 }
