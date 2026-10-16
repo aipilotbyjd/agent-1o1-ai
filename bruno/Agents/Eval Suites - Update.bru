@@ -23,8 +23,9 @@ body:json {
 }
 
 docs {
-  Renames a suite or edits its description. Requires the `agent.manage`
-  permission. Both fields are `sometimes` — send only what changes.
+  Renames a suite, edits its description, or toggles `run_on_change`.
+  Requires the `agent.manage` permission. Every field is `sometimes` —
+  send only what changes.
 
   Cases are managed separately through the `Eval Cases` requests.
 

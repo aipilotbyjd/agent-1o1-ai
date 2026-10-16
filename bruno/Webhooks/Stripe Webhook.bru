@@ -34,7 +34,9 @@ docs {
   `403` unless the signature matches. The practical way to exercise this is
   the Stripe CLI (`stripe listen --forward-to <host>/api/stripe/webhook`,
   then `stripe trigger <event>`), which signs the payload for you. Leave
-  `stripeSignature` empty otherwise.
+  `stripeSignature` empty otherwise. With no signing secret configured the
+  endpoint answers `503` outside `local`/`testing` (locally it then skips
+  verification).
 
   Cashier's auto-registration is disabled, so this resolves to the
   application's own controller. It guards every event with an idempotency
@@ -43,10 +45,12 @@ docs {
   event whose `id` has already been seen answers
   `200 Webhook already processed` without re-running the handler.
 
-  Handled event types: `customer.subscription.created`,
-  `customer.subscription.updated`, `checkout.session.completed`,
-  `charge.refunded`, `charge.dispute.created`, `invoice.payment_failed`.
-  Anything else is accepted and ignored.
+  Events with app-specific handling: `customer.subscription.created`,
+  `customer.subscription.updated`, `customer.subscription.deleted`,
+  `checkout.session.completed`, `charge.refunded`, `charge.dispute.created`,
+  `invoice.payment_succeeded`, `invoice.payment_failed`, plus Cashier's
+  built-in handlers. Anything else is accepted and ignored. A body with no
+  `id` is also answered `200` and ignored.
 
   Responses are **not** wrapped in the standard envelope.
 }

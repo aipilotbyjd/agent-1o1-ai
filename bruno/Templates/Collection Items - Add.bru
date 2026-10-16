@@ -18,7 +18,7 @@ params:path {
 body:json {
   {
     "templatable_type": "workflow_template",
-    "templatable_id": {{workflowTemplateId}},
+    "templatable_id": "{{workflowTemplateId}}",
     "position": 0
   }
 }
@@ -39,10 +39,11 @@ docs {
 
   - `templatable_type` — required, either `workflow_template` or
     `agent_template`.
-  - `templatable_id` — required integer, the template's ID. Swap it to
-    `{{agentTemplateId}}` when adding an agent template.
-  - `position` — optional integer from 0, the ordering slot.
+  - `templatable_id` — required UUID, the template's ID. Swap it to
+    `{{agentTemplateId}}` when adding an agent template. A template not
+    visible to the workspace answers `422`.
+  - `position` — optional integer from 0; defaults to the end of the list.
 
-  Response is wrapped: `{ success, statusCode, message, data: { item } }`
+  `201`, wrapped: `{ success, statusCode, message, data: { item } }`
   with the underlying template loaded.
 }

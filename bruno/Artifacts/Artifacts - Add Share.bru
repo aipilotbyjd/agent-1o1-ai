@@ -17,7 +17,7 @@ params:path {
 
 body:json {
   {
-    "user_id": {{shareUserId}}
+    "user_id": "{{shareUserId}}"
   }
 }
 
@@ -28,7 +28,8 @@ docs {
   it to every workspace member.
 
   Requires `artifact.view`, and only the artifact's creator or someone with
-  `artifact.manage` may call it. `user_id` must belong to this workspace.
+  `artifact.manage` may call it. `user_id` (UUID) must be a member of this
+  workspace.
   Granting the same user twice is a no-op, not an error.
 
   Set `shareUserId` to the target member's user ID before running this.

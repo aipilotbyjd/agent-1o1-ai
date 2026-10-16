@@ -26,5 +26,8 @@ docs {
   Updates a trigger's `config` and/or `is_active` flag — the only two
   mutable fields. Requires the `trigger.manage` permission.
 
+  `config` takes the same keys as `Triggers - Create`, with `cron`, `url`,
+  `autonomy_mode` and `test_mode` validated the same way.
+
   Response is wrapped: `{ success, statusCode, message, data: { trigger } }`.
 }

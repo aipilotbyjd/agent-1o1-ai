@@ -10,7 +10,20 @@ get {
   auth: inherit
 }
 
+script:post-response {
+  if (res.status === 200) {
+    const user = res.body.data?.user;
+    if (user && user.id) {
+      bru.setVar("userId", user.id);
+    }
+  }
+}
+
 docs {
-  Returns the authenticated user, including `two_factor_enabled` and
-  `pending_email` (set while an email change is awaiting confirmation).
+  Returns the authenticated user, including `two_factor_enabled`,
+  `is_platform_admin`, `avatar` (public URL or `null`),
+  `current_workspace_id` and `pending_email` (set while an email change
+  is awaiting confirmation). Stores the id as `userId`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user } }`.
 }

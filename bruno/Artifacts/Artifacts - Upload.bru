@@ -42,7 +42,8 @@ docs {
     workspace. Uploads have no agent unless one is given.
   - `group_id` — optional; adds a new version to an existing artifact group
     instead of matching on filename.
-  - `metadata` — optional JSON object.
+  - `metadata` — optional object; in a multipart body send it as
+    `metadata[key]` fields.
 
   Uploading the same filename again creates version 2, 3, ... of the same
   group rather than overwriting — the same versioning an agent's own

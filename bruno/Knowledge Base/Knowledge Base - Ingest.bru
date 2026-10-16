@@ -19,7 +19,8 @@ body:json {
     "text": "Refunds are accepted within 30 days of delivery.\n\nShipping takes 3-5 business days.",
     "source": "handbook.md",
     "collection": "support",
-    "metadata": null
+    "metadata": null,
+    "private": false
   }
 }
 
@@ -34,27 +35,31 @@ script:post-response {
 
 docs {
   Chunks the text, embeds each chunk, and stores it in the workspace
-  knowledge base. Requires the `agent.manage` permission.
+  knowledge base. Shared knowledge requires `agent.manage`; private
+  knowledge (`private: true`, the member's own Brain — never seen by
+  agents or other members) requires only `agent.view`.
 
   - `text` — required unless `file` is given instead (see
-    `Knowledge Base - Ingest File`), max 200,000 characters. Embedding
-    happens inline, so ingest a large corpus as several documents rather
-    than one request.
-  - `source` — optional; a filename, URL, or ticket id. Returned with every
-    search hit so an answer can be traced back to where it came from.
-  - `collection` — optional, defaults to `default`. Collections are how you
-    keep unrelated corpora apart and re-ingest one without touching others.
-    They're also the unit an agent attaches (see `Agents/Knowledge Sources -
-    Attach`).
-  - `metadata` — optional JSON object, copied onto every chunk.
+    `Knowledge Base - Ingest File`), max 200,000 characters.
+  - `source` — optional, max 255; a filename, URL, or ticket id, returned
+    with every search hit. Ingesting a `source` that already exists in
+    the collection replaces it rather than duplicating it.
+  - `collection` — optional, max 255, letters/digits then `._:-`; the
+    `artifacts:` prefix is reserved. Defaults to `default` (`personal`
+    when private). Collections are the unit an agent attaches (see
+    `Agents/Knowledge Sources - Attach`).
+  - `metadata` — optional JSON object (max 50 keys), copied onto every
+    chunk.
+  - `private` — optional boolean.
 
-  Chunking targets ~1,000 characters, splitting on paragraph then sentence
-  boundaries and packing short paragraphs together.
+  Embedding is billed, so a workspace out of credits is refused first.
+  Text over `knowledge_base.sync_ingest_max_characters` (20,000 by
+  default) is queued instead: 202 with `data: { queued: true }`.
 
-  An agent with no explicitly attached collections (`Agents/Knowledge
-  Sources - List`) searches every collection in the workspace as soon as
-  one chunk exists anywhere — the zero-config fallback. Attach specific
-  collections to scope an agent to only those.
+  An agent with no explicitly attached collections searches every shared
+  collection in the workspace.
 
-  Response is wrapped: `{ ..., data: { chunks_count, chunks } }`.
+  Response is wrapped (201):
+  `{ success, statusCode, message, data: { chunks_count, chunks } }`.
+  Stores the first chunk's id as `knowledgeChunkId`.
 }

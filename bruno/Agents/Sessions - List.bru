@@ -16,8 +16,9 @@ params:path {
 }
 
 docs {
-  Lists the agent's chat sessions, newest first. Requires the
-  `agent.view` permission.
+  Lists the agent's top-level chat sessions (subagent sessions are
+  excluded), newest first, each with `messages_count` and
+  `pending_actions_count`. Requires the `agent.view` permission.
 
   Response is wrapped: `{ success, statusCode, message, data: { sessions } }`.
 }

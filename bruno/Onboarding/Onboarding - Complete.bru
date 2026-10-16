@@ -12,4 +12,7 @@ post {
 
 docs {
   Marks onboarding as completed (`onboarding_completed_at`).
+
+  Response is wrapped: `{ success, statusCode, message, data }` where `data`
+  is the full onboarding state (same shape as `Onboarding - Get State`).
 }

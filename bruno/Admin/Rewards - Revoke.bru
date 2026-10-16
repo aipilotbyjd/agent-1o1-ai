@@ -24,4 +24,6 @@ docs {
   Withdraws a reward. A granted one is undone: unspent credits clawed back
   (never below zero), plan time shortened, invoice credit debited.
   `reason` is required.
+
+  Response is wrapped: `{ success, statusCode, message, data: { reward } }`.
 }

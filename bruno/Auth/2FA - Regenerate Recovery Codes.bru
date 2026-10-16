@@ -22,4 +22,6 @@ docs {
 
   `current_password` is required: this invalidates the codes the real
   owner is holding.
+
+  Response is wrapped: `{ success, statusCode, message, data: { recovery_codes } }`.
 }

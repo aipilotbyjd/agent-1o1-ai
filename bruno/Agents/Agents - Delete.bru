@@ -16,8 +16,9 @@ params:path {
 }
 
 docs {
-  Deletes an agent along with its sessions and tool bindings. Requires
-  the `agent.manage` permission.
+  Moves an agent to the trash (soft delete). Requires the `agent.manage`
+  permission. Its sessions and configuration are kept; see `Agents - Trash`,
+  `Agents - Restore` and `Agents - Force Delete`.
 
   Responds `204 No Content` with no envelope.
 }

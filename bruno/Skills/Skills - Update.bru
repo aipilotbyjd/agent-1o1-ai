@@ -29,5 +29,9 @@ docs {
   callers that an in-flight agent session's context may have changed.
   Cosmetic fields (`icon`, `color`) don't bump it.
 
+  A skill synced one-way from GitHub only accepts `category`, `icon`,
+  `color`, `tags` and `is_shared`; anything else answers `422` (copy it
+  with `Skills - Copy` instead). `409` while its repository is syncing.
+
   Response is wrapped: `{ success, statusCode, message, data: { skill } }`.
 }

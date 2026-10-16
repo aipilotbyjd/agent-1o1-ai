@@ -11,5 +11,8 @@ delete {
 }
 
 docs {
-  Removes the authenticated user's avatar.
+  Removes the authenticated user's avatar. Safe to call when there is
+  none.
+
+  Response is wrapped: `{ success, statusCode, message, data: { user } }`.
 }

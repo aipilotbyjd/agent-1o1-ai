@@ -13,3 +13,12 @@ get {
 params:path {
   workspace: {{workspaceId}}
 }
+
+docs {
+  The caller's own saved notification preferences in this workspace — one
+  row per `event_key` they have changed. Events with no row use the
+  defaults from `Notifications - Events`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { preferences } }`,
+  each `{ event_key, in_app, email, channel_ids, ... }`.
+}

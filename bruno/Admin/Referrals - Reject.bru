@@ -23,4 +23,6 @@ body:json {
 docs {
   Marks the referral ineligible (fraud, duplicate account…) and withdraws
   every reward it produced, for both people. `reason` is required.
+
+  Response is wrapped: `{ success, statusCode, message, data: { referral } }`.
 }

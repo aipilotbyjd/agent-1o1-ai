@@ -21,16 +21,19 @@ body:json {
 
 script:post-response {
   if (res.status === 201) {
-    const tokens = res.body.data?.tokens ?? {};
-    bru.setVar("accessToken", tokens.access_token);
-    bru.setVar("refreshToken", tokens.refresh_token);
+    bru.setVar("accessToken", res.body.data?.tokens?.access_token);
   }
 }
 
 docs {
-  Creates a new user account and returns the user plus an access/refresh
-  token pair. Requires email uniqueness and a confirmed password meeting
-  the app's password policy.
+  Creates a new user account and returns the user plus an access token
+  (the refresh token is set as an httpOnly `refresh_token` cookie, as on
+  `Login`). Requires email uniqueness and a confirmed password meeting
+  the app's password policy. Stores `accessToken`.
 
-  Response is wrapped: `{ success, statusCode, message, data: { user, tokens } }`.
+  Optional referral attribution: `referral_code` (max 64) and
+  `referral_visitor_id` (UUID, from `Referrals/Referrals - Record
+  Visit`). A referral failure never fails the registration.
+
+  Response is wrapped (201): `{ success, statusCode, message, data: { user, tokens } }`.
 }

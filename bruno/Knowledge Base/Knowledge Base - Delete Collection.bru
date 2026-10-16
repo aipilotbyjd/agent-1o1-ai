@@ -15,10 +15,18 @@ params:path {
   collection: support
 }
 
+params:query {
+  ~private: 1
+}
+
 docs {
   Deletes every chunk in a collection — the practical way to re-ingest a
   source document: drop the collection, then ingest the new revision.
-  Requires `agent.manage`. 404s when the collection has no chunks.
 
-  Response is wrapped: `{ ..., data: { deleted_count } }`.
+  Without `private`, deletes the shared chunks (requires `agent.manage`)
+  and detaches the collection from any agent. With `private=1`, deletes
+  only the caller's own private chunks (requires `agent.view`).
+
+  404s when nothing was deleted. Response is wrapped:
+  `{ ..., data: { deleted_count } }`.
 }

@@ -20,6 +20,7 @@ docs {
   Confirms two-factor setup with a code from the authenticator app
   (from the secret returned by `2FA - Enable`). Returns 8 one-time
   recovery codes — shown only here, store them somewhere safe. After
-  this, `hasTwoFactorEnabled()` is true and future logins require a
-  2FA code.
+  this, future logins require a 2FA code.
+
+  Response is wrapped: `{ success, statusCode, message, data: { recovery_codes } }`.
 }

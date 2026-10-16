@@ -18,5 +18,10 @@ body:json {
 
 docs {
   Records the user's job role and advances onboarding to the
-  `choose_plan` step.
+  `choose_plan` step. `job_role` is one of `sales`, `marketing`,
+  `operations`, `support`, `engineering`, `product`, `security`, `hr`,
+  `legal`, `finance`.
+
+  Response is wrapped: `{ success, statusCode, message, data }` where `data`
+  is the full onboarding state (same shape as `Onboarding - Get State`).
 }

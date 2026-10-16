@@ -17,4 +17,9 @@ params:path {
 
 docs {
   Streams the artifact's bytes as an attachment. Requires `artifact.view`.
+
+  Same `restricted` access rule as `Artifacts - Get` (`403` otherwise).
+
+  The response is the raw file with `Content-Disposition: attachment`,
+  not the JSON envelope.
 }

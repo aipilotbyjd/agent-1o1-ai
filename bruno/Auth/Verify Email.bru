@@ -11,15 +11,20 @@ get {
 }
 
 params:path {
-  id: 1
+  id: {{userId}}
   hash: replace-with-signed-hash
 }
 
+params:query {
+  ~expires: 
+  ~signature: 
+}
+
 docs {
-  Verifies a user's email address. This is a Laravel signed URL — `id`,
-  `hash`, and the required `signature`/`expires` query parameters must be
-  copied from the verification email link exactly; it cannot be
-  constructed by hand.
+  Verifies a user's email address. This is a Laravel signed URL — `id`
+  (the user's UUID), `hash`, and the `expires`/`signature` query
+  parameters must be copied from the verification email link exactly;
+  it cannot be constructed by hand.
 
   Answers with a redirect to
   `{APP_FRONTEND_URL}/verify-email?status=verified` (or `invalid`,

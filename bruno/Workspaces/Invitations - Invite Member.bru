@@ -31,8 +31,10 @@ script:post-response {
 }
 
 docs {
-  Invites a user to the workspace by email with an assignable role.
-  Requires the `member.invite` permission.
+  Invites a user to the workspace by email. `role` must be an assignable
+  role: `admin`, `editor`, `member` or `viewer` (not `owner`). Requires
+  the `member.invite` permission. Refused when the plan's member limit
+  is reached. Stores the new id as `invitationId`.
 
   Response is wrapped: `{ success, statusCode, message, data: { invitation } }`.
 }

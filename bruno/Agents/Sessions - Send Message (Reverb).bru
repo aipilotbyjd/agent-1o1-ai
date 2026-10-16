@@ -49,11 +49,11 @@ docs {
     message.
   - `agent.message` — a message was appended (any tab, any teammate).
   - `agent.actions.requested` — the turn paused on actions that need a
-    decision; `POST …/sessions/{session}/actions/decisions` records the
+    decision; `Session Actions - Decide` records the
     decisions and answers `{ actions, resumed, run_id }` — when `resumed` is
     true the paused turn carries on, streaming the same events for `run_id`.
 
   Events are not replayed. The transcript is persisted whether or not
   anyone is listening, so a client that connects late or reconnects loads
-  `Sessions - List Messages` and uses the socket only for what follows.
+  `Sessions - Messages` and uses the socket only for what follows.
 }

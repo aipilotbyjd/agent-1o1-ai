@@ -39,8 +39,14 @@ docs {
   attached to agents (see `Agents/Skills - Attach`). Requires the
   `agent-skill.manage` permission. Stores the new ID as `skillId`.
 
-  `name` and `instructions` are required; `slug` is derived from `name`
-  when omitted. `icon`, `color`, and `tags` are presentation-only.
+  `name` (unique in the workspace) and `instructions` are required; `slug`
+  is derived from `name` plus a random suffix when omitted. `category`,
+  `icon`, `color`, and `tags` (max 50) are presentation-only.
+
+  `references` (max 50, each `title` + `content`) and `scripts` (max 20,
+  each `name`, `language`, `code`, optional `description`) may be sent
+  inline, as `Skills - Draft` returns them; the whole skill saves or
+  nothing does.
 
   Response is wrapped: `{ success, statusCode, message, data: { skill } }`.
 }

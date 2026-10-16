@@ -26,4 +26,6 @@ docs {
   (pin to a program; null = follow the default), `rule_multiplier` (0–100,
   scales the referrer's own rewards), `max_uses`, `expires_at`, `is_active`,
   `reward_workspace_id` (a workspace the owner owns).
+
+  Response is wrapped: `{ success, statusCode, message, data: { code } }`.
 }

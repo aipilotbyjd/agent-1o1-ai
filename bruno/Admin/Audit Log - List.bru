@@ -18,5 +18,7 @@ params:query {
 docs {
   Every admin change, newest first — from this API and from the artisan
   commands (those show no admin). Filters: `action` (prefix, e.g.
-  `referral_rule`), `subject_type`, `subject_id`.
+  `referral_rule`), `subject_type`, `subject_id`; `per_page` (default 50).
+
+  Paginated: `{ success, statusCode, message, data: [...], meta }`.
 }

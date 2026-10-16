@@ -19,9 +19,7 @@ body:json {
 
 script:post-response {
   if (res.status === 200) {
-    const tokens = res.body.data?.tokens ?? {};
-    bru.setVar("accessToken", tokens.access_token);
-    bru.setVar("refreshToken", tokens.refresh_token);
+    bru.setVar("accessToken", res.body.data?.tokens?.access_token);
   }
 }
 
@@ -29,8 +27,8 @@ docs {
   Completes a login that returned a `two_factor_challenge` from
   `Login`. `code` accepts either a live TOTP code or one of the
   one-time recovery codes. The challenge token is single-use and
-  expires after 5 minutes. On success, stores `accessToken`/
-  `refreshToken` just like a normal login.
+  expires after 5 minutes. On success, stores `accessToken` and sets the
+  `refresh_token` cookie just like a normal login.
 
   Response is wrapped: `{ success, statusCode, message, data: { user, tokens } }`.
 }

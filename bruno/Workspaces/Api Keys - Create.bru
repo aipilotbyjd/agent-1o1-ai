@@ -36,7 +36,8 @@ script:post-response {
 docs {
   Creates a workspace API key. Requires the `api-key.manage` permission.
   `abilities` accepts any of: `*`, `workflows:read`, `workflows:write`,
-  `agents:invoke`, `runs:read`, `connectors:manage`. The plain-text key
+  `agents:invoke`, `runs:read`, `connectors:manage` (at least one).
+  `expires_at` is optional and must be in the future. The plain-text key
   is only returned once, in this response, and is stored in the `apiKey`
   collection variable for use by the Public V1 requests.
 

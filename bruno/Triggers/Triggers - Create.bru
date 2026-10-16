@@ -17,7 +17,7 @@ params:path {
 body:json {
   {
     "target_type": "workflow",
-    "target_id": {{workflowId}},
+    "target_id": "{{workflowId}}",
     "type": "webhook",
     "preset_id": null,
     "config": {},
@@ -48,6 +48,13 @@ docs {
   - `preset_id` — optional `trigger_presets` row to base the trigger on.
   - `credential_id` — only meaningful for `polling` triggers.
   - `signing_secret` — only meaningful for `webhook` triggers.
+  - `is_active` — optional boolean.
+  - `config.cron` — a `schedule` trigger's cron expression; an invalid one
+    answers `422`.
+  - `config.url` — a `polling` trigger's endpoint; must be a public URL.
+  - `config.autonomy_mode` — `agent` targets only: `ask`, `autopilot`,
+    `plan`, `read_only` or `smart`, overriding the agent's own mode.
+  - `config.test_mode` — optional boolean.
   - `config.message` — only meaningful for `agent` targets: the prompt the
     agent is sent, templated against the delivery (`"Triage: {{ payload.title }}"`).
     Without it the raw payload is passed as JSON.

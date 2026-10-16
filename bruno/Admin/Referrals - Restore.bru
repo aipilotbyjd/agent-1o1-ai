@@ -17,4 +17,6 @@ params:path {
 docs {
   Undoes a rejection, back to the furthest stage it reached. Rewards the
   rejection revoked stay revoked — re-grant with `Rewards - Grant Manual`.
+
+  Response is wrapped: `{ success, statusCode, message, data: { referral } }`.
 }

@@ -20,6 +20,13 @@ body:json {
 
 docs {
   Invites teammates to the user's current workspace and advances onboarding
-  to the `role_selection` step. Requires a workspace to already be set as
-  the user's current workspace.
+  to the `role_selection` step. `422` if the user has no current
+  workspace yet.
+
+  - `emails` — required, at least one valid email.
+  - `role` — required: `admin`, `editor`, `member` or `viewer`.
+  - `personal_note` — optional, max 1000.
+
+  Response is wrapped: `{ success, statusCode, message, data }` where `data`
+  is the full onboarding state (same shape as `Onboarding - Get State`).
 }

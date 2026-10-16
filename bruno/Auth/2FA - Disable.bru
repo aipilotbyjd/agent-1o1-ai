@@ -18,5 +18,7 @@ body:json {
 
 docs {
   Disables two-factor authentication for the authenticated user.
-  Requires the current password as confirmation.
+  Requires the current password as confirmation (422 if wrong).
+
+  Responds `204 No Content` with no envelope.
 }

@@ -15,6 +15,8 @@ params:path {
 }
 
 docs {
-  Shows a single workspace. Requires the `workspace.view` permission for
-  the caller's role in that workspace.
+  Shows a single workspace, with workflow/agent counts and the caller's
+  role in it. Requires the `workspace.view` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { workspace } }`.
 }

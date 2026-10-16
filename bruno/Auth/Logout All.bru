@@ -11,5 +11,8 @@ post {
 }
 
 docs {
-  Revokes every active token/session for the current user.
+  Revokes every active token/session for the current user and clears
+  the `refresh_token` cookie.
+
+  Responds `204 No Content` with no envelope.
 }

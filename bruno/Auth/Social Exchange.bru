@@ -23,9 +23,10 @@ script:post-response {
 }
 
 docs {
-  Trades the one-time code from the social callback redirect for a real
-  access token, with the refresh token set as an httpOnly cookie — the
-  same shape `Login` returns.
+  Trades the one-time code from the social callback redirect
+  (`?code=` on `{APP_FRONTEND_URL}/oauth/callback`) for an access token,
+  with the refresh token set as an httpOnly cookie — the same shape
+  `Login` returns. The code lasts 60 seconds and is single-use.
 
   Runs the `social_exchange` OAuth grant, so signing in with Google or
   GitHub never touches the account's password.

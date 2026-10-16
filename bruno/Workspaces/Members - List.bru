@@ -15,5 +15,8 @@ params:path {
 }
 
 docs {
-  Lists members of the workspace. Requires the `member.view` permission.
+  Lists members of the workspace with their user. Requires the
+  `member.view` permission.
+
+  Response is wrapped: `{ success, statusCode, message, data: { members } }`.
 }

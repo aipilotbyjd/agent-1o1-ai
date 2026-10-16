@@ -17,7 +17,7 @@ body:json {
 }
 
 script:post-response {
-  if (res.status === 200 || res.status === 201) {
+  if (res.status === 201) {
     const workspace = res.body.data?.workspace;
     if (workspace && workspace.id) {
       bru.setVar("workspaceId", workspace.id);
@@ -26,7 +26,8 @@ script:post-response {
 }
 
 docs {
-  Creates a workspace owned by the authenticated user and stores its ID
+  Creates a workspace owned by the authenticated user (`name` required,
+  max 255) and stores its ID
   in the `workspaceId` collection variable for use by other requests.
 
   Response is wrapped: `{ success, statusCode, message, data: { workspace } }`.

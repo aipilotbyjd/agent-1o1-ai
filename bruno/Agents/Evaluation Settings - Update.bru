@@ -58,11 +58,15 @@ docs {
   send only what changes; each array (`criteria`, `tags`, `data_points`)
   replaces the previous one wholesale when sent.
 
+  - `model` — optional, nullable; a model catalog slug the workspace may
+    use for the judge.
+  - `criteria[].type` — `prohibited_action`, `prohibited_words`,
+    `voice_tone` or `other`.
   - `criteria[].priority` — `flag` (marks the session for review) or
     `notify` (also pages the workspace's owners/admins the moment it
     fires). Use `notify` for rules that must never be broken.
-  - `criteria[].type` / `data_points[].data_type` — purely descriptive
-    grouping, doesn't affect grading.
+  - `data_points[].data_type` — `string`, `boolean`, `integer` or
+    `number`.
   - Limits: 30 criteria, 50 tags, 40 data points — mirrors Gumloop's
     published caps.
   - A criterion/data point without an `id` gets one assigned on save, so

@@ -31,5 +31,8 @@ docs {
   callback URL the Wait node hands out. Rate limited by the
   `trigger-hooks` throttle.
 
+  The token is single-use: an unknown, already-used or expired token
+  answers `404`.
+
   Response is wrapped: `{ success, statusCode, message, data: { node_run_id } }`.
 }

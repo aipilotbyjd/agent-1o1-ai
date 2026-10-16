@@ -17,4 +17,6 @@ params:path {
 docs {
   Approves a reward held for manual review. Granted now if its hold has
   passed, otherwise by the hourly `referrals:grant-pending` when it does.
+
+  Response is wrapped: `{ success, statusCode, message, data: { reward } }`.
 }

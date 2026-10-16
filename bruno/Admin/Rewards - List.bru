@@ -26,9 +26,12 @@ script:post-response {
 
 docs {
   The reward ledger. Filters: `status` (`awaiting_approval`, `pending`,
-  `granted`, `revoked`), `reward_type`, `recipient_user_id`, `referral_id`.
+  `granted`, `revoked`), `reward_type`, `recipient_user_id`, `referral_id`;
+  `per_page` defaults to 25.
 
   Set `status=awaiting_approval` to see what needs your approval.
 
   Stores the first reward as `referralRewardId`.
+
+  Paginated: `{ success, statusCode, message, data: [...], meta }`.
 }
