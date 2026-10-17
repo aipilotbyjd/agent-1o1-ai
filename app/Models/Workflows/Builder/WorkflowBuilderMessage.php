@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['session_id', 'user_id', 'draft_version_id', 'role', 'mode', 'content', 'actions', 'processing_status', 'error_message'])]
+#[Fillable(['session_id', 'user_id', 'draft_version_id', 'role', 'mode', 'context', 'content', 'actions', 'processing_status', 'error_message'])]
 class WorkflowBuilderMessage extends Model
 {
     /** @use HasFactory<WorkflowBuilderMessageFactory> */
@@ -35,6 +35,7 @@ class WorkflowBuilderMessage extends Model
     {
         return [
             'actions' => 'array',
+            'context' => 'array',
             'processing_status' => BuilderMessageStatus::class,
             'mode' => BuilderMessageMode::class,
         ];

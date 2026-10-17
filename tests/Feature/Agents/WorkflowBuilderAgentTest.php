@@ -23,7 +23,7 @@ it('exposes the builder tools bound to the session', function () {
     $agent = new WorkflowBuilderAgent($session);
 
     expect(collect(iterator_to_array($agent->tools()))->map->name()->all())->toBe([
-        'read_draft', 'list_available_nodes', 'inspect_node_schema', 'inspect_node_output', 'list_workflows', 'add_node', 'update_node',
+        'read_draft', 'list_available_nodes', 'inspect_node_schema', 'inspect_node_output', 'list_workflows', 'list_connected_accounts', 'add_node', 'update_node',
         'remove_node', 'connect_nodes', 'disconnect_nodes', 'validate_workflow', 'dry_run_workflow',
     ]);
 });
@@ -150,7 +150,7 @@ it('gives an ask-mode turn only the tools that read the draft', function () {
 
     expect(collect(iterator_to_array($agent->tools()))->map->name()->all())->toBe([
         'read_draft', 'list_available_nodes', 'inspect_node_schema', 'inspect_node_output', 'list_workflows',
-        'validate_workflow', 'dry_run_workflow',
+        'list_connected_accounts', 'validate_workflow', 'dry_run_workflow',
     ]);
     expect($agent->instructions())->toContain('Ask mode')->toContain('switch to Build mode');
 });

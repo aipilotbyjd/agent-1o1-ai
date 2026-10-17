@@ -5,6 +5,7 @@ namespace App\Jobs\Workflows;
 use App\Actions\Billing\DeductCreditsAction;
 use App\Ai\Agents\WorkflowBuilderAgent;
 use App\Ai\Agents\WorkflowBuilderTitleAgent;
+use App\Ai\BuilderMessageReferences;
 use App\Ai\InlinedAttachments;
 use App\Ai\ResponseUsage;
 use App\Ai\Tools\WorkflowBuilder\SubmitWorkflowTitleTool;
@@ -166,6 +167,7 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         $lastBroadcastLockVersion = $session->draft_lock_version;
 
         [$prompt, $attachments] = InlinedAttachments::split($userMessage->content, $userMessage->attachments);
+        $prompt = collect([$prompt, BuilderMessageReferences::describe($userMessage)])->filter()->implode("\n\n");
 
         $stream = (new WorkflowBuilderAgent($session, $userMessage->id, $userMessage->user, $userMessage->mode))
             ->stream($prompt, $attachments, provider: $provider);

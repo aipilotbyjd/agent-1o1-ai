@@ -10,6 +10,7 @@ use App\Ai\Tools\WorkflowBuilder\DryRunWorkflowTool;
 use App\Ai\Tools\WorkflowBuilder\InspectNodeOutputTool;
 use App\Ai\Tools\WorkflowBuilder\InspectNodeSchemaTool;
 use App\Ai\Tools\WorkflowBuilder\ListAvailableNodesTool;
+use App\Ai\Tools\WorkflowBuilder\ListConnectedAccountsTool;
 use App\Ai\Tools\WorkflowBuilder\ListWorkflowsTool;
 use App\Ai\Tools\WorkflowBuilder\ReadDraftTool;
 use App\Ai\Tools\WorkflowBuilder\RemoveNodeTool;
@@ -117,7 +118,8 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
 
             Keep replies short: people are building, not reading. After your changes, say in
             one or two sentences what you did and what the user may still need to fill in
-            (connected accounts, secrets, IDs only they know).
+            (secrets, IDs only they know, an app with no connected account). Don't ask them to
+            connect an account you already set on a node.
             TEXT;
 
         return <<<TEXT
@@ -147,7 +149,11 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
         value under its "name".
 
         Credentials never go in a config: a stored secret is referenced with
-        {{ secrets.<NAME> }}. Every node has a short, unique, descriptive key (e.g.
+        {{ secrets.<NAME> }}. A node for an app (Gmail, Slack, ...) signs in with a connected
+        account: set its config "credential_id" to an id from list_connected_accounts,
+        preferring an account the user named in <referenced>, then that app's default.
+        When no account is connected for the app, leave credential_id empty and say which app
+        to connect. Every node has a short, unique, descriptive key (e.g.
         "send_confirmation_email"). Edges run in order; a router node has one edge per branch
         with the matching "condition" value, and an edge with the condition "error" handles
         a node that fails.
@@ -179,6 +185,7 @@ class WorkflowBuilderAgent implements Agent, Conversational, HasTools
             new InspectNodeSchemaTool($this->session),
             new InspectNodeOutputTool($this->session),
             new ListWorkflowsTool($this->session),
+            new ListConnectedAccountsTool($this->session, $this->actingUser),
         ];
 
         $check = [
