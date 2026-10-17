@@ -5,6 +5,7 @@ namespace App\Services\Workflows;
 use App\Enums\Triggers\TriggerNodeType;
 use App\Models\Workflows\WorkflowEdge;
 use App\Rules\SafeOutboundUrl;
+use App\Services\Timezones\Timezones;
 use App\Services\Triggers\TriggerNodes;
 use Cron\CronExpression;
 use Illuminate\Support\Facades\Validator;
@@ -101,7 +102,7 @@ class GraphValidator
                         $errors[] = new ValidationIssue('This schedule is not a valid cron expression.', $node['key'], 'cron');
                     }
 
-                    if (filled($config['timezone'] ?? null) && ! in_array($config['timezone'], timezone_identifiers_list(), true)) {
+                    if (filled($config['timezone'] ?? null) && Timezones::canonical($config['timezone']) === null) {
                         $errors[] = new ValidationIssue('Pick a timezone from the list.', $node['key'], 'timezone');
                     }
 

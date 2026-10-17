@@ -309,10 +309,20 @@ it('keeps the report when the live update cannot be broadcast', function () {
     expect(($this->run)()->status)->toBe(AssistantBriefingRunStatus::Completed);
 });
 
-it('accepts the legacy timezone names browsers still report for the daily report', function () {
+it('accepts the legacy timezone names browsers still report for the daily report, storing the current name', function () {
     Passport::actingAs($this->owner);
 
     $this->putJson("{$this->base}/briefings/daily", ['schedule' => ['time' => '08:00', 'days' => [1], 'timezone' => 'Asia/Calcutta']])
         ->assertSuccessful()
-        ->assertJsonPath('data.config.schedule.timezone', 'Asia/Calcutta');
+        ->assertJsonPath('data.config.schedule.timezone', 'Asia/Kolkata');
+});
+
+it('starts a new daily report in the workspace timezone', function () {
+    $this->config->delete();
+    $this->workspace->update(['timezone' => 'Europe/Berlin']);
+    Passport::actingAs($this->owner);
+
+    $this->getJson("{$this->base}/briefings/daily")
+        ->assertSuccessful()
+        ->assertJsonPath('data.config.schedule.timezone', 'Europe/Berlin');
 });

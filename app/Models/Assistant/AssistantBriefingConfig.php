@@ -3,6 +3,7 @@
 namespace App\Models\Assistant;
 
 use App\Enums\Assistant\AssistantBriefingType;
+use App\Services\Timezones\Timezones;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -60,7 +61,7 @@ class AssistantBriefingConfig extends Model
 
     public function timezone(): string
     {
-        return (string) ($this->schedule['timezone'] ?? 'UTC');
+        return Timezones::resolve($this->schedule['timezone'] ?? null);
     }
 
     /**

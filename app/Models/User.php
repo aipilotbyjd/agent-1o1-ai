@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\Timezone;
 use App\Enums\Onboarding\DiscoverySource;
 use App\Enums\Onboarding\JobRole;
 use App\Enums\Onboarding\OnboardingStep;
@@ -13,6 +14,7 @@ use App\Models\Referrals\ReferralCode;
 use App\Models\Referrals\ReferralReward;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Services\Timezones\Timezones;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -30,7 +32,7 @@ use Laravel\Cashier\Billable;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'avatar', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
+#[Fillable(['name', 'email', 'password', 'avatar', 'timezone', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
 {
@@ -46,6 +48,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'timezone' => Timezone::class.':nullable',
             'pending_email_requested_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_secret' => 'encrypted',
@@ -72,6 +75,15 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function isPlatformAdmin(): bool
     {
         return $this->is_platform_admin === true;
+    }
+
+    /**
+     * The timezone for what is this member's own: theirs when set, else the
+     * workspace's, else UTC.
+     */
+    public function timezoneIn(?Workspace $workspace): string
+    {
+        return $this->timezone ?? $workspace?->timezone ?? Timezones::DEFAULT;
     }
 
     public function hasPendingEmailChange(): bool

@@ -15,6 +15,7 @@ use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Services\Billing\PlanLimitGate;
+use App\Services\Timezones\Timezones;
 use App\Services\Workflows\NodeRegistry;
 use App\Services\Workflows\ValidationIssue;
 use Closure;
@@ -238,7 +239,7 @@ class TriggerNodeSync
         $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures']));
 
         $owned = $runControl + match ($nodeType) {
-            TriggerNodeType::Schedule => ['cron' => $config['cron'] ?? null, 'timezone' => $config['timezone'] ?? null],
+            TriggerNodeType::Schedule => ['cron' => $config['cron'] ?? null, 'timezone' => Timezones::canonical($config['timezone'] ?? null)],
             TriggerNodeType::Webhook => [
                 'authentication' => $config['authentication'] ?? WebhookAuthentication::None->value,
                 'header_name' => $config['header_name'] ?? null,

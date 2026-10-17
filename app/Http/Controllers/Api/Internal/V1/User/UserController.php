@@ -45,9 +45,7 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if ($request->has('name')) {
-            $user->update(['name' => $request->validated('name')]);
-        }
+        $user->update($request->safe()->only(['name', 'timezone']));
 
         $newEmail = $request->validated('email');
         $emailChangeRequested = $newEmail !== null && $newEmail !== $user->email;

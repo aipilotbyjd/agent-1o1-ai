@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Workspaces;
 
+use App\Rules\Timezone;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateWorkspaceRequest extends FormRequest
@@ -18,6 +19,7 @@ class UpdateWorkspaceRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'timezone' => ['sometimes', 'required', 'string', new Timezone],
         ];
     }
 }

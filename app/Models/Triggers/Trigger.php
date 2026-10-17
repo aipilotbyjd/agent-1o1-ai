@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Triggers\TriggerDisabledNotification;
 use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Timezones\Timezones;
 use Carbon\CarbonInterface;
 use Cron\CronExpression;
 use Database\Factories\Triggers\TriggerFactory;
@@ -59,7 +60,8 @@ class Trigger extends Model
      * Keep a schedule trigger's `next_run_at` current.
      *
      * Recomputed when its cron, timezone or on/off state changes, or when it
-     * has none yet. RunDueTriggersCommand advances it after each firing. Any
+     * has none yet. WorkspaceService recomputes it when the workspace timezone
+     * it falls back to changes. RunDueTriggersCommand advances it after each firing. Any
      * other type has no next run.
      */
     protected static function booted(): void
@@ -74,22 +76,31 @@ class Trigger extends Model
             $isSwitchedOn = $trigger->isDirty('is_active') && $trigger->is_active;
 
             if ($trigger->next_run_at === null || $trigger->isDirty(['config', 'type']) || $isSwitchedOn) {
-                $trigger->next_run_at = self::nextRunFor($trigger->config ?? [], now(), allowCurrentMinute: true);
+                $trigger->next_run_at = $trigger->nextRun(now(), allowCurrentMinute: true);
             }
         });
     }
 
     /**
+     * When this schedule is next due at or after `$from`, in UTC, reading a
+     * cron with no timezone of its own in the workspace's.
+     */
+    public function nextRun(CarbonInterface $from, bool $allowCurrentMinute = false): ?Carbon
+    {
+        return self::nextRunFor($this->config ?? [], $from, $allowCurrentMinute, $this->workspace?->timezone ?? Timezones::DEFAULT);
+    }
+
+    /**
      * When a schedule config is next due at or after `$from`, in UTC.
      *
-     * The cron is read in the config's timezone (UTC when missing or
-     * unknown). Returns null for a missing or invalid cron, which is then
-     * never due.
+     * The cron is read in the config's timezone, or `$defaultTimezone` when it
+     * has none or an unknown one. Returns null for a missing or invalid cron,
+     * which is then never due.
      *
      * @param  array<string, mixed>  $config
      * @param  bool  $allowCurrentMinute  count `$from`'s own minute: true for a trigger just set up or switched on (one made at 09:00 for "0 9 * * *" fires now), false when moving past a slot that just fired
      */
-    public static function nextRunFor(array $config, CarbonInterface $from, bool $allowCurrentMinute = false): ?Carbon
+    public static function nextRunFor(array $config, CarbonInterface $from, bool $allowCurrentMinute = false, string $defaultTimezone = Timezones::DEFAULT): ?Carbon
     {
         $cron = $config['cron'] ?? null;
 
@@ -97,11 +108,7 @@ class Trigger extends Model
             return null;
         }
 
-        $timezone = $config['timezone'] ?? 'UTC';
-
-        if (! is_string($timezone) || ! in_array($timezone, timezone_identifiers_list(), true)) {
-            $timezone = 'UTC';
-        }
+        $timezone = Timezones::resolve($config['timezone'] ?? null, $defaultTimezone);
 
         $next = (new CronExpression($cron))->getNextRunDate($from->toDateTimeImmutable(), 0, $allowCurrentMinute, $timezone);
 

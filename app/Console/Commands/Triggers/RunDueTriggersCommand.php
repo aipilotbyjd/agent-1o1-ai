@@ -55,8 +55,9 @@ class RunDueTriggersCommand extends Command
             ->where('type', TriggerType::Schedule)
             ->where('is_active', true)
             ->whereNull('next_run_at')
+            ->with('workspace')
             ->each(function (Trigger $trigger): void {
-                if (Trigger::nextRunFor($trigger->config ?? [], now(), allowCurrentMinute: true) === null) {
+                if ($trigger->nextRun(now(), allowCurrentMinute: true) === null) {
                     Log::warning('Schedule trigger skipped: invalid cron expression.', ['trigger_id' => $trigger->id]);
 
                     return;
@@ -70,12 +71,13 @@ class RunDueTriggersCommand extends Command
             ->where('is_active', true)
             ->where('next_run_at', '<=', $now)
             ->orderBy('next_run_at')
+            ->with('workspace')
             ->each(function (Trigger $trigger) use ($triggers, $now, $catchUpCutoff, &$queued): void {
                 $slot = $trigger->next_run_at;
 
                 // Move on first, so if intake throws, the next tick doesn't retry
                 // the same slot forever.
-                $trigger->forceFill(['next_run_at' => Trigger::nextRunFor($trigger->config ?? [], $now)])->save();
+                $trigger->forceFill(['next_run_at' => $trigger->nextRun($now)])->save();
 
                 if ($slot->lt($catchUpCutoff)) {
                     Log::info('Schedule trigger slot missed beyond the catch-up window.', ['trigger_id' => $trigger->id, 'slot' => $slot->toIso8601String()]);

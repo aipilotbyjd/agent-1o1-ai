@@ -97,6 +97,50 @@ describe('schedules', function () {
         expect($trigger->next_run_at->toDateTimeString())->toBe('2026-10-19 09:00:00');
     });
 
+    it('reads a schedule with no timezone of its own in the workspace timezone', function () {
+        [$workspace] = productionWorkflow();
+        $workspace->update(['timezone' => 'Asia/Kolkata']);
+        $this->travelTo(now('UTC')->setDate(2026, 10, 19)->setTime(2, 0));
+
+        $trigger = Trigger::factory()->forWorkspace($workspace)->create(['type' => TriggerType::Schedule, 'config' => ['cron' => '0 9 * * *']]);
+
+        expect($trigger->next_run_at->toDateTimeString())->toBe('2026-10-19 03:30:00');
+    });
+
+    it('prefers the schedule\'s own timezone over the workspace\'s', function () {
+        [$workspace] = productionWorkflow();
+        $workspace->update(['timezone' => 'Asia/Kolkata']);
+        $this->travelTo(now('UTC')->setDate(2026, 10, 19)->setTime(2, 0));
+
+        $trigger = Trigger::factory()->forWorkspace($workspace)->create(['type' => TriggerType::Schedule, 'config' => ['cron' => '0 9 * * *', 'timezone' => 'UTC']]);
+
+        expect($trigger->next_run_at->toDateTimeString())->toBe('2026-10-19 09:00:00');
+    });
+
+    it('moves schedules that use the workspace timezone when it changes', function () {
+        [$workspace] = productionWorkflow();
+        $this->travelTo(now('UTC')->setDate(2026, 10, 19)->setTime(2, 0));
+        $inherits = Trigger::factory()->forWorkspace($workspace)->create(['type' => TriggerType::Schedule, 'config' => ['cron' => '0 9 * * *']]);
+        $pinned = Trigger::factory()->forWorkspace($workspace)->create(['type' => TriggerType::Schedule, 'config' => ['cron' => '0 9 * * *', 'timezone' => 'UTC']]);
+
+        app(WorkspaceService::class)->update($workspace, ['timezone' => 'Asia/Kolkata']);
+
+        expect($inherits->fresh()->next_run_at->toDateTimeString())->toBe('2026-10-19 03:30:00')
+            ->and($pinned->fresh()->next_run_at->toDateTimeString())->toBe('2026-10-19 09:00:00');
+    });
+
+    it('saves the workspace timezone through the API, refusing unknown ones', function () {
+        [$workspace, $owner] = productionWorkflow();
+        Passport::actingAs($owner);
+
+        $this->patchJson("/api/v1/workspaces/{$workspace->id}", ['timezone' => 'Mars/Olympus'])
+            ->assertJsonValidationErrors('timezone');
+
+        $this->patchJson("/api/v1/workspaces/{$workspace->id}", ['timezone' => 'Asia/Kolkata'])
+            ->assertSuccessful()
+            ->assertJsonPath('data.workspace.timezone', 'Asia/Kolkata');
+    });
+
     it('catches up a slot missed while the scheduler was down, once', function () {
         [$workspace] = productionWorkflow();
         $trigger = Trigger::factory()->forWorkspace($workspace)->create(['type' => TriggerType::Schedule, 'config' => ['cron' => '* * * * *']]);

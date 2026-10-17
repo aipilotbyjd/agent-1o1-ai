@@ -39,6 +39,9 @@ class AssistantInstructions
 
         $prompt = str_replace(':user_name', $assistant->user->name, $brand->withName(self::BASE));
 
+        $timezone = $assistant->user->timezoneIn($assistant->workspace);
+        $prompt .= "\nToday is ".now($timezone)->format('l, F j, Y')." in {$timezone}, {$assistant->user->name}'s timezone. Read times they give you in it unless they name another.";
+
         if (filled($assistant->instructions)) {
             $prompt .= "\n\n## Standing instructions from {$assistant->user->name}\n{$assistant->instructions}";
         }

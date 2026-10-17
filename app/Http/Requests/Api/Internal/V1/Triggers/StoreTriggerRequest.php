@@ -8,6 +8,7 @@ use App\Enums\Triggers\TriggerType;
 use App\Enums\Triggers\WebhookAuthentication;
 use App\Models\Workspaces\Workspace;
 use App\Rules\SafeOutboundUrl;
+use App\Rules\Timezone;
 use Closure;
 use Cron\CronExpression;
 use Illuminate\Database\Eloquent\Model;
@@ -55,7 +56,7 @@ class StoreTriggerRequest extends FormRequest
             }],
             // A polling trigger's endpoint: fetched by the server, so it must be a public URL.
             'config.url' => ['nullable', 'string', new SafeOutboundUrl],
-            'config.timezone' => ['nullable', 'string', 'timezone:all'],
+            'config.timezone' => ['nullable', 'string', new Timezone],
             'config.authentication' => ['nullable', Rule::enum(WebhookAuthentication::class)],
             // An HTTP header name: letters, digits and dashes.
             'config.header_name' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9-]+$/'],

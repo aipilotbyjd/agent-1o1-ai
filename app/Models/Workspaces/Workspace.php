@@ -2,6 +2,7 @@
 
 namespace App\Models\Workspaces;
 
+use App\Casts\Timezone;
 use App\Enums\Billing\Feature;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentSession;
@@ -48,7 +49,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Cashier\Billable;
 
-#[Fillable(['name', 'slug', 'avatar', 'owner_id'])]
+#[Fillable(['name', 'slug', 'avatar', 'timezone', 'owner_id'])]
 class Workspace extends Model
 {
     use Billable, HasFactory, HasUuids, SoftDeletes;
@@ -58,6 +59,7 @@ class Workspace extends Model
      */
     protected $attributes = [
         'topup_credits' => 0,
+        'timezone' => 'UTC',
         'credit_overage_enabled' => false,
         'out_of_credits_notification_enabled' => true,
         'require_publish_approval' => false,
@@ -70,6 +72,7 @@ class Workspace extends Model
     {
         return [
             'topup_credits' => 'integer',
+            'timezone' => Timezone::class,
             'credit_overage_enabled' => 'boolean',
             'credit_overage_limit' => 'integer',
             'credit_usage_notification_thresholds' => 'array',

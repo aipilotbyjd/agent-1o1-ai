@@ -6,6 +6,7 @@ use App\Models\Agents\Agent;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Workflows\Workflow;
+use App\Services\Timezones\Timezones;
 use App\Services\Workflows\NodeOptions\NodeOption;
 use App\Services\Workflows\NodeOptions\NodeOptionsPage;
 use App\Services\Workflows\NodeOptions\NodeOptionsQuery;
@@ -84,9 +85,9 @@ class WorkspaceOptions implements OptionsSource
 
     private function timezones(NodeOptionsQuery $query): NodeOptionsPage
     {
-        return new NodeOptionsPage(collect(timezone_identifiers_list())
-            ->filter(fn (string $timezone): bool => $query->matches($timezone))
-            ->map(fn (string $timezone): NodeOption => new NodeOption($timezone))
+        return new NodeOptionsPage(collect(Timezones::options())
+            ->filter(fn (array $timezone): bool => $query->matches($timezone['label']))
+            ->map(fn (array $timezone): NodeOption => new NodeOption($timezone['id'], $timezone['label']))
             ->values());
     }
 

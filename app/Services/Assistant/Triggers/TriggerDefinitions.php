@@ -6,8 +6,8 @@ use App\Enums\Assistant\AssistantTriggerStatus;
 use App\Enums\Assistant\AssistantTriggerType;
 use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantTrigger;
+use App\Services\Timezones\Timezones;
 use Cron\CronExpression;
-use DateTimeZone;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -35,6 +35,7 @@ class TriggerDefinitions
             'prompt' => trim($data['prompt']),
             'created_by' => $createdBy,
             'status' => AssistantTriggerStatus::Active,
+            'timezone' => $assistant->user->timezoneIn($assistant->workspace),
         ]);
 
         $this->applySchedule($trigger, $data);
@@ -79,12 +80,9 @@ class TriggerDefinitions
      */
     private function applySchedule(AssistantTrigger $trigger, array $data): void
     {
-        $timezone = (string) ($data['timezone'] ?? $trigger->timezone ?? 'UTC');
-
-        // Browsers still report legacy names ("Asia/Calcutta"), so those count too.
-        if (! in_array($timezone, DateTimeZone::listIdentifiers(DateTimeZone::ALL_WITH_BC), true)) {
-            throw ValidationException::withMessages(['timezone' => 'Unknown timezone.']);
-        }
+        $timezone = filled($data['timezone'] ?? null)
+            ? Timezones::canonical($data['timezone']) ?? throw ValidationException::withMessages(['timezone' => 'Pick a timezone from the list.'])
+            : $trigger->timezone;
 
         $trigger->timezone = $timezone;
 

@@ -52,7 +52,7 @@ class ScheduleTriggerNode extends TriggerNode
             'required' => ['cron'],
             'properties' => [
                 'cron' => Field::text('Schedule (cron)', 'Five fields: minute hour day month weekday. "0 9 * * 1-5" is weekdays at 9:00.', '0 9 * * *'),
-                'timezone' => Field::dynamic('Timezone', 'system.timezones', 'The schedule runs in this timezone. Defaults to UTC.', 'UTC', allowCustom: false),
+                'timezone' => Field::dynamic('Timezone', 'system.timezones', 'The schedule runs in this timezone. Leave empty to use the workspace timezone.', 'Workspace timezone', allowCustom: false),
             ],
         ]);
     }
