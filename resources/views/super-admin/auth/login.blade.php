@@ -2,21 +2,13 @@
     <form method="POST" action="{{ route('super-admin.login.store') }}" class="space-y-4">
         @csrf
 
-        <div>
-            <label for="email" class="sa-label">Email</label>
+        <x-super-admin.field for="email" label="Email">
             <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username" class="sa-input">
-            @error('email')
-                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
+        </x-super-admin.field>
 
-        <div>
-            <label for="password" class="sa-label">Password</label>
+        <x-super-admin.field for="password" label="Password">
             <input id="password" name="password" type="password" required autocomplete="current-password" class="sa-input">
-            @error('password')
-                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
+        </x-super-admin.field>
 
         <button type="submit" class="sa-btn-primary w-full py-2.5">Continue</button>
     </form>

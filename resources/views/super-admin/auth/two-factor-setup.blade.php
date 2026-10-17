@@ -13,13 +13,9 @@
     <form method="POST" action="{{ route('super-admin.two-factor.confirm') }}" class="mt-5 space-y-4">
         @csrf
 
-        <div>
-            <label for="code" class="sa-label">6-digit code</label>
+        <x-super-admin.field for="code" label="6-digit code">
             <input id="code" name="code" type="text" inputmode="numeric" required autofocus autocomplete="one-time-code" class="sa-input py-2.5 text-center font-mono text-lg tracking-[0.3em]">
-            @error('code')
-                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
+        </x-super-admin.field>
 
         <button type="submit" class="sa-btn-primary w-full py-2.5">Confirm and sign in</button>
     </form>

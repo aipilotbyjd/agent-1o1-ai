@@ -9,15 +9,15 @@
         @endforeach
     </div>
 
-    <x-super-admin.filters :action="route('super-admin.templates.index')" :active="filled($filters['q'] ?? null)" class="mt-4">
+    <x-super-admin.filters :action="route('super-admin.templates.index', ['kind' => $kind, 'scope' => $scope])" :active="filled($filters['q'] ?? null)" class="mt-4">
         <input type="hidden" name="kind" value="{{ $kind }}">
         <input type="hidden" name="scope" value="{{ $scope }}">
-        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Template name" />
+        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Search templates by name" />
     </x-super-admin.filters>
 
     <x-super-admin.card class="mt-6" :description="$scope === 'workspaces' ? 'Read-only. Copy one into the gallery to share it with every workspace.' : null" :title="$scope === 'workspaces' ? 'Workspace templates' : null">
         @if ($templates->isEmpty())
-            <x-super-admin.empty icon="inbox">No templates here.</x-super-admin.empty>
+            <x-super-admin.empty icon="stack" :clear="filled($filters['q'] ?? null) ? route('super-admin.templates.index', ['kind' => $kind, 'scope' => $scope]) : null">No templates here.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -36,7 +36,7 @@
                     </thead>
                     <tbody>
                         @foreach ($templates as $template)
-                            <tr class="hover:bg-zinc-50/70">
+                            <tr>
                                 <td>
                                     <p class="font-medium text-zinc-900">{{ $template->name }}</p>
                                     <p class="max-w-md truncate text-xs text-zinc-500">{{ $template->description }}</p>
@@ -79,5 +79,5 @@
         @endif
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $templates->links() }}</div>
+    <x-super-admin.pagination :paginator="$templates" />
 </x-super-admin.layout>

@@ -1,24 +1,15 @@
 <x-super-admin.layout title="Audit log" description="Every action taken in this panel, newest first">
+    <x-slot:actions>
+        <a href="{{ route('super-admin.audit-log.export', $filters) }}" class="sa-btn-secondary">
+            <x-super-admin.icon name="arrow-down" class="size-4" />
+            Export CSV
+        </a>
+    </x-slot:actions>
+
     <x-super-admin.filters :action="route('super-admin.audit-log.index')" :active="(bool) array_filter($filters)">
-        <x-super-admin.search name="action" label="Action starts with" :value="$filters['action'] ?? ''" placeholder="e.g. super_admin.login" class="min-w-56" />
-        <div>
-            <label for="super_admin" class="sa-label">Super admin</label>
-            <select id="super_admin" name="super_admin" class="sa-input pr-8">
-                <option value="">Any</option>
-                @foreach ($superAdmins as $superAdmin)
-                    <option value="{{ $superAdmin->id }}" @selected(($filters['super_admin'] ?? '') === $superAdmin->id)>{{ $superAdmin->email }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label for="from" class="sa-label">From</label>
-            <input id="from" name="from" type="date" value="{{ $filters['from'] ?? '' }}" class="sa-input">
-        </div>
-        <div>
-            <label for="to" class="sa-label">To</label>
-            <input id="to" name="to" type="date" value="{{ $filters['to'] ?? '' }}" class="sa-input">
-        </div>
-        <a href="{{ route('super-admin.audit-log.export', $filters) }}" class="sa-btn-secondary">Export CSV</a>
+        <x-super-admin.search name="action" label="Action starts with" :value="$filters['action'] ?? ''" placeholder="Action starts with… e.g. super_admin.login" />
+        <x-super-admin.filter-select name="super_admin" label="Super admin" :value="$filters['super_admin'] ?? null" :options="$superAdmins->pluck('email', 'id')" />
+        <x-super-admin.filter-dates :from="$filters['from'] ?? null" :to="$filters['to'] ?? null" />
     </x-super-admin.filters>
 
     <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
@@ -33,8 +24,8 @@
     </div>
 
     <x-super-admin.card class="mt-6">
-        @include('super-admin.audit-log.partials.entries', ['entries' => $entries, 'empty' => 'No entries match.'])
+        @include('super-admin.audit-log.partials.entries', ['entries' => $entries, 'empty' => 'No entries match.', 'clear' => array_filter($filters) ? route('super-admin.audit-log.index') : null])
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $entries->links() }}</div>
+    <x-super-admin.pagination :paginator="$entries" />
 </x-super-admin.layout>

@@ -5,7 +5,7 @@
 
     <x-super-admin.card>
         @if ($entries->isEmpty())
-            <x-super-admin.empty icon="bolt">The catalog is empty. Run the model catalog seeder or add a model.</x-super-admin.empty>
+            <x-super-admin.empty icon="cpu">The catalog is empty. Run the model catalog seeder or add a model.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -21,9 +21,9 @@
                     </thead>
                     <tbody>
                         @foreach ($entries as $entry)
-                            <tr class="hover:bg-zinc-50/70">
+                            <tr>
                                 <td>
-                                    <a href="{{ route('super-admin.models.show', $entry) }}" class="sa-link">{{ $entry->display_name }}</a>
+                                    <a href="{{ route('super-admin.models.show', $entry) }}" class="sa-row-link">{{ $entry->display_name }}</a>
                                     <p class="font-mono text-xs text-zinc-400">{{ $entry->slug }}</p>
                                 </td>
                                 <td class="capitalize">{{ $entry->brand }}</td>

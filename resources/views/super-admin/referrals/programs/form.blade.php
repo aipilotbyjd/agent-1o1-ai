@@ -19,157 +19,128 @@
 
         <x-super-admin.card title="Program">
             <div class="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
-                <div>
-                    <label for="name" class="sa-label">Name</label>
+                <x-super-admin.field for="name" label="Name">
                     <input id="name" name="name" type="text" required maxlength="255" value="{{ $value('name') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="slug" class="sa-label">Slug {{ $editing ? '' : '(blank to generate)' }}</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="slug" label="Slug" :hint="$editing ? null : 'Leave blank to generate it from the name.'">
                     <input id="slug" name="slug" type="text" maxlength="255" value="{{ $value('slug') }}" class="sa-input font-mono">
-                </div>
-                <div class="sm:col-span-2">
-                    <label for="description" class="sa-label">Description</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="description" label="Description" class="sm:col-span-2">
                     <textarea id="description" name="description" rows="2" maxlength="2000" class="sa-input">{{ $value('description') }}</textarea>
-                </div>
-                <div>
-                    <label for="starts_at" class="sa-label">Starts</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="starts_at" label="Starts">
                     <input id="starts_at" name="starts_at" type="datetime-local" value="{{ $date('starts_at') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="ends_at" class="sa-label">Ends</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="ends_at" label="Ends">
                     <input id="ends_at" name="ends_at" type="datetime-local" value="{{ $date('ends_at') }}" class="sa-input">
-                </div>
-                <div class="flex flex-wrap gap-6 sm:col-span-2">
-                    @foreach (['is_active' => 'Active', 'require_verified_email' => 'Require a verified email', 'revoke_on_partial_refund' => 'Revoke rewards on a partial refund'] as $field => $label)
-                        <label class="flex items-center gap-2 text-sm text-zinc-700">
-                            <input type="hidden" name="{{ $field }}" value="0">
-                            <input type="checkbox" name="{{ $field }}" value="1" class="size-4 rounded border-zinc-300 accent-zinc-900" @checked($checked($field))>
-                            {{ $label }}
-                        </label>
-                    @endforeach
-                </div>
+                </x-super-admin.field>
+            </div>
+            <div class="grid grid-cols-1 gap-1 border-t border-zinc-100 px-2 py-2 sm:grid-cols-3">
+                <x-super-admin.switch name="is_active" label="Active" description="Inactive programs stop attributing signups." :checked="$checked('is_active')" />
+                <x-super-admin.switch name="require_verified_email" label="Require a verified email" description="Referees must verify before counting." :checked="$checked('require_verified_email')" />
+                <x-super-admin.switch name="revoke_on_partial_refund" label="Revoke on partial refund" description="Not only on a full refund." :checked="$checked('revoke_on_partial_refund')" />
             </div>
         </x-super-admin.card>
 
         <x-super-admin.card title="Attribution and activation">
             <div class="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-3">
-                <div>
-                    <label for="attribution_window_days" class="sa-label">Attribution window (days)</label>
+                <x-super-admin.field for="attribution_window_days" label="Attribution window (days)">
                     <input id="attribution_window_days" name="attribution_window_days" type="number" min="1" max="365" value="{{ $value('attribution_window_days') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="claim_window_hours" class="sa-label">Claim window (hours)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="claim_window_hours" label="Claim window (hours)">
                     <input id="claim_window_hours" name="claim_window_hours" type="number" min="1" max="720" value="{{ $value('claim_window_hours') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="activation_event" class="sa-label">Activation event</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="activation_event" label="Activation event">
                     <select id="activation_event" name="activation_event" class="sa-input pr-8">
                         @foreach (\App\Enums\Referrals\ReferralActivationEvent::cases() as $event)
-                            <option value="{{ $event->value }}" @selected($enumValue('activation_event') === $event->value)>{{ str_replace('_', ' ', $event->value) }}</option>
+                            <option value="{{ $event->value }}" @selected($enumValue('activation_event') === $event->value)>{{ ucfirst(str_replace('_', ' ', $event->value)) }}</option>
                         @endforeach
                     </select>
-                </div>
-                <div>
-                    <label for="activation_min_count" class="sa-label">Activation count</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="activation_min_count" label="Activation count">
                     <input id="activation_min_count" name="activation_min_count" type="number" min="1" max="1000" value="{{ $value('activation_min_count') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="activation_window_days" class="sa-label">Activation window (days)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="activation_window_days" label="Activation window (days)">
                     <input id="activation_window_days" name="activation_window_days" type="number" min="1" max="365" value="{{ $value('activation_window_days') }}" class="sa-input">
-                </div>
+                </x-super-admin.field>
             </div>
         </x-super-admin.card>
 
         <x-super-admin.card title="Rewards and limits">
             <div class="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-3">
-                <div>
-                    <label for="approval_mode" class="sa-label">Approval</label>
+                <x-super-admin.field for="approval_mode" label="Approval">
                     <select id="approval_mode" name="approval_mode" class="sa-input pr-8">
                         @foreach (\App\Enums\Referrals\ReferralApprovalMode::cases() as $mode)
-                            <option value="{{ $mode->value }}" @selected($enumValue('approval_mode') === $mode->value)>{{ $mode->value }}</option>
+                            <option value="{{ $mode->value }}" @selected($enumValue('approval_mode') === $mode->value)>{{ ucfirst($mode->value) }}</option>
                         @endforeach
                     </select>
-                </div>
-                <div>
-                    <label for="default_hold_days" class="sa-label">Default hold (days)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="default_hold_days" label="Default hold (days)">
                     <input id="default_hold_days" name="default_hold_days" type="number" min="0" max="365" value="{{ $value('default_hold_days') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="referrer_min_account_age_days" class="sa-label">Referrer min account age (days)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="referrer_min_account_age_days" label="Referrer min account age (days)">
                     <input id="referrer_min_account_age_days" name="referrer_min_account_age_days" type="number" min="0" max="3650" value="{{ $value('referrer_min_account_age_days') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="referrer_monthly_credit_cap" class="sa-label">Referrer credits / month (blank = no cap)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="referrer_monthly_credit_cap" label="Referrer credits / month" hint="Leave blank for no cap.">
                     <input id="referrer_monthly_credit_cap" name="referrer_monthly_credit_cap" type="number" min="0" value="{{ $value('referrer_monthly_credit_cap') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="referrer_max_stacked_plan_days" class="sa-label">Max stacked plan days (blank = no cap)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="referrer_max_stacked_plan_days" label="Max stacked plan days" hint="Leave blank for no cap.">
                     <input id="referrer_max_stacked_plan_days" name="referrer_max_stacked_plan_days" type="number" min="0" max="36500" value="{{ $value('referrer_max_stacked_plan_days') }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="referrer_max_referrals_per_month" class="sa-label">Max referrals / month (blank = no cap)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="referrer_max_referrals_per_month" label="Max referrals / month" hint="Leave blank for no cap.">
                     <input id="referrer_max_referrals_per_month" name="referrer_max_referrals_per_month" type="number" min="1" max="100000" value="{{ $value('referrer_max_referrals_per_month') }}" class="sa-input">
-                </div>
+                </x-super-admin.field>
                 <fieldset class="sm:col-span-3">
-                    <legend class="sa-label">Referrers must be on (none ticked = any plan)</legend>
+                    <legend class="sa-label">Referrers must be on</legend>
                     <input type="hidden" name="referrer_eligible_plan_ids" value="">
-                    <div class="mt-2 flex flex-wrap gap-4">
+                    <div class="mt-2 flex flex-wrap gap-2">
                         @foreach ($plans as $plan)
-                            <label class="flex items-center gap-2 text-sm text-zinc-700">
-                                <input type="checkbox" name="referrer_eligible_plan_ids[]" value="{{ $plan->id }}" class="size-4 rounded border-zinc-300 accent-zinc-900" @checked(in_array($plan->id, $eligiblePlans ?? [], true))>
+                            <label class="sa-choice">
+                                <input type="checkbox" name="referrer_eligible_plan_ids[]" value="{{ $plan->id }}" @checked(in_array($plan->id, $eligiblePlans ?? [], true))>
                                 {{ $plan->name }}
                             </label>
                         @endforeach
                     </div>
+                    <p class="mt-1.5 text-xs text-zinc-500">Pick none to allow referrers on any plan.</p>
                 </fieldset>
             </div>
         </x-super-admin.card>
 
-        <x-super-admin.card title="Fraud checks">
-            <div class="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
-                @foreach (['shared_workspace' => 'Reject if referrer and referee share a workspace', 'same_email_domain' => 'Reject if both use the same email domain', 'disposable_email' => 'Reject disposable email addresses', 'card_fingerprint' => 'Reject a reused payment card'] as $key => $label)
-                    <label class="flex items-center gap-2 text-sm text-zinc-700">
-                        <input type="hidden" name="fraud_checks[{{ $key }}]" value="0">
-                        <input type="checkbox" name="fraud_checks[{{ $key }}]" value="1" class="size-4 rounded border-zinc-300 accent-zinc-900" @checked((bool) $fraud($key))>
-                        {{ $label }}
-                    </label>
+        <x-super-admin.card title="Fraud checks" description="Referrals that fail a check are rejected before any reward is earned.">
+            <div class="grid grid-cols-1 gap-1 px-2 py-2 sm:grid-cols-2">
+                @foreach ([
+                    'shared_workspace' => ['Shared workspace', 'Referrer and referee belong to the same workspace.'],
+                    'same_email_domain' => ['Same email domain', 'Both sign up with the same company domain.'],
+                    'disposable_email' => ['Disposable email', 'The referee uses a throwaway address.'],
+                    'card_fingerprint' => ['Reused payment card', 'The card has already paid on another account.'],
+                ] as $key => [$label, $description])
+                    <x-super-admin.switch :name="'fraud_checks['.$key.']'" :label="$label" :description="$description" :checked="(bool) $fraud($key)" />
                 @endforeach
-
-                <div class="rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200/80">
-                    <label class="flex items-center gap-2 text-sm font-medium text-zinc-700">
-                        <input type="hidden" name="fraud_checks[ip_velocity][enabled]" value="0">
-                        <input type="checkbox" name="fraud_checks[ip_velocity][enabled]" value="1" class="size-4 rounded border-zinc-300 accent-zinc-900" @checked((bool) $fraud('ip_velocity.enabled'))>
-                        Limit signups per IP
-                    </label>
-                    <div class="mt-2 grid grid-cols-2 gap-3">
-                        <div>
-                            <label for="ip_velocity_max" class="sa-label">Max signups</label>
+            </div>
+            <div class="grid grid-cols-1 gap-4 border-t border-zinc-100 px-5 py-4 sm:grid-cols-2">
+                <div class="group/panel rounded-xl ring-1 ring-zinc-200/80">
+                    <x-super-admin.switch name="fraud_checks[ip_velocity][enabled]" label="Limit signups per IP" description="Reject referrals once an IP passes the limit." :checked="(bool) $fraud('ip_velocity.enabled')" />
+                    <div class="grid grid-cols-2 gap-3 border-t border-zinc-100 px-3 py-3 transition-opacity group-has-[.sa-switch:not(:checked)]/panel:opacity-50">
+                        <x-super-admin.field for="ip_velocity_max" label="Max signups" error="fraud_checks.ip_velocity.max">
                             <input id="ip_velocity_max" name="fraud_checks[ip_velocity][max]" type="number" min="1" max="10000" value="{{ $fraud('ip_velocity.max') }}" class="sa-input">
-                        </div>
-                        <div>
-                            <label for="ip_velocity_hours" class="sa-label">Per hours</label>
+                        </x-super-admin.field>
+                        <x-super-admin.field for="ip_velocity_hours" label="Per hours" error="fraud_checks.ip_velocity.hours">
                             <input id="ip_velocity_hours" name="fraud_checks[ip_velocity][hours]" type="number" min="1" max="720" value="{{ $fraud('ip_velocity.hours') }}" class="sa-input">
-                        </div>
+                        </x-super-admin.field>
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200/80">
-                    <label class="flex items-center gap-2 text-sm font-medium text-zinc-700">
-                        <input type="hidden" name="fraud_checks[velocity_alert][enabled]" value="0">
-                        <input type="checkbox" name="fraud_checks[velocity_alert][enabled]" value="1" class="size-4 rounded border-zinc-300 accent-zinc-900" @checked((bool) $fraud('velocity_alert.enabled'))>
-                        Alert on a signup spike
-                    </label>
-                    <div class="mt-2">
-                        <label for="velocity_alert_max" class="sa-label">Signups per hour</label>
+                <div class="group/panel rounded-xl ring-1 ring-zinc-200/80">
+                    <x-super-admin.switch name="fraud_checks[velocity_alert][enabled]" label="Alert on a signup spike" description="Notify the team; referrals still go through." :checked="(bool) $fraud('velocity_alert.enabled')" />
+                    <x-super-admin.field for="velocity_alert_max" label="Signups per hour" error="fraud_checks.velocity_alert.max_per_hour" class="border-t border-zinc-100 px-3 py-3 transition-opacity group-has-[.sa-switch:not(:checked)]/panel:opacity-50">
                         <input id="velocity_alert_max" name="fraud_checks[velocity_alert][max_per_hour]" type="number" min="1" max="100000" value="{{ $fraud('velocity_alert.max_per_hour') }}" class="sa-input">
-                    </div>
+                    </x-super-admin.field>
                 </div>
             </div>
         </x-super-admin.card>
 
-        <div class="flex justify-end gap-2">
-            <a href="{{ $editing ? route('super-admin.referrals.programs.show', $program) : route('super-admin.referrals.programs.index') }}" class="sa-btn-secondary">Cancel</a>
+        <x-super-admin.form-actions :cancel="$editing ? route('super-admin.referrals.programs.show', $program) : route('super-admin.referrals.programs.index')">
             <button type="submit" class="sa-btn-primary">{{ $editing ? 'Save program' : 'Create program' }}</button>
-        </div>
+        </x-super-admin.form-actions>
     </form>
 </x-super-admin.layout>

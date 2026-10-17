@@ -11,37 +11,31 @@
 
         <x-super-admin.card title="Collection">
             <div class="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
-                <div>
-                    <label for="name" class="sa-label">Name</label>
+                <x-super-admin.field for="name" label="Name">
                     <input id="name" name="name" type="text" required maxlength="255" value="{{ old('name', $collection->name) }}" class="sa-input">
-                </div>
-                <div>
-                    <label for="slug" class="sa-label">Slug {{ $editing ? '' : '(blank to generate)' }}</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="slug" label="Slug" :hint="$editing ? null : 'Leave blank to generate it from the name.'">
                     <input id="slug" name="slug" type="text" maxlength="255" value="{{ old('slug', $collection->slug) }}" class="sa-input font-mono">
-                </div>
-                <div class="sm:col-span-2">
-                    <label for="description" class="sa-label">Description</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="description" label="Description" class="sm:col-span-2">
                     <textarea id="description" name="description" rows="3" maxlength="2000" class="sa-input">{{ old('description', $collection->description) }}</textarea>
-                </div>
-                <div>
-                    <label for="category" class="sa-label">Category</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="category" label="Category">
                     <input id="category" name="category" type="text" maxlength="100" value="{{ old('category', $collection->category) }}" class="sa-input">
-                </div>
+                </x-super-admin.field>
                 <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label for="icon" class="sa-label">Icon</label>
+                    <x-super-admin.field for="icon" label="Icon">
                         <input id="icon" name="icon" type="text" maxlength="100" value="{{ old('icon', $collection->icon) }}" class="sa-input">
-                    </div>
-                    <div>
-                        <label for="color" class="sa-label">Colour</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="color" label="Colour">
                         <input id="color" name="color" type="text" maxlength="32" value="{{ old('color', $collection->color) }}" class="sa-input font-mono">
-                    </div>
+                    </x-super-admin.field>
                 </div>
             </div>
         </x-super-admin.card>
 
-        <div class="flex justify-end">
+        <x-super-admin.form-actions :cancel="$editing ? route('super-admin.templates.collections.show', $collection) : route('super-admin.templates.collections.index')">
             <button type="submit" class="sa-btn-primary">{{ $editing ? 'Save collection' : 'Create collection' }}</button>
-        </div>
+        </x-super-admin.form-actions>
     </form>
 </x-super-admin.layout>

@@ -3,14 +3,12 @@
         <x-super-admin.card title="Block a domain">
             <form method="POST" action="{{ route('super-admin.referrals.blocked-domains.store') }}" class="space-y-3 px-5 py-4">
                 @csrf
-                <div>
-                    <label for="domain" class="sa-label">Domain</label>
+                <x-super-admin.field for="domain" label="Domain">
                     <input id="domain" name="domain" type="text" required maxlength="255" value="{{ old('domain') }}" placeholder="example.com" class="sa-input font-mono">
-                </div>
-                <div>
-                    <label for="reason" class="sa-label">Reason (optional)</label>
+                </x-super-admin.field>
+                <x-super-admin.field for="reason" label="Reason">
                     <input id="reason" name="reason" type="text" maxlength="255" value="{{ old('reason') }}" class="sa-input">
-                </div>
+                </x-super-admin.field>
                 <x-super-admin.form-errors />
                 <button type="submit" class="sa-btn-primary w-full">Block domain</button>
             </form>
@@ -18,7 +16,7 @@
 
         <x-super-admin.card :title="$domains->count().' blocked'" class="lg:col-span-2">
             @if ($domains->isEmpty())
-                <x-super-admin.empty icon="lock">No domains blocked.</x-super-admin.empty>
+                <x-super-admin.empty icon="ban">No domains blocked.</x-super-admin.empty>
             @else
                 <ul class="divide-y divide-zinc-100 text-sm">
                     @foreach ($domains as $domain)

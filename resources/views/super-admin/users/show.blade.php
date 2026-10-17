@@ -17,7 +17,7 @@
                 </div>
             </div>
             <dl class="sa-dl">
-                <div><dt>ID</dt><dd class="font-mono text-xs break-all">{{ $user->id }}</dd></div>
+                <div><dt>ID</dt><dd class="font-mono text-xs break-all">{{ $user->id }} <x-super-admin.copy :value="$user->id" label="Copy user ID" /></dd></div>
                 <div><dt>Joined</dt><dd>{{ $user->created_at?->toDayDateTimeString() }}</dd></div>
                 <div><dt>Email verified</dt><dd>{{ $user->email_verified_at?->toDayDateTimeString() ?? 'Not verified' }}</dd></div>
                 @if ($user->hasPendingEmailChange())
@@ -46,9 +46,9 @@
                     </thead>
                     <tbody>
                         @foreach ($user->workspaces as $workspace)
-                            <tr class="relative transition hover:bg-zinc-50/80">
+                            <tr>
                                 <td>
-                                    <a href="{{ route('super-admin.workspaces.show', $workspace) }}" class="font-medium text-zinc-900 after:absolute after:inset-0">{{ $workspace->name }}</a>
+                                    <a href="{{ route('super-admin.workspaces.show', $workspace) }}" class="sa-row-link">{{ $workspace->name }}</a>
                                     @if ($workspace->trashed())
                                         <x-super-admin.status-badge status="deleted" class="ml-1" />
                                     @endif

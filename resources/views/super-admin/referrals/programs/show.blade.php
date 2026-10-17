@@ -24,10 +24,7 @@
             'Attribution' => $program->attribution_window_days.' days',
             'Referrals' => number_format($program->referrals_count),
         ] as $label => $value)
-            <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-zinc-200/80">
-                <p class="text-sm font-medium text-zinc-500">{{ $label }}</p>
-                <p class="mt-2 text-lg font-semibold tracking-tight">{{ $value }}</p>
-            </div>
+            <x-super-admin.stat :label="$label">{{ $value }}</x-super-admin.stat>
         @endforeach
     </section>
 

@@ -2,13 +2,9 @@
     <form method="POST" action="{{ route('super-admin.two-factor.verify') }}" class="space-y-4">
         @csrf
 
-        <div>
-            <label for="code" class="sa-label">Code</label>
+        <x-super-admin.field for="code" label="Code">
             <input id="code" name="code" type="text" required autofocus autocomplete="one-time-code" class="sa-input py-2.5 text-center font-mono text-lg tracking-[0.3em]">
-            @error('code')
-                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-            @enderror
-        </div>
+        </x-super-admin.field>
 
         <button type="submit" class="sa-btn-primary w-full py-2.5">Verify</button>
     </form>

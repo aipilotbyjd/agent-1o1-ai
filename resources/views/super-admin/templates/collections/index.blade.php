@@ -5,7 +5,7 @@
 
     <x-super-admin.card>
         @if ($collections->isEmpty())
-            <x-super-admin.empty icon="inbox">No gallery collections yet.</x-super-admin.empty>
+            <x-super-admin.empty icon="folder">No gallery collections yet.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -19,9 +19,9 @@
                     </thead>
                     <tbody>
                         @foreach ($collections as $collection)
-                            <tr class="hover:bg-zinc-50/70">
+                            <tr>
                                 <td>
-                                    <a href="{{ route('super-admin.templates.collections.show', $collection) }}" class="sa-link">{{ $collection->name }}</a>
+                                    <a href="{{ route('super-admin.templates.collections.show', $collection) }}" class="sa-row-link">{{ $collection->name }}</a>
                                     <p class="max-w-md truncate text-xs text-zinc-500">{{ $collection->description }}</p>
                                 </td>
                                 <td class="text-zinc-600">{{ $collection->category ?? '—' }}</td>

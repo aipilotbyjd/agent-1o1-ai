@@ -52,25 +52,15 @@
         <x-super-admin.card title="Add top-up credits" description="Non-expiring credits, spent after the plan allowance. Needs your password; logged with your reason." class="lg:col-span-1">
             <form method="POST" action="{{ route('super-admin.workspaces.credits.grant', $workspace) }}" class="space-y-3 px-5 py-4" data-confirm="Add top-up credits to {{ $workspace->name }}?">
                 @csrf
-                <div>
-                    <label for="grant_credits" class="sa-label">Credits</label>
+                <x-super-admin.field bag="grantCredits" for="grant_credits" label="Credits" error="credits">
                     <input id="grant_credits" name="credits" type="number" min="1" max="{{ \App\Http\Requests\SuperAdmin\GrantWorkspaceCreditsRequest::MAX_CREDITS }}" required value="{{ old('credits') }}" class="sa-input tabular-nums">
-                </div>
-                <div>
-                    <label for="grant_credits_reason" class="sa-label">Reason</label>
+                </x-super-admin.field>
+                <x-super-admin.field bag="grantCredits" for="grant_credits_reason" label="Reason" error="reason">
                     <input id="grant_credits_reason" name="reason" type="text" required minlength="5" maxlength="500" value="{{ old('reason') }}" placeholder="e.g. Refund for failed runs on 12 Oct" class="sa-input">
-                </div>
-                <div>
-                    <label for="grant_credits_password" class="sa-label">Your password</label>
+                </x-super-admin.field>
+                <x-super-admin.field bag="grantCredits" for="grant_credits_password" label="Your password" error="current_password">
                     <input id="grant_credits_password" name="current_password" type="password" required autocomplete="current-password" class="sa-input">
-                </div>
-                @if ($errors->grantCredits->any())
-                    <ul class="space-y-0.5 text-xs text-red-600">
-                        @foreach ($errors->grantCredits->all() as $message)
-                            <li>{{ $message }}</li>
-                        @endforeach
-                    </ul>
-                @endif
+                </x-super-admin.field>
                 <button type="submit" class="sa-btn-primary w-full">
                     <x-super-admin.icon name="coins" class="size-4" />
                     Add credits
@@ -81,39 +71,28 @@
         <x-super-admin.card title="Grant plan time" description="Gives a plan for a fixed number of days. Needs your password; logged with your reason." class="lg:col-span-2">
             <form method="POST" action="{{ route('super-admin.workspaces.plan-time.grant', $workspace) }}" class="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-2" data-confirm="Grant plan time to {{ $workspace->name }}?">
                 @csrf
-                <div>
-                    <label for="grant_plan" class="sa-label">Plan</label>
+                <x-super-admin.field bag="grantPlanTime" for="grant_plan" label="Plan" error="plan_id">
                     <select id="grant_plan" name="plan_id" required class="sa-input pr-8">
                         @foreach ($grantablePlans as $grantablePlan)
                             <option value="{{ $grantablePlan->id }}" @selected(old('plan_id') === $grantablePlan->id)>{{ $grantablePlan->name }}</option>
                         @endforeach
                     </select>
-                </div>
-                <div>
-                    <label for="grant_days" class="sa-label">Days</label>
+                </x-super-admin.field>
+                <x-super-admin.field bag="grantPlanTime" for="grant_days" label="Days" error="days">
                     <input id="grant_days" name="days" type="number" min="1" max="{{ \App\Http\Requests\SuperAdmin\GrantWorkspacePlanTimeRequest::MAX_DAYS }}" required value="{{ old('days', 30) }}" class="sa-input tabular-nums">
-                </div>
-                <div class="sm:col-span-2">
-                    <label for="grant_plan_reason" class="sa-label">Reason</label>
+                </x-super-admin.field>
+                <x-super-admin.field bag="grantPlanTime" for="grant_plan_reason" label="Reason" error="reason" class="sm:col-span-2">
                     <input id="grant_plan_reason" name="reason" type="text" required minlength="5" maxlength="500" value="{{ old('reason') }}" placeholder="e.g. Partner trial agreed by email" class="sa-input">
-                </div>
-                <div>
-                    <label for="grant_plan_password" class="sa-label">Your password</label>
+                </x-super-admin.field>
+                <x-super-admin.field bag="grantPlanTime" for="grant_plan_password" label="Your password" error="current_password">
                     <input id="grant_plan_password" name="current_password" type="password" required autocomplete="current-password" class="sa-input">
-                </div>
+                </x-super-admin.field>
                 <div class="flex items-end">
                     <button type="submit" class="sa-btn-primary w-full">
                         <x-super-admin.icon name="gift" class="size-4" />
                         Grant plan time
                     </button>
                 </div>
-                @if ($errors->grantPlanTime->any())
-                    <ul class="space-y-0.5 text-xs text-red-600 sm:col-span-2">
-                        @foreach ($errors->grantPlanTime->all() as $message)
-                            <li>{{ $message }}</li>
-                        @endforeach
-                    </ul>
-                @endif
             </form>
         </x-super-admin.card>
     @endunless

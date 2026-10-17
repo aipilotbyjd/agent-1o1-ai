@@ -1,5 +1,5 @@
 @if ($runs->isEmpty())
-    <x-super-admin.empty icon="bolt">{{ $empty ?? 'No runs.' }}</x-super-admin.empty>
+    <x-super-admin.empty icon="play" :clear="$clear ?? null">{{ $empty ?? 'No runs.' }}</x-super-admin.empty>
 @else
     <div class="overflow-x-auto">
         <table class="sa-table">
@@ -17,10 +17,10 @@
             </thead>
             <tbody>
                 @foreach ($runs as $run)
-                    <tr class="group relative transition hover:bg-zinc-50/80">
+                    <tr>
                         <td>
-                            <a href="{{ route('super-admin.runs.show', $run) }}" class="font-medium text-zinc-900 after:absolute after:inset-0">{{ $run->workflow?->name ?? class_basename($run->runnable_type) }}</a>
-                            <p class="font-mono text-xs text-zinc-400">{{ \Illuminate\Support\Str::limit($run->id, 8, '') }}</p>
+                            <a href="{{ route('super-admin.runs.show', $run) }}" class="sa-row-link">{{ $run->workflow?->name ?? class_basename($run->runnable_type) }}</a>
+                            <p class="flex items-center gap-0.5 font-mono text-xs text-zinc-400">{{ \Illuminate\Support\Str::limit($run->id, 8, '') }} <x-super-admin.copy :value="$run->id" label="Copy run ID" /></p>
                         </td>
                         @if ($showWorkspace ?? true)
                             <td class="text-zinc-600">

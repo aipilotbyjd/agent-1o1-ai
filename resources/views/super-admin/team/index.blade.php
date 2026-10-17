@@ -2,7 +2,7 @@
     <x-super-admin.card>
         <div class="overflow-x-auto">
             <table class="sa-table">
-                <thead class="text-xs text-zinc-500 uppercase">
+                <thead>
                     <tr>
                         <th>Super admin</th>
                         <th>Two-factor</th>
@@ -11,7 +11,7 @@
                         <th>Last IP</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-zinc-100">
+                <tbody>
                     @foreach ($team as $member)
                         <tr>
                             <td>

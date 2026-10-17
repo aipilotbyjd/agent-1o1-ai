@@ -12,7 +12,7 @@
         <x-super-admin.card title="Run">
             <dl class="sa-dl">
                 <div><dt>Status</dt><dd><x-super-admin.status-badge :status="$run->status" /></dd></div>
-                <div><dt>ID</dt><dd class="font-mono text-xs break-all">{{ $run->id }}</dd></div>
+                <div><dt>ID</dt><dd class="font-mono text-xs break-all">{{ $run->id }} <x-super-admin.copy :value="$run->id" label="Copy run ID" /></dd></div>
                 <div>
                     <dt>Workspace</dt>
                     <dd>

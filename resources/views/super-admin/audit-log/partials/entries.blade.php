@@ -1,5 +1,5 @@
 @if ($entries->isEmpty())
-    <x-super-admin.empty icon="shield">{{ $empty ?? 'No entries.' }}</x-super-admin.empty>
+    <x-super-admin.empty icon="clipboard" :clear="$clear ?? null">{{ $empty ?? 'No entries.' }}</x-super-admin.empty>
 @else
     <div class="overflow-x-auto">
         <table class="sa-table">
@@ -31,7 +31,7 @@
                         <td class="text-xs">
                             @if ($entry->subject_type)
                                 <span class="text-zinc-700">{{ $entry->subject_type }}</span>
-                                <span class="block font-mono text-zinc-400" title="{{ $entry->subject_id }}">{{ \Illuminate\Support\Str::limit((string) $entry->subject_id, 8, '…') }}</span>
+                                <span class="flex items-center gap-0.5 font-mono text-zinc-400" title="{{ $entry->subject_id }}">{{ \Illuminate\Support\Str::limit((string) $entry->subject_id, 8, '…') }} <x-super-admin.copy :value="(string) $entry->subject_id" label="Copy subject ID" /></span>
                             @else
                                 <span class="text-zinc-400">—</span>
                             @endif

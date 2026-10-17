@@ -20,6 +20,23 @@
         @apply mt-1.5 block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-zinc-900 shadow-xs ring-1 ring-zinc-200 ring-inset placeholder:text-zinc-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none;
     }
 
+    .sa-field-invalid :is(.sa-input) {
+        @apply bg-red-50/40 ring-red-300 focus:ring-red-500;
+    }
+
+    .sa-switch {
+        @apply relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-zinc-200 ring-1 ring-zinc-900/5 transition-colors ring-inset before:absolute before:top-0.5 before:left-0.5 before:size-4 before:rounded-full before:bg-white before:shadow-sm before:transition-transform checked:bg-indigo-600 checked:before:translate-x-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500;
+    }
+
+    /* A checkbox shown as a selectable chip, for picking several values from a short list. */
+    .sa-choice {
+        @apply inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm text-zinc-700 shadow-xs ring-1 ring-zinc-200 transition select-none ring-inset hover:ring-zinc-300 has-checked:bg-indigo-50 has-checked:text-indigo-900 has-checked:ring-indigo-300 has-focus-visible:ring-2 has-focus-visible:ring-indigo-500;
+
+        & input {
+            @apply size-3.5 rounded border-zinc-300 accent-indigo-600;
+        }
+    }
+
     .sa-btn-primary {
         @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500;
     }
@@ -30,6 +47,40 @@
 
     .sa-link {
         @apply font-medium text-zinc-900 decoration-zinc-300 underline-offset-4 hover:underline;
+    }
+
+    /* Filter toolbar pills: the label sits inside the control and the pill turns indigo once it narrows the list. */
+    .sa-filter {
+        @apply relative inline-flex h-9 max-w-full items-center rounded-lg bg-white text-sm shadow-xs ring-1 ring-zinc-200 transition ring-inset focus-within:ring-2 focus-within:ring-indigo-500 hover:ring-zinc-300;
+
+        &.sa-filter-active,
+        &:has(input[type='checkbox']:checked) {
+            @apply bg-indigo-50/70 ring-indigo-200 hover:ring-indigo-300;
+        }
+    }
+
+    .sa-filter-label {
+        @apply shrink-0 cursor-pointer pr-1.5 pl-3 whitespace-nowrap text-zinc-500 select-none;
+
+        .sa-filter-active & {
+            @apply text-indigo-600;
+        }
+    }
+
+    .sa-filter-control {
+        @apply h-full min-w-0 appearance-none border-0 bg-transparent py-0 pr-3 pl-0 text-sm font-medium text-zinc-900 placeholder:font-normal placeholder:text-zinc-400 focus:ring-0 focus:outline-none;
+
+        .sa-filter-active & {
+            @apply text-indigo-950;
+        }
+
+        &::-webkit-calendar-picker-indicator {
+            @apply cursor-pointer opacity-40 hover:opacity-80;
+        }
+    }
+
+    .sa-filter-clear {
+        @apply mr-1.5 inline-flex size-5 shrink-0 items-center justify-center rounded-md text-indigo-400 transition hover:bg-indigo-100 hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-indigo-500;
     }
 
     .sa-table {
@@ -44,7 +95,16 @@
         }
 
         & tbody tr {
-            @apply border-b border-zinc-100 last:border-0;
+            @apply border-b border-zinc-100 transition-colors last:border-0 hover:bg-zinc-50/70;
+        }
+
+        /* A primary link with this class makes its whole row clickable; other links in the row need `relative z-10`. */
+        & tbody tr:has(.sa-row-link) {
+            @apply relative cursor-pointer;
+        }
+
+        & .sa-row-link {
+            @apply font-medium text-zinc-900 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:rounded-sm focus-visible:after:ring-2 focus-visible:after:ring-indigo-500 focus-visible:after:ring-inset;
         }
     }
 

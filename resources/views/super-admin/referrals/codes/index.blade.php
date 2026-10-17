@@ -1,11 +1,11 @@
 <x-super-admin.layout title="Referral codes" description="Each user's personal referral code">
     <x-super-admin.filters :action="route('super-admin.referrals.codes.index')" :active="(bool) array_filter($filters)">
-        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Code, email or name" />
+        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Search by code, email or name" />
     </x-super-admin.filters>
 
     <x-super-admin.card class="mt-6">
         @if ($codes->isEmpty())
-            <x-super-admin.empty icon="queue">No codes match.</x-super-admin.empty>
+            <x-super-admin.empty :clear="array_filter($filters) ? route('super-admin.referrals.codes.index') : null" icon="hashtag">No codes match.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -22,7 +22,7 @@
                     </thead>
                     <tbody>
                         @foreach ($codes as $code)
-                            <tr class="hover:bg-zinc-50/70">
+                            <tr>
                                 <td class="font-mono text-xs font-semibold">{{ $code->code }}</td>
                                 <td>
                                     @if ($code->user)
@@ -44,5 +44,5 @@
         @endif
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $codes->links() }}</div>
+    <x-super-admin.pagination :paginator="$codes" />
 </x-super-admin.layout>

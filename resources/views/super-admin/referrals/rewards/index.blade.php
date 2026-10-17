@@ -4,24 +4,8 @@
     </x-slot:actions>
 
     <x-super-admin.filters :action="route('super-admin.referrals.rewards.index')" :active="(bool) array_filter($filters)">
-        <div>
-            <label for="status" class="sa-label">Status</label>
-            <select id="status" name="status" class="sa-input pr-8">
-                <option value="">Any</option>
-                @foreach (\App\Enums\Referrals\ReferralRewardStatus::cases() as $status)
-                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ str_replace('_', ' ', $status->value) }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label for="reward_type" class="sa-label">Type</label>
-            <select id="reward_type" name="reward_type" class="sa-input pr-8">
-                <option value="">Any</option>
-                @foreach (\App\Enums\Referrals\ReferralRewardType::cases() as $type)
-                    <option value="{{ $type->value }}" @selected(($filters['reward_type'] ?? '') === $type->value)>{{ str_replace('_', ' ', $type->value) }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-super-admin.filter-select name="status" label="Status" :value="$filters['status'] ?? null" :options="\App\Enums\Referrals\ReferralRewardStatus::class" />
+        <x-super-admin.filter-select name="reward_type" label="Type" :value="$filters['reward_type'] ?? null" :options="\App\Enums\Referrals\ReferralRewardType::class" />
         @if ($filters['recipient'] ?? null)
             <input type="hidden" name="recipient" value="{{ $filters['recipient'] }}">
         @endif
@@ -33,7 +17,7 @@
 
     <x-super-admin.card class="mt-6">
         @if ($rewards->isEmpty())
-            <x-super-admin.empty icon="coins">No rewards match.</x-super-admin.empty>
+            <x-super-admin.empty :clear="array_filter($filters) ? route('super-admin.referrals.rewards.index') : null" icon="coins">No rewards match.</x-super-admin.empty>
         @else
             <ul class="divide-y divide-zinc-100">
                 @foreach ($rewards as $reward)
@@ -92,5 +76,5 @@
         @endif
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $rewards->links() }}</div>
+    <x-super-admin.pagination :paginator="$rewards" />
 </x-super-admin.layout>

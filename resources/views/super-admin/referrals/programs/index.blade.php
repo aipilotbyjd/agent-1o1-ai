@@ -5,7 +5,7 @@
 
     <x-super-admin.card>
         @if ($programs->isEmpty())
-            <x-super-admin.empty icon="tag">No referral programs yet.</x-super-admin.empty>
+            <x-super-admin.empty icon="megaphone">No referral programs yet.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -21,9 +21,9 @@
                     </thead>
                     <tbody>
                         @foreach ($programs as $program)
-                            <tr class="hover:bg-zinc-50/70">
+                            <tr>
                                 <td>
-                                    <a href="{{ route('super-admin.referrals.programs.show', $program) }}" class="sa-link">{{ $program->name }}</a>
+                                    <a href="{{ route('super-admin.referrals.programs.show', $program) }}" class="sa-row-link">{{ $program->name }}</a>
                                     @if ($program->is_default)
                                         <span class="ml-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700">Default</span>
                                     @endif

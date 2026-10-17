@@ -1,32 +1,13 @@
 <x-super-admin.layout title="Plan grants" description="Plans held outside a subscription: lifetime purchases, referral time and manual grants">
     <x-super-admin.filters :action="route('super-admin.billing.plan-grants.index')" :active="(bool) array_filter($filters)">
-        <div>
-            <label for="source" class="sa-label">Source</label>
-            <select id="source" name="source" class="sa-input pr-8">
-                <option value="">Any</option>
-                @foreach (\App\Enums\Billing\PlanGrantSource::cases() as $source)
-                    <option value="{{ $source->value }}" @selected(($filters['source'] ?? '') === $source->value)>{{ str_replace('_', ' ', $source->value) }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label for="status" class="sa-label">Status</label>
-            <select id="status" name="status" class="sa-input pr-8">
-                <option value="">Any</option>
-                @foreach (\App\Enums\Billing\PlanGrantStatus::cases() as $status)
-                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->value }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="min-w-72 flex-1">
-            <label for="workspace" class="sa-label">Workspace ID</label>
-            <input id="workspace" name="workspace" type="text" value="{{ $filters['workspace'] ?? '' }}" class="sa-input font-mono">
-        </div>
+        <x-super-admin.filter-select name="source" label="Source" :value="$filters['source'] ?? null" :options="\App\Enums\Billing\PlanGrantSource::class" />
+        <x-super-admin.filter-select name="status" label="Status" :value="$filters['status'] ?? null" :options="\App\Enums\Billing\PlanGrantStatus::class" />
+        <x-super-admin.filter-text name="workspace" label="Workspace" :value="$filters['workspace'] ?? null" placeholder="Paste a workspace ID" mono class="w-full sm:w-96" />
     </x-super-admin.filters>
 
     <x-super-admin.card class="mt-6">
         @if ($grants->isEmpty())
-            <x-super-admin.empty icon="gift">No plan grants match.</x-super-admin.empty>
+            <x-super-admin.empty :clear="array_filter($filters) ? route('super-admin.billing.plan-grants.index') : null" icon="gift">No plan grants match.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -43,7 +24,7 @@
                     </thead>
                     <tbody>
                         @foreach ($grants as $grant)
-                            <tr class="hover:bg-zinc-50/70">
+                            <tr>
                                 <td>
                                     @if ($grant->workspace)
                                         <a href="{{ route('super-admin.workspaces.show', $grant->workspace) }}" class="sa-link">{{ $grant->workspace->name }}</a>
@@ -65,5 +46,5 @@
         @endif
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $grants->links() }}</div>
+    <x-super-admin.pagination :paginator="$grants" />
 </x-super-admin.layout>

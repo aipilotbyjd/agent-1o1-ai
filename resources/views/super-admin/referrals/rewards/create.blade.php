@@ -2,10 +2,9 @@
     @if (! $recipient)
         <x-super-admin.card title="Who is it for?">
             <form method="GET" action="{{ route('super-admin.referrals.rewards.create') }}" class="flex flex-wrap items-end gap-3 px-5 py-4">
-                <div class="min-w-72 flex-1">
-                    <label for="user" class="sa-label">User ID</label>
-                    <input id="user" name="user" type="text" required class="sa-input font-mono" placeholder="Copy it from the user's page">
-                </div>
+                <x-super-admin.field for="user" label="User ID" hint="Copy it from the user's page." class="min-w-72 flex-1">
+                    <input id="user" name="user" type="text" required class="sa-input font-mono" placeholder="9f1c…">
+                </x-super-admin.field>
                 <button type="submit" class="sa-btn-primary">Continue</button>
             </form>
         </x-super-admin.card>
@@ -18,62 +17,53 @@
 
             <x-super-admin.card :title="'For '.$recipient->email">
                 <div class="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-3">
-                    <div>
-                        <label for="workspace_id" class="sa-label">Workspace</label>
+                    <x-super-admin.field for="workspace_id" label="Workspace">
                         <select id="workspace_id" name="workspace_id" class="sa-input pr-8">
                             <option value="">Their current workspace</option>
                             @foreach ($recipient->workspaces as $workspace)
                                 <option value="{{ $workspace->id }}" @selected(old('workspace_id') === $workspace->id)>{{ $workspace->name }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div>
-                        <label for="reward_type" class="sa-label">Type</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="reward_type" label="Type">
                         <select id="reward_type" name="reward_type" required class="sa-input pr-8">
                             @foreach (\App\Enums\Referrals\ReferralRewardType::cases() as $type)
-                                <option value="{{ $type->value }}" @selected(old('reward_type') === $type->value)>{{ str_replace('_', ' ', $type->value) }}</option>
+                                <option value="{{ $type->value }}" @selected(old('reward_type') === $type->value)>{{ $type->label() }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div>
-                        <label for="credits" class="sa-label">Credits</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="credits" label="Credits" data-show-when="reward_type:credits">
                         <input id="credits" name="credits" type="number" min="1" value="{{ old('credits') }}" class="sa-input">
-                    </div>
-                    <div>
-                        <label for="plan_id" class="sa-label">Plan (plan time)</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="plan_id" label="Plan" data-show-when="reward_type:plan_time">
                         <select id="plan_id" name="plan_id" class="sa-input pr-8">
                             <option value="">—</option>
                             @foreach ($plans as $plan)
                                 <option value="{{ $plan->id }}" @selected(old('plan_id') === $plan->id)>{{ $plan->name }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div>
-                        <label for="duration_days" class="sa-label">Plan days</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="duration_days" label="Plan days" data-show-when="reward_type:plan_time">
                         <input id="duration_days" name="duration_days" type="number" min="1" max="3650" value="{{ old('duration_days') }}" class="sa-input">
-                    </div>
-                    <div>
-                        <label for="amount_cents" class="sa-label">Invoice credit (cents)</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="amount_cents" label="Invoice credit (cents)" data-show-when="reward_type:stripe_balance_credit">
                         <input id="amount_cents" name="amount_cents" type="number" min="1" value="{{ old('amount_cents') }}" class="sa-input">
-                    </div>
-                    <div>
-                        <label for="trial_days" class="sa-label">Trial extension days</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="trial_days" label="Trial extension days" data-show-when="reward_type:trial_extension">
                         <input id="trial_days" name="trial_days" type="number" min="1" max="365" value="{{ old('trial_days') }}" class="sa-input">
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label for="notes" class="sa-label">Notes</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="notes" label="Notes" hint="Why you're granting it." class="sm:col-span-2">
                         <input id="notes" name="notes" type="text" maxlength="1000" value="{{ old('notes') }}" class="sa-input">
-                    </div>
-                    <div>
-                        <label for="current_password" class="sa-label">Your password</label>
+                    </x-super-admin.field>
+                    <x-super-admin.field for="current_password" label="Your password">
                         <input id="current_password" name="current_password" type="password" required autocomplete="current-password" class="sa-input">
-                    </div>
+                    </x-super-admin.field>
                 </div>
             </x-super-admin.card>
 
-            <div class="flex justify-end">
+            <x-super-admin.form-actions :cancel="route('super-admin.referrals.rewards.index')">
                 <button type="submit" class="sa-btn-primary">Grant reward</button>
-            </div>
+            </x-super-admin.form-actions>
         </form>
     @endif
 </x-super-admin.layout>

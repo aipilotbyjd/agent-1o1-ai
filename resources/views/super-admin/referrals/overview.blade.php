@@ -16,10 +16,7 @@
             'Invoice credit issued' => '$'.number_format($stats['invoice_credit_cents_issued'] / 100, 2),
             'Credits clawed back' => number_format($stats['credits_clawed_back']),
         ] as $label => $value)
-            <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-zinc-200/80">
-                <p class="text-sm font-medium text-zinc-500">{{ $label }}</p>
-                <p class="mt-2 text-xl font-semibold tracking-tight tabular-nums">{{ $value }}</p>
-            </div>
+            <x-super-admin.stat :label="$label">{{ $value }}</x-super-admin.stat>
         @endforeach
     </section>
 

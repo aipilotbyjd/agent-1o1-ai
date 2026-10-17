@@ -1,19 +1,11 @@
 <x-super-admin.layout title="Failed jobs" description="Queue jobs that ran out of attempts. Payloads are never shown: they hold customer data.">
     <x-super-admin.filters :action="route('super-admin.system.failed-jobs.index')" :active="(bool) array_filter($filters)">
-        <div>
-            <label for="queue" class="sa-label">Queue</label>
-            <select id="queue" name="queue" class="sa-input pr-8">
-                <option value="">Any</option>
-                @foreach ($queues as $queue)
-                    <option value="{{ $queue }}" @selected(($filters['queue'] ?? '') === $queue)>{{ $queue }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-super-admin.filter-select name="queue" label="Queue" :value="$filters['queue'] ?? null" :options="collect($queues)->mapWithKeys(fn (string $queue): array => [$queue => $queue])" />
     </x-super-admin.filters>
 
     <x-super-admin.card class="mt-6">
         @if ($jobs->isEmpty())
-            <x-super-admin.empty icon="check-circle">No failed jobs.</x-super-admin.empty>
+            <x-super-admin.empty :clear="array_filter($filters) ? route('super-admin.system.failed-jobs.index') : null" icon="check-circle">No failed jobs.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -27,10 +19,10 @@
                     </thead>
                     <tbody>
                         @foreach ($jobs as $job)
-                            <tr class="align-top hover:bg-zinc-50/70">
+                            <tr class="align-top">
                                 <td>
-                                    <a href="{{ route('super-admin.system.failed-jobs.show', $job->uuid) }}" class="sa-link">{{ class_basename($job->job) }}</a>
-                                    <p class="font-mono text-xs text-zinc-400">{{ \Illuminate\Support\Str::limit($job->uuid, 8, '') }}</p>
+                                    <a href="{{ route('super-admin.system.failed-jobs.show', $job->uuid) }}" class="sa-row-link">{{ class_basename($job->job) }}</a>
+                                    <p class="flex items-center gap-0.5 font-mono text-xs text-zinc-400">{{ \Illuminate\Support\Str::limit($job->uuid, 8, '') }} <x-super-admin.copy :value="$job->uuid" label="Copy job UUID" /></p>
                                 </td>
                                 <td class="font-mono text-xs">{{ $job->queue }}</td>
                                 <td class="max-w-xl text-xs text-red-700">{{ $job->exception_summary }}</td>
@@ -43,5 +35,5 @@
         @endif
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $jobs->links() }}</div>
+    <x-super-admin.pagination :paginator="$jobs" />
 </x-super-admin.layout>

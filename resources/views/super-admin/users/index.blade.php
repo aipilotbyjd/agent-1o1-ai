@@ -1,35 +1,14 @@
 <x-super-admin.layout title="Users" :description="number_format($users->total()).' '.str('account')->plural($users->total()).' on the platform'">
     <x-super-admin.filters :action="route('super-admin.users.index')" :active="(bool) array_filter($filters)">
-        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Email, name or ID" />
-        <div>
-            <label for="two_factor" class="sa-label">2FA</label>
-            <select id="two_factor" name="two_factor" class="sa-input pr-8">
-                <option value="">Any</option>
-                <option value="enabled" @selected(($filters['two_factor'] ?? '') === 'enabled')>Enabled</option>
-                <option value="disabled" @selected(($filters['two_factor'] ?? '') === 'disabled')>Not enabled</option>
-            </select>
-        </div>
-        <div>
-            <label for="suspended" class="sa-label">Suspended</label>
-            <select id="suspended" name="suspended" class="sa-input pr-8">
-                <option value="">Any</option>
-                <option value="yes" @selected(($filters['suspended'] ?? '') === 'yes')>Suspended</option>
-                <option value="no" @selected(($filters['suspended'] ?? '') === 'no')>Not suspended</option>
-            </select>
-        </div>
-        <div>
-            <label for="verified" class="sa-label">Email verified</label>
-            <select id="verified" name="verified" class="sa-input pr-8">
-                <option value="">Any</option>
-                <option value="yes" @selected(($filters['verified'] ?? '') === 'yes')>Yes</option>
-                <option value="no" @selected(($filters['verified'] ?? '') === 'no')>No</option>
-            </select>
-        </div>
+        <x-super-admin.search :value="$filters['q'] ?? ''" placeholder="Search by email, name or ID" />
+        <x-super-admin.filter-select name="two_factor" label="2FA" :value="$filters['two_factor'] ?? null" :options="['enabled' => 'Enabled', 'disabled' => 'Not enabled']" />
+        <x-super-admin.filter-select name="suspended" label="Suspended" :value="$filters['suspended'] ?? null" :options="['yes' => 'Suspended', 'no' => 'Not suspended']" />
+        <x-super-admin.filter-select name="verified" label="Email verified" :value="$filters['verified'] ?? null" :options="['yes' => 'Yes', 'no' => 'No']" />
     </x-super-admin.filters>
 
     <x-super-admin.card class="mt-6">
         @if ($users->isEmpty())
-            <x-super-admin.empty icon="user">No users match.</x-super-admin.empty>
+            <x-super-admin.empty :clear="array_filter($filters) ? route('super-admin.users.index') : null" icon="user">No users match.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -44,12 +23,12 @@
                     </thead>
                     <tbody>
                         @foreach ($users as $user)
-                            <tr class="relative transition hover:bg-zinc-50/80">
+                            <tr>
                                 <td>
                                     <div class="flex items-center gap-3">
                                         <x-super-admin.avatar :name="$user->name ?: $user->email" />
                                         <div class="min-w-0">
-                                            <a href="{{ route('super-admin.users.show', $user) }}" class="font-medium text-zinc-900 after:absolute after:inset-0">{{ $user->name }}</a>
+                                            <a href="{{ route('super-admin.users.show', $user) }}" class="sa-row-link">{{ $user->name }}</a>
                                             <p class="truncate text-xs text-zinc-500">{{ $user->email }}</p>
                                         </div>
                                         @if ($user->isSuspended())
@@ -69,5 +48,5 @@
         @endif
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $users->links() }}</div>
+    <x-super-admin.pagination :paginator="$users" />
 </x-super-admin.layout>

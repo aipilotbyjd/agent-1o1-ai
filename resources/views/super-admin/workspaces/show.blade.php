@@ -4,7 +4,7 @@
             <x-super-admin.status-badge :status="$subscription->stripe_status" />
         @endif
         <a href="{{ route('super-admin.runs.index', ['workspace' => $workspace->id]) }}" class="sa-btn-secondary">
-            <x-super-admin.icon name="bolt" class="size-4" />
+            <x-super-admin.icon name="play" class="size-4" />
             View runs
         </a>
     </x-slot:actions>
@@ -23,19 +23,14 @@
     @endphp
 
     <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-zinc-200/80">
-            <p class="text-sm font-medium text-zinc-500">Plan</p>
-            <p class="mt-2 text-xl font-semibold tracking-tight">{{ $plan?->name ?? 'None' }}</p>
-        </div>
-        <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-zinc-200/80">
-            <p class="text-sm font-medium text-zinc-500">Credits this period</p>
-            <p class="mt-2 text-xl font-semibold tracking-tight tabular-nums">
-                @if ($usagePeriod)
-                    {{ number_format($creditsUsed) }} <span class="text-sm font-normal text-zinc-500">/ {{ $creditsLimit === null ? 'unlimited' : number_format($creditsLimit) }}</span>
-                @else
-                    <span class="text-zinc-400">No period yet</span>
-                @endif
-            </p>
+        <x-super-admin.stat label="Plan">{{ $plan?->name ?? 'None' }}</x-super-admin.stat>
+        <x-super-admin.stat label="Credits this period">
+            @if ($usagePeriod)
+                {{ number_format($creditsUsed) }} <span class="text-sm font-normal text-zinc-500">/ {{ $creditsLimit === null ? 'unlimited' : number_format($creditsLimit) }}</span>
+            @else
+                <span class="text-zinc-400">No period yet</span>
+            @endif
+            <x-slot:footer>
             @if ($usageFraction !== null)
                 <progress value="{{ round($usageFraction * 100) }}" max="100" @class([
                     'mt-3 h-1.5 w-full overflow-hidden rounded-full [&::-webkit-progress-bar]:bg-zinc-100 [&::-moz-progress-bar]:bg-indigo-500',
@@ -43,21 +38,16 @@
                     '[&::-webkit-progress-value]:bg-critical' => $usageFraction >= 0.9,
                 ])>{{ round($usageFraction * 100) }}%</progress>
             @endif
-        </div>
-        <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-zinc-200/80">
-            <p class="text-sm font-medium text-zinc-500">Top-up credits</p>
-            <p class="mt-2 text-xl font-semibold tracking-tight tabular-nums">{{ number_format($workspace->topup_credits) }}</p>
-        </div>
-        <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-zinc-200/80">
-            <p class="text-sm font-medium text-zinc-500">Workflows · Agents · Runs</p>
-            <p class="mt-2 text-xl font-semibold tracking-tight tabular-nums">{{ number_format($workspace->workflows_count) }} <span class="text-zinc-300">·</span> {{ number_format($workspace->agents_count) }} <span class="text-zinc-300">·</span> {{ number_format($workspace->runs_count) }}</p>
-        </div>
+            </x-slot:footer>
+        </x-super-admin.stat>
+        <x-super-admin.stat label="Top-up credits">{{ number_format($workspace->topup_credits) }}</x-super-admin.stat>
+        <x-super-admin.stat label="Workflows · Agents · Runs">{{ number_format($workspace->workflows_count) }} <span class="text-zinc-300">·</span> {{ number_format($workspace->agents_count) }} <span class="text-zinc-300">·</span> {{ number_format($workspace->runs_count) }}</x-super-admin.stat>
     </section>
 
     <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <x-super-admin.card title="Details">
             <dl class="sa-dl">
-                <div><dt>ID</dt><dd class="font-mono text-xs break-all">{{ $workspace->id }}</dd></div>
+                <div><dt>ID</dt><dd class="font-mono text-xs break-all">{{ $workspace->id }} <x-super-admin.copy :value="$workspace->id" label="Copy workspace ID" /></dd></div>
                 <div><dt>Slug</dt><dd class="font-mono text-xs">{{ $workspace->slug }}</dd></div>
                 <div>
                     <dt>Owner</dt>
@@ -102,12 +92,12 @@
                 </thead>
                 <tbody>
                     @foreach ($workspace->members as $member)
-                        <tr @class(['relative transition hover:bg-zinc-50/80' => $member->user])>
+                        <tr>
                             <td>
                                 @if ($member->user)
                                     <div class="flex items-center gap-3">
                                         <x-super-admin.avatar :name="$member->user->name ?: $member->user->email" size="size-7" />
-                                        <a href="{{ route('super-admin.users.show', $member->user) }}" class="text-zinc-900 after:absolute after:inset-0">{{ $member->user->email }}</a>
+                                        <a href="{{ route('super-admin.users.show', $member->user) }}" class="sa-row-link font-normal">{{ $member->user->email }}</a>
                                     </div>
                                 @else
                                     <span class="text-zinc-500">Deleted user</span>

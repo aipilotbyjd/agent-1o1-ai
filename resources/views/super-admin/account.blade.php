@@ -23,13 +23,9 @@
                 @method('PUT')
 
                 @foreach (['current_password' => 'Current password', 'password' => 'New password', 'password_confirmation' => 'Confirm new password'] as $field => $label)
-                    <div>
-                        <label for="{{ $field }}" class="sa-label">{{ $label }}</label>
+                    <x-super-admin.field :for="$field" :label="$label">
                         <input id="{{ $field }}" name="{{ $field }}" type="password" required autocomplete="{{ $field === 'current_password' ? 'current-password' : 'new-password' }}" class="sa-input">
-                        @error($field)
-                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    </x-super-admin.field>
                 @endforeach
 
                 <button type="submit" class="sa-btn-primary">Update password</button>
@@ -50,13 +46,9 @@
                 <form method="POST" action="{{ route('super-admin.account.recovery-codes') }}" class="mt-4 space-y-4">
                     @csrf
 
-                    <div>
-                        <label for="recovery_current_password" class="sa-label">Current password</label>
+                    <x-super-admin.field for="recovery_current_password" label="Current password" error="current_password" bag="recoveryCodes">
                         <input id="recovery_current_password" name="current_password" type="password" required autocomplete="current-password" class="sa-input">
-                        @error('current_password', 'recoveryCodes')
-                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    </x-super-admin.field>
 
                     <button type="submit" class="sa-btn-secondary">Generate new codes</button>
                 </form>

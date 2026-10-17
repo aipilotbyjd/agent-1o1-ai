@@ -1,40 +1,19 @@
 <x-super-admin.layout title="Credit charges" description="The credit ledger: every charge billed to a workspace">
     <x-super-admin.filters :action="route('super-admin.billing.credits.index')" :active="(bool) array_filter($filters)">
-        <div class="min-w-72 flex-1">
-            <label for="workspace" class="sa-label">Workspace ID</label>
-            <input id="workspace" name="workspace" type="text" value="{{ $filters['workspace'] ?? '' }}" class="sa-input font-mono">
-        </div>
-        <div>
-            <label for="type" class="sa-label">Charged for</label>
-            <select id="type" name="type" class="sa-input pr-8">
-                <option value="">Anything</option>
-                @foreach (\App\Enums\Billing\CreditTransactionType::cases() as $type)
-                    <option value="{{ $type->value }}" @selected(($filters['type'] ?? '') === $type->value)>{{ str_replace('_', ' ', $type->value) }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label for="from" class="sa-label">From</label>
-            <input id="from" name="from" type="date" value="{{ $filters['from'] ?? '' }}" class="sa-input">
-        </div>
-        <div>
-            <label for="to" class="sa-label">To</label>
-            <input id="to" name="to" type="date" value="{{ $filters['to'] ?? '' }}" class="sa-input">
-        </div>
+        <x-super-admin.filter-select name="type" label="Charged for" placeholder="Anything" :value="$filters['type'] ?? null" :options="\App\Enums\Billing\CreditTransactionType::class" />
+        <x-super-admin.filter-dates :from="$filters['from'] ?? null" :to="$filters['to'] ?? null" />
+        <x-super-admin.filter-text name="workspace" label="Workspace" :value="$filters['workspace'] ?? null" placeholder="Paste a workspace ID" mono class="w-full sm:w-96" />
     </x-super-admin.filters>
 
     <section class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         @foreach (['Credits charged' => $totals['credits'], 'From top-up pool' => $totals['topup_credits'], 'Overage' => $totals['overage_credits']] as $label => $value)
-            <div class="rounded-2xl bg-white p-5 shadow-xs ring-1 ring-zinc-200/80">
-                <p class="text-sm font-medium text-zinc-500">{{ $label }}</p>
-                <p class="mt-2 text-xl font-semibold tracking-tight tabular-nums">{{ number_format($value) }}</p>
-            </div>
+            <x-super-admin.stat :label="$label">{{ number_format($value) }}</x-super-admin.stat>
         @endforeach
     </section>
 
     <x-super-admin.card class="mt-6">
         @if ($transactions->isEmpty())
-            <x-super-admin.empty icon="coins">No charges match.</x-super-admin.empty>
+            <x-super-admin.empty :clear="array_filter($filters) ? route('super-admin.billing.credits.index') : null" icon="receipt">No charges match.</x-super-admin.empty>
         @else
             <div class="overflow-x-auto">
                 <table class="sa-table">
@@ -50,7 +29,7 @@
                     </thead>
                     <tbody>
                         @foreach ($transactions as $transaction)
-                            <tr class="hover:bg-zinc-50/70">
+                            <tr>
                                 <td class="whitespace-nowrap text-zinc-500" title="{{ $transaction->created_at }}">{{ $transaction->created_at?->diffForHumans() }}</td>
                                 <td>
                                     @if ($transaction->workspace)
@@ -71,5 +50,5 @@
         @endif
     </x-super-admin.card>
 
-    <div class="mt-4">{{ $transactions->links() }}</div>
+    <x-super-admin.pagination :paginator="$transactions" />
 </x-super-admin.layout>

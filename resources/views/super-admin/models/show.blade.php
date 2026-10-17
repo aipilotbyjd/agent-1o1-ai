@@ -47,7 +47,7 @@
                                             @method('PUT')
                                             <input name="priority" type="number" min="0" max="1000" value="{{ $route->priority }}" class="sa-input mt-0 w-20" aria-label="Priority">
                                             <input type="hidden" name="is_enabled" value="0">
-                                            <input type="checkbox" name="is_enabled" value="1" class="size-4 rounded border-zinc-300 accent-zinc-900" @checked($route->is_enabled) aria-label="Enabled">
+                                            <input type="checkbox" name="is_enabled" value="1" class="sa-switch" @checked($route->is_enabled) aria-label="Enabled">
                                             <button type="submit" class="sa-btn-secondary">Save</button>
                                         </form>
                                     </td>
@@ -103,7 +103,7 @@
                         </div>
                         <label class="flex items-center gap-2 pb-2 text-sm text-zinc-700">
                             <input type="hidden" name="is_enabled" value="0">
-                            <input type="checkbox" name="is_enabled" value="1" class="size-4 rounded border-zinc-300 accent-zinc-900" checked>
+                            <input type="checkbox" name="is_enabled" value="1" class="sa-switch" checked>
                             Enabled
                         </label>
                     </div>
