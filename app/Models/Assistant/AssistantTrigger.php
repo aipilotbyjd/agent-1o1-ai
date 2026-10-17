@@ -2,6 +2,7 @@
 
 namespace App\Models\Assistant;
 
+use App\Casts\Timezone;
 use App\Enums\Assistant\AssistantTriggerStatus;
 use App\Enums\Assistant\AssistantTriggerType;
 use Carbon\CarbonInterface;
@@ -48,6 +49,7 @@ class AssistantTrigger extends Model
         return [
             'type' => AssistantTriggerType::class,
             'status' => AssistantTriggerStatus::class,
+            'timezone' => Timezone::class,
             'run_at' => 'datetime',
             'next_run_at' => 'datetime',
             'last_run_at' => 'datetime',

@@ -36,7 +36,7 @@ class CreateTriggerTool extends AssistantTool
 
     public function description(): Stringable|string
     {
-        return 'Creates a trigger that runs you on your own later: "schedule" repeats on a cron expression in the person\'s timezone '
+        return 'Creates a trigger that runs you on your own later: "schedule" repeats on a cron expression in the person\'s own timezone unless you pass an IANA timezone '
             .'(e.g. "0 9 * * 1-5" = 9:00 on weekdays), "once" runs a single time at run_at (ISO date-time), and "webhook" gives a URL other systems can call. '
             .'The prompt is what you will be asked to do each time, written as an instruction to yourself.';
     }
@@ -54,7 +54,7 @@ class CreateTriggerTool extends AssistantTool
                 'name' => (string) $request['name'],
                 'prompt' => (string) $request['prompt'],
                 'cron' => $request['cron'] ?? null,
-                'timezone' => $request['timezone'] ?? 'UTC',
+                'timezone' => $request['timezone'] ?? null,
                 'run_at' => $request['run_at'] ?? null,
             ], 'assistant');
         } catch (ValidationException $e) {

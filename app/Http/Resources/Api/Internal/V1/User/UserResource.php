@@ -27,6 +27,7 @@ class UserResource extends JsonResource
             'two_factor_enabled' => $this->hasTwoFactorEnabled(),
             'is_platform_admin' => $this->isPlatformAdmin(),
             'avatar' => $this->avatar ? Storage::disk('public')->url($this->avatar) : null,
+            'timezone' => $this->timezone,
             'current_workspace_id' => $this->current_workspace_id,
             'current_workspace' => WorkspaceResource::make($this->whenLoaded('currentWorkspace')),
             'created_at' => $this->created_at,

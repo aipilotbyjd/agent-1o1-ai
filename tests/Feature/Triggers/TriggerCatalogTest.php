@@ -21,3 +21,13 @@ it('lists active presets grouped by category', function () {
     expect($presets)->toHaveKey('schedule');
     expect($presets['github'])->toHaveCount(1);
 });
+
+it('includes a schedule preset\'s cron so the editor can offer it', function () {
+    TriggerPreset::factory()->create(['category' => 'schedule', 'key' => 'schedule.daily', 'type' => 'schedule', 'config' => ['cron' => '0 9 * * *']]);
+
+    Passport::actingAs(User::factory()->create());
+
+    $this->getJson('/api/v1/catalog/trigger-presets')
+        ->assertOk()
+        ->assertJsonPath('data.presets.schedule.0.config.cron', '0 9 * * *');
+});

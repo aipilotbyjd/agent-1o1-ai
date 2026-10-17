@@ -2,70 +2,82 @@
 
 namespace App\Services\Workflows;
 
-use App\Contracts\DeclaresOutputSchema;
-use App\Contracts\HasIcon;
 use App\Contracts\NodeContract;
 use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Nodes\NodeCategory;
-use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
-use App\Nodes\Support\Field;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 /**
- * Resolves a `workflow_nodes.type` string to an executable `NodeContract`
- * instance. Built-in types are bound at boot by `NodeRegistryServiceProvider`;
- * `custom:{id}` types will resolve to a workspace-scoped `CustomNode` row
- * once custom node execution exists: see docs/WORKFLOWS_PLAN.md's "Node
- * contract & registry" section, and `has()` for how they behave until then.
+ * Looks up every node type a workflow graph can hold.
+ *
+ * There are three kinds of type:
+ *
+ * - Built-in: a NodeContract class registered at boot by
+ *   NodeRegistryServiceProvider. The engine resolves it and calls execute().
+ * - Flow-control (loop, join_paths, wait, human_approval, subflow): placeable
+ *   and described, but never resolved, because WorkflowRunner drives them
+ *   itself. Their metadata comes from FlowControlNodes.
+ * - Custom (`custom:{id}`): a workspace's own node. It can be saved and
+ *   published but not run yet.
+ *
+ * Each placeable type is described by one NodeDescriptor, built once and
+ * cached for the life of this singleton. describe() and catalog() both
+ * render from it, so the builder assistant and the editor always agree.
+ *
+ * @see docs/WORKFLOWS_PLAN.md "Node contract & registry"
  */
 class NodeRegistry
 {
     private const string CUSTOM_PREFIX = 'custom:';
 
     /**
+     * Built-in node classes, keyed by type.
+     *
      * @var array<string, class-string<NodeContract>>
      */
     private array $builtins = [];
 
     /**
+     * Descriptors built so far, keyed by type.
+     *
+     * @var array<string, NodeDescriptor>
+     */
+    private array $descriptors = [];
+
+    /**
+     * Register a built-in node class under its type.
+     *
      * @param  class-string<NodeContract>  $class
      */
     public function register(string $type, string $class): void
     {
         $this->builtins[$type] = $class;
+
+        unset($this->descriptors[$type]);
     }
 
     /**
-     * Every caller is really asking "will `resolve()` hand me an executable
-     * node for this type?", so a `custom:{id}` type answers **false** until
-     * custom node execution lands (Stage 11): a `CustomNode` row can be
-     * authored today, but nothing can run one.
+     * Whether resolve() will return an executable node for this type.
      *
-     * Answering `true` for an authored-but-unrunnable custom node and then
-     * throwing from `resolve()` turned an unimplemented feature into a hard
-     * error on every has()-then-resolve() caller: saving a canvas
-     * (`Workflow::replaceGraph()`), publishing it (`GraphValidator`),
-     * testing a node (`NodeTester`), binding one as an agent tool, and every
-     * agent turn whose bindings included one. Answering `false` puts custom
-     * types on exactly the path the engine already has for a type it doesn't
-     * know: schema checks skip it, `ToolRegistry` drops the binding, and a
-     * run that reaches one fails that single node with `resolve()`'s message
-     * instead of taking the whole request down.
+     * Custom types answer false until custom node execution exists (Stage 11).
+     * Answering true and then throwing from resolve() turned an unbuilt
+     * feature into a hard error for every has()-then-resolve() caller: saving
+     * a canvas, publishing, testing a node, binding an agent tool. Answering
+     * false sends custom types down the path an unknown type already takes:
+     * schema checks skip it, ToolRegistry drops the binding, and a run that
+     * reaches one fails only that node.
      */
     public function has(string $type): bool
     {
-        if (str_starts_with($type, self::CUSTOM_PREFIX)) {
-            return false;
-        }
-
-        return isset($this->builtins[$type]);
+        return ! $this->isCustom($type) && isset($this->builtins[$type]);
     }
 
     /**
-     * A workspace-defined `custom:{id}` node. Graphs may hold one: it saves
-     * and publishes, and fails only at run time (see `resolve()`) so the
-     * rest of the graph can route around it, even though `has()` is false.
+     * Whether this is a workspace's own `custom:{id}` node.
+     *
+     * A graph may hold one: it saves and publishes, and fails only when a run
+     * reaches it, so the rest of the graph can route around it.
      */
     public function isCustom(string $type): bool
     {
@@ -73,9 +85,7 @@ class NodeRegistry
     }
 
     /**
-     * Engine-driven types (loop, subflow, wait, human_approval, join_paths):
-     * placeable on a graph, but never `resolve()`d: `WorkflowRunner`
-     * drives them itself. See `has()` for why they aren't `$builtins`.
+     * Whether this is an engine-driven type that is never resolved.
      */
     public function isFlowControl(string $type): bool
     {
@@ -83,9 +93,11 @@ class NodeRegistry
     }
 
     /**
-     * Whether `$type` can be placed on a graph at all: a built-in node or
-     * a flow-control type. What authoring (the builder assistant, a canvas
-     * save) should ask; `has()` is for callers about to `resolve()`.
+     * Whether this type can be placed on a graph: a built-in or flow-control
+     * node.
+     *
+     * Authoring code (a canvas save, the builder assistant) should ask this;
+     * has() is for callers about to resolve().
      */
     public function isPlaceable(string $type): bool
     {
@@ -93,70 +105,18 @@ class NodeRegistry
     }
 
     /**
-     * The config schema for any placeable type, or null for one that isn't.
+     * Build an executable instance of a built-in node.
      *
-     * @return array<string, mixed>|null
-     */
-    public function configSchemaFor(string $type): ?array
-    {
-        return $this->describe($type)['config_schema'] ?? null;
-    }
-
-    /**
-     * Name, description, category and config schema for any placeable type:
-     * the catalog entry without the display-only fields, and without the
-     * `NodeCategory` query `catalog()` needs.
+     * A fresh instance each call, unlike descriptors: a node may hold
+     * per-execution state.
      *
-     * @return array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema?: array<string, mixed>}|null
+     * @throws InvalidArgumentException for a custom or unknown type
      */
-    public function describe(string $type): ?array
-    {
-        if ($this->has($type)) {
-            $node = $this->resolve($type);
-
-            return [
-                'type' => $type,
-                'category' => $node->category(),
-                'name' => $node->name(),
-                'description' => $node->description(),
-                'config_schema' => $node->configSchema(),
-                ...($node instanceof DeclaresOutputSchema ? ['output_schema' => $node->outputSchema()] : []),
-            ];
-        }
-
-        $definition = collect($this->flowControlDefinitions())->firstWhere('type', $type);
-
-        return $definition === null ? null : [
-            'type' => $definition['type'],
-            'category' => 'flow-logic',
-            'name' => $definition['name'],
-            'description' => $definition['description'],
-            'config_schema' => $definition['config_schema'],
-        ];
-    }
-
-    /**
-     * `describe()` for every placeable type: built-ins first, then
-     * flow-control.
-     *
-     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}>
-     */
-    public function placeableTypes(): array
-    {
-        return array_map(
-            fn (string $type): array => $this->describe($type),
-            [...array_keys($this->builtins), ...array_map(fn (FlowControlNodeType $case): string => $case->value, FlowControlNodeType::cases())],
-        );
-    }
-
     public function resolve(string $type): NodeContract
     {
-        // Reached only from the engine's own execute path (`has()` says
-        // false, so nothing validates its way here): the message is
-        // persisted onto the failing `NodeRun` and read by whoever is
-        // watching the run, so it stays user-facing. See
-        // docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 11 for the work itself.
-        if (str_starts_with($type, self::CUSTOM_PREFIX)) {
+        // These messages are saved on the failing NodeRun and shown to whoever
+        // is watching the run, so they're written for people, not developers.
+        if ($this->isCustom($type)) {
             throw new InvalidArgumentException("Custom nodes can't be executed yet (type [{$type}]).");
         }
 
@@ -168,8 +128,8 @@ class NodeRegistry
     }
 
     /**
-     * Every registered built-in node: what a `tool`-type step, and later an
-     * Agent's tool list, can be pointed at.
+     * Every built-in node class, keyed by type: what a `tool` step or an
+     * agent's tool list can point at.
      *
      * @return array<string, class-string<NodeContract>>
      */
@@ -179,131 +139,145 @@ class NodeRegistry
     }
 
     /**
-     * Every built-in node's catalog metadata, including the engine-driven
-     * flow-control types (Loop/JoinPaths/Wait/HumanApproval/SubWorkflow):
-     * see `has()`'s docblock for why those aren't in `$builtins`. `icon`/
-     * `color` come from the node's `NodeCategory` row; `requires_connector`
-     * is derived from whether the class uses `ResolvesConnectorCredential`.
+     * The descriptor for a placeable type, or null for any other type.
+     */
+    public function descriptor(string $type): ?NodeDescriptor
+    {
+        if ($this->has($type)) {
+            return $this->descriptors[$type] ??= NodeDescriptor::fromNode($type, $this->resolve($type));
+        }
+
+        $flowControl = FlowControlNodeType::tryFrom($type);
+
+        if ($flowControl === null) {
+            return null;
+        }
+
+        return $this->descriptors[$type] ??= FlowControlNodes::descriptor($flowControl);
+    }
+
+    /**
+     * The config schema for a placeable type, or null for any other type.
      *
-     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema: array<string, mixed>|null, icon: ?string, color: ?string, requires_connector: bool}>
+     * @return array<string, mixed>|null
+     */
+    public function configSchemaFor(string $type): ?array
+    {
+        return $this->descriptor($type)?->configSchema;
+    }
+
+    /**
+     * A placeable type's name, description, category and schemas, without the
+     * display fields catalog() adds.
+     *
+     * @return array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema?: array<string, mixed>}|null
+     */
+    public function describe(string $type): ?array
+    {
+        return $this->descriptor($type)?->toDescription();
+    }
+
+    /**
+     * describe() for every type a new graph may use, built-ins first and then
+     * flow-control.
+     *
+     * Retired types (the manual trigger) are left out. They stay placeable,
+     * so graphs that already hold one still save.
+     *
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema?: array<string, mixed>}>
+     */
+    public function placeableTypes(): array
+    {
+        return $this->allDescriptors()
+            ->filter(fn (NodeDescriptor $descriptor): bool => $descriptor->listed)
+            ->map(fn (NodeDescriptor $descriptor): array => $descriptor->toDescription())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Every node as the editor's node library shows it, built-ins first and
+     * then flow-control.
+     *
+     * Icon and colour come from the node's category. Retired types are
+     * included with `listed` false, so saved graphs that hold one still
+     * render. With `triggers.nodes_enabled` off, the trigger nodes and the
+     * "Activate as flow trigger" switch are left out.
+     *
+     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema: array<string, mixed>|null, icon: ?string, color: ?string, requires_connector: bool, node_kind: 'trigger'|'action', supports_trigger: bool, listed: bool}>
      */
     public function catalog(): array
     {
-        $categories = NodeCategory::query()->get()->keyBy('slug');
+        $categories = $this->categories();
+        $triggersEnabled = $this->triggersEnabled();
 
-        $builtins = collect($this->builtins)
-            ->map(function (string $class, string $type) use ($categories): array {
-                $node = app($class);
-                $category = $categories->get($node->category());
-
-                return [
-                    'type' => $type,
-                    'category' => $node->category(),
-                    'name' => $node->name(),
-                    'description' => $node->description(),
-                    'config_schema' => $node->configSchema(),
-                    'output_schema' => $node instanceof DeclaresOutputSchema ? $node->outputSchema() : null,
-                    'icon' => $node instanceof HasIcon ? $node->icon() : $category?->icon,
-                    'color' => $category?->color,
-                    'requires_connector' => $this->usesConnectorCredential($class),
-                ];
-            })
-            ->values();
-
-        return $builtins->concat($this->flowControlCatalog($categories))->all();
+        return $this->allDescriptors()
+            ->reject(fn (NodeDescriptor $descriptor): bool => $descriptor->isTriggerNode && ! $triggersEnabled)
+            ->map(fn (NodeDescriptor $descriptor): array => $descriptor->toCatalogEntry($categories->get($descriptor->category), $triggersEnabled))
+            ->values()
+            ->all();
     }
 
     /**
-     * @param  class-string<NodeContract>  $class
-     */
-    private function usesConnectorCredential(string $class): bool
-    {
-        return in_array(ResolvesConnectorCredential::class, class_uses_recursive($class), true);
-    }
-
-    /**
-     * Static metadata for the flow-control types: they never go through
-     * `execute()`, so there's no `NodeContract` instance to read from.
+     * The reader nodes that can start a flow, as the Triggers & Events
+     * category lists them, sorted by name.
      *
-     * @param  Collection<string, NodeCategory>  $categories  keyed by slug
-     * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>, output_schema: null, icon: ?string, color: ?string, requires_connector: bool}>
+     * Each is named for its event ("Gmail: New email") and flagged
+     * `trigger_mode`, so the editor adds it with "Activate as flow trigger"
+     * already on. It keeps its own type and category.
+     *
+     * @return array<int, array<string, mixed>>
      */
-    private function flowControlCatalog(Collection $categories): array
+    public function triggerCatalog(): array
     {
-        $flowLogic = $categories->get('flow-logic');
+        if (! $this->triggersEnabled()) {
+            return [];
+        }
 
-        return array_map(fn (array $node): array => [
-            ...$node,
-            'category' => 'flow-logic',
-            'output_schema' => null,
-            'color' => $flowLogic?->color,
-            'requires_connector' => false,
-        ], $this->flowControlDefinitions());
+        $categories = $this->categories();
+
+        return $this->allDescriptors()
+            ->filter(fn (NodeDescriptor $descriptor): bool => $descriptor->supportsTriggerMode && $descriptor->listed)
+            ->map(fn (NodeDescriptor $descriptor): array => $descriptor->toTriggerCatalogEntry($categories->get($descriptor->category)))
+            ->sortBy('name')
+            ->values()
+            ->all();
     }
 
     /**
-     * @return array<int, array{type: string, icon: string, name: string, description: string, config_schema: array<string, mixed>}>
+     * Descriptors for every placeable type, built-ins first and then
+     * flow-control.
+     *
+     * @return Collection<int, NodeDescriptor>
      */
-    private function flowControlDefinitions(): array
+    private function allDescriptors(): Collection
     {
-        return [
-            [
-                'type' => FlowControlNodeType::Loop->value,
-                'icon' => 'repeat',
-                'name' => 'Loop',
-                'description' => 'Runs a child workflow once per item in a list, up to a concurrency limit.',
-                'config_schema' => [
-                    'type' => 'object',
-                    'required' => ['items_path', 'workflow_id'],
-                    'properties' => [
-                        'items_path' => Field::text('List to loop over', 'A path to a list in the run, e.g. nodes.fetch.output.rows.', 'nodes.fetch.output.rows'),
-                        'workflow_id' => Field::dynamic('Workflow to run per item', 'workspace.workflows', allowCustom: false),
-                        'max_concurrent' => Field::integer('Items at once', 'How many items run in parallel.', 1, 1, 50),
-                        'on_item_error' => Field::select('If an item fails', ['fail_fast' => 'Stop the loop', 'continue' => 'Skip it and continue', 'collect_errors' => 'Continue and collect errors'], default: 'fail_fast'),
-                    ],
-                ],
-            ],
-            [
-                'type' => FlowControlNodeType::JoinPaths->value,
-                'icon' => 'git-merge',
-                'name' => 'Join Paths',
-                'description' => 'Waits for every incoming branch to reach it before continuing.',
-                'config_schema' => ['type' => 'object', 'properties' => []],
-            ],
-            [
-                'type' => FlowControlNodeType::Wait->value,
-                'icon' => 'hourglass',
-                'name' => 'Wait',
-                'description' => 'Pauses the run until an external callback resumes it, or until it times out.',
-                'config_schema' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'timeout_seconds' => ['type' => ['integer', 'null'], 'title' => 'Time out after (seconds)', 'description' => 'Leave empty to wait indefinitely.', 'x-widget' => 'number'],
-                        'continue_on_timeout' => Field::boolean('Continue on timeout', 'Carry on instead of failing the run when it times out.'),
-                    ],
-                ],
-            ],
-            [
-                'type' => FlowControlNodeType::HumanApproval->value,
-                'icon' => 'user-check-01',
-                'name' => 'Human Approval',
-                'description' => 'Pauses the run until a workspace member approves or rejects it.',
-                'config_schema' => ['type' => 'object', 'properties' => []],
-            ],
-            [
-                'type' => FlowControlNodeType::SubWorkflow->value,
-                'icon' => 'workflow-square-02',
-                'name' => 'Sub-Workflow',
-                'description' => 'Runs another workflow as a child run and waits for it to complete.',
-                'config_schema' => [
-                    'type' => 'object',
-                    'required' => ['workflow_id'],
-                    'properties' => [
-                        'workflow_id' => Field::dynamic('Workflow', 'workspace.workflows', allowCustom: false),
-                        'input' => ['type' => ['object', 'null'], 'title' => 'Input', 'description' => 'Passed to the workflow as its run input (JSON).', 'x-widget' => 'json'],
-                    ],
-                ],
-            ],
+        $types = [
+            ...array_keys($this->builtins),
+            ...array_map(fn (FlowControlNodeType $case): string => $case->value, FlowControlNodeType::cases()),
         ];
+
+        return collect($types)->map(fn (string $type): NodeDescriptor => $this->descriptor($type));
+    }
+
+    /**
+     * Node categories keyed by slug.
+     *
+     * Queried on each call rather than cached: a category's colour or icon
+     * can change while a long-running worker holds this singleton.
+     *
+     * @return Collection<string, NodeCategory>
+     */
+    private function categories(): Collection
+    {
+        return NodeCategory::query()->get()->keyBy('slug');
+    }
+
+    /**
+     * Whether trigger nodes are rolled out (`triggers.nodes_enabled`).
+     */
+    private function triggersEnabled(): bool
+    {
+        return (bool) config('triggers.nodes_enabled');
     }
 }

@@ -2,9 +2,12 @@
 
 namespace App\Services\Workspaces;
 
+use App\Enums\Triggers\TriggerType;
 use App\Enums\Workspaces\Role;
+use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Timezones\Timezones;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -12,7 +15,7 @@ use Illuminate\Support\Str;
 class WorkspaceService
 {
     /**
-     * @param  array{name: string, avatar?: string|null}  $data
+     * @param  array{name: string, avatar?: string|null, timezone?: string}  $data
      */
     public function create(User $owner, array $data): Workspace
     {
@@ -21,6 +24,7 @@ class WorkspaceService
                 'name' => $data['name'],
                 'slug' => $this->suggestSlug($data['name']),
                 'avatar' => $data['avatar'] ?? null,
+                'timezone' => $data['timezone'] ?? Timezones::DEFAULT,
                 'owner_id' => $owner->id,
             ]);
 
@@ -46,13 +50,35 @@ class WorkspaceService
     }
 
     /**
-     * @param  array{name?: string}  $data
+     * @param  array{name?: string, timezone?: string}  $data
      */
     public function update(Workspace $workspace, array $data): Workspace
     {
         $workspace->update($data);
 
+        if ($workspace->wasChanged('timezone')) {
+            $this->rescheduleTriggers($workspace);
+        }
+
         return $workspace;
+    }
+
+    /**
+     * Move every schedule that runs in the workspace timezone, having none of
+     * its own, onto the new one.
+     */
+    private function rescheduleTriggers(Workspace $workspace): void
+    {
+        $workspace->triggers()
+            ->where('type', TriggerType::Schedule)
+            ->each(function (Trigger $trigger) use ($workspace): void {
+                if (filled($trigger->config['timezone'] ?? null)) {
+                    return;
+                }
+
+                $trigger->setRelation('workspace', $workspace);
+                $trigger->forceFill(['next_run_at' => $trigger->nextRun(now(), allowCurrentMinute: true)])->save();
+            });
     }
 
     public function updateAvatar(Workspace $workspace, string $path): Workspace

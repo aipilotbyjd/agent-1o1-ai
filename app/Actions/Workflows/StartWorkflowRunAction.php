@@ -28,6 +28,10 @@ class StartWorkflowRunAction
     public function __construct(private readonly CreditGate $creditGate) {}
 
     /**
+     * `$entryNodeKey` names the trigger node a trigger-fired run starts
+     * from: the graph's other trigger nodes are skipped (see
+     * `GraphAdvancer::startEntries()`). Null starts every entry node.
+     *
      * @param  array<string, mixed>  $input
      */
     public function execute(
@@ -37,6 +41,7 @@ class StartWorkflowRunAction
         string $triggerType = 'manual',
         ?NodeRun $parentNode = null,
         ?int $loopIndex = null,
+        ?string $entryNodeKey = null,
     ): Run {
         if (! $workflow->isPublished()) {
             throw new WorkflowValidationException(['The workflow must be published before it can run.']);
@@ -59,6 +64,7 @@ class StartWorkflowRunAction
             'workflow_id' => $workflow->id,
             'workflow_version_id' => $workflow->current_version_id,
             'trigger_type' => $triggerType,
+            'entry_node_key' => $entryNodeKey,
             'input' => $input,
             'triggered_by' => $triggeredBy?->id,
             'parent_run_id' => $parentNode?->run_id,

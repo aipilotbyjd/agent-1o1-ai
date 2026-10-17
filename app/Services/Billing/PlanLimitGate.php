@@ -66,6 +66,8 @@ class PlanLimitGate
             PlanLimit::Members => $workspace->members()->count()
                 + $workspace->invitations()->pending()->count(),
             PlanLimit::Pages => $workspace->workflowPages()->count(),
+            // Switched-off triggers are free: only what's actually listening counts.
+            PlanLimit::ActiveTriggers => $workspace->triggers()->where('is_active', true)->count(),
         };
     }
 }

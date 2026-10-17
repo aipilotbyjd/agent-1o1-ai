@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\User;
 
+use App\Rules\Timezone;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,6 +28,8 @@ class UpdateUserRequest extends FormRequest
                 // them silently fails at confirmation time.
                 Rule::unique('users', 'pending_email')->ignore($this->user()->getKey()),
             ],
+            // Empty follows the workspace timezone.
+            'timezone' => ['sometimes', 'nullable', 'string', new Timezone],
         ];
     }
 

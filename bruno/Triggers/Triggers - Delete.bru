@@ -18,5 +18,8 @@ params:path {
 docs {
   Deletes a trigger. Requires the `trigger.manage` permission.
 
+  A trigger owned by a canvas node (`trigger_node_key` set) can't be deleted
+  here (422): remove its node from the canvas and publish instead.
+
   Responds `204 No Content` with no envelope.
 }

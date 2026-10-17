@@ -4,6 +4,9 @@ namespace App\Notifications\Auth;
 
 use App\Enums\Auth\AuthEvent;
 use App\Enums\Queue;
+use App\Models\User;
+use App\Services\Timezones\Timezones;
+use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -15,18 +18,22 @@ use Illuminate\Notifications\Notification;
  * `AdminAlertNotification` uses, so adding an alert only means flipping
  * `AuthEvent::notifiesUser()`.
  *
- * The IP and user agent are captured when the event is recorded, not when a
- * worker picks the job up, because by then the request is long gone.
+ * The time, IP and user agent are captured when the event is recorded, not
+ * when a worker picks the job up, because by then the request is long gone.
+ * The time is shown in the member's own timezone.
  */
 class SecurityAlertNotification extends Notification implements ShouldQueue
 {
     use Queueable;
+
+    public readonly CarbonImmutable $occurredAt;
 
     public function __construct(
         public readonly AuthEvent $event,
         public readonly ?string $ipAddress = null,
         public readonly ?string $userAgent = null,
     ) {
+        $this->occurredAt = CarbonImmutable::now();
         $this->onQueue(Queue::Notification->value);
         $this->afterCommit();
     }
@@ -39,13 +46,20 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
         return ['mail'];
     }
 
+    private function when(object $notifiable): string
+    {
+        $timezone = $notifiable instanceof User ? $notifiable->timezoneIn($notifiable->currentWorkspace) : Timezones::DEFAULT;
+
+        return $this->occurredAt->setTimezone($timezone)->toDayDateTimeString().' '.$timezone;
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
             ->subject($this->event->label().' - '.config('app.name'))
             ->greeting('Security alert')
             ->line($this->event->label().' on your '.config('app.name').' account.')
-            ->line('When: '.now()->toDayDateTimeString().' UTC');
+            ->line('When: '.$this->when($notifiable));
 
         if ($this->ipAddress !== null) {
             $mail->line('IP address: '.$this->ipAddress);

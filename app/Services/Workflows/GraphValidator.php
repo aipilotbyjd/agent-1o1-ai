@@ -2,7 +2,13 @@
 
 namespace App\Services\Workflows;
 
+use App\Enums\Triggers\TriggerNodeType;
 use App\Models\Workflows\WorkflowEdge;
+use App\Rules\SafeOutboundUrl;
+use App\Services\Timezones\Timezones;
+use App\Services\Triggers\TriggerNodes;
+use Cron\CronExpression;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Runs at both draft-save time (`Workflow::replaceGraph()`, config-schema
@@ -71,7 +77,54 @@ class GraphValidator
             return $issues;
         }
 
-        return [...$this->unknownTypeErrors($nodes), ...$this->nodeConfigErrors($nodes), ...WorkflowIo::issues($nodes)];
+        return [...$this->unknownTypeErrors($nodes), ...$this->nodeConfigErrors($nodes), ...$this->triggerConfigErrors($nodes), ...WorkflowIo::issues($nodes)];
+    }
+
+    /**
+     * What a trigger node's schema can't express: publishing materializes
+     * it into a `triggers` row (`TriggerNodeSync`) that the scheduler parses
+     * every minute and the poller fetches server-side, so the same checks
+     * `StoreTriggerRequest` applies to a hand-made trigger apply here.
+     *
+     * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
+     * @return array<int, ValidationIssue>
+     */
+    private function triggerConfigErrors(array $nodes): array
+    {
+        $errors = [];
+
+        foreach ($nodes as $node) {
+            $config = $node['config'] ?? [];
+
+            switch (TriggerNodeType::tryFrom((string) $node['type'])) {
+                case TriggerNodeType::Schedule:
+                    if (filled($config['cron'] ?? null) && ! CronExpression::isValidExpression((string) $config['cron'])) {
+                        $errors[] = new ValidationIssue('This schedule is not a valid cron expression.', $node['key'], 'cron');
+                    }
+
+                    if (filled($config['timezone'] ?? null) && Timezones::canonical($config['timezone']) === null) {
+                        $errors[] = new ValidationIssue('Pick a timezone from the list.', $node['key'], 'timezone');
+                    }
+
+                    break;
+                case TriggerNodeType::Webhook:
+                    if (filled($config['header_name'] ?? null) && ! preg_match('/^[A-Za-z0-9-]{1,64}$/', (string) $config['header_name'])) {
+                        $errors[] = new ValidationIssue('A header name can only use letters, numbers and dashes.', $node['key'], 'header_name');
+                    }
+
+                    break;
+                case TriggerNodeType::Polling:
+                    if (filled($config['url'] ?? null) && Validator::make(['url' => $config['url']], ['url' => [new SafeOutboundUrl]])->fails()) {
+                        $errors[] = new ValidationIssue('The polling URL must be a public http(s) address.', $node['key'], 'url');
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return $errors;
     }
 
     /**
@@ -114,7 +167,36 @@ class GraphValidator
 
         $keys = array_map(fn (array $node) => $node['key'], $nodes);
 
-        return $this->danglingEdgeErrors($keys, $edges);
+        return [...$this->danglingEdgeErrors($keys, $edges), ...$this->triggerInboundErrors($nodes, $edges)];
+    }
+
+    /**
+     * A trigger is where a run starts, so nothing can lead into it.
+     *
+     * @param  array<int, array<string, mixed>>  $nodes
+     * @param  array<int, array<string, mixed>>  $edges
+     * @return array<int, ValidationIssue>
+     */
+    private function triggerInboundErrors(array $nodes, array $edges): array
+    {
+        $triggerKeys = [];
+        $triggerNodes = app(TriggerNodes::class);
+
+        foreach ($nodes as $node) {
+            if ($triggerNodes->isTriggerEntry($node)) {
+                $triggerKeys[$node['key']] = true;
+            }
+        }
+
+        $errors = [];
+
+        foreach (array_unique(array_column($edges, 'to')) as $to) {
+            if (isset($triggerKeys[$to])) {
+                $errors[] = new ValidationIssue('A trigger must be the first step: remove the connection leading into it.', $to, detail: "Trigger node '{$to}' has an incoming edge.");
+            }
+        }
+
+        return $errors;
     }
 
     /**

@@ -18,6 +18,7 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
     // Workflow triggers
     Schedule::command('triggers:run-due')->everyMinute();
     Schedule::command('triggers:retry-stuck')->everyFiveMinutes();
+    Schedule::command('triggers:prune-events')->dailyAt((string) config('triggers.prune_at'));
 
     // Agents
     Schedule::command('agents:expire-actions')->everyMinute();

@@ -5,31 +5,30 @@ namespace App\Contracts\Triggers;
 use App\Models\Triggers\Trigger;
 
 /**
- * The seam between the trigger system and whatever a trigger actually starts.
+ * Starts whatever a trigger points at, a workflow or an agent.
  *
- * `docs/TRIGGERS_PLAN.md`'s prerequisites table names this as
- * `StartWorkflowRunAction`/`AgentRunner` directly: this interface exists so
- * neither `TriggerService` nor `FireTriggerEvent` has to know which of the two
- * a given trigger points at. `App\Services\Triggers\TargetRunStarter` is the
- * implementation bound in `AppServiceProvider::register()`.
+ * The trigger pipeline (TriggerService, FireTriggerEvent) talks only to this
+ * interface, so it never needs to know which kind of target it has.
+ * TargetRunStarter is the implementation, bound in AppServiceProvider.
  */
 interface RunStarter
 {
     /**
-     * Whether the trigger's target can currently be run, e.g. a Workflow is
-     * published and not soft-deleted, or an Agent is not soft-deleted.
+     * Whether the target can run right now: a workflow that is published and
+     * not deleted, or an agent that is not deleted.
      */
     public function canRun(Trigger $trigger): bool;
 
     /**
-     * Whether the target already has a run in flight. Checked only on the
-     * manual-run path: see docs/TRIGGERS_PLAN.md's design decisions table.
+     * Whether the target already has a run in flight.
+     *
+     * Asked by "Run now" (to answer "busy") and by triggers set to skip
+     * events while the last run is still going.
      */
     public function isAlreadyRunning(Trigger $trigger): bool;
 
     /**
-     * Start the target with the given (already-filtered, already-templated)
-     * payload, returning an id `TriggerEvent::markFired()` can point at.
+     * Start the target with an event's payload and return the new run's id.
      *
      * @param  array<string, mixed>  $payload
      */

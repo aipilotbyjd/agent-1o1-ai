@@ -10,6 +10,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * A ready-made trigger setup: a provider's webhook (GitHub push, Stripe
+ * event...) with its signature scheme and dedupe rules, or a common schedule.
+ *
+ * Seeded by TriggerPresetSeeder and listed by the trigger-presets catalog.
+ * Used by triggers made through the API; trigger nodes on the canvas choose
+ * their authentication on the node instead.
+ */
 #[Fillable([
     'category', 'key', 'name', 'description', 'type', 'signature_scheme',
     'dedupe_header', 'dedupe_payload_path', 'config', 'fields', 'is_active', 'sort_order',
@@ -20,6 +28,8 @@ class TriggerPreset extends Model
     use HasFactory, HasUuids;
 
     /**
+     * Defaults for a new preset: active, first in its category.
+     *
      * @var array<string, mixed>
      */
     protected $attributes = [
@@ -28,6 +38,8 @@ class TriggerPreset extends Model
     ];
 
     /**
+     * The attribute casts.
+     *
      * @return array<string, string>
      */
     protected function casts(): array
@@ -41,6 +53,9 @@ class TriggerPreset extends Model
         ];
     }
 
+    /**
+     * Triggers created from this preset.
+     */
     public function triggers(): HasMany
     {
         return $this->hasMany(Trigger::class, 'preset_id');

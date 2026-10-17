@@ -1,28 +1,80 @@
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| Workflow & agent triggers
+|--------------------------------------------------------------------------
+|
+| Everything that starts runs automatically: schedules, webhooks, polling
+| (plain URLs and app readers switched on as flow triggers) and manual
+| "Run now". See docs/TRIGGERS_PLAN.md for the pipeline. Plan-level caps
+| (how many active triggers a workspace may have) are not here: they're the
+| `active_triggers` key of each plan's `limits` (PlanLimit::ActiveTriggers).
+|
+| The assistant's own triggers are configured in config/assistant.php.
+*/
+
 return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rollout
+    |--------------------------------------------------------------------------
+    |
+    | Off hides the trigger nodes, the app triggers in Triggers & Events and
+    | the "Activate as flow trigger" switch from the node catalog, so the
+    | editor can't add new ones. Triggers already published keep running.
+    */
+
+    'nodes_enabled' => (bool) env('TRIGGERS_NODES_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------
     | Circuit breaker
     |--------------------------------------------------------------------------
     |
-    | Consecutive event failures (see Trigger::recordFailure()) before a
-    | trigger is automatically disabled. A success resets the streak.
+    | A trigger switches itself off, and its owners are notified, after this
+    | many failed events in a row (Trigger::recordFailure()). One run that
+    | starts resets the streak; switching it back on does too.
+    |
+    | A trigger can set its own limit (`config.max_failures`, the "Switch off
+    | after failures in a row" setting) within `max_failures_range`.
+    |
+    | Separately, events dropped without running (out of credits, or the
+    | last run still going under the "skip" overlap policy) switch it off
+    | after `skips_before_disable` in a row: it fires far more often than
+    | the workspace can actually run it (Trigger::recordSkip()).
     */
 
-    'failures_before_disable' => (int) env('TRIGGERS_FAILURES_BEFORE_DISABLE', 5),
+    'failures_before_disable' => (int) env('TRIGGERS_FAILURES_BEFORE_DISABLE', 3),
+
+    'max_failures_range' => [1, 20],
+
+    'skips_before_disable' => (int) env('TRIGGERS_SKIPS_BEFORE_DISABLE', 25),
 
     /*
     |--------------------------------------------------------------------------
-    | Webhook intake
+    | Webhooks
     |--------------------------------------------------------------------------
+    |
+    | `POST /api/hooks/{token}`: the token is the whole of the auth, so these
+    | keep a leaked or hammered URL cheap.
+    |
+    | - hook_rate_limit_per_minute: per token (the `trigger-hooks` limiter,
+    |   shared with Wait callbacks); excess gets a 429.
+    | - max_webhook_body_kb: larger bodies get a 413 before anything is
+    |   parsed or stored.
+    | - payload_snippet_chars: how much of the raw body an event keeps for
+    |   display, alongside the parsed payload.
+    | - allowed_headers: the only request headers ever stored on an event.
     */
 
     'hook_rate_limit_per_minute' => (int) env('TRIGGERS_HOOK_RATE_LIMIT_PER_MINUTE', 120),
 
-    // Request headers allow-listed into trigger_events.headers: everything
-    // else is dropped before it's ever persisted.
+    'max_webhook_body_kb' => (int) env('TRIGGERS_MAX_WEBHOOK_BODY_KB', 1024),
+
+    'payload_snippet_chars' => (int) env('TRIGGERS_PAYLOAD_SNIPPET_CHARS', 5000),
+
     'allowed_headers' => [
         'X-GitHub-Delivery',
         'X-GitHub-Event',
@@ -36,41 +88,91 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Schedules
+    |--------------------------------------------------------------------------
+    |
+    | `triggers:run-due` (every minute) fires each schedule whose
+    | `next_run_at` has arrived. A slot missed while the scheduler was down
+    | still fires once if it's no older than `schedule_catch_up_minutes`;
+    | older slots are skipped rather than fired late.
+    */
+
+    'schedule_catch_up_minutes' => (int) env('TRIGGERS_SCHEDULE_CATCH_UP_MINUTES', 10),
+
+    /*
+    |--------------------------------------------------------------------------
     | Polling
     |--------------------------------------------------------------------------
+    |
+    | Plain polling triggers and app readers switched on as flow triggers.
+    |
+    | - poll_every_minutes: the interval for a plain polling trigger that
+    |   doesn't set one. App readers bring their own default (1 minute for
+    |   inboxes, chat and Sheets, 5 for the rest).
+    | - min_poll_interval_minutes: no trigger polls more often than this.
+    | - poll_max_items: items one poll looks at. The rest wait for the next
+    |   poll, so one huge response can't start thousands of runs at once.
+    | - poll_lock_seconds: how long a poll holds its trigger's lock if the
+    |   worker dies mid-poll, before another poll may start.
     */
 
     'poll_every_minutes' => (int) env('TRIGGERS_POLL_EVERY_MINUTES', 15),
 
-    /*
-    |--------------------------------------------------------------------------
-    | FireTriggerEvent job
-    |--------------------------------------------------------------------------
-    */
+    'min_poll_interval_minutes' => (int) env('TRIGGERS_MIN_POLL_INTERVAL_MINUTES', 1),
 
-    // Split so a burst of bulk/periodic polling can't delay a latency-sensitive
-    // webhook-fired event sitting behind it on the same worker.
-    'fire_queue' => env('TRIGGERS_FIRE_QUEUE', 'triggers-event'),
-    'poll_queue' => env('TRIGGERS_POLL_QUEUE', 'triggers-poll'),
-    'fire_max_exceptions' => (int) env('TRIGGERS_FIRE_MAX_EXCEPTIONS', 5),
-    'fire_timeout_seconds' => (int) env('TRIGGERS_FIRE_TIMEOUT_SECONDS', 120),
-    'fire_backoff_seconds' => [10, 30, 90, 300, 900],
+    'poll_max_items' => (int) env('TRIGGERS_POLL_MAX_ITEMS', 100),
 
-    // Agent-targeted events fire on the shared `ai-agent` queue instead: the
-    // job blocks on a model call, so it needs both that supervisor's
-    // concurrency ceiling (provider rate limits) and a timeout measured in
-    // minutes rather than the event queue's seconds. `queue.retry_after` must
-    // stay above this value or a still-running turn gets re-dispatched.
-    'agent_fire_queue' => env('TRIGGERS_AGENT_FIRE_QUEUE', 'ai-agent'),
-    'agent_fire_timeout_seconds' => (int) env('TRIGGERS_AGENT_FIRE_TIMEOUT_SECONDS', 320),
+    'poll_lock_seconds' => (int) env('TRIGGERS_POLL_LOCK_SECONDS', 600),
 
     /*
     |--------------------------------------------------------------------------
-    | Stuck-event recovery (triggers:retry-stuck)
+    | Queues & the FireTriggerEvent job
     |--------------------------------------------------------------------------
     |
-    | Grace periods must comfortably exceed normal processing time, or the
-    | retry-stuck command races live work.
+    | Polls and firings run on separate queues, so a burst of polling can't
+    | delay a webhook-fired event sitting behind it. Each needs a Horizon
+    | supervisor (config/horizon.php).
+    |
+    | Agent-targeted events fire on the shared `ai-agent` queue instead: the
+    | job blocks on a model call, so it needs that supervisor's concurrency
+    | ceiling (provider rate limits) and a timeout in minutes, not seconds.
+    | `queue.retry_after` must stay above `agent_fire_timeout_seconds`, or a
+    | still-running turn gets dispatched a second time.
+    |
+    | - fire_max_exceptions / fire_backoff_seconds: retries before an event
+    |   is marked failed (one failure toward the circuit breaker).
+    | - fire_lock: one firing per event at a time. `release_after` is how
+    |   soon a blocked copy retries; `expire_after` frees a lock whose worker
+    |   died.
+    */
+
+    'fire_queue' => env('TRIGGERS_FIRE_QUEUE', 'triggers-event'),
+
+    'poll_queue' => env('TRIGGERS_POLL_QUEUE', 'triggers-poll'),
+
+    'agent_fire_queue' => env('TRIGGERS_AGENT_FIRE_QUEUE', 'ai-agent'),
+
+    'fire_timeout_seconds' => (int) env('TRIGGERS_FIRE_TIMEOUT_SECONDS', 120),
+
+    'agent_fire_timeout_seconds' => (int) env('TRIGGERS_AGENT_FIRE_TIMEOUT_SECONDS', 320),
+
+    'fire_max_exceptions' => (int) env('TRIGGERS_FIRE_MAX_EXCEPTIONS', 5),
+
+    'fire_backoff_seconds' => [10, 30, 90, 300, 900],
+
+    'fire_lock' => [
+        'release_after_seconds' => (int) env('TRIGGERS_FIRE_LOCK_RELEASE_AFTER_SECONDS', 30),
+        'expire_after_seconds' => (int) env('TRIGGERS_FIRE_LOCK_EXPIRE_AFTER_SECONDS', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stuck-event recovery (triggers:retry-stuck, every 5 minutes)
+    |--------------------------------------------------------------------------
+    |
+    | Re-dispatches events left queued or running longer than these grace
+    | periods (a lost job, a dead worker). The periods must comfortably
+    | exceed normal processing time, or the command races live work.
     */
 
     'stuck' => [
@@ -78,5 +180,23 @@ return [
         'running_after_minutes' => (int) env('TRIGGERS_STUCK_RUNNING_AFTER_MINUTES', 15),
         'batch_size' => (int) env('TRIGGERS_STUCK_BATCH_SIZE', 100),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Event history (triggers:prune-events, daily)
+    |--------------------------------------------------------------------------
+    |
+    | Events older than `events_retention_days` are deleted, `prune_chunk`
+    | rows at a time, at `prune_at` (server time). A polling trigger's old
+    | events are compacted instead (payload dropped, delivery id kept): the
+    | delivery id is what stops an item the endpoint still returns from
+    | firing again.
+    */
+
+    'events_retention_days' => (int) env('TRIGGERS_EVENTS_RETENTION_DAYS', 30),
+
+    'prune_chunk' => (int) env('TRIGGERS_PRUNE_CHUNK', 1000),
+
+    'prune_at' => env('TRIGGERS_PRUNE_AT', '03:30'),
 
 ];

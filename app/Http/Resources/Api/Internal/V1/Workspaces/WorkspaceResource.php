@@ -32,6 +32,7 @@ class WorkspaceResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'avatar' => $this->avatar,
+            'timezone' => $this->timezone,
             'owner_id' => $this->owner_id,
             'owner' => UserResource::make($this->whenLoaded('owner')),
             'role' => $this->viewerRole?->value

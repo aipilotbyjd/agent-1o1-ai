@@ -61,6 +61,10 @@ use App\Nodes\Integrations\Slack\SlackListChannelsNode;
 use App\Nodes\Integrations\Slack\SlackListUsersNode;
 use App\Nodes\Integrations\Slack\SlackPostMessageNode;
 use App\Nodes\Integrations\Slack\SlackUploadFileNode;
+use App\Nodes\TriggersEvents\ManualTriggerNode;
+use App\Nodes\TriggersEvents\PollingTriggerNode;
+use App\Nodes\TriggersEvents\ScheduleTriggerNode;
+use App\Nodes\TriggersEvents\WebhookTriggerNode;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\ServiceProvider;
 
@@ -97,6 +101,10 @@ class NodeRegistryServiceProvider extends ServiceProvider
     private function builtins(): array
     {
         return [
+            'manual_trigger' => ManualTriggerNode::class,
+            'schedule_trigger' => ScheduleTriggerNode::class,
+            'webhook_trigger' => WebhookTriggerNode::class,
+            'polling_trigger' => PollingTriggerNode::class,
             'workflow_input' => WorkflowInputNode::class,
             'workflow_output' => WorkflowOutputNode::class,
             'transform' => TransformNode::class,

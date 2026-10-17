@@ -12,6 +12,8 @@ use App\Ai\Tools\UseSkillTool;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentMemory;
 use App\Models\Agents\Skill;
+use App\Models\User;
+use App\Services\Timezones\Timezones;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -51,7 +53,7 @@ class SkillInjector
      */
     public function injectedSections(Agent $agent, ?string $userId = null): array
     {
-        $sections = [$this->aboutSection($agent)];
+        $sections = [$this->aboutSection($agent, $userId)];
 
         if ($skills = $this->skillsSection($agent)) {
             $sections[] = $skills;
@@ -97,9 +99,15 @@ class SkillInjector
      * Who the agent is and how it should behave. Without it the model only
      * sees the user-written instructions, which are often generic, and
      * introduces itself as the underlying model instead of this agent.
+     *
+     * The date is the run's member's, so "today" matches their calendar.
      */
-    private function aboutSection(Agent $agent): string
+    private function aboutSection(Agent $agent, ?string $userId): string
     {
+        $timezone = ($userId !== null ? User::query()->find($userId) : null)?->timezoneIn($agent->workspace)
+            ?? $agent->workspace?->timezone
+            ?? Timezones::DEFAULT;
+
         $lines = [
             "# About you\nYou are \"{$agent->name}\", an AI agent built in LinkFlow.",
         ];
@@ -108,7 +116,7 @@ class SkillInjector
             $lines[] = "Your purpose: {$agent->description}";
         }
 
-        $lines[] = 'Today is '.now()->format('l, F j, Y').'.';
+        $lines[] = 'Today is '.now($timezone)->format('l, F j, Y')." in {$timezone}.";
         $lines[] = "When asked who you are, answer as {$agent->name}; never present yourself as the underlying language model or its provider.";
         $lines[] = UntrustedContent::RULE;
         $lines[] = 'Act on the most likely intent of each request, and ask a clarifying question only when a wrong guess would be costly. '

@@ -5,8 +5,10 @@ namespace App\Http\Requests\Api\Internal\V1\Triggers;
 use App\Enums\Agents\AutonomyMode;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
+use App\Enums\Triggers\WebhookAuthentication;
 use App\Models\Workspaces\Workspace;
 use App\Rules\SafeOutboundUrl;
+use App\Rules\Timezone;
 use Closure;
 use Cron\CronExpression;
 use Illuminate\Database\Eloquent\Model;
@@ -54,6 +56,12 @@ class StoreTriggerRequest extends FormRequest
             }],
             // A polling trigger's endpoint: fetched by the server, so it must be a public URL.
             'config.url' => ['nullable', 'string', new SafeOutboundUrl],
+            'config.timezone' => ['nullable', 'string', new Timezone],
+            'config.authentication' => ['nullable', Rule::enum(WebhookAuthentication::class)],
+            // An HTTP header name: letters, digits and dashes.
+            'config.header_name' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9-]+$/'],
+            'config.if_already_running' => ['nullable', 'string', Rule::in(['queue', 'skip'])],
+            'config.max_failures' => ['nullable', 'integer', 'between:'.implode(',', config('triggers.max_failures_range'))],
             'is_active' => ['nullable', 'boolean'],
             'credential_id' => [
                 'nullable',

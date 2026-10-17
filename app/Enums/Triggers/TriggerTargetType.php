@@ -7,18 +7,27 @@ use App\Models\Workflows\Workflow;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * The two kinds of thing a trigger can point at. Registered in the morph map
- * (see AppServiceProvider::configureMorphMap()) so `triggers.target_type` stores
- * these short values instead of a fully-qualified class name.
+ * What a trigger starts.
+ *
+ * The values are registered in the morph map, so `triggers.target_type`
+ * stores `workflow` or `agent` rather than a class name.
+ *
+ * @see AppServiceProvider::configureMorphMap()
  */
 enum TriggerTargetType: string
 {
+    /**
+     * Starts a run of the workflow's published version.
+     */
     case Workflow = 'workflow';
+
+    /**
+     * Starts a fresh agent session with one message.
+     */
     case Agent = 'agent';
 
     /**
-     * The model backing this target type: the same class the morph map
-     * aliases this value to.
+     * The model class the morph map aliases this value to.
      *
      * @return class-string<Model>
      */

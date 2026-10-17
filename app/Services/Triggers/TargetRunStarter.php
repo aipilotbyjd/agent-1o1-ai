@@ -18,17 +18,14 @@ use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
 /**
- * The real `RunStarter` docs/TRIGGERS_PLAN.md's prerequisites table names:
- * a trigger's target is either a `Workflow` (started through
- * `StartWorkflowRunAction`, exactly as the API surfaces do) or an `Agent`
- * (a fresh `AgentSession` plus one message, through `AgentRunner`). Both
- * paths end in a `runs` row, which is what `TriggerEvent::markFired()`
- * points at.
+ * Starts a trigger's workflow or agent.
  *
- * Every method resolves the target through `targetFor()` rather than
- * `$trigger->target` directly, so a soft-deleted, missing, or
- * cross-workspace target is uniformly "not runnable" instead of each method
- * hand-rolling that check.
+ * A workflow is started through StartWorkflowRunAction, exactly as the API
+ * does, at the trigger's own node. An agent gets a fresh session and one
+ * message. Both end in a `runs` row, which the event then points at.
+ *
+ * Every method reaches the target through targetFor(), so a deleted, missing
+ * or other-workspace target is "not runnable" in one place.
  */
 class TargetRunStarter implements RunStarter
 {
@@ -39,20 +36,26 @@ class TargetRunStarter implements RunStarter
         private readonly TemplateResolver $templates,
     ) {}
 
+    /**
+     * Whether the target exists in the trigger's workspace and, for a
+     * workflow, is published.
+     */
     public function canRun(Trigger $trigger): bool
     {
         $target = $this->targetFor($trigger);
 
         return match (true) {
-            // An unpublished workflow has no `current_version_id` to pin a run
-            // to: StartWorkflowRunAction would throw, so refuse here instead
-            // and let intake record a Skipped event.
+            // An unpublished workflow has no version to run. Refusing here lets
+            // intake record a skipped event instead of a failed start.
             $target instanceof Workflow => $target->isPublished(),
             $target instanceof Agent => true,
             default => false,
         };
     }
 
+    /**
+     * Whether the target has a run that hasn't finished.
+     */
     public function isAlreadyRunning(Trigger $trigger): bool
     {
         $target = $this->targetFor($trigger);
@@ -69,7 +72,11 @@ class TargetRunStarter implements RunStarter
     }
 
     /**
+     * Start the target and return the run's id.
+     *
      * @param  array<string, mixed>  $payload
+     *
+     * @throws RuntimeException when the target disappeared after intake
      */
     public function start(Trigger $trigger, array $payload): string
     {
@@ -78,15 +85,15 @@ class TargetRunStarter implements RunStarter
         return match (true) {
             $target instanceof Workflow => $this->startWorkflow($trigger, $target, $payload),
             $target instanceof Agent => $this->startAgent($trigger, $target, $payload),
-            // Reached only if the target was deleted between intake's canRun()
-            // check and this queued firing. Throwing (rather than returning a
-            // sentinel id) hands it to FireTriggerEvent's retry/circuit-breaker
-            // handling, which is where every other firing failure is decided.
+            // Only if the target was deleted after intake. Throwing hands it to
+            // FireTriggerEvent's retries and breaker, like any other failure.
             default => throw new RuntimeException("Trigger {$trigger->id} has no runnable target."),
         };
     }
 
     /**
+     * Run the workflow's published version, starting at the trigger's node.
+     *
      * @param  array<string, mixed>  $payload
      */
     private function startWorkflow(Trigger $trigger, Workflow $workflow, array $payload): string
@@ -94,17 +101,19 @@ class TargetRunStarter implements RunStarter
         return $this->startWorkflowRun->execute(
             $workflow,
             $payload,
-            // The trigger's creator is the closest thing an automated firing
-            // has to an actor: it's what run history and per-user skill
-            // injection attribute the run to.
+            // The trigger's creator stands in for the person who ran it: run
+            // history and per-user skills attribute the run to them.
             $trigger->creator,
             $trigger->type->value,
+            entryNodeKey: $trigger->trigger_node_key,
         )->id;
     }
 
     /**
-     * A trigger-fired agent turn gets its own session so one event's
-     * conversation can never bleed into the next one's context.
+     * Start the agent in a fresh session with one message.
+     *
+     * A new session per event, so one event's conversation never leaks into
+     * the next one's context.
      *
      * @param  array<string, mixed>  $payload
      */
@@ -116,8 +125,8 @@ class TargetRunStarter implements RunStarter
             "{$trigger->type->value} trigger #{$trigger->id}",
         );
 
-        // A trigger can run its agent under a different mode than chat does,
-        // typically stricter, since nobody is watching a triggered turn.
+        // A trigger can run the agent in a different mode than chat, usually
+        // stricter, since nobody is watching a triggered turn.
         $session->forceFill([
             'autonomy_mode' => AutonomyMode::tryFrom((string) ($trigger->config['autonomy_mode'] ?? '')),
             'test_mode' => isset($trigger->config['test_mode']) ? (bool) $trigger->config['test_mode'] : null,
@@ -125,17 +134,17 @@ class TargetRunStarter implements RunStarter
 
         $this->sendAgentMessage->execute($session, $this->messageFor($trigger, $payload), $trigger->type->value);
 
-        // AgentRunner creates one `runs` row per turn, and this session was
-        // created a line ago with exactly one turn on it.
+        // One run per turn, and this new session has exactly one turn.
         return $session->runs()->latest('id')->value('id')
             ?? throw new RuntimeException("Agent session {$session->id} produced no run.");
     }
 
     /**
-     * The prompt the agent is sent. A trigger can template one from the
-     * payload (`config.message`, e.g. `"Triage: {{ payload.issue.title }}"`);
-     * without one the raw payload is handed over as JSON for the agent's own
-     * instructions to interpret.
+     * The message the agent is sent.
+     *
+     * The trigger's `config.message` templated against the payload
+     * ("Triage: {{ payload.issue.title }}"), or without one the raw payload
+     * as JSON, for the agent's own instructions to interpret.
      *
      * @param  array<string, mixed>  $payload
      */
@@ -156,10 +165,9 @@ class TargetRunStarter implements RunStarter
     }
 
     /**
-     * The trigger's target, or null when it can't be run at all: deleted
-     * (morphTo excludes soft-deleted rows), never existed, or (the one that
-     * matters for tenancy) belongs to a different workspace than the trigger
-     * itself.
+     * The trigger's target, or null when it can't run at all: deleted, never
+     * existed, or in a different workspace from the trigger (the tenancy
+     * check).
      */
     private function targetFor(Trigger $trigger): ?Model
     {

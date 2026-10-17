@@ -56,10 +56,10 @@ class NodeOptionsService
     ];
 
     /**
-     * Source prefixes that read the workspace itself and need no connected
-     * account.
+     * Source prefixes that read the workspace or the app itself (timezones)
+     * and need no connected account.
      */
-    private const array INTERNAL_PREFIXES = ['workspace', 'ai'];
+    private const array INTERNAL_PREFIXES = ['workspace', 'ai', 'system'];
 
     /**
      * Source key => class, built on first use.

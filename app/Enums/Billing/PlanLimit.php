@@ -17,6 +17,7 @@ enum PlanLimit: string
     case Agents = 'agents';
     case Members = 'members';
     case Pages = 'pages';
+    case ActiveTriggers = 'active_triggers';
 
     public function label(): string
     {
@@ -25,6 +26,7 @@ enum PlanLimit: string
             self::Agents => 'agents',
             self::Members => 'members',
             self::Pages => 'pages',
+            self::ActiveTriggers => 'active triggers',
         };
     }
 }

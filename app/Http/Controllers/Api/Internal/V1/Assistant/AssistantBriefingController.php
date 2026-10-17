@@ -15,6 +15,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Assistant\Briefings\BriefingScheduler;
 use App\Services\Assistant\Briefings\BriefingSources;
 use App\Services\Assistant\Meetings\MeetingPrepScheduler;
+use App\Services\Timezones\Timezones;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,7 +48,13 @@ class AssistantBriefingController extends Controller
         $this->requirePermission(Permission::AssistantUse);
 
         $config = $this->config($this->ownAssistant($request, $workspace), $type);
-        $config->fill($request->validated())->save();
+        $data = $request->validated();
+
+        if (isset($data['schedule'])) {
+            $data['schedule']['timezone'] = Timezones::resolve($data['schedule']['timezone']);
+        }
+
+        $config->fill($data)->save();
 
         return ApiResponse::success($this->payload($config->refresh()), 'Saved.');
     }
@@ -106,7 +113,7 @@ class AssistantBriefingController extends Controller
             ['type' => AssistantBriefingType::Daily],
             [
                 'enabled' => false,
-                'schedule' => ['time' => '08:00', 'days' => [1, 2, 3, 4, 5], 'timezone' => 'UTC'],
+                'schedule' => ['time' => '08:00', 'days' => [1, 2, 3, 4, 5], 'timezone' => $assistant->user->timezoneIn($assistant->workspace)],
                 'connector_scope' => 'all',
                 'delivery' => ['email' => false],
             ],

@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\Outlook;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class OutlookListMessagesNode extends AbstractOutlookNode
+class OutlookListMessagesNode extends AbstractOutlookNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'outlook_list_messages';
@@ -64,5 +68,37 @@ class OutlookListMessagesNode extends AbstractOutlookNode
         $folder = rawurlencode((string) ($config['folder'] ?? 'inbox'));
 
         return $this->get($run, "/me/mailFolders/{$folder}/messages", $config, $query);
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return 'value';
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'Outlook: New email';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new email arrives in the folder.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 1;
     }
 }

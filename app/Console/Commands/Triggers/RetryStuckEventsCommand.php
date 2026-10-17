@@ -8,9 +8,12 @@ use App\Models\Triggers\TriggerEvent;
 use Illuminate\Console\Command;
 
 /**
- * Recovers events left `queued`/`running` past their grace period: the
- * durability net for a lost dispatch, a flushed queue, or a killed worker.
- * See docs/TRIGGERS_PLAN.md's "The one rule that makes it lossless".
+ * Re-queues events left `queued` or `running` past their grace period.
+ *
+ * The safety net that makes the pipeline lossless: it catches a job that was
+ * never dispatched, a flushed queue, or a worker killed mid-firing.
+ *
+ * @see docs/TRIGGERS_PLAN.md "The one rule that makes it lossless"
  */
 class RetryStuckEventsCommand extends Command
 {
@@ -18,6 +21,9 @@ class RetryStuckEventsCommand extends Command
 
     protected $description = 'Re-queue trigger events stranded in queued/running past their grace period.';
 
+    /**
+     * Re-queue and re-dispatch every stranded event, a batch at a time.
+     */
     public function handle(): int
     {
         $queuedBefore = now()->subMinutes((int) config('triggers.stuck.queued_after_minutes'));
@@ -41,8 +47,8 @@ class RetryStuckEventsCommand extends Command
                     return;
                 }
 
-                // Back to queued first: claim() only accepts non-terminal
-                // events, and a stale `running` row looks identical to a live one.
+                // Back to `queued` first: claim() only takes queued events, and
+                // a stale `running` row looks the same as a live one.
                 $event->requeue();
 
                 FireTriggerEvent::dispatch($trigger, $event);

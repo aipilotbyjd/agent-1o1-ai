@@ -3,18 +3,35 @@
 namespace App\Enums\Triggers;
 
 /**
- * How a trigger fires. Also used for trigger_events.source: an event's source
- * is always the type of the trigger that produced it.
+ * How a trigger fires.
+ *
+ * Also used as `trigger_events.source`, the way an event arrived. That is
+ * usually the trigger's own type, except that "Run now" records `manual`.
  */
 enum TriggerType: string
 {
+    /**
+     * A POST to the trigger's private URL.
+     */
     case Webhook = 'webhook';
+
+    /**
+     * A cron schedule.
+     */
     case Schedule = 'schedule';
+
+    /**
+     * A URL or app reader checked on an interval.
+     */
     case Polling = 'polling';
+
+    /**
+     * Started by a person ("Run now").
+     */
     case Manual = 'manual';
 
     /**
-     * Only webhooks get a public URL token.
+     * Whether this type gets a public URL token. Only webhooks do.
      */
     public function usesToken(): bool
     {
@@ -22,7 +39,8 @@ enum TriggerType: string
     }
 
     /**
-     * Only polling triggers authenticate an outbound request.
+     * Whether this type authenticates an outbound request with a connected
+     * account. Only polling does.
      */
     public function usesCredential(): bool
     {

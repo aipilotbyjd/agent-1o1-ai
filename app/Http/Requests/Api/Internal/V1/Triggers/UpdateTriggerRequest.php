@@ -3,11 +3,15 @@
 namespace App\Http\Requests\Api\Internal\V1\Triggers;
 
 use App\Enums\Agents\AutonomyMode;
+use App\Enums\Triggers\WebhookAuthentication;
+use App\Models\Triggers\Trigger;
 use App\Rules\SafeOutboundUrl;
+use App\Rules\Timezone;
 use Closure;
 use Cron\CronExpression;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateTriggerRequest extends FormRequest
 {
@@ -34,7 +38,34 @@ class UpdateTriggerRequest extends FormRequest
                 }
             }],
             'config.url' => ['nullable', 'string', new SafeOutboundUrl],
+            'config.timezone' => ['nullable', 'string', new Timezone],
+            'config.authentication' => ['nullable', Rule::enum(WebhookAuthentication::class)],
+            // An HTTP header name: letters, digits and dashes.
+            'config.header_name' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9-]+$/'],
+            'config.if_already_running' => ['nullable', 'string', Rule::in(['queue', 'skip'])],
+            'config.max_failures' => ['nullable', 'integer', 'between:'.implode(',', config('triggers.max_failures_range'))],
             'is_active' => ['nullable', 'boolean'],
+            // Empty string clears it: the webhook then accepts unsigned requests again.
+            'signing_secret' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    /**
+     * A trigger that belongs to a canvas node is configured on the canvas:
+     * the next publish would overwrite an edit made here (`TriggerNodeSync`).
+     *
+     * @return array<int, Closure>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $trigger = $this->route('trigger');
+
+                if ($trigger instanceof Trigger && $trigger->trigger_node_key !== null && $this->has('config')) {
+                    $validator->errors()->add('config', 'This trigger is part of the workflow. Edit it on the canvas, then publish.');
+                }
+            },
         ];
     }
 }

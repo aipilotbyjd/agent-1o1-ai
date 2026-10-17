@@ -15,28 +15,44 @@ use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Throwable;
 
+/**
+ * Starts the run for one queued trigger event: the slow half of a firing.
+ *
+ * Safe to dispatch more than once for the same event: only one worker can
+ * claim it, and an event that already settled is left alone. Retries with
+ * backoff; when they run out, the event is marked failed and counts toward
+ * the trigger's circuit breaker.
+ */
 class FireTriggerEvent implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * Exceptions, not attempts: `WithoutOverlapping` releases the job back
-     * onto the queue on lock contention, and a release burns a `$tries`
-     * attempt without the job ever having run. Counting exceptions instead
-     * means lock contention alone can never exhaust the job's budget.
+     * How many exceptions the job may throw before it gives up.
+     *
+     * Exceptions rather than attempts: WithoutOverlapping puts the job back on
+     * the queue when the lock is busy, which uses up an attempt without the
+     * job running. Counting exceptions means a busy lock alone can never use
+     * up the job's retries.
      */
     public int $maxExceptions;
 
+    /**
+     * Seconds the job may run: minutes for an agent target, seconds for a
+     * workflow.
+     */
     public int $timeout;
 
+    /**
+     * Queue the firing on the right queue for its target.
+     */
     public function __construct(
         public Trigger $trigger,
         public TriggerEvent $event,
     ) {
-        // An agent-targeted firing blocks for as long as the model takes, so
-        // it gets its own queue (with its own low `maxProcesses` ceiling, per
-        // docs/STRUCTURE.md) and a much longer timeout: a latency-sensitive
-        // webhook-fired workflow event must never sit behind an LLM call.
+        // An agent firing waits on a model call, so it runs on the agent queue
+        // with a longer timeout. A webhook-fired workflow event must never sit
+        // behind an LLM call.
         $isAgentTarget = $this->trigger->target_type === TriggerTargetType::Agent->value;
 
         $this->maxExceptions = (int) config('triggers.fire_max_exceptions');
@@ -45,16 +61,22 @@ class FireTriggerEvent implements ShouldQueue
     }
 
     /**
+     * One worker per event at a time.
+     *
      * @return array<int, object>
      */
     public function middleware(): array
     {
         return [
-            (new WithoutOverlapping((string) $this->event->id))->releaseAfter(30)->expireAfter(300),
+            (new WithoutOverlapping((string) $this->event->id))
+                ->releaseAfter((int) config('triggers.fire_lock.release_after_seconds'))
+                ->expireAfter((int) config('triggers.fire_lock.expire_after_seconds')),
         ];
     }
 
     /**
+     * Seconds to wait before each retry (`triggers.fire_backoff_seconds`).
+     *
      * @return array<int, int>
      */
     public function backoff(): array
@@ -62,14 +84,16 @@ class FireTriggerEvent implements ShouldQueue
         return (array) config('triggers.fire_backoff_seconds');
     }
 
+    /**
+     * Claim the event and start its run.
+     */
     public function handle(TriggerService $triggers): void
     {
         $this->event->refresh();
 
-        // Idempotent re-dispatch: a terminal event (already fired, already
-        // failed) claims false and this becomes a no-op, without this check
-        // the retry-stuck command could start a second run for an event that
-        // already settled.
+        // An event that already settled, or that another worker holds, can't
+        // be claimed: this copy does nothing, so a re-dispatch never starts a
+        // second run.
         if (! $this->event->claim()) {
             return;
         }
@@ -79,9 +103,8 @@ class FireTriggerEvent implements ShouldQueue
         try {
             $triggers->fire($this->trigger, $this->event);
         } catch (Throwable $exception) {
-            // The claim moved the event to `running`; handing it back lets the
-            // queue's retry claim it again instead of finding it taken and
-            // quietly doing nothing. One that already fired stays fired.
+            // Hand the event back to `queued` so the retry can claim it again.
+            // One that already fired stays fired.
             $this->event->refresh();
 
             if ($this->event->status !== TriggerEventStatus::Fired) {
@@ -92,6 +115,10 @@ class FireTriggerEvent implements ShouldQueue
         }
     }
 
+    /**
+     * Mark the event failed once every retry is spent, and count it toward
+     * the trigger's circuit breaker.
+     */
     public function failed(?Throwable $exception): void
     {
         $this->event->refresh();
@@ -102,9 +129,8 @@ class FireTriggerEvent implements ShouldQueue
 
         $this->event->finish(TriggerEventStatus::Failed, $exception?->getMessage());
 
-        // An event that expired unclaimed (attempts still 0) never reached the
-        // target: that's queue contention, not a broken trigger, and must not
-        // count against the circuit breaker alone.
+        // An event that was never attempted (attempts 0) only waited too long
+        // in the queue. That isn't a broken trigger, so it doesn't count.
         if ($this->event->attempts > 0) {
             app(TriggerService::class)->recordFailure($this->trigger);
         }

@@ -189,8 +189,20 @@ it('keeps triggers private to their owner', function () {
     $this->postJson("{$this->base}/triggers/{$trigger->id}/run-now")->assertNotFound();
 });
 
-it('accepts the legacy timezone names browsers still report', function () {
+it('accepts the legacy timezone names browsers still report, storing the current name', function () {
     $trigger = ($this->schedule)(['timezone' => 'Asia/Calcutta']);
 
-    expect($trigger->timezone)->toBe('Asia/Calcutta');
+    expect($trigger->fresh()->timezone)->toBe('Asia/Kolkata');
 });
+
+it('runs a schedule given no timezone in the workspace timezone', function () {
+    $this->workspace->update(['timezone' => 'Asia/Kolkata']);
+
+    $trigger = ($this->schedule)(['timezone' => null]);
+
+    expect($trigger->timezone)->toBe('Asia/Kolkata');
+});
+
+it('refuses an unknown timezone', function () {
+    ($this->schedule)(['timezone' => 'Mars/Base']);
+})->throws(ValidationException::class);
