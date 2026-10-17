@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\GoogleDrive;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class GoogleDriveListFilesNode extends AbstractGoogleDriveNode
+class GoogleDriveListFilesNode extends AbstractGoogleDriveNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'google_drive_list_files';
@@ -47,5 +51,37 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode
             'q' => $config['query'] ?? '',
             'pageSize' => $config['page_size'] ?? 10,
         ]);
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return 'files';
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'Google Drive: New file';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new file matching the search appears.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 5;
     }
 }

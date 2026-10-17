@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\GoogleSheets;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode
+class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'google_sheets_get_values';
@@ -48,5 +52,71 @@ class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode
             $this->valuesPath($config),
             $config,
         );
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'Google Sheets: New row';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new row is added to the sheet.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 1;
+    }
+
+    /**
+     * One item per data row, keyed by the header row, with `_row` (its row
+     * number in the sheet) as its id: a trigger here fires on new rows.
+     */
+    public function triggerItems(array $output, array $config): array
+    {
+        $values = array_values((array) ($output['values'] ?? []));
+        $header = array_map('strval', (array) array_shift($values));
+        $firstRow = preg_match('/![A-Z]+(\d+)/', (string) ($output['range'] ?? ''), $match) ? (int) $match[1] : 1;
+
+        $rows = [];
+
+        foreach ($values as $index => $row) {
+            $row = (array) $row;
+            $item = ['_row' => $firstRow + $index + 1];
+
+            foreach ($header as $column => $name) {
+                $item[$name !== '' ? $name : 'column_'.($column + 1)] = $row[$column] ?? null;
+            }
+
+            $rows[] = $item;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * An item's stable id when used as a trigger.
+     */
+    public function triggerItemId(array $item): string
+    {
+        return (string) ($item['_row'] ?? '');
     }
 }

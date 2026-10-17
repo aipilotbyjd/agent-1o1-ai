@@ -3,28 +3,47 @@
 namespace App\Services\Triggers;
 
 use App\Contracts\Triggers\RunStarter;
+use App\Enums\Billing\PlanLimit;
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
+use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\PlanLimitExceededException;
 use App\Jobs\Triggers\FireTriggerEvent;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\CreditGate;
+use App\Services\Billing\PlanLimitGate;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
- * See docs/TRIGGERS_PLAN.md's "Core pipeline" diagram: `receive()` is the fast
- * intake path (a few indexed queries and one INSERT, never a model call, never
- * a graph walk), `fire()` is the slow path a queued job runs after the event
- * row already exists.
+ * Creates and manages triggers, and runs the two halves of every firing.
+ *
+ * - receive() is the fast intake path that every source calls (webhook,
+ *   schedule, poll, "Run now"): a few indexed queries and one insert, never
+ *   a model call. It decides whether an event runs and records it.
+ * - fire() is the slow path a queued FireTriggerEvent job runs afterwards:
+ *   it starts the workflow or agent.
+ *
+ * @see docs/TRIGGERS_PLAN.md "Core pipeline"
  */
 class TriggerService
 {
-    public function __construct(private readonly RunStarter $runStarter) {}
+    public function __construct(
+        private readonly RunStarter $runStarter,
+        private readonly CreditGate $creditGate,
+        private readonly PlanLimitGate $limits,
+    ) {}
 
     /**
+     * Create a trigger through the API (a canvas trigger is created by
+     * publishing instead). A webhook gets its URL token here.
+     *
      * @param  array{preset_id?: string, config?: array<string, mixed>, is_active?: bool, credential_id?: string, signing_secret?: string}  $data
+     *
+     * @throws PlanLimitExceededException when switching it on would exceed the plan's active triggers
      */
     public function create(
         Workspace $workspace,
@@ -34,6 +53,10 @@ class TriggerService
         array $data,
         ?User $createdBy = null,
     ): Trigger {
+        if ($data['is_active'] ?? true) {
+            $this->limits->assertCanCreate($workspace, PlanLimit::ActiveTriggers);
+        }
+
         $trigger = Trigger::query()->create([
             'workspace_id' => $workspace->id,
             'target_type' => $targetType->value,
@@ -58,18 +81,43 @@ class TriggerService
     }
 
     /**
-     * @param  array{config?: array<string, mixed>, is_active?: bool}  $data
+     * Update a trigger's config, on/off state or signing secret.
+     *
+     * Switching it back on clears both streaks, or a single failure after the
+     * circuit breaker tripped would trip it again. An empty or null
+     * `signing_secret` removes the secret.
+     *
+     * @param  array{config?: array<string, mixed>, is_active?: bool, signing_secret?: string|null}  $data
+     *
+     * @throws PlanLimitExceededException when switching it on would exceed the plan's active triggers
      */
     public function update(Trigger $trigger, array $data): Trigger
     {
+        $isReactivating = ($data['is_active'] ?? false) === true && ! $trigger->is_active;
+
+        if ($isReactivating) {
+            $this->limits->assertCanCreate($trigger->workspace, PlanLimit::ActiveTriggers);
+        }
+
         $trigger->update([
             'config' => $data['config'] ?? $trigger->config,
             'is_active' => $data['is_active'] ?? $trigger->is_active,
         ]);
 
+        if ($isReactivating) {
+            $trigger->forceFill(['consecutive_failure_count' => 0, 'consecutive_skip_count' => 0])->save();
+        }
+
+        if (array_key_exists('signing_secret', $data)) {
+            $trigger->forceFill(['signing_secret' => filled($data['signing_secret']) ? $data['signing_secret'] : null])->save();
+        }
+
         return $trigger;
     }
 
+    /**
+     * Give a webhook trigger a new URL. The old one stops working at once.
+     */
     public function rotateToken(Trigger $trigger): Trigger
     {
         abort_unless($trigger->type->usesToken(), 422, 'Only webhook triggers have a token to rotate.');
@@ -80,9 +128,14 @@ class TriggerService
     }
 
     /**
-     * The fast intake path for automated sources (webhook/schedule/polling).
-     * The manual path has its own synchronous pre-checks in the controller
-     * (isAlreadyRunning/canRun return an immediate 409) before calling this.
+     * Take in one event: decide whether it runs, record it, and queue it.
+     *
+     * Checked in order: the trigger is on, the delivery isn't a duplicate,
+     * the filters match, the target can run, the workspace has credits, and
+     * (for a trigger set to skip) no run is in flight. Whatever stops it is
+     * recorded on the event; only an event that passes is queued.
+     *
+     * "Run now" answers "busy" in the controller before calling this.
      *
      * @param  array<string, mixed>  $payload
      * @param  array<string, string>  $headers
@@ -115,6 +168,18 @@ class TriggerService
             return $this->writeTerminal($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, TriggerEventStatus::Skipped, 'Target is not runnable.');
         }
 
+        // Dropped here, not left to fail in FireTriggerEvent: running out of
+        // credits isn't the trigger's fault, so it counts toward the skip
+        // streak rather than the failure breaker.
+        if (! $this->hasCredits($trigger)) {
+            return $this->skip($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, 'The workspace is out of credits.');
+        }
+
+        // "Run now" answers "busy" itself, so this is for automated sources only.
+        if ($source !== TriggerType::Manual && $this->skipsWhileRunning($trigger) && $this->runStarter->isAlreadyRunning($trigger)) {
+            return $this->skip($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, 'The previous run was still going.');
+        }
+
         try {
             $event = TriggerEvent::query()->create([
                 'trigger_id' => $trigger->id,
@@ -126,25 +191,37 @@ class TriggerService
                 'delivery_id' => $deliveryId,
             ]);
         } catch (UniqueConstraintViolationException) {
-            // Lost the race to a concurrent delivery of the same event: the
-            // unique index is the dedupe guarantee, not the earlier read-check.
+            // A concurrent delivery of the same event won the race. The unique
+            // index is the real dedupe guarantee; the check above is a shortcut.
             return $this->duplicateOf($trigger, $deliveryId) ?? throw new UniqueConstraintViolationException;
         }
 
-        // The insert above is its own auto-committed statement (nothing in
-        // this call path wraps receive() in an explicit transaction) so the
-        // row already exists by the time this dispatches. If a future caller
-        // ever wraps receive() in DB::transaction(), add ->afterCommit() here
-        // to keep that guarantee; the row-before-job rule is why.
+        // The insert above commits on its own, so the row exists before the
+        // job can run. If a caller ever wraps receive() in a transaction, add
+        // ->afterCommit() here to keep that guarantee.
         FireTriggerEvent::dispatch($trigger, $event);
 
         return $event;
     }
 
     /**
-     * Rejected deliveries are stored WITHOUT a delivery id, otherwise an
-     * attacker blocks a legitimate delivery by guessing its id and sending a
-     * badly signed request first.
+     * Record an item a polling trigger's first poll found already there.
+     *
+     * Stored as ignored under its delivery id, so later polls treat it as
+     * seen and never start a run for it.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function recordBaseline(Trigger $trigger, array $payload, string $deliveryId): TriggerEvent
+    {
+        return $this->writeTerminal($trigger, TriggerType::Polling, $payload, $deliveryId, null, [], TriggerEventStatus::Ignored, 'Existed before the trigger was turned on.');
+    }
+
+    /**
+     * Record a request that failed authentication.
+     *
+     * Stored without its delivery id. Otherwise anyone could block a genuine
+     * delivery by guessing its id and sending a badly signed copy first.
      *
      * @param  array<string, mixed>  $payload
      * @param  array<string, string>  $headers
@@ -171,10 +248,10 @@ class TriggerService
     }
 
     /**
-     * The slow path: actually start the target, then record the outcome.
-     * Any exception here is left to propagate: `FireTriggerEvent`'s own
-     * retry/backoff and `failed()` circuit-breaker handling owns what happens
-     * next, not this method.
+     * Start the target for a queued event and record that it fired.
+     *
+     * Exceptions are left to propagate: FireTriggerEvent's retries and
+     * failure handling decide what happens next.
      */
     public function fire(Trigger $trigger, TriggerEvent $event): void
     {
@@ -184,26 +261,78 @@ class TriggerService
         $trigger->recordSuccess();
     }
 
+    /**
+     * Count a failed event toward the trigger's circuit breaker.
+     */
     public function recordFailure(Trigger $trigger): void
     {
         $trigger->recordFailure();
     }
 
+    /**
+     * Whether the trigger is on and its target can run right now.
+     */
     public function canRun(Trigger $trigger): bool
     {
         return $trigger->is_active && $this->runStarter->canRun($trigger);
     }
 
     /**
-     * Checked only on the manual-run path: a person double-clicking wants to
-     * be told "busy"; a provider redelivering wants its event queued
-     * regardless. See docs/TRIGGERS_PLAN.md's design decisions table.
+     * Whether the target already has a run in flight.
+     *
+     * "Run now" asks this to tell a person "busy". Automated events are only
+     * dropped for it when the trigger is set to skip.
      */
     public function isAlreadyRunning(Trigger $trigger): bool
     {
         return $this->runStarter->isAlreadyRunning($trigger);
     }
 
+    /**
+     * Whether the trigger drops events while a run is in flight
+     * (`config.if_already_running` is `skip`; the default, `queue`, doesn't).
+     */
+    private function skipsWhileRunning(Trigger $trigger): bool
+    {
+        return ($trigger->config['if_already_running'] ?? 'queue') === 'skip';
+    }
+
+    /**
+     * Whether the workspace can start another run.
+     */
+    private function hasCredits(Trigger $trigger): bool
+    {
+        try {
+            $this->creditGate->assertCanStartRun($trigger->workspace);
+        } catch (InsufficientCreditsException) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Record an event as skipped and count it toward the skip streak.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers
+     */
+    private function skip(Trigger $trigger, TriggerType $source, array $payload, ?string $deliveryId, ?string $payloadSnippet, array $headers, string $reason): TriggerEvent
+    {
+        $event = $this->writeTerminal($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, TriggerEventStatus::Skipped, $reason);
+
+        // A redelivery returns the earlier event; only a fresh drop counts.
+        if ($event->wasRecentlyCreated) {
+            $trigger->recordSkip();
+        }
+
+        return $event;
+    }
+
+    /**
+     * The event already recorded under this delivery id, if any, with its
+     * duplicate count bumped.
+     */
     private function duplicateOf(Trigger $trigger, string $deliveryId): ?TriggerEvent
     {
         $existing = TriggerEvent::query()
@@ -221,6 +350,12 @@ class TriggerService
     }
 
     /**
+     * Whether the event passes every one of the trigger's "Only run when"
+     * conditions (`config.filters`).
+     *
+     * Each condition compares a payload or header path using equals,
+     * not_equals or contains. An unknown operator passes.
+     *
      * @param  array<string, mixed>  $payload
      * @param  array<string, string>  $headers
      */
@@ -248,6 +383,8 @@ class TriggerService
     }
 
     /**
+     * Only the request headers allowed to be stored (`triggers.allowed_headers`).
+     *
      * @param  array<string, string>  $headers
      * @return array<string, string>
      */
@@ -263,9 +400,10 @@ class TriggerService
     }
 
     /**
-     * Write an event that has already reached a terminal, non-`Rejected`
-     * outcome (inactive/filtered/unrunnable), still dedupes by delivery id,
-     * unlike `reject()`.
+     * Record an event that ends at intake: skipped or ignored.
+     *
+     * Unlike reject(), it keeps its delivery id, so a redelivery of the same
+     * event is still recognised as a duplicate.
      *
      * @param  array<string, mixed>  $payload
      * @param  array<string, string>  $headers

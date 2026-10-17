@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\GitHub;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class GitHubListPullRequestsNode extends AbstractGitHubNode
+class GitHubListPullRequestsNode extends AbstractGitHubNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'github_list_pull_requests';
@@ -48,5 +52,37 @@ class GitHubListPullRequestsNode extends AbstractGitHubNode
             'state' => $config['state'] ?? 'open',
             'per_page' => $config['per_page'] ?? 30,
         ])];
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return 'pull_requests';
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'GitHub: New pull request';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new pull request is opened in the repository.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 5;
     }
 }

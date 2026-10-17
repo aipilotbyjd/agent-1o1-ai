@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\Slack;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class SlackGetChannelHistoryNode extends AbstractSlackNode
+class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'slack_get_channel_history';
@@ -51,5 +55,45 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode
             'oldest' => $config['oldest'] ?? null,
             'latest' => $config['latest'] ?? null,
         ], fn ($value) => $value !== null));
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return 'messages';
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'Slack: New message';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new message is posted in the channel.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 1;
+    }
+
+    /**
+     * An item's stable id when used as a trigger.
+     */
+    public function triggerItemId(array $item): string
+    {
+        return (string) ($item['ts'] ?? '');
     }
 }

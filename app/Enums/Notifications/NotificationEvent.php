@@ -19,6 +19,7 @@ enum NotificationEvent: string
     case PublishReviewRequested = 'workflow.publish_review_requested';
     case PublishRequestDecided = 'workflow.publish_request_decided';
     case ConnectorCredentialExpired = 'connector.credential_expired';
+    case TriggerDisabled = 'trigger.disabled';
     case AiProviderCredentialInvalid = 'ai.provider_credential_invalid';
     case PaymentFailed = 'billing.payment_failed';
     case PaymentRecovered = 'billing.payment_recovered';
@@ -53,6 +54,7 @@ enum NotificationEvent: string
             self::PublishReviewRequested => 'Workflow change needs review',
             self::PublishRequestDecided => 'Workflow change reviewed',
             self::ConnectorCredentialExpired => 'Connector credential expired',
+            self::TriggerDisabled => 'Trigger switched off',
             self::AiProviderCredentialInvalid => 'AI provider key stopped working',
             self::PaymentFailed => 'Payment failed',
             self::PaymentRecovered => 'Payment recovered',
@@ -85,6 +87,7 @@ enum NotificationEvent: string
             self::PublishReviewRequested => 'Someone asks for a workflow change to be reviewed before it goes live.',
             self::PublishRequestDecided => 'A change you asked to publish is approved and live, or rejected.',
             self::ConnectorCredentialExpired => 'A connector credential expires and could not be automatically refreshed.',
+            self::TriggerDisabled => 'A trigger failed too many times in a row and was switched off.',
             self::AiProviderCredentialInvalid => 'An AI provider key you rely on is rejected by its provider, so the platform\'s own key is used again.',
             self::PaymentFailed => 'A subscription invoice charge fails.',
             self::PaymentRecovered => 'A previously failed subscription charge succeeds and the plan is restored.',

@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\GitHub;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class GitHubListIssuesNode extends AbstractGitHubNode
+class GitHubListIssuesNode extends AbstractGitHubNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'github_list_issues';
@@ -48,5 +52,37 @@ class GitHubListIssuesNode extends AbstractGitHubNode
             'state' => $config['state'] ?? 'open',
             'per_page' => $config['per_page'] ?? 30,
         ])];
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return 'issues';
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'GitHub: New issue';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new issue is opened in the repository.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 5;
     }
 }

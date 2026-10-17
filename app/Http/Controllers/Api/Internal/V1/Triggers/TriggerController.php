@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api\Internal\V1\Triggers;
 
+use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Triggers\IndexTriggersRequest;
 use App\Http\Requests\Api\Internal\V1\Triggers\StoreTriggerRequest;
 use App\Http\Requests\Api\Internal\V1\Triggers\UpdateTriggerRequest;
 use App\Http\Resources\Api\Internal\V1\Triggers\TriggerEventResource;
@@ -14,6 +16,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Triggers\Trigger;
 use App\Models\Workspaces\Workspace;
 use App\Services\Triggers\TriggerService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class TriggerController extends Controller
@@ -22,12 +25,26 @@ class TriggerController extends Controller
         private readonly TriggerService $triggers,
     ) {}
 
-    public function index(Workspace $workspace)
+    public function index(IndexTriggersRequest $request, Workspace $workspace)
     {
         $this->requirePermission(Permission::TriggerView);
 
+        $since = now()->subDay();
+
+        $triggers = $workspace->triggers()
+            ->with('target')
+            ->withCount([
+                'events as fired_24h_count' => fn (Builder $events) => $events->where('status', TriggerEventStatus::Fired)->where('created_at', '>=', $since),
+                'events as failed_24h_count' => fn (Builder $events) => $events->where('status', TriggerEventStatus::Failed)->where('created_at', '>=', $since),
+                'events as skipped_24h_count' => fn (Builder $events) => $events->whereIn('status', [TriggerEventStatus::Skipped, TriggerEventStatus::Ignored, TriggerEventStatus::Rejected])->where('created_at', '>=', $since),
+            ])
+            ->when($request->validated('target_type'), fn (Builder $triggers, string $targetType) => $triggers->where('target_type', $targetType))
+            ->when($request->validated('target_id'), fn (Builder $triggers, string $targetId) => $triggers->where('target_id', $targetId))
+            ->latest()
+            ->get();
+
         return ApiResponse::success([
-            'triggers' => TriggerResource::collection($workspace->triggers()->latest()->get()),
+            'triggers' => TriggerResource::collection($triggers),
         ]);
     }
 
@@ -61,6 +78,11 @@ class TriggerController extends Controller
     {
         $this->requirePermission(Permission::TriggerManage);
         $this->ensureBelongsToWorkspace($workspace, $trigger);
+
+        // The next publish would recreate it: see TriggerNodeSync.
+        if ($trigger->trigger_node_key !== null) {
+            return ApiResponse::error('This trigger is part of the workflow. Remove its node from the canvas, then publish.', 422);
+        }
 
         $trigger->delete();
 

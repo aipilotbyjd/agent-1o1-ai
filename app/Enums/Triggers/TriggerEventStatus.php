@@ -3,9 +3,10 @@
 namespace App\Enums\Triggers;
 
 /**
- * The life of one inbound event. Because events are stored before any work
- * happens, this status (not the presence of a run) is the record of what
- * became of an event.
+ * What became of one inbound event.
+ *
+ * Events are stored before any work happens, so this status, not whether a
+ * run exists, is the record of what happened to each one.
  */
 enum TriggerEventStatus: string
 {
@@ -15,27 +16,30 @@ enum TriggerEventStatus: string
     case Queued = 'queued';
 
     /**
-     * A worker has it right now.
+     * A worker is starting its run right now.
      */
     case Running = 'running';
 
     /**
-     * It started a run; run_id points at it.
+     * It started a run; `run_id` points at it.
      */
     case Fired = 'fired';
 
     /**
-     * The trigger's config filters rejected it. Not a failure.
+     * Deliberately not run, and not a failure: the trigger's filters didn't
+     * match, or a polling trigger's first poll found the item already there.
      */
     case Ignored = 'ignored';
 
     /**
-     * The target was a draft or deleted: nothing to run.
+     * Dropped without running: the trigger was off, the target can't run
+     * (unpublished or deleted), the workspace is out of credits, or the last
+     * run was still going under the "skip" overlap policy.
      */
     case Skipped = 'skipped';
 
     /**
-     * Signature verification failed.
+     * The request failed authentication (signature or token).
      */
     case Rejected = 'rejected';
 
@@ -45,29 +49,32 @@ enum TriggerEventStatus: string
     case Failed = 'failed';
 
     /**
-     * A redelivery of something already accepted.
+     * A redelivery of an event already accepted.
      *
-     * Returned as an intake outcome only, never written to the status column,
-     * because the row it refers to keeps whatever status it already had.
+     * Only ever returned as an intake outcome, never written to the status
+     * column: the original row keeps the status it already had.
      */
     case Duplicate = 'duplicate';
 
     /**
-     * Whether this event has reached a state it will never leave on its own.
+     * Whether the event has reached a status it will never leave on its own.
      */
     public function isTerminal(): bool
     {
         return ! in_array($this, [self::Queued, self::Running], true);
     }
 
+    /**
+     * Whether a worker may still pick the event up.
+     */
     public function isQueueable(): bool
     {
         return $this === self::Queued;
     }
 
     /**
-     * Statuses the system has accepted responsibility for but not resolved:
-     * the retry-stuck command's search space.
+     * Statuses the system has taken on but not resolved: what the
+     * retry-stuck command searches.
      *
      * @return array<int, string>
      */

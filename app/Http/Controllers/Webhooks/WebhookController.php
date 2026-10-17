@@ -33,8 +33,15 @@ class WebhookController extends Controller
         abort_if($trigger === null, 404);
 
         $rawBody = $request->getContent();
+
+        // Checked before anything is parsed or stored: a payload this size is
+        // never a legitimate event, and every byte would be written to
+        // trigger_events and handed to the run as input.
+        if (strlen($rawBody) > (int) config('triggers.max_webhook_body_kb') * 1024) {
+            return response('Payload too large.', 413);
+        }
         $headers = $this->flattenHeaders($request);
-        $snippet = substr($rawBody, 0, 5000);
+        $snippet = substr($rawBody, 0, (int) config('triggers.payload_snippet_chars'));
 
         if (! $this->verifier->verify($trigger, $request, $rawBody)) {
             $this->triggers->reject(

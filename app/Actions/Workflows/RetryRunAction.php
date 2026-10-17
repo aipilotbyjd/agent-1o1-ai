@@ -69,6 +69,7 @@ class RetryRunAction
                 'workflow_version_id' => $run->workflow_version_id,
                 'retried_from_run_id' => $run->id,
                 'trigger_type' => $run->trigger_type,
+                'entry_node_key' => $run->entry_node_key,
                 'input' => $run->input ?? [],
                 'triggered_by' => $triggeredBy?->id,
             ]);

@@ -7,6 +7,7 @@ use App\Exceptions\WorkflowValidationException;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Triggers\TriggerNodeSync;
 use App\Services\Workflows\ConfigSchemaValidator;
 use App\Services\Workflows\GraphValidator;
 use App\Services\Workflows\LoopModeCompiler;
@@ -382,7 +383,12 @@ class Workflow extends Model
         // about the graph's structure needs revalidating after this.
         $nodes = app(LoopModeCompiler::class)->compile($this, $nodes);
 
-        return DB::transaction(function () use ($nodes, $edges, $editorGraph, $notes, $publisher): WorkflowVersion {
+        // What was live until now: `TriggerNodeSync` compares each trigger
+        // node's "Activate" switch against it, to tell an author's change
+        // from a trigger the circuit breaker switched off since.
+        $previousNodes = $this->currentVersion?->graph['nodes'] ?? [];
+
+        return DB::transaction(function () use ($nodes, $edges, $editorGraph, $notes, $publisher, $previousNodes): WorkflowVersion {
             $graph = ['nodes' => $nodes, 'edges' => $edges];
 
             // `lockForUpdate()` on the watermark read, plus a retry on the
@@ -421,6 +427,12 @@ class Workflow extends Model
                 'has_unpublished_changes' => false,
                 'status' => 'published',
             ])->save();
+
+            // The live triggers follow the version that just went live: see
+            // `TriggerNodeSync`. Same transaction, so a trigger node that
+            // can't be materialized (an account that's gone) fails the
+            // publish instead of leaving a half-synced workflow.
+            app(TriggerNodeSync::class)->sync($this, $nodes, $publisher, $previousNodes);
 
             return $version;
         });

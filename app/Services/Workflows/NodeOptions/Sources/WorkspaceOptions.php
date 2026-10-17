@@ -4,6 +4,7 @@ namespace App\Services\Workflows\NodeOptions\Sources;
 
 use App\Models\Agents\Agent;
 use App\Models\Ai\ModelCatalog;
+use App\Models\Connectors\ConnectorCredential;
 use App\Models\Workflows\Workflow;
 use App\Services\Workflows\NodeOptions\NodeOption;
 use App\Services\Workflows\NodeOptions\NodeOptionsPage;
@@ -14,7 +15,8 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * Choices read from this app rather than a connected account: the
  * workspace's agents and (visible) workflows, and the public model catalog:
- * the same entries `ModelCatalogController` lists.
+ * the same entries `ModelCatalogController` lists. Also backs the trigger
+ * nodes' pickers: connected accounts and timezones.
  */
 class WorkspaceOptions implements OptionsSource
 {
@@ -22,13 +24,21 @@ class WorkspaceOptions implements OptionsSource
 
     public function sources(): array
     {
-        return ['workspace.agents', 'workspace.workflows', 'ai.models'];
+        return [
+            'workspace.agents',
+            'workspace.workflows',
+            'ai.models',
+            'workspace.connector_credentials',
+            'system.timezones',
+        ];
     }
 
     public function load(string $source, NodeOptionsQuery $query): NodeOptionsPage
     {
         return match ($source) {
             'ai.models' => $this->models($query),
+            'workspace.connector_credentials' => $this->connectorCredentials($query),
+            'system.timezones' => $this->timezones($query),
             'workspace.agents' => $this->named($query, Agent::query()->where('workspace_id', $query->workspace->id)),
             default => $this->named($query, Workflow::query()->visible()->where('workspace_id', $query->workspace->id)),
         };
@@ -49,6 +59,35 @@ class WorkspaceOptions implements OptionsSource
             $model->display_name,
             $model->brand,
         )));
+    }
+
+    /**
+     * The workspace's team accounts plus the member's own personal ones: the
+     * same set they could pick on any integration node.
+     */
+    private function connectorCredentials(NodeOptionsQuery $query): NodeOptionsPage
+    {
+        $credentials = ConnectorCredential::query()
+            ->with('connector:id,name')
+            ->where('workspace_id', $query->workspace->id)
+            ->visibleTo($query->user)
+            ->orderBy('name')
+            ->get(['id', 'connector_id', 'name', 'account_label'])
+            ->filter(fn (ConnectorCredential $credential): bool => $query->matches($credential->name, (string) $credential->account_label));
+
+        return new NodeOptionsPage($credentials->map(fn (ConnectorCredential $credential): NodeOption => new NodeOption(
+            (string) $credential->id,
+            $credential->name,
+            trim(($credential->connector?->name ?? '').' '.($credential->account_label ?? '')) ?: null,
+        ))->values());
+    }
+
+    private function timezones(NodeOptionsQuery $query): NodeOptionsPage
+    {
+        return new NodeOptionsPage(collect(timezone_identifiers_list())
+            ->filter(fn (string $timezone): bool => $query->matches($timezone))
+            ->map(fn (string $timezone): NodeOption => new NodeOption($timezone))
+            ->values());
     }
 
     /**

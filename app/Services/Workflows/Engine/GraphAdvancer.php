@@ -10,6 +10,7 @@ use App\Jobs\Workflows\ExecuteNodeJob;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\Workflows\WorkflowEdge;
+use App\Services\Triggers\TriggerNodes;
 use App\Services\Workflows\StepOptions;
 use App\Services\Workflows\WorkflowIo;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -55,12 +56,77 @@ class GraphAdvancer
         $created = DB::transaction(function () use ($run, $graph): array {
             $locked = Run::whereKey($run->id)->lockForUpdate()->firstOrFail();
 
-            return $locked->status->isTerminal() ? [] : $this->createPending($run, self::entryKeys($graph), $graph);
+            if ($locked->status->isTerminal()) {
+                return [];
+            }
+
+            $entryKeys = self::entryKeys($graph);
+
+            if ($run->entry_node_key !== null && in_array($run->entry_node_key, $entryKeys, true)) {
+                $entryKeys = $this->startFromTrigger($run, $run->entry_node_key, $entryKeys, $graph);
+            }
+
+            return $this->createPending($run, $entryKeys, $graph);
         });
 
         $this->dispatchCreated($created);
 
         $this->finishIfDone($run);
+    }
+
+    /**
+     * A trigger-fired run starts at its own trigger node plus every entry
+     * node that isn't a trigger (an Input step, say), not at the graph's
+     * other trigger nodes. Everything only those other triggers lead to is
+     * recorded `skipped` up front, so a Join Paths fed by both branches sees
+     * a settled source instead of waiting forever. A step both branches
+     * lead to stays reachable and runs normally, which `skip()`'s recursive
+     * propagation would get wrong, hence no reuse of it here.
+     *
+     * @param  array<int, string>  $entryKeys
+     * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
+     * @return array<int, string>
+     */
+    private function startFromTrigger(Run $run, string $entryNodeKey, array $entryKeys, array $graph): array
+    {
+        $typesByKey = collect($graph['nodes'])->pluck('type', 'key');
+        $nodesByKey = collect($graph['nodes'])->keyBy('key');
+        $triggerNodes = app(TriggerNodes::class);
+
+        $activeKeys = array_values(array_filter(
+            $entryKeys,
+            fn (string $key): bool => $key === $entryNodeKey || ! $triggerNodes->isTriggerEntry($nodesByKey->get($key)),
+        ));
+
+        $reachable = array_fill_keys($activeKeys, true);
+        $queue = $activeKeys;
+
+        while ($queue !== []) {
+            $from = array_shift($queue);
+
+            foreach ($graph['edges'] as $edge) {
+                if ($edge['from'] === $from && ! isset($reachable[$edge['to']])) {
+                    $reachable[$edge['to']] = true;
+                    $queue[] = $edge['to'];
+                }
+            }
+        }
+
+        foreach ($typesByKey as $key => $type) {
+            if (isset($reachable[$key])) {
+                continue;
+            }
+
+            try {
+                $nodeRun = DB::transaction(fn (): NodeRun => $run->nodeRuns()->create(['key' => $key, 'type' => $type, 'input' => $run->input]));
+            } catch (UniqueConstraintViolationException) {
+                continue;
+            }
+
+            $nodeRun->forceFill(['status' => NodeRunStatus::Skipped, 'finished_at' => now()])->save();
+        }
+
+        return $activeKeys;
     }
 
     /**

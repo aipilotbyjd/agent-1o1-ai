@@ -2,6 +2,7 @@
 
 namespace App\Services\Workflows;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\AgentActionStatus;
 use App\Enums\NodeRunStatus;
 use App\Enums\Triggers\TriggerType;
@@ -180,8 +181,12 @@ class WorkflowRunner
             // the request it made, an API replying with the token it was
             // called with) would otherwise write the plaintext secret into
             // `node_runs`, readable by every run-viewer in the workspace.
+            // A reader node that started this run as its flow trigger outputs
+            // the item it fired for, rather than reading the list again.
             $output = $this->secretRedactor->redact(
-                $node->execute($run, $config, $context),
+                $node instanceof SupportsTriggerMode && $run->entry_node_key === $nodeRun->key
+                    ? (array) ($context['input'] ?? [])
+                    : $node->execute($run, $config, $context),
                 $secrets->sensitiveValues(),
             );
 

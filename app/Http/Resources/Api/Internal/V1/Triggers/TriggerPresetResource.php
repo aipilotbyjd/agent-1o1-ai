@@ -24,6 +24,8 @@ class TriggerPresetResource extends JsonResource
             'description' => $this->description,
             'type' => $this->type->value,
             'signature_scheme' => $this->signature_scheme,
+            // A schedule preset's cron lives here, so the editor can offer it.
+            'config' => $this->config,
             'fields' => $this->fields,
             'is_active' => $this->is_active,
             'sort_order' => $this->sort_order,

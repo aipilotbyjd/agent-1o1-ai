@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\GoogleCalendar;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode
+class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'google_calendar_list_events';
@@ -52,5 +56,37 @@ class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode
             'singleEvents' => 'true',
             'orderBy' => 'startTime',
         ]);
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return 'items';
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'Google Calendar: New event';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new event is added to the calendar.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 5;
     }
 }

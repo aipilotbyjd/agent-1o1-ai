@@ -2,12 +2,16 @@
 
 namespace App\Nodes\Integrations\Gmail;
 
+use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
 
-class GmailListMessagesNode extends AbstractGmailNode
+class GmailListMessagesNode extends AbstractGmailNode implements SupportsTriggerMode
 {
+    use ActsAsTrigger;
+
     public function type(): string
     {
         return 'gmail_list_messages';
@@ -47,5 +51,59 @@ class GmailListMessagesNode extends AbstractGmailNode
             'q' => $config['query'] ?? '',
             'maxResults' => $config['max_results'] ?? 10,
         ]);
+    }
+
+    /**
+     * Where the item list sits in execute()'s output.
+     */
+    protected function triggerItemsPath(): ?string
+    {
+        return 'messages';
+    }
+
+    /**
+     * The name shown in Triggers & Events.
+     */
+    public function triggerName(): string
+    {
+        return 'Gmail: New email';
+    }
+
+    /**
+     * The description shown in Triggers & Events.
+     */
+    public function triggerDescription(): string
+    {
+        return 'Starts the flow when a new email matching the search arrives.';
+    }
+
+    /**
+     * The default minutes between polls when used as a trigger.
+     */
+    public function triggerPollMinutes(): int
+    {
+        return 1;
+    }
+
+    /**
+     * The list call returns only ids: fetch each new message's headers and
+     * snippet so the run has something to work with.
+     */
+    public function expandTriggerItem(Run $run, array $config, array $item): array
+    {
+        $message = $this->get($run, '/users/me/messages/'.rawurlencode((string) $item['id']), $config, ['format' => 'metadata']);
+        $headers = collect($message['payload']['headers'] ?? [])
+            ->mapWithKeys(fn (array $header): array => [strtolower((string) ($header['name'] ?? '')) => $header['value'] ?? null]);
+
+        return [
+            'id' => $message['id'] ?? $item['id'],
+            'thread_id' => $message['threadId'] ?? ($item['threadId'] ?? null),
+            'from' => $headers->get('from'),
+            'to' => $headers->get('to'),
+            'subject' => $headers->get('subject'),
+            'date' => $headers->get('date'),
+            'snippet' => $message['snippet'] ?? null,
+            'label_ids' => $message['labelIds'] ?? [],
+        ];
     }
 }

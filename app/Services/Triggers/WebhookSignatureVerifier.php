@@ -2,30 +2,51 @@
 
 namespace App\Services\Triggers;
 
+use App\Enums\Triggers\WebhookAuthentication;
 use App\Models\Triggers\Trigger;
 use Illuminate\Http\Request;
 
 /**
- * Per-`trigger_presets.signature_scheme` HMAC verification (plus a generic
- * `X-Signature-256` scheme for triggers that have a signing secret but no
- * provider preset). Verifies against
- * the raw request body (`payload_snippet`, not the decoded `payload`): a
- * provider's signature is computed over exact bytes, and re-encoding JSON
- * before hashing would fail to reproduce it.
+ * Checks that a webhook request is genuine.
+ *
+ * In order of precedence:
+ * - A trigger made from a provider preset uses that provider's scheme
+ *   (GitHub, Stripe, Slack).
+ * - A Webhook trigger node uses its chosen authentication: none, a header
+ *   token, or the generic signature.
+ * - Any other trigger is open, unless its owner set a secret, which is then
+ *   enforced with the generic signature.
+ *
+ * Signatures are checked against the raw request body, never the decoded
+ * payload: providers sign exact bytes, and re-encoding the JSON would not
+ * reproduce them.
  */
 class WebhookSignatureVerifier
 {
     private const TIMESTAMP_TOLERANCE_SECONDS = 300;
 
+    /**
+     * Whether the request passes the trigger's check.
+     */
     public function verify(Trigger $trigger, Request $request, string $rawBody): bool
     {
         $scheme = $trigger->preset?->signature_scheme;
         $secret = $trigger->signing_secret;
 
-        // A preset names the provider's scheme. With none, the trigger is
-        // unsigned unless its owner set a signing secret, and then the
-        // secret must actually be enforced, not silently ignored, so it falls
-        // back to the generic scheme below.
+        // A Webhook trigger node names its method. One that needs a secret
+        // rejects everything until it's set, rather than accepting anyone.
+        $authentication = WebhookAuthentication::tryFrom((string) ($trigger->config['authentication'] ?? ''));
+
+        if ($scheme === null && $authentication !== null) {
+            return match ($authentication) {
+                WebhookAuthentication::None => true,
+                WebhookAuthentication::HeaderToken => filled($secret) && $this->verifyHeaderToken($trigger, $request, $secret),
+                WebhookAuthentication::Signature => filled($secret) && $this->verifyGeneric($request, $rawBody, $secret),
+            };
+        }
+
+        // No preset and no secret: open. A secret without a preset is
+        // enforced with the generic signature, never silently ignored.
         if ($scheme === null && blank($secret)) {
             return true;
         }
@@ -44,8 +65,20 @@ class WebhookSignatureVerifier
     }
 
     /**
-     * For senders with no provider scheme: `X-Signature-256: sha256=<hex>`,
-     * an HMAC-SHA256 of the raw body keyed with the trigger's signing secret.
+     * The secret sent as-is in a header (`X-Webhook-Token` unless the node
+     * names another), compared in constant time.
+     */
+    private function verifyHeaderToken(Trigger $trigger, Request $request, string $secret): bool
+    {
+        $header = $trigger->config['header_name'] ?? null;
+        $token = (string) $request->header(filled($header) ? (string) $header : WebhookAuthentication::DEFAULT_HEADER);
+
+        return $token !== '' && hash_equals($secret, $token);
+    }
+
+    /**
+     * The generic signature: `X-Signature-256: sha256=<hex>`, an HMAC-SHA256
+     * of the raw body keyed with the trigger's secret.
      */
     private function verifyGeneric(Request $request, string $rawBody, string $secret): bool
     {
@@ -58,6 +91,9 @@ class WebhookSignatureVerifier
         return hash_equals('sha256='.hash_hmac('sha256', $rawBody, $secret), $signature);
     }
 
+    /**
+     * GitHub's `X-Hub-Signature-256`: an HMAC-SHA256 of the raw body.
+     */
     private function verifyGithub(Request $request, string $rawBody, string $secret): bool
     {
         $signature = (string) $request->header('X-Hub-Signature-256');
@@ -71,6 +107,10 @@ class WebhookSignatureVerifier
         return hash_equals($expected, $signature);
     }
 
+    /**
+     * Stripe's `Stripe-Signature`: an HMAC-SHA256 of `timestamp.body`, with a
+     * timestamp no older than the tolerance (replay protection).
+     */
     private function verifyStripe(Request $request, string $rawBody, string $secret): bool
     {
         $parts = $this->parseHeaderPairs((string) $request->header('Stripe-Signature'));
@@ -92,6 +132,10 @@ class WebhookSignatureVerifier
         return false;
     }
 
+    /**
+     * Slack's `X-Slack-Signature`: an HMAC-SHA256 of `v0:timestamp:body`, with
+     * a timestamp no older than the tolerance (replay protection).
+     */
     private function verifySlack(Request $request, string $rawBody, string $secret): bool
     {
         $timestamp = (string) $request->header('X-Slack-Request-Timestamp');
@@ -107,8 +151,9 @@ class WebhookSignatureVerifier
     }
 
     /**
-     * Parses a `key=value,key=value` header (Stripe's `Stripe-Signature` shape)
-     * into `key => [values]`, since `v1` can repeat for secret rotation.
+     * Split a `key=value,key=value` header (Stripe-Signature's shape) into
+     * `key => [values]`. A key can repeat: Stripe sends several `v1` values
+     * while a secret is being rotated.
      *
      * @return array<string, array<int, string>>
      */
@@ -127,6 +172,9 @@ class WebhookSignatureVerifier
         return $parts;
     }
 
+    /**
+     * Whether a signed timestamp is too old to accept.
+     */
     private function isStale(int $timestamp): bool
     {
         return abs(time() - $timestamp) > self::TIMESTAMP_TOLERANCE_SECONDS;
