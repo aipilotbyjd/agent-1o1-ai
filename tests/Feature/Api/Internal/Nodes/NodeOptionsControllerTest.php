@@ -290,6 +290,20 @@ it('lists this workspace\'s agents and workflows without any connected account',
         ->and($workflows->json('data.options.0.value'))->toBe($workflow->id);
 });
 
+it('lists timezones for the schedule trigger without any connected account', function () {
+    [$workspace, $owner] = workspaceForNodeOptions();
+
+    Passport::actingAs($owner);
+
+    $timezones = $this->postJson(nodeOptionsUrl($workspace), [
+        'type' => 'schedule_trigger',
+        'field' => 'timezone',
+        'search' => 'Kolkata',
+    ])->assertOk();
+
+    expect(collect($timezones->json('data.options'))->pluck('value')->all())->toContain('Asia/Kolkata');
+});
+
 it('rejects a field that has no options and an unknown node type', function () {
     [$workspace, $owner] = workspaceForNodeOptions();
 

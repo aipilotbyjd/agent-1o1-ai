@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Webhooks;
 
 use App\Enums\Triggers\TriggerType;
+use App\Enums\Triggers\WebhookAuthentication;
 use App\Http\Controllers\Controller;
 use App\Models\Triggers\Trigger;
 use App\Services\Triggers\TriggerService;
@@ -50,10 +51,10 @@ class WebhookController extends Controller
                 (array) $request->all(),
                 $snippet,
                 $headers,
-                'Signature verification failed.',
+                $this->usesHeaderToken($trigger) ? 'Token verification failed.' : 'Signature verification failed.',
             );
 
-            return response('Invalid signature.', 401);
+            return response($this->usesHeaderToken($trigger) ? 'Invalid token.' : 'Invalid signature.', 401);
         }
 
         $this->triggers->receive(
@@ -69,6 +70,15 @@ class WebhookController extends Controller
         // event at one URL, and a non-2xx on an unwanted event causes retries,
         // then hook disabling. See docs/TRIGGERS_PLAN.md's design decisions.
         return response()->json(['status' => 'accepted'], 200);
+    }
+
+    /**
+     * Whether a rejection should speak of a token rather than a signature.
+     */
+    private function usesHeaderToken(Trigger $trigger): bool
+    {
+        return $trigger->preset_id === null
+            && ($trigger->config['authentication'] ?? null) === WebhookAuthentication::HeaderToken->value;
     }
 
     private function deliveryId(Trigger $trigger, Request $request): ?string

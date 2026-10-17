@@ -392,6 +392,16 @@ describe('webhook authentication', function () {
         $this->postJson("/api/hooks/{$trigger->token}", ['a' => 1], ['X-Webhook-Token' => 's3cret'])->assertOk();
     });
 
+    it('names the token, not a signature, when a header token is rejected', function () {
+        $trigger = authWebhook(['authentication' => 'header_token'], 's3cret');
+
+        $this->postJson("/api/hooks/{$trigger->token}", ['a' => 1], ['X-Webhook-Token' => 'wrong'])
+            ->assertUnauthorized()
+            ->assertSeeText('Invalid token.');
+
+        expect($trigger->events()->first()->error)->toBe('Token verification failed.');
+    });
+
     it('reads the token from a custom header', function () {
         $trigger = authWebhook(['authentication' => 'header_token', 'header_name' => 'X-Acme-Key'], 's3cret');
 
