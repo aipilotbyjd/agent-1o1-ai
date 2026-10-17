@@ -28,6 +28,8 @@ use Laravel\Socialite\Contracts\User as SocialiteUser;
 
 class AuthService
 {
+    public const string SUSPENDED_MESSAGE = 'This account has been suspended. Contact support for help.';
+
     /**
      * Wrong codes a single two-factor challenge will answer before it is burned
      * and the user has to sign in again. Six digits are only 10^6 wide, so the
@@ -85,6 +87,8 @@ class AuthService
             ]);
         }
 
+        $this->assertNotSuspended($user, 'email');
+
         if ($user->hasTwoFactorEnabled()) {
             return ['two_factor_challenge' => $this->createTwoFactorChallenge($user, $password)];
         }
@@ -130,6 +134,8 @@ class AuthService
         }
 
         Cache::forget($this->challengeKey($challengeToken));
+
+        $this->assertNotSuspended($user, 'code');
 
         $password = Crypt::decryptString($challenge['password']);
 
@@ -426,6 +432,8 @@ class AuthService
             ]);
         }
 
+        $this->assertNotSuspended(User::query()->findOrFail($payload['user_id']), 'code');
+
         $tokens = $this->dispatchTokenRequest([
             'grant_type' => 'social_exchange',
             'client_id' => config('passport.password_client_id'),
@@ -584,6 +592,19 @@ class AuthService
     /**
      * @return array{access_token: string, refresh_token: string, expires_in: int, token_type: string}
      */
+    /**
+     * Checked only once the caller has proven who they are, so the message
+     * never tells a stranger whether an address has an account.
+     */
+    private function assertNotSuspended(User $user, string $field): void
+    {
+        if ($user->isSuspended()) {
+            throw ValidationException::withMessages([
+                $field => self::SUSPENDED_MESSAGE,
+            ]);
+        }
+    }
+
     private function issuePasswordGrantToken(string $email, string $password): array
     {
         $tokens = $this->dispatchTokenRequest([

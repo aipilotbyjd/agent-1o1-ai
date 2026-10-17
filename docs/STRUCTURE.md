@@ -395,6 +395,15 @@ routes/
       artifacts.php
       skills.php
   web.php
+  super_admin/
+    index.php
+    auth.php
+    dashboard.php
+    users.php
+    workspaces.php
+    runs.php
+    audit_log.php
+    account.php
   console.php
 
 tests/
@@ -491,6 +500,10 @@ Each domain file (e.g. `routes/api/public/workflows.php`) holds only its route l
 ```
 
 If your installed Laravel version's `withRouting()` only accepts a single `api:` path rather than an array, fall back to a single `routes/api.php` that requires both `index.php` files, and point `api:` at that instead.
+
+### Super admin panel — a separate surface
+
+The Blade super admin panel is its own surface, not part of `web` or the API, and shares nothing with the platform-admin API (`/v1/admin`, `users.is_platform_admin`, `AdminAuditLog`). Everything carries the `SuperAdmin` name so the two never mix with workspace admins either: `routes/super_admin/` (wired through `then:` in `bootstrap/app.php`), `Controllers|Requests|Services|Console\Commands|Notifications|Models/SuperAdmin`, `Http/Middleware/SuperAdmin`, `config/super_admin.php`, `resources/views/super-admin`, tables `super_admins` and `super_admin_audit_logs`, guard `super_admin`, route names `super-admin.*`, commands `super-admin:*`, tests in `tests/Feature/SuperAdmin`.
 
 ## Auth, Workspaces, Billing — already-built, fitted into this structure
 

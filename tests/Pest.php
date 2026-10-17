@@ -12,6 +12,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\Client;
 use Tests\TestCase;
 
+require_once __DIR__.'/Helpers/SuperAdmin.php';
+
 /*
 |--------------------------------------------------------------------------
 | Test Case

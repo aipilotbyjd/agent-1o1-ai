@@ -31,7 +31,7 @@ use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'avatar', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
-#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
+#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'suspension_reason'])]
 class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -57,6 +57,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'job_role' => JobRole::class,
             'discovery_source' => DiscoverySource::class,
             'is_platform_admin' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -72,6 +73,24 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function isPlatformAdmin(): bool
     {
         return $this->is_platform_admin === true;
+    }
+
+    /**
+     * Suspended by a super admin: no sign-in of any kind and no API access.
+     * Set only through `SuperAdminUserSupport`.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /**
+     * Passport's password grant looks the user up here, so a suspended account
+     * can't get a token even by calling `/oauth/token` directly.
+     */
+    public function findForPassport(string $username): ?self
+    {
+        return static::query()->where('email', $username)->whereNull('suspended_at')->first();
     }
 
     public function hasPendingEmailChange(): bool

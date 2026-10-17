@@ -14,19 +14,31 @@ use App\Exceptions\WorkflowValidationException;
 use App\Http\Middleware\AllowLongAgentTurn;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\EnsureUserIsNotSuspended;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SuperAdmin\ConfigureSuperAdminSession;
+use App\Http\Middleware\SuperAdmin\EnsurePendingSuperAdminLogin;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminSessionIsValid;
+use App\Http\Middleware\SuperAdmin\RestrictSuperAdminByIp;
+use App\Http\Middleware\SuperAdmin\SuperAdminSecurityHeaders;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
@@ -42,6 +54,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ],
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            Route::group([], __DIR__.'/../routes/super_admin/index.php');
+        },
     )
     // Registered explicitly rather than through `withRouting(channels: ...)`
     // so the authorization endpoint sits behind Passport on the API prefix
@@ -49,7 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
     // the session-based `web` guard, which this token-only API never uses.
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',
-        attributes: ['prefix' => 'api', 'middleware' => ['auth:api']],
+        attributes: ['prefix' => 'api', 'middleware' => ['auth:api', EnsureUserIsNotSuspended::class]],
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
@@ -57,13 +72,35 @@ return Application::configure(basePath: dirname(__DIR__))
             'api-key' => EnsureApiKeyIsValid::class,
             'long-agent-turn' => AllowLongAgentTurn::class,
             'platform.admin' => EnsurePlatformAdmin::class,
+            'super-admin.session' => EnsureSuperAdminSessionIsValid::class,
+            'super-admin.pending' => EnsurePendingSuperAdminLogin::class,
+        ]);
+
+        // The super admin panel's own stack instead of `web`: its session cookie
+        // is swapped in before the session starts (see ConfigureSuperAdminSession).
+        $middleware->group('super-admin', [
+            RestrictSuperAdminByIp::class,
+            ConfigureSuperAdminSession::class,
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            ValidateCsrfToken::class,
+            SubstituteBindings::class,
+            SuperAdminSecurityHeaders::class,
         ]);
 
         $middleware->append(SecurityHeaders::class);
 
-        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
+        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class, EnsureUserIsNotSuspended::class]);
 
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
+        $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
+            $request->is('api/*') => null,
+            $request->routeIs('super-admin.*') => route('super-admin.login'),
+            default => route('login'),
+        });
+
+        $middleware->redirectUsersTo(fn (Request $request) => $request->routeIs('super-admin.*') ? route('super-admin.dashboard') : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
