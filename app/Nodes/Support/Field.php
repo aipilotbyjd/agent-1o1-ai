@@ -7,17 +7,17 @@ use Illuminate\Support\Str;
 /**
  * Builders for the entries of a node's `configSchema()['properties']`. Each
  * returns plain JSON-schema (`type`, `title`, `description`, `enum`,
- * `default`, `format`, `items`) — what `ConfigSchemaValidator` and agent
- * tool schemas read — plus `x-` keys that only the workflow editor reads to
+ * `default`, `format`, `items`) (what `ConfigSchemaValidator` and agent
+ * tool schemas read) plus `x-` keys that only the workflow editor reads to
  * render a real form instead of a column of text boxes:
  *
- * - `x-widget`: which input to draw — `text`, `textarea`, `number`,
+ * - `x-widget`: which input to draw; `text`, `textarea`, `number`,
  *   `toggle`, `select`, `datetime`, `emails`, `json`, `key-value`, `list`,
  *   `credential` (an account picker for `x-connector`).
  * - `x-placeholder`: example value shown in an empty input.
  * - `x-enum-labels`: `{value: label}` for a `select` with fixed choices.
  * - `x-options`: a dropdown filled at edit time from the connected account
- *   (or the workspace) via `POST /workspaces/{workspace}/nodes/options` —
+ *   (or the workspace) via `POST /workspaces/{workspace}/nodes/options`:
  *   `{source, depends_on, uses, multiple, searchable, allow_custom}`. A
  *   field listed in `depends_on` must be set before this one can load
  *   (e.g. the sheet tab list needs a spreadsheet); one in `uses` narrows
@@ -88,7 +88,7 @@ final class Field
     }
 
     /**
-     * A fixed list of choices — a `value => label` map, or a plain list of
+     * A fixed list of choices: a `value => label` map, or a plain list of
      * values labelled by headline-casing them (`not_equals` → "Not Equals").
      *
      * @param  array<string, string>|list<string>  $choices
@@ -113,7 +113,7 @@ final class Field
     }
 
     /**
-     * A dropdown whose choices are loaded live from `$source` — see the class
+     * A dropdown whose choices are loaded live from `$source`: see the class
      * docblock's `x-options`.
      *
      * @param  list<string>  $dependsOn
@@ -163,7 +163,7 @@ final class Field
     }
 
     /**
-     * A JSON value — `object` or `array`.
+     * A JSON value: `object` or `array`.
      *
      * @param  array<string, mixed>  $extra
      * @return array<string, mixed>

@@ -12,7 +12,7 @@ use Stringable;
 
 /**
  * Runs code on the conversation's own cloud computer. It is isolated from
- * the platform and holds no credentials — only what the model puts there —
+ * the platform and holds no credentials (only what the model puts there)
  * so it counts as the assistant's own workspace (`Internal`); the owner can
  * still make it ask first.
  */

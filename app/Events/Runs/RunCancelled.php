@@ -9,7 +9,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * A `Run` stopped on request rather than by reaching a terminal state of its
- * own — see `WorkflowRunner::cancel()`. Sibling of `RunCompleted`/`RunFailed`
+ * own: see `WorkflowRunner::cancel()`. Sibling of `RunCompleted`/`RunFailed`
  * so consumers can treat "the run is over" uniformly.
  */
 class RunCancelled

@@ -81,7 +81,7 @@ class ConnectorNodeTool extends AssistantTool
     }
 
     /**
-     * Only the node's own fields, minus credentials — then the pinned
+     * Only the node's own fields, minus credentials, then the pinned
      * credential on top, so nothing the model sends can replace it.
      *
      * @param  array<string, mixed>  $arguments

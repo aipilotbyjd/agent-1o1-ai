@@ -12,7 +12,7 @@ use Illuminate\Translation\PotentiallyTranslatedString;
 /**
  * Rejects a URL the server must never fetch on a tenant's behalf (non-http(s)
  * schemes, embedded credentials, literal private/loopback/metadata addresses,
- * internal host names). Static checks only — no DNS lookup — so saving a form
+ * internal host names). Static checks only (no DNS lookup) so saving a form
  * never depends on the resolver; {@see GuardedHttp}
  * enforces the full check, DNS included, when the request is actually sent.
  */

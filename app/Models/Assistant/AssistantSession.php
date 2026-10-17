@@ -80,7 +80,7 @@ class AssistantSession extends Model
     }
 
     /**
-     * Sessions that haven't expired — incognito ones disappear from every
+     * Sessions that haven't expired: incognito ones disappear from every
      * list the moment `expires_at` passes, before the purge job deletes them.
      *
      * @param  Builder<self>  $query

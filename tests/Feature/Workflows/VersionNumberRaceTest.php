@@ -11,7 +11,7 @@ use App\Services\Workspaces\WorkspaceService;
 /**
  * Both version tables carry a `unique({parent}_id, version)` constraint, and
  * both writers pick the next number with `max('version') + 1`. Two writers
- * racing for that number must not surface as a failed request — the loser
+ * racing for that number must not surface as a failed request: the loser
  * re-reads the watermark and takes the next one instead.
  *
  * The race is simulated by a one-shot `creating` hook that rewrites the

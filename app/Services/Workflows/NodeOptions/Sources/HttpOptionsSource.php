@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Shared plumbing for sources that read a third-party API with the
  * member's connected account. Provider error bodies are logged, never
- * returned — the member sees a short, fixed message instead, so nothing a
+ * returned: the member sees a short, fixed message instead, so nothing a
  * provider says (or leaks) reaches the browser.
  */
 abstract class HttpOptionsSource implements OptionsSource
@@ -81,7 +81,7 @@ abstract class HttpOptionsSource implements OptionsSource
     }
 
     /**
-     * A numeric page/offset cursor — anything else the client sends falls
+     * A numeric page/offset cursor: anything else the client sends falls
      * back to the first page rather than reaching the provider.
      */
     protected function intCursor(NodeOptionsQuery $query, int $first = 1): int

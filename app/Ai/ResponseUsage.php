@@ -26,7 +26,7 @@ final class ResponseUsage
     }
 
     /**
-     * Two parts of one turn — before and after it paused for approvals —
+     * Two parts of one turn (before and after it paused for approvals)
      * as one: counts are added up, anything else (the provider and model)
      * is taken from the later part.
      *

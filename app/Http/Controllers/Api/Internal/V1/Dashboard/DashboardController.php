@@ -25,12 +25,12 @@ class DashboardController extends Controller
 
     /**
      * The whole home screen in one read, the way `BillingController::overview`
-     * is the whole billing screen — a dashboard that fans out to six endpoints
+     * is the whole billing screen: a dashboard that fans out to six endpoints
      * renders in six waterfalls and shows six separate spinners.
      *
      * Everything under `runs` and `credits.window_*` is scoped to the `days`
      * window; `in_flight`, `pending_approvals` and `counts` are current-state
-     * and deliberately are not — a run stuck since last week and an approval
+     * and deliberately are not: a run stuck since last week and an approval
      * nobody has actioned are the two things a dashboard exists to surface,
      * and a window would hide exactly the oldest, worst cases.
      *

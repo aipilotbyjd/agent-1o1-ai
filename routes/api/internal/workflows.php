@@ -31,7 +31,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::get('{workflow}/versions/{version}', [WorkflowVersionController::class, 'show'])->name('versions.show');
         Route::post('{workflow}/versions/{version}/restore', [WorkflowVersionController::class, 'restore'])->name('versions.restore');
 
-        // Review before publishing, in workspaces that require it — see PublishRequests.
+        // Review before publishing, in workspaces that require it: see PublishRequests.
         Route::get('{workflow}/publish-requests', [WorkflowPublishRequestController::class, 'index'])->name('publish-requests.index');
         Route::post('{workflow}/publish-requests', [WorkflowPublishRequestController::class, 'store'])->name('publish-requests.store');
         Route::get('{workflow}/publish-requests/{publishRequest}', [WorkflowPublishRequestController::class, 'show'])->name('publish-requests.show');
@@ -39,7 +39,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('{workflow}/publish-requests/{publishRequest}/reject', [WorkflowPublishRequestController::class, 'reject'])->name('publish-requests.reject');
         Route::post('{workflow}/publish-requests/{publishRequest}/withdraw', [WorkflowPublishRequestController::class, 'withdraw'])->name('publish-requests.withdraw');
 
-        // The workflow's input contract and the form-run that submits it —
+        // The workflow's input contract and the form-run that submits it:
         // see WorkflowInterfaceController.
         Route::get('{workflow}/interface', [WorkflowInterfaceController::class, 'show'])->name('interface.show');
         Route::put('{workflow}/interface', [WorkflowInterfaceController::class, 'update'])->name('interface.update');

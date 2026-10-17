@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The chat transcript for a `WorkflowBuilderSession` — distinct from
+ * The chat transcript for a `WorkflowBuilderSession`: distinct from
  * `agent_messages` (Stage 6), since this transcript is scoped to editing one
  * workflow draft, not a general-purpose `Agent` conversation.
  */

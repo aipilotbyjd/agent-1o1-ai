@@ -15,7 +15,7 @@ use Laravel\Ai\Promptable;
  * A member's personal assistant as a `Laravel\Ai` agent, built per turn by
  * `TurnRunner`: instructions, tools and history are handed in, so this
  * class only exposes them. Separate from `App\Ai\Agents\WorkspaceAgent` by
- * design — see docs/ASSISTANT_PLAN.md.
+ * design: see docs/ASSISTANT_PLAN.md.
  */
 class AssistantAgent implements Agent, Conversational, HasTools
 {

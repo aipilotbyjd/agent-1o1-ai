@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Runs one scheduled reflection pass for an agent — dispatched by
+ * Runs one scheduled reflection pass for an agent: dispatched by
  * `Console\Commands\Agents\RunDueReflectionsCommand`.
  */
 class RunReflectionJob implements ShouldQueue

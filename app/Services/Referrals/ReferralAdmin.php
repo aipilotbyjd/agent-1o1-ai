@@ -23,8 +23,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Every change a platform admin can make to the referral program, shared by
- * the admin API and the `referrals:*` artisan commands so both behave — and
- * are audited — identically. `$admin` is null when the change comes from
+ * the admin API and the `referrals:*` artisan commands so both behave (and
+ * are audited) identically. `$admin` is null when the change comes from
  * the command line; the audit log shows that as "Command line".
  *
  * Input is expected to be validated already (see the admin Form Requests'

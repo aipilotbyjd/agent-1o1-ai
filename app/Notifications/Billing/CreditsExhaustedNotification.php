@@ -8,7 +8,7 @@ use App\Notifications\Workspace\WorkspaceEventNotification;
 
 /**
  * The customer-facing sibling of `CreditGate`'s `usage.limit_exhausted`
- * admin alert — the workspace is actually being refused new work, so unlike
+ * admin alert: the workspace is actually being refused new work, so unlike
  * `CreditsLowNotification` this is the "you are blocked now" message.
  */
 class CreditsExhaustedNotification extends WorkspaceEventNotification

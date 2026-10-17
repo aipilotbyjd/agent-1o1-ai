@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * `overage_credits_used` is a *subset* of `credits_used`, not an addition to
- * it — the share of this period's spend that neither the plan allowance nor
+ * it: the share of this period's spend that neither the plan allowance nor
  * the top-up pool covered, and that the workspace will be invoiced for.
  *
  * @mixin UsagePeriod

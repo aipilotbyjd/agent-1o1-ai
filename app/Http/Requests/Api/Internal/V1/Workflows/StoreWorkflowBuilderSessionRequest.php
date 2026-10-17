@@ -22,7 +22,7 @@ class StoreWorkflowBuilderSessionRequest extends FormRequest
             'title' => ['nullable', 'string', 'max:255'],
             'workflow_id' => ['nullable', 'uuid', 'exists:workflows,id'],
             'prompt' => ['nullable', 'string', 'max:10000'],
-            // How the first message is sent — see `StoreWorkflowBuilderMessageRequest`.
+            // How the first message is sent: see `StoreWorkflowBuilderMessageRequest`.
             'mode' => ['nullable', Rule::enum(BuilderMessageMode::class)],
         ];
     }

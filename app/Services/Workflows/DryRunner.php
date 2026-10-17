@@ -10,18 +10,18 @@ use App\Nodes\InputsOutputs\WorkflowOutputNode;
 use App\Services\Workflows\Engine\GraphAdvancer;
 
 /**
- * Simulates a draft graph without calling anything external — no
+ * Simulates a draft graph without calling anything external: no
  * `NodeContract::execute()` calls, ever. Each node's config is
  * template-resolved (`TemplateResolver`, Stage 5) against a context built
  * from placeholder outputs of the nodes before it in topological order, which
  * catches the authoring mistakes that otherwise only surface at run time: a
  * template pointing at a node that runs later, a misspelled path, wiring
- * that doesn't resolve — all without side effects. Backs
+ * that doesn't resolve: all without side effects. Backs
  * `Ai\Tools\WorkflowBuilder\DryRunWorkflowTool`.
  *
  * Each node's simulated output is shaped like its real one when that shape
- * is known — from the node's own pinned data, else from what nodes of its
- * type have produced in the workspace (`NodeOutputShapes`) — so a misspelled
+ * is known (from the node's own pinned data, else from what nodes of its
+ * type have produced in the workspace (`NodeOutputShapes`)) so a misspelled
  * field is caught. A reference into a node whose shape is *not* known can't
  * be judged either way; it is reported under `unverified` rather than as a
  * warning, so a first-time graph isn't buried in false alarms.
@@ -54,7 +54,7 @@ class DryRunner
 
         // An invalid graph has no meaningful execution order, so simulating
         // it would only produce noise on top of problems the author must
-        // fix first — same short-circuit `GraphValidator` itself uses.
+        // fix first: same short-circuit `GraphValidator` itself uses.
         if ($issues !== []) {
             return ['ok' => false, 'issues' => $issues, 'warnings' => [], 'findings' => [], 'unverified' => [], 'steps' => []];
         }
@@ -133,8 +133,8 @@ class DryRunner
 
     /**
      * Kahn's algorithm, starting from the same entry-node definition
-     * `GraphAdvancer` uses at run time (zero incoming *healthy-path* edges)
-     * — a `GraphValidator`-clean graph is guaranteed acyclic, so this always
+     * `GraphAdvancer` uses at run time (zero incoming *healthy-path* edges):
+     * a `GraphValidator`-clean graph is guaranteed acyclic, so this always
      * terminates having visited every node.
      *
      * @param  array<int, array<string, mixed>>  $nodes
@@ -183,7 +183,7 @@ class DryRunner
 
     /**
      * A stand-in output shaped like the node's real one, or null when that
-     * shape is unknown — `NodeContract` has no `outputSchema()`, so shapes
+     * shape is unknown: `NodeContract` has no `outputSchema()`, so shapes
      * come from observed outputs (see the class docblock), or from the
      * engine for flow-control types. `router`/`filter` always model
      * `result`, since it drives edge routing.
@@ -216,7 +216,7 @@ class DryRunner
 
     /**
      * Each Input step's output for the dry-run input, with a placeholder
-     * standing in for any value neither the input nor a default supplies —
+     * standing in for any value neither the input nor a default supplies:
      * a real run would have one from the form.
      *
      * @param  array{nodes?: array<int, array<string, mixed>>, edges?: array<int, array<string, mixed>>}  $graph
@@ -292,7 +292,7 @@ class DryRunner
     /**
      * `{{ secrets.X }}` / `{{ vars.X }}` are resolved from the workspace's
      * secret store at run time (`SecretResolver`), which a dry run has no
-     * business reading — the simulated context can't supply them, and
+     * business reading: the simulated context can't supply them, and
      * warning that "nothing provides" them would be noise on every graph
      * that uses one.
      */

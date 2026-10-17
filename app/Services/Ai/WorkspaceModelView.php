@@ -15,7 +15,7 @@ use App\Services\Billing\CreditMeter;
  * the workspace's own key; whether an admin allows it or made it the
  * default; and roughly what a message costs. Mirrors the order
  * `ByokProviderRegistrar` tries a model's hops in, without registering
- * anything. Never reveals a route's model id — only which providers a key
+ * anything. Never reveals a route's model id, only which providers a key
  * could be added for.
  */
 class WorkspaceModelView

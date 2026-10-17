@@ -36,7 +36,7 @@ it('fires a workflow run and marks the event fired', function () {
     expect($event->attempts)->toBe(1);
 });
 
-it('claim is exclusive — a second claim on the same event returns false', function () {
+it('claim is exclusive: a second claim on the same event returns false', function () {
     $event = makeQueuedEvent();
 
     expect($event->claim())->toBeTrue();
@@ -69,7 +69,7 @@ it('records a circuit-breaker failure only when the event actually reached the t
 
 it('does not count a failure for an event that expired unclaimed', function () {
     $event = makeQueuedEvent();
-    // attempts stays 0 — the job never actually claimed/ran.
+    // attempts stays 0: the job never actually claimed/ran.
 
     $job = new FireTriggerEvent($event->trigger, $event);
     $job->failed(new RuntimeException('lock contention'));

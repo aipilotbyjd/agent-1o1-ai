@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A saved copy of a page's draft — version B's too, when it has one — to
+ * A saved copy of a page's draft (version B's too, when it has one) to
  * look back at or restore. Taken on publish (`published`), on request
  * (`saved`), and automatically before a restore or an AI rewrite replaces
  * the draft, so neither can lose work. See `PageVersions`.

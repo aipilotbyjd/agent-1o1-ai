@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
  * models that would lose the platform's key as their backup, and the
  * personal keys that would stop being used.
  *
- * Judged on the workspace's team keys — what every member can count on —
+ * Judged on the workspace's team keys (what every member can count on)
  * since a personal key only ever covers its owner.
  */
 class AiKeyPolicyImpact

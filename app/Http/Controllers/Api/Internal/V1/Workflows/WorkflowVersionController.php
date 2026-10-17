@@ -44,7 +44,7 @@ class WorkflowVersionController extends Controller
 
     /**
      * Validate the current draft (`GraphValidator`, the full sequence) and,
-     * if it passes, snapshot it as a new immutable version — see
+     * if it passes, snapshot it as a new immutable version: see
      * `Workflow::publishVersion()`.
      */
     public function store(PublishWorkflowRequest $request, Workspace $workspace, Workflow $workflow)
@@ -61,7 +61,7 @@ class WorkflowVersionController extends Controller
     }
 
     /**
-     * Copy a published version back into the draft — see
+     * Copy a published version back into the draft: see
      * `Workflow::restoreVersion()`. Nothing goes live until it is published.
      */
     public function restore(Workspace $workspace, Workflow $workflow, WorkflowVersion $version)

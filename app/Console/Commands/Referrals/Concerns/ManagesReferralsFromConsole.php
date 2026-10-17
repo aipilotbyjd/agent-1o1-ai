@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
  *   is accepted in place of `plan_id`, and plan slugs work in plan lists.
  * - Validation against the same rules the admin API uses, printing field
  *   errors instead of throwing.
- * - Finding a record by its full id or the short id the listings print —
+ * - Finding a record by its full id or the short id the listings print:
  *   its last 8 characters. Ids are time-ordered UUIDs, so their *start* is
  *   shared by records created together; the end is the random part.
  */
@@ -125,14 +125,14 @@ trait ManagesReferralsFromConsole
             return $matches->first();
         }
 
-        $this->error($matches->isEmpty() ? "No {$label} matches \"{$key}\"." : "\"{$key}\" matches more than one {$label} — use more of the id.");
+        $this->error($matches->isEmpty() ? "No {$label} matches \"{$key}\"." : "\"{$key}\" matches more than one {$label}; use more of the id.");
 
         return null;
     }
 
     protected function shortId(?string $id): string
     {
-        return $id === null ? '—' : Str::substr($id, -8);
+        return $id === null ? '-' : Str::substr($id, -8);
     }
 
     protected function yesNo(bool $value): string

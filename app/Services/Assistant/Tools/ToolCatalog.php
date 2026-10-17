@@ -64,7 +64,7 @@ class ToolCatalog
     }
 
     /**
-     * Every tool the owner can set a rule for — what the settings screen lists.
+     * Every tool the owner can set a rule for: what the settings screen lists.
      *
      * @return list<AssistantTool>
      */
@@ -115,7 +115,7 @@ class ToolCatalog
 
     /**
      * Provider-native web search and fetch, offered only when every provider
-     * in the chain supports them — an unsupported one would throw on the
+     * in the chain supports them: an unsupported one would throw on the
      * tool and fail the turn once failover reached it.
      *
      * @param  string|array<string, string>  $provider

@@ -113,7 +113,7 @@ class AppServiceProvider extends ServiceProvider
      * token pair (see `SocialExchangeGrant`).
      *
      * `enableGrantType()` wires the access token, client and scope repositories
-     * but not the refresh token one, so that is injected here — without it the
+     * but not the refresh token one, so that is injected here, without it the
      * grant would issue an access token with no way to renew it, which is the
      * whole reason the old implementation resorted to rotating passwords.
      */
@@ -179,7 +179,7 @@ class AppServiceProvider extends ServiceProvider
             (int) config('triggers.hook_rate_limit_per_minute'),
         )->by($request->route('token') ?? $request->ip()));
 
-        // Every builder message and assist call is a paid model call — these
+        // Every builder message and assist call is a paid model call: these
         // cap how fast one member can spend a workspace's credits by
         // accident (a stuck retry loop in the client, a held-down Enter).
         RateLimiter::for('workflow-builder-messages', fn (Request $request): Limit => Limit::perMinute(10)
@@ -224,7 +224,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Keyed on the address being signed in as, so credential stuffing spread
      * across many IPs still collides on the account it is targeting. Returns
-     * null for requests that carry no email — password resets and refreshes
+     * null for requests that carry no email: password resets and refreshes
      * share this limiter and have nothing to key on.
      */
     private function authEmailLimit(Request $request): ?Limit
@@ -259,7 +259,7 @@ class AppServiceProvider extends ServiceProvider
     {
         WorkspaceMember::observe(WorkspaceMemberObserver::class);
 
-        // Workspace audit trail — see `AuditLogger`.
+        // Workspace audit trail: see `AuditLogger`.
         foreach ([
             Workspace::class,
             WorkspaceMember::class,
@@ -276,10 +276,10 @@ class AppServiceProvider extends ServiceProvider
             $audited::observe(AuditObserver::class);
         }
 
-        // Behavioral history for agents — see `AgentVersioner`.
+        // Behavioral history for agents: see `AgentVersioner`.
         Agent::observe(AgentObserver::class);
 
-        // Live run/chat streaming — see `App\Broadcasting\Channels`.
+        // Live run/chat streaming: see `App\Broadcasting\Channels`.
         Run::observe(RunObserver::class);
         NodeRun::observe(NodeRunObserver::class);
         AgentMessage::observe(AgentMessageObserver::class);
@@ -288,13 +288,13 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Short aliases instead of fully-qualified class names, shared by
      * `triggers.target_type` (`Workflow`/`Agent`) and `runs.runnable_type`
-     * (`Workflow`/`AgentSession` — a run's target and a trigger's target
+     * (`Workflow`/`AgentSession`: a run's target and a trigger's target
      * happen to overlap on `Workflow`, and both need every runnable/
      * targetable model registered once `enforceMorphMap()` is on, or any
      * relation touching an unregistered one throws).
      *
      * `workflow_template`/`agent_template` back `TemplateCollectionItem`'s
-     * `templatable` morph — the alias, not the FQCN, is what's stored in
+     * `templatable` morph: the alias, not the FQCN, is what's stored in
      * `template_collection_items.templatable_type`.
      */
     private function configureMorphMap(): void
@@ -310,7 +310,7 @@ class AppServiceProvider extends ServiceProvider
             'agent_template' => AgentTemplate::class,
             // Needed for Laravel\Ai\Concerns\RemembersConversations'
             // forUser()/HasConversations participant polymorphism
-            // (WorkflowBuilderAgent) — the conversations table's
+            // (WorkflowBuilderAgent): the conversations table's
             // participant_type column stores this alias.
             'user' => User::class,
         ]);

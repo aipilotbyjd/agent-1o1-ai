@@ -14,8 +14,8 @@ use Laravel\Ai\AiManager;
 use Throwable;
 
 /**
- * Bring your own key, at call time. `ModelCatalogResolver` stays global —
- * it answers "which backends serve this model" — and this answers "whose
+ * Bring your own key, at call time. `ModelCatalogResolver` stays global:
+ * it answers "which backends serve this model", and this answers "whose
  * key pays for each of them" for one workspace and one acting member.
  *
  * For every hop of a provider chain whose provider has a usable key here
@@ -27,9 +27,9 @@ use Throwable;
  *     ['openai' => 'gpt-4o']  →  ['byok-9f…' => 'gpt-4o', 'openai' => 'gpt-4o']
  *
  * The platform's own hop stays behind it (when the platform has a key for
- * it), so a failover-worthy error on the workspace's key — rate limited,
- * out of quota — still lands on a working backend. A hop nobody has a key
- * for — no platform key, no workspace key — is left out, so a route can be
+ * it), so a failover-worthy error on the workspace's key (rate limited,
+ * out of quota) still lands on a working backend. A hop nobody has a key
+ * for (no platform key, no workspace key) is left out, so a route can be
  * enabled for a provider the platform doesn't pay for and only workspaces
  * that brought a key for it will use it; everyone else goes straight to
  * the next hop instead of failing on a keyless call. A rejected key is not
@@ -38,12 +38,12 @@ use Throwable;
  *
  * The workspace's `WorkspaceAiKeyPolicy` can narrow this: personal keys
  * switched off are skipped, and the platform's hops are dropped once the
- * workspace has a key for the call (`WhenNoKey`) or always (`Never` — a
+ * workspace has a key for the call (`WhenNoKey`) or always (`Never`: a
  * call nothing of the workspace's covers then throws
  * `OwnAiKeyRequiredException`).
  *
  * The SDK reports the serving provider's config name back on every
- * response, so `isByok()` on a usage record says whose key ran the call —
+ * response, so `isByok()` on a usage record says whose key ran the call,
  * which is how `CreditMeter` knows not to bill its tokens.
  */
 class ByokProviderRegistrar
@@ -51,7 +51,7 @@ class ByokProviderRegistrar
     public const string PREFIX = 'byok-';
 
     /**
-     * How stale `last_used_at` may get before a call refreshes it — one
+     * How stale `last_used_at` may get before a call refreshes it: one
      * write per key per few minutes rather than one per call.
      */
     private const int LAST_USED_RESOLUTION_SECONDS = 300;
@@ -121,7 +121,7 @@ class ByokProviderRegistrar
      * workspace's own key where it has one for the platform's embeddings
      * provider. Never a different provider or model: stored vectors are
      * only comparable with ones from the same model, so only whose account
-     * pays changes — the model, read from the same provider config, doesn't.
+     * pays changes: the model, read from the same provider config, doesn't.
      *
      * @return string|array<string, null>
      */
@@ -136,7 +136,7 @@ class ByokProviderRegistrar
 
     /**
      * When a call led by a workspace key failed because the provider refused
-     * the key (401/403 — revoked, expired), re-checks that key straight away
+     * the key (401/403: revoked, expired), re-checks that key straight away
      * so it's marked rejected and stops being used, instead of failing calls
      * until the scheduled re-check. Returns the key when it was to blame.
      *
@@ -171,7 +171,7 @@ class ByokProviderRegistrar
 
     /**
      * Which providers this member's calls would run on their workspace's own
-     * key — for marking catalog models usable that the platform can't serve.
+     * key, for marking catalog models usable that the platform can't serve.
      *
      * @return array<int, string>
      */

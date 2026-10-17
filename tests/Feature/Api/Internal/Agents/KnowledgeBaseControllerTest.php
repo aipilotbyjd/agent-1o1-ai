@@ -27,7 +27,7 @@ function ownerWorkspaceForKnowledgeBase(): array
 
 /**
  * A paragraph long enough that the chunker can't pack it together with
- * another one — the splitter targets ~1,000 characters per chunk.
+ * another one: the splitter targets ~1,000 characters per chunk.
  */
 function longParagraph(string $opening): string
 {
@@ -63,7 +63,7 @@ it('ingests text as embedded chunks', function () {
     expect($chunks[1]->embedding)->toEqual([0.0, 1.0]);
     expect($chunks[0]->metadata)->toBe(['revision' => 3]);
 
-    // The vector is stored but never serialized back out — only its size is.
+    // The vector is stored but never serialized back out, only its size is.
     expect($response->json('data.chunks.0'))->not->toHaveKey('embedding');
     expect($response->json('data.chunks.0.dimensions'))->toBe(2);
 
@@ -99,7 +99,7 @@ it('packs short paragraphs together and splits an over-long one', function () {
 
 it('searches with the same ranking an agent gets', function () {
     // One vector per call: the ingest of both chunks, then two query
-    // embeddings — the API search, then the agent tool's search.
+    // embeddings: the API search, then the agent tool's search.
     Embeddings::fake([
         [[1.0, 0.0], [0.0, 1.0]],
         [[1.0, 0.0]],

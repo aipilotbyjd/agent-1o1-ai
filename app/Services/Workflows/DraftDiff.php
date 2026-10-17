@@ -6,7 +6,7 @@ namespace App\Services\Workflows;
  * What changed between two versions of a draft graph, as a list of actions a
  * chat UI can show as chips under the assistant's reply ("Added send_email",
  * "Connected fetch → send_email"). Nodes are matched by `key` and edges by
- * `(from, to, condition)` — the same identities the builder edits by.
+ * `(from, to, condition)`: the same identities the builder edits by.
  */
 final class DraftDiff
 {

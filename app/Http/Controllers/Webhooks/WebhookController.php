@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Public, token-authenticated — see docs/TRIGGERS_PLAN.md's "Why webhooks.php
+ * Public, token-authenticated: see docs/TRIGGERS_PLAN.md's "Why webhooks.php
  * sits outside routes/api/{internal,public}/". No session, no API key: the
  * `{token}` path segment against `triggers.token` is the entire auth story.
  */
@@ -58,7 +58,7 @@ class WebhookController extends Controller
             $headers,
         );
 
-        // Ignored/duplicate/skipped all answer 200 too — providers fan every
+        // Ignored/duplicate/skipped all answer 200 too: providers fan every
         // event at one URL, and a non-2xx on an unwanted event causes retries,
         // then hook disabling. See docs/TRIGGERS_PLAN.md's design decisions.
         return response()->json(['status' => 'accepted'], 200);

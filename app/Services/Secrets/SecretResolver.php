@@ -10,14 +10,14 @@ use App\Services\Workflows\TemplatePaths;
  * `WorkflowRunner` can resolve `{{ secrets.API_TOKEN }}` at run time without
  * the value ever being stored in the graph.
  *
- * Only the keys that config actually mentions are read — a workspace's other
- * secrets never enter the run's memory — and the resolved map is merged into
+ * Only the keys that config actually mentions are read (a workspace's other
+ * secrets never enter the run's memory) and the resolved map is merged into
  * the templating context alone, never into the `$context` array handed to
  * `NodeContract::execute()`, so a node can't walk it looking for values it
  * wasn't given.
  *
  * A referenced key that doesn't exist resolves to `null`, exactly like any
- * other unknown template path — `DryRunner` is where a typo gets surfaced.
+ * other unknown template path: `DryRunner` is where a typo gets surfaced.
  */
 final class SecretResolver
 {
@@ -57,7 +57,7 @@ final class SecretResolver
     /**
      * The secret keys a config tree references, from `{{ secrets.X }}` /
      * `{{ vars.X }}` expressions. A deeper path (`{{ secrets.X.y }}`) still
-     * resolves to key `X` — the extra segments simply won't resolve, since a
+     * resolves to key `X`: the extra segments simply won't resolve, since a
      * secret is one opaque string.
      *
      * @param  array<string, mixed>  $config

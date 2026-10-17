@@ -13,7 +13,7 @@ class TestWorkflowNodeRequest extends FormRequest
 
     /**
      * `nodes` stands in for upstream node outputs (`{{ nodes.a.result }}`),
-     * keyed by node key — the editor sends the last known outputs so a node
+     * keyed by node key: the editor sends the last known outputs so a node
      * mid-graph can be tested without re-running everything before it.
      * `config` lets an unsaved config be tested; omitted, the stored one runs.
      *

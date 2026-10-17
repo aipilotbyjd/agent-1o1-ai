@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notification;
  * adding a class.
  *
  * `$channels` and `$destinations` are resolved by `AdminAlerts` before the
- * notification is constructed rather than read from config inside `via()` —
+ * notification is constructed rather than read from config inside `via()`:
  * the notification is queued, and routing must reflect the moment the alert
  * was raised, not the moment a worker happened to pick it up.
  */

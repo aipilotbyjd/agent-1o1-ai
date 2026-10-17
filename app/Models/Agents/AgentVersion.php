@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Schema-only for now — see the migration's docblock. `snapshot` will hold
+ * Schema-only for now: see the migration's docblock. `snapshot` will hold
  * `instructions`/`provider`/`model`/`temperature`/`settings` plus attached
  * tool config as one immutable JSON blob, mirroring `WorkflowVersion.graph`.
  */

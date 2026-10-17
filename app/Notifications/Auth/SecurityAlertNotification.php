@@ -11,7 +11,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * The single email behind every security alert, keyed by the `AuthEvent` that
- * triggered it — one class rather than one per event, the same shape
+ * triggered it: one class rather than one per event, the same shape
  * `AdminAlertNotification` uses, so adding an alert only means flipping
  * `AuthEvent::notifiesUser()`.
  *
@@ -42,7 +42,7 @@ class SecurityAlertNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject($this->event->label().' — '.config('app.name'))
+            ->subject($this->event->label().' - '.config('app.name'))
             ->greeting('Security alert')
             ->line($this->event->label().' on your '.config('app.name').' account.')
             ->line('When: '.now()->toDayDateTimeString().' UTC');

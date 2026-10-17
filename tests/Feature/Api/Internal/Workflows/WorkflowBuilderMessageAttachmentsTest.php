@@ -59,7 +59,7 @@ it('stores attachments on the user message and sends them to the model', functio
     expect($attachments->pluck('group_id')->unique())->toHaveCount(2);
     $attachments->each(fn ($artifact) => Storage::disk($artifact->disk)->assertExists($artifact->path));
 
-    // Text files are written into the message — the builder's providers
+    // Text files are written into the message: the builder's providers
     // only accept images as attachments.
     WorkflowBuilderAgent::assertPrompted(function ($prompt): bool {
         $sent = $prompt->attachments->values();

@@ -9,7 +9,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Workspaces\Workspace;
 
 /**
- * Gumloop's Credit Notification Preferences — the workspace-level switches
+ * Gumloop's Credit Notification Preferences: the workspace-level switches
  * over *whether* credit warnings are sent at all. The per-user, per-event
  * choice of how to receive them (in-app, email, webhook) stays on
  * `/notifications/preferences`; these two settings sit above it, which is
@@ -50,7 +50,7 @@ class CreditNotificationController extends Controller
     /**
      * Stored sorted and de-duplicated so the column reads the same way it is
      * enforced, and `null` (reset to defaults) survives round-tripping. An
-     * empty array is kept as one — it means "notify me at no threshold",
+     * empty array is kept as one: it means "notify me at no threshold",
      * which is a different answer from "I never chose".
      *
      * @param  array<int, mixed>|null  $thresholds
@@ -71,8 +71,8 @@ class CreditNotificationController extends Controller
 
     /**
      * `thresholds` is what will actually be enforced (the defaults where the
-     * workspace never chose), and `is_default` says which of the two that is
-     * — the settings screen needs it to show a "reset" affordance.
+     * workspace never chose), and `is_default` says which of the two that is:
+     * the settings screen needs it to show a "reset" affordance.
      *
      * @return array{out_of_credits_enabled: bool, thresholds: list<int>, is_default: bool, default_thresholds: list<int>, maximum_thresholds: int}
      */

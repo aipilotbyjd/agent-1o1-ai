@@ -12,7 +12,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Workflows\Pages\PageSchema;
 
 /**
- * The workspace's library of saved page blocks — see `PageSection`. Anyone
+ * The workspace's library of saved page blocks: see `PageSection`. Anyone
  * who can build pages can save to it and use what's in it.
  */
 class PageSectionController extends Controller

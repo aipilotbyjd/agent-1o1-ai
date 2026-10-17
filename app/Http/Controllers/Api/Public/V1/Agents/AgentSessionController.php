@@ -14,7 +14,7 @@ use App\Models\Agents\AgentSession;
 use Illuminate\Http\Request;
 
 /**
- * Invoke-only — gated by the `agents:invoke` `ApiKeyAbility`. Read-only
+ * Invoke-only: gated by the `agents:invoke` `ApiKeyAbility`. Read-only
  * discovery lives alongside it in `AgentController`; there is deliberately no
  * agent *authoring* on the Public surface, per docs/STRUCTURE.md's "Public
  * vs. Internal API": external callers run agents, they don't build them.

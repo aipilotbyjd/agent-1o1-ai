@@ -48,7 +48,7 @@ class SlackReader implements KnowledgeReader
             ->groupBy(fn (array $message): string => Carbon::createFromTimestamp((int) $message['ts'])->toDateString())
             ->map(fn ($day, string $date): KnowledgeDocumentData => new KnowledgeDocumentData(
                 "{$channel}:{$date}",
-                "#{$name} — {$date}",
+                "#{$name}: {$date}",
                 $day->map(fn (array $message): string => Carbon::createFromTimestamp((int) $message['ts'])->format('H:i').' '.($message['user'] ?? 'someone').': '.$message['text'])->implode("\n"),
             ))
             ->values()

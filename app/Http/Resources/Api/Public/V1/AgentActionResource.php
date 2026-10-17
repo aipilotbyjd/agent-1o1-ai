@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * An agent action as an API caller sees it — enough to show or build their
+ * An agent action as an API caller sees it: enough to show or build their
  * own approval step, without internal fields like who reviewed it.
  *
  * @mixin AgentAction

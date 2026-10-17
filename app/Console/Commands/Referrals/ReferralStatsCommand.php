@@ -17,7 +17,7 @@ class ReferralStatsCommand extends Command
         $numbers = $stats->platform($days);
         $percent = fn (float|int $ratio): string => round($ratio * 100, 1).'%';
 
-        $this->info("Referral program — last {$days} days");
+        $this->info("Referral program: last {$days} days");
 
         $this->table(['Metric', 'Value'], [
             ['Link visits', $numbers['visits']],

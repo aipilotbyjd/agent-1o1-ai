@@ -13,10 +13,10 @@ use Laravel\Cashier\Checkout;
 /**
  * Builds a Stripe Checkout Session (mode=payment) for a one-time credit
  * top-up, priced straight from `config('billing.packs')` via Cashier's
- * `checkoutCharge()` — no pre-created Stripe Price object needed per pack.
+ * `checkoutCharge()`: no pre-created Stripe Price object needed per pack.
  * The pack itself is recorded `Pending` and only flips to `Active` (crediting
  * the workspace's non-expiring `topup_credits` pool) once
- * `checkout.session.completed` arrives — see `ActivateCreditPackAction`.
+ * `checkout.session.completed` arrives: see `ActivateCreditPackAction`.
  *
  * Gated on `Workspace::currentPlan()` rather than the raw subscription, so a
  * lapsed (canceled/`past_due`) subscription no longer keeps the feature

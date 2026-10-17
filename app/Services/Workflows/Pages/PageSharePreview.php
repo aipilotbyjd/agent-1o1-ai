@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 /**
  * What a link to a page shows when it's pasted into a chat app or a social
- * post — the title, description and image of its Open Graph card.
+ * post: the title, description and image of its Open Graph card.
  *
  * Each part is the one the builder set for sharing, or else worked out from
  * the page: its name, the first paragraph of text on it, and its cover or

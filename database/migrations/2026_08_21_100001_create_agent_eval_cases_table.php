@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * One prompt plus what should be true of the answer. `assertions` is a list
- * of `{type, value}` objects (`EvalAssertionType`) — several per case, all of
+ * of `{type, value}` objects (`EvalAssertionType`): several per case, all of
  * which must hold for the case to pass.
  */
 return new class extends Migration

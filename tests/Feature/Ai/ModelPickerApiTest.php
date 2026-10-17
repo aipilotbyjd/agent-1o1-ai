@@ -162,7 +162,7 @@ it('marks a workspace key rejected the moment a trial is refused for it, and say
 
     $this->postJson("{$this->base}/model-catalog/gpt-4o/try", ['prompt' => 'Hi'])
         ->assertUnprocessable()
-        ->assertJsonFragment(['message' => 'OpenAI rejected your key — it may have expired or been revoked. Replace it in Settings → AI Providers.']);
+        ->assertJsonFragment(['message' => 'OpenAI rejected your key: it may have expired or been revoked. Replace it in Settings → AI Providers.']);
 
     expect($credential->fresh()->validation_status->value)->toBe('invalid')
         ->and(CreditTransaction::query()->where('source_type', 'model_trial')->exists())->toBeFalse();

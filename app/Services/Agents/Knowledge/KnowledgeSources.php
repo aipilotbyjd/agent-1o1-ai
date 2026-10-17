@@ -112,7 +112,7 @@ class KnowledgeSources
     }
 
     /**
-     * The accounts `$user` may read an app with — their own personal ones
+     * The accounts `$user` may read an app with: their own personal ones
      * first (the default one leading), then the workspace's shared ones.
      *
      * @return Collection<int, ConnectorCredential>

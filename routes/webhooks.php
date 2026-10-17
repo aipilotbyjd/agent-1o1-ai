@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('hooks')->name('hooks.')->group(function (): void {
-    // Workflow trigger — the token in the URL is the credential.
+    // Workflow trigger: the token in the URL is the credential.
     Route::post('{token}', WebhookController::class)
         ->middleware('throttle:trigger-hooks')
         ->name('trigger');
@@ -54,7 +54,7 @@ Route::prefix('hooks')->name('hooks.')->group(function (): void {
             ->name('slack.oauth');
     });
 
-    // A personal assistant's webhook trigger — the token in the URL is the
+    // A personal assistant's webhook trigger: the token in the URL is the
     // credential. Answers at once; the assistant runs on the queue.
     Route::post('assistant/{token}', AssistantWebhookController::class)
         ->middleware('throttle:assistant-hooks')
@@ -81,7 +81,7 @@ Route::get('oauth/connectors/callback', [OAuthConnectorController::class, 'callb
 |--------------------------------------------------------------------------
 |
 | Approve/reject buttons on agent approval messages. Authenticated by
-| Slack's request signature and the button's encrypted value — see
+| Slack's request signature and the button's encrypted value: see
 | SlackAgentActionController.
 |
 */
@@ -96,8 +96,8 @@ Route::post('slack/agent-actions', SlackAgentActionController::class)
 |--------------------------------------------------------------------------
 |
 | Cashier's auto-registration is disabled (AppServiceProvider::configureCashier)
-| so this resolves to our own controller — idempotency guard plus plan and
-| usage-period sync — instead of Cashier's default one.
+| so this resolves to our own controller: idempotency guard plus plan and
+| usage-period sync, instead of Cashier's default one.
 |
 */
 

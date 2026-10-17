@@ -139,7 +139,7 @@ it('switches a trigger off after three failed runs in a row and tells the owner 
 it('lets the assistant create a trigger from chat once the owner approves', function () {
     AssistantAgent::fake([
         new ToolCall('call_1', 'create_trigger', ['type' => 'schedule', 'name' => 'Weekday digest', 'prompt' => 'Summarise my inbox.', 'cron' => '0 9 * * 1-5', 'timezone' => 'Europe/London']),
-        'Done — every weekday at 9:00.',
+        'Done: every weekday at 9:00.',
     ]);
     $session = AssistantSession::factory()->create(['assistant_id' => $this->assistant->id]);
     $loop = app(AssistantLoop::class);

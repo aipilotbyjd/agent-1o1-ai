@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * The connector catalog as an integrator sees it — enough to know what a
+ * The connector catalog as an integrator sees it: enough to know what a
  * credential for this connector must contain (`fields`).
  *
  * @mixin Connector

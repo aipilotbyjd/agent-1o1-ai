@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
  * Per-`trigger_presets.signature_scheme` HMAC verification (plus a generic
  * `X-Signature-256` scheme for triggers that have a signing secret but no
  * provider preset). Verifies against
- * the raw request body (`payload_snippet`, not the decoded `payload`) — a
+ * the raw request body (`payload_snippet`, not the decoded `payload`): a
  * provider's signature is computed over exact bytes, and re-encoding JSON
  * before hashing would fail to reproduce it.
  */
@@ -23,7 +23,7 @@ class WebhookSignatureVerifier
         $secret = $trigger->signing_secret;
 
         // A preset names the provider's scheme. With none, the trigger is
-        // unsigned unless its owner set a signing secret — and then the
+        // unsigned unless its owner set a signing secret, and then the
         // secret must actually be enforced, not silently ignored, so it falls
         // back to the generic scheme below.
         if ($scheme === null && blank($secret)) {

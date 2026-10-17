@@ -10,7 +10,7 @@ use App\Services\Workflows\WorkflowInterface;
 /**
  * A page as the person using it receives it: its blocks, with each field
  * carrying the interface definition it fills in (type, choices, default,
- * whether it's required), and nothing about the workflow behind it — no
+ * whether it's required), and nothing about the workflow behind it: no
  * graph, no step names, no ids.
  *
  * A field whose input the workflow no longer has is left out rather than

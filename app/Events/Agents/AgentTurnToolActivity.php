@@ -10,7 +10,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
- * The agent started or finished a tool call — shown live as "Searching the
+ * The agent started or finished a tool call: shown live as "Searching the
  * web…". Arguments and output ride along only when small: an event over
  * Reverb's 10 KB limit is simply lost, so `AgentTurnBroadcaster` leaves out
  * arguments past `MAX_ARGUMENTS_BYTES` and cuts output at `MAX_OUTPUT_CHARS`.

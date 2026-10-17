@@ -11,8 +11,8 @@ use App\Models\Workflows\WorkflowPublishRequest;
 use App\Models\Workspaces\Workspace;
 
 /**
- * Every workflow change waiting for review in the workspace, oldest first —
- * the one blocked longest is the one to look at — for the approvals inbox.
+ * Every workflow change waiting for review in the workspace, oldest first
+ * (the one blocked longest is the one to look at) for the approvals inbox.
  */
 class WorkspacePublishRequestController extends Controller
 {

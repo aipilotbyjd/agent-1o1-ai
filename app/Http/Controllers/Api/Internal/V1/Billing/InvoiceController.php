@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Laravel\Cashier\Exceptions\InvalidInvoice;
 
 /**
- * The workspace's billing history — what Stripe actually charged, as opposed
+ * The workspace's billing history: what Stripe actually charged, as opposed
  * to `CreditController`'s ledger, which is what the workspace consumed.
  *
  * Every read here is a live Stripe call rather than a local mirror: invoices
@@ -25,14 +25,14 @@ use Laravel\Cashier\Exceptions\InvalidInvoice;
 class InvoiceController extends Controller
 {
     /**
-     * Past invoices, newest first, including still-open ones — an unpaid
+     * Past invoices, newest first, including still-open ones: an unpaid
      * invoice is precisely what a customer needs to see when a charge has
      * failed, so this deliberately doesn't filter to paid only.
      *
      * Cursor-paginated because Stripe's list API is: it has no total count
      * and no offset, so the client walks `next_cursor` rather than asking for
      * page 7. A workspace that never reached checkout has no Stripe customer,
-     * and Cashier returns an empty collection for it rather than erroring —
+     * and Cashier returns an empty collection for it rather than erroring:
      * the common case for a Free workspace opening the billing screen.
      */
     public function index(Request $request, Workspace $workspace)
@@ -49,7 +49,7 @@ class InvoiceController extends Controller
 
     /**
      * A preview of the next charge, so the customer can see what is coming
-     * before it lands. Null whenever there is nothing to preview — no Stripe
+     * before it lands. Null whenever there is nothing to preview: no Stripe
      * customer, or no active subscription to project forward.
      */
     public function upcoming(Workspace $workspace)
@@ -84,7 +84,7 @@ class InvoiceController extends Controller
         }
 
         // Returned directly rather than via `abort(404)`, whose global handler
-        // renders "Endpoint not found" — true of a bad route, misleading here.
+        // renders "Endpoint not found": true of a bad route, misleading here.
         if ($invoice === null) {
             return ApiResponse::notFound('Invoice not found.');
         }

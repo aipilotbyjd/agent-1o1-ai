@@ -16,16 +16,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * A workspace's stored secret for a `Connector` — an OAuth token pair or a
+ * A workspace's stored secret for a `Connector`: an OAuth token pair or a
  * manually-entered API key/bearer token/basic-auth pair, depending on the
  * owning `Connector::auth_type`. `data` is encrypted at rest via Laravel's
  * `encrypted:array` cast and is `#[Hidden]` so it never round-trips through
- * `toArray()`/`toJson()` by accident — `ConnectorCredentialResource` must
+ * `toArray()`/`toJson()` by accident: `ConnectorCredentialResource` must
  * still be relied on for API responses, this is a second guard, not the
  * only one.
  *
  * `scope` + `is_default` back Gumloop's Personal/Team credentials and
- * default-account resolution — see `HasScopedVisibility` and
+ * default-account resolution: see `HasScopedVisibility` and
  * `Nodes\Integrations\Concerns\ResolvesConnectorCredential`.
  */
 #[Fillable(['workspace_id', 'connector_id', 'created_by', 'scope', 'is_default', 'name', 'account_label', 'data', 'last_used_at', 'expires_at'])]
@@ -76,7 +76,7 @@ class ConnectorCredential extends Model
 
     /**
      * Whether the stored access token is past its expiry. An expired token
-     * that can be refreshed is still usable — see `isUsable()`.
+     * that can be refreshed is still usable: see `isUsable()`.
      */
     public function isExpired(): bool
     {
@@ -85,7 +85,7 @@ class ConnectorCredential extends Model
 
     /**
      * An OAuth connection holding a refresh token renews itself
-     * (`ConnectorTokens`), so its access token expiring doesn't end it —
+     * (`ConnectorTokens`), so its access token expiring doesn't end it,
      * unless the provider has rejected that refresh token (revoked access,
      * a changed password).
      */
@@ -97,7 +97,7 @@ class ConnectorCredential extends Model
     }
 
     /**
-     * Whether the connection can be used right now, refreshing if needed —
+     * Whether the connection can be used right now, refreshing if needed:
      * what "connected" means to anyone choosing an account.
      */
     public function isUsable(): bool

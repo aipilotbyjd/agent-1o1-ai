@@ -13,7 +13,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Workflows\NodeTester;
 
 /**
- * Executes one draft node for real — see `NodeTester` for what that does and
+ * Executes one draft node for real: see `NodeTester` for what that does and
  * doesn't include. Requires `WorkflowManage` *and* `RunTrigger`: editing
  * rights alone shouldn't let someone fire a node's real side effects, and
  * trigger rights alone shouldn't reach into a draft.

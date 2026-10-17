@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Plan entitlement held outside Cashier — a lifetime purchase, or a comped
+ * Plan entitlement held outside Cashier: a lifetime purchase, or a comped
  * grant. `Workspace::currentPlan()` weighs the active grant's plan against
  * any active subscription's, so this is a genuine second source of truth for
  * what a workspace is allowed to do.

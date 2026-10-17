@@ -20,7 +20,7 @@ class FireTriggerEvent implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * Exceptions, not attempts — `WithoutOverlapping` releases the job back
+     * Exceptions, not attempts: `WithoutOverlapping` releases the job back
      * onto the queue on lock contention, and a release burns a `$tries`
      * attempt without the job ever having run. Counting exceptions instead
      * means lock contention alone can never exhaust the job's budget.
@@ -35,7 +35,7 @@ class FireTriggerEvent implements ShouldQueue
     ) {
         // An agent-targeted firing blocks for as long as the model takes, so
         // it gets its own queue (with its own low `maxProcesses` ceiling, per
-        // docs/STRUCTURE.md) and a much longer timeout — a latency-sensitive
+        // docs/STRUCTURE.md) and a much longer timeout: a latency-sensitive
         // webhook-fired workflow event must never sit behind an LLM call.
         $isAgentTarget = $this->trigger->target_type === TriggerTargetType::Agent->value;
 
@@ -67,7 +67,7 @@ class FireTriggerEvent implements ShouldQueue
         $this->event->refresh();
 
         // Idempotent re-dispatch: a terminal event (already fired, already
-        // failed) claims false and this becomes a no-op — without this check
+        // failed) claims false and this becomes a no-op, without this check
         // the retry-stuck command could start a second run for an event that
         // already settled.
         if (! $this->event->claim()) {
@@ -103,7 +103,7 @@ class FireTriggerEvent implements ShouldQueue
         $this->event->finish(TriggerEventStatus::Failed, $exception?->getMessage());
 
         // An event that expired unclaimed (attempts still 0) never reached the
-        // target — that's queue contention, not a broken trigger, and must not
+        // target: that's queue contention, not a broken trigger, and must not
         // count against the circuit breaker alone.
         if ($this->event->attempts > 0) {
             app(TriggerService::class)->recordFailure($this->trigger);

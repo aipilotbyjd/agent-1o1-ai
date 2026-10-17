@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Backs the `HumanApproval` node type — one row per paused node, created when
+ * Backs the `HumanApproval` node type: one row per paused node, created when
  * the run reaches it, decided (or left pending) via
  * `WorkflowRunner::resolveApproval()`. See docs/WORKFLOWS_PLAN.md's
  * "Human-in-the-loop, waits, and dry runs" section. `run_id`/`node_run_id`/

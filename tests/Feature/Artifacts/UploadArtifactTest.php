@@ -62,7 +62,7 @@ it('files a re-uploaded filename as the next version of the same group', functio
     expect($second->json('data.artifact.version'))->toBe(2);
     expect(Artifact::pluck('group_id')->unique())->toHaveCount(1);
 
-    // Both versions survive — a re-upload never overwrites.
+    // Both versions survive: a re-upload never overwrites.
     expect(Artifact::count())->toBe(2);
     expect(Storage::disk('local')->allFiles())->toHaveCount(2);
 

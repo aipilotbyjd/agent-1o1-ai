@@ -11,11 +11,11 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Promptable;
 
 /**
- * A single, stateless prompt against a workspace's `Agent` — what
+ * A single, stateless prompt against a workspace's `Agent`: what
  * `Nodes\AiAutomation\AgentNode` calls through (`AgentRunner::ask()`),
  * unlike `WorkspaceAgent`'s persisted, multi-turn `AgentSession` chat. No
  * `Conversational`: an embedded-in-workflow call has no session to load
- * history from or write a turn back to — see docs/AGENTS_PLAN.md's "Agent
+ * history from or write a turn back to: see docs/AGENTS_PLAN.md's "Agent
  * turn loop" §2. `$instructions` is pre-composed by
  * `Services\Agents\SkillInjector`, same as `WorkspaceAgent`.
  */

@@ -10,8 +10,8 @@ use App\Services\Referrals\ReferralCodes;
 use App\Services\Referrals\ReferralSettings;
 
 /**
- * Attributes a social signup — whose stateless OAuth round trip can't carry
- * the `?ref=` code — straight after the first login. Only a fresh account
+ * Attributes a social signup (whose stateless OAuth round trip can't carry
+ * the `?ref=` code) straight after the first login. Only a fresh account
  * with no referral yet may claim, within the program's claim window.
  */
 class ReferralClaimController extends Controller

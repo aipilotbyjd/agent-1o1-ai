@@ -8,8 +8,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * A form submission against a workflow's declared interface. Unlike
- * `StartRunRequest` — which accepts any input array, because an API caller
- * or a webhook payload is trusted to know the shape — this validates against
+ * `StartRunRequest` (which accepts any input array, because an API caller
+ * or a webhook payload is trusted to know the shape) this validates against
  * the contract the workflow published, so a person filling in a form gets a
  * 422 naming the field rather than a run that quietly resolves `{{ input.x }}`
  * to null.

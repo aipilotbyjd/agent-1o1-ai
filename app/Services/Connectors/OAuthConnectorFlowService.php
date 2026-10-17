@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
  * `state` row, `handleCallback()` exchanges the returned `code` for tokens
  * and stores them as a `ConnectorCredential`, and `refresh()` re-exchanges a
  * `refresh_token` when the stored access token expires. Client id/secret
- * come from `config/services.php` (Socialite's own convention) — never
+ * come from `config/services.php` (Socialite's own convention), never
  * stored on the `Connector` row itself.
  */
 class OAuthConnectorFlowService
@@ -194,7 +194,7 @@ class OAuthConnectorFlowService
     }
 
     /**
-     * The provider's reply stays in the logs (bounded) — it can echo request
+     * The provider's reply stays in the logs (bounded): it can echo request
      * details and is not for the API client.
      */
     private function logProviderFailure(string $operation, Connector $connector, Response $response): void

@@ -5,7 +5,7 @@ namespace App\Services\Agents\Approvals;
 use Illuminate\Support\Str;
 
 /**
- * Checks one rule condition — `{field, op, value}` — against a tool call's
+ * Checks one rule condition: `{field, op, value}`; against a tool call's
  * effective arguments (what the model sent merged with the values bound at
  * attach time, so a rule can see a fixed channel too).
  *
@@ -13,8 +13,8 @@ use Illuminate\Support\Str;
  * matches `missing`, so "ask when `amount` > 500" never fires on a call with
  * no amount at all.
  *
- * The `domain_*` operators read every address in the field — a comma or
- * semicolon separated list, or an array — so one outside recipient hidden
+ * The `domain_*` operators read every address in the field (a comma or
+ * semicolon separated list, or an array) so one outside recipient hidden
  * among internal ones is still caught.
  */
 class ConditionEvaluator

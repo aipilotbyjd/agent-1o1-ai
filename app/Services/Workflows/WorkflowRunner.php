@@ -33,13 +33,13 @@ use RuntimeException;
 use Throwable;
 
 /**
- * The engine's single entry point — callers (jobs, controllers, listeners)
+ * The engine's single entry point: callers (jobs, controllers, listeners)
  * depend only on this, not on `GraphAdvancer`/`StepFailureHandler`/the
  * coordinators directly. Ported design from docs/WORKFLOWS_PLAN.md's
  * `WorkflowRunner` section. Graph traversal after a node settles is handed
  * off to `DispatchNextNodesJob` (its own `Queue::WorkflowDispatch` queue)
  * rather than called in-process, so `GraphAdvancer` work never runs on the
- * same queue/supervisor as node execution — see docs/STRUCTURE.md's "Queues
+ * same queue/supervisor as node execution: see docs/STRUCTURE.md's "Queues
  * & Horizon" table.
  */
 class WorkflowRunner
@@ -60,7 +60,7 @@ class WorkflowRunner
     public function executeStep(NodeRun $nodeRun): void
     {
         // A retried or racing dispatch landing on an already-settled node is
-        // a no-op, not a bug — the unique (run_id, key) constraint already
+        // a no-op, not a bug: the unique (run_id, key) constraint already
         // prevented a duplicate row; this guards the same node being
         // executed twice by two racing workers.
         if ($nodeRun->status !== NodeRunStatus::Pending) {
@@ -70,7 +70,7 @@ class WorkflowRunner
         $run = $nodeRun->run;
 
         // A job queued before the run was cancelled can still be picked up
-        // afterwards — `cancel()` settles every node row it can see, but not
+        // afterwards: `cancel()` settles every node row it can see, but not
         // one a racing `DispatchNextNodesJob` created after it ran.
         if ($run->status->isTerminal()) {
             $nodeRun->forceFill(['status' => NodeRunStatus::Cancelled, 'finished_at' => now()])->save();
@@ -80,14 +80,14 @@ class WorkflowRunner
         $graph = $run->workflowVersion->graph;
         $context = $this->buildContext($run, $nodeRun, $graph);
 
-        // Workspace secrets are merged into the *templating* context only —
+        // Workspace secrets are merged into the *templating* context only,
         // never into the `$context` handed to `NodeContract::execute()`, so a
         // node only ever sees the values its own config asked for by name.
         $secrets = $this->secretsForNode($run, $graph, $nodeRun->key);
         $nodeDefinition = $this->resolvedNodeDefinition($graph, $nodeRun->key, [...$context, ...$secrets->context()]);
 
         // The status check above is on a model another worker may have loaded
-        // at the same moment; the claim is the actual exclusivity check — two
+        // at the same moment; the claim is the actual exclusivity check: two
         // workers racing here get exactly one winner, and a node whose run
         // was cancelled in between is left cancelled.
         if (! $nodeRun->transitionFrom([NodeRunStatus::Pending], ['status' => NodeRunStatus::Running, 'started_at' => now()])) {
@@ -100,7 +100,7 @@ class WorkflowRunner
             FlowControlNodeType::SubWorkflow->value => $this->subWorkflowCoordinator->start($run, $nodeRun, $nodeDefinition),
             FlowControlNodeType::Loop->value => $this->loopCoordinator->start($run, $nodeRun, $nodeDefinition, $context),
             // GraphAdvancer::joinReadiness() only ever dispatches a
-            // join_paths node once it's genuinely ready — by the time
+            // join_paths node once it's genuinely ready, by the time
             // WorkflowRunner sees it, there's nothing left to do but settle
             // it immediately and let traversal continue.
             FlowControlNodeType::JoinPaths->value => $this->completeJoin($run, $nodeRun),
@@ -111,7 +111,7 @@ class WorkflowRunner
     /**
      * Node config is templated (`{{ input.name }}`, `{{ nodes.a.result }}`)
      * against the run's context once here, before any of `executeStep()`'s
-     * branches see it — see `TemplateResolver`.
+     * branches see it: see `TemplateResolver`.
      *
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>, pinned_data?: array<string, mixed>|null}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
      * @param  array<string, mixed>  $context
@@ -129,7 +129,7 @@ class WorkflowRunner
 
     /**
      * The workspace secrets this node's raw (un-templated) config references,
-     * loaded per step so nothing else in the workspace is ever in memory —
+     * loaded per step so nothing else in the workspace is ever in memory:
      * see `SecretResolver`.
      *
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
@@ -149,7 +149,7 @@ class WorkflowRunner
     private function executeNodeContract(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph, array $context, ResolvedSecrets $secrets = new ResolvedSecrets): void
     {
         // Pin data (see `WorkflowNode::pinned_data`) only short-circuits
-        // execution for manual test runs — production trigger types
+        // execution for manual test runs: production trigger types
         // (webhook/schedule/polling) always execute for real, so a pin left
         // on from testing can never silently affect a live automation.
         $pinnedData = $nodeDefinition['pinned_data'] ?? null;
@@ -191,7 +191,7 @@ class WorkflowRunner
                 'status' => NodeRunStatus::Completed,
                 'output' => $output,
                 // Nodes that call an LLM (AskAiNode) report a `usage` key in
-                // their output — lifted onto the dedicated column too, so
+                // their output: lifted onto the dedicated column too, so
                 // `CreditMeter`/reporting can read it without knowing which
                 // node types happen to embed it in their output shape.
                 'usage' => $output['usage'] ?? null,
@@ -201,7 +201,7 @@ class WorkflowRunner
             }
 
             // DelayNode reports how long to wait rather than blocking a
-            // worker inside execute() — the engine applies the real delay
+            // worker inside execute(): the engine applies the real delay
             // to the next dispatch instead.
             $delaySeconds = $nodeRun->type === (new DelayNode)->type() ? (int) ($output['seconds'] ?? 0) : 0;
 
@@ -241,7 +241,7 @@ class WorkflowRunner
      * An Agent node whose agent stopped on an action needing approval: the
      * node waits (`awaiting_approval`, like a HumanApproval node) with its
      * conversation noted in `output`, and the waiting actions are tied to
-     * it so a decision resumes the node — see `resumeAgentNode()`.
+     * it so a decision resumes the node: see `resumeAgentNode()`.
      */
     private function pauseForAgentApproval(NodeRun $nodeRun, AgentTurnPausedException $paused): void
     {
@@ -452,7 +452,7 @@ class WorkflowRunner
 
     /**
      * Called once a child `Run` (started by a `subflow` or `loop` node)
-     * reaches a terminal state — resumes whichever coordinator owns the
+     * reaches a terminal state: resumes whichever coordinator owns the
      * parent node. See `Listeners\Workflows\{ResumeParentOnChildRunCompleted,
      * ResumeParentOnChildRunFailed}`.
      */
@@ -472,7 +472,7 @@ class WorkflowRunner
     }
 
     /**
-     * Stops a run on request — see `RunCanceller`, which owns the mechanics
+     * Stops a run on request: see `RunCanceller`, which owns the mechanics
      * so the failure paths can reuse them without depending on this class.
      * Kept here as the engine's single public entry point: callers depend on
      * `WorkflowRunner`, not on the coordinators behind it.

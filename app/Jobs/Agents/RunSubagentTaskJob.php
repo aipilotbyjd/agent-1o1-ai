@@ -60,7 +60,7 @@ class RunSubagentTaskJob implements ShouldQueue
     /**
      * Reached when the worker gave up on the job (a timeout kills the process
      * mid-turn), so `AgentRunner` never got to close out the turn's `Run`
-     * either — it's failed here too rather than left `running` forever.
+     * either: it's failed here too rather than left `running` forever.
      */
     public function failed(?Throwable $e): void
     {

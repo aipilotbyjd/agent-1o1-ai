@@ -23,8 +23,8 @@ use App\Services\Billing\CreditMeter;
 use Illuminate\Support\Str;
 
 /**
- * Drafts a new skill — its name, description, instructions, references and
- * scripts — from a plain-language description, using the model the user
+ * Drafts a new skill (its name, description, instructions, references and
+ * scripts) from a plain-language description, using the model the user
  * picked for it. Nothing is saved; the Skills page creates the skill, its
  * references and its scripts from the draft.
  */

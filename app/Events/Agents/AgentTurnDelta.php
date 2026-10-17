@@ -12,7 +12,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 /**
  * A chunk of the reply as the model writes it. Batched by
  * `AgentTurnBroadcaster` so a long reply is a handful of messages, not one
- * per token — and each stays far below Reverb's 10 KB event limit.
+ * per token, and each stays far below Reverb's 10 KB event limit.
  */
 class AgentTurnDelta implements ShouldBroadcastNow
 {

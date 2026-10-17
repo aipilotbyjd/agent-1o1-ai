@@ -80,7 +80,7 @@ class ReferralCode extends Model
     }
 
     /**
-     * Active, unexpired, and under its use limit — whether a new signup can
+     * Active, unexpired, and under its use limit, whether a new signup can
      * be attributed to it. Rejected referrals don't count toward the limit.
      */
     public function isUsable(): bool

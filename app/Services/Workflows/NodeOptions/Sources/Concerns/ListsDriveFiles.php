@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * Drive's file list, newest first, searched by name server-side — what the
+ * Drive's file list, newest first, searched by name server-side: what the
  * Drive, Sheets and Docs pickers all browse (a spreadsheet or document is a
  * Drive file of a given type).
  */

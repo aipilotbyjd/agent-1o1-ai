@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 
 /**
  * Executing a suite needs `AgentManage` *and* `AgentChat`: it edits nothing,
- * but it really does run the agent — tools included — so trigger rights are
+ * but it really does run the agent (tools included) so trigger rights are
  * as necessary here as they are for chatting with it.
  *
  * `store()` queues the suite and returns the run as `pending`; clients poll

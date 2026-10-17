@@ -16,7 +16,7 @@ use InvalidArgumentException;
  * Resolves a `workflow_nodes.type` string to an executable `NodeContract`
  * instance. Built-in types are bound at boot by `NodeRegistryServiceProvider`;
  * `custom:{id}` types will resolve to a workspace-scoped `CustomNode` row
- * once custom node execution exists — see docs/WORKFLOWS_PLAN.md's "Node
+ * once custom node execution exists: see docs/WORKFLOWS_PLAN.md's "Node
  * contract & registry" section, and `has()` for how they behave until then.
  */
 class NodeRegistry
@@ -39,7 +39,7 @@ class NodeRegistry
     /**
      * Every caller is really asking "will `resolve()` hand me an executable
      * node for this type?", so a `custom:{id}` type answers **false** until
-     * custom node execution lands (Stage 11) — a `CustomNode` row can be
+     * custom node execution lands (Stage 11): a `CustomNode` row can be
      * authored today, but nothing can run one.
      *
      * Answering `true` for an authored-but-unrunnable custom node and then
@@ -49,7 +49,7 @@ class NodeRegistry
      * testing a node (`NodeTester`), binding one as an agent tool, and every
      * agent turn whose bindings included one. Answering `false` puts custom
      * types on exactly the path the engine already has for a type it doesn't
-     * know — schema checks skip it, `ToolRegistry` drops the binding, and a
+     * know: schema checks skip it, `ToolRegistry` drops the binding, and a
      * run that reaches one fails that single node with `resolve()`'s message
      * instead of taking the whole request down.
      */
@@ -63,9 +63,9 @@ class NodeRegistry
     }
 
     /**
-     * A workspace-defined `custom:{id}` node. Graphs may hold one — it saves
+     * A workspace-defined `custom:{id}` node. Graphs may hold one: it saves
      * and publishes, and fails only at run time (see `resolve()`) so the
-     * rest of the graph can route around it — even though `has()` is false.
+     * rest of the graph can route around it, even though `has()` is false.
      */
     public function isCustom(string $type): bool
     {
@@ -73,8 +73,8 @@ class NodeRegistry
     }
 
     /**
-     * Engine-driven types (loop, subflow, wait, human_approval, join_paths)
-     * — placeable on a graph, but never `resolve()`d: `WorkflowRunner`
+     * Engine-driven types (loop, subflow, wait, human_approval, join_paths):
+     * placeable on a graph, but never `resolve()`d: `WorkflowRunner`
      * drives them itself. See `has()` for why they aren't `$builtins`.
      */
     public function isFlowControl(string $type): bool
@@ -83,7 +83,7 @@ class NodeRegistry
     }
 
     /**
-     * Whether `$type` can be placed on a graph at all — a built-in node or
+     * Whether `$type` can be placed on a graph at all: a built-in node or
      * a flow-control type. What authoring (the builder assistant, a canvas
      * save) should ask; `has()` is for callers about to `resolve()`.
      */
@@ -103,7 +103,7 @@ class NodeRegistry
     }
 
     /**
-     * Name, description, category and config schema for any placeable type —
+     * Name, description, category and config schema for any placeable type:
      * the catalog entry without the display-only fields, and without the
      * `NodeCategory` query `catalog()` needs.
      *
@@ -136,7 +136,7 @@ class NodeRegistry
     }
 
     /**
-     * `describe()` for every placeable type — built-ins first, then
+     * `describe()` for every placeable type: built-ins first, then
      * flow-control.
      *
      * @return array<int, array{type: string, category: string, name: string, description: string, config_schema: array<string, mixed>}>
@@ -152,7 +152,7 @@ class NodeRegistry
     public function resolve(string $type): NodeContract
     {
         // Reached only from the engine's own execute path (`has()` says
-        // false, so nothing validates its way here) — the message is
+        // false, so nothing validates its way here): the message is
         // persisted onto the failing `NodeRun` and read by whoever is
         // watching the run, so it stays user-facing. See
         // docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 11 for the work itself.
@@ -168,7 +168,7 @@ class NodeRegistry
     }
 
     /**
-     * Every registered built-in node — what a `tool`-type step, and later an
+     * Every registered built-in node: what a `tool`-type step, and later an
      * Agent's tool list, can be pointed at.
      *
      * @return array<string, class-string<NodeContract>>
@@ -180,7 +180,7 @@ class NodeRegistry
 
     /**
      * Every built-in node's catalog metadata, including the engine-driven
-     * flow-control types (Loop/JoinPaths/Wait/HumanApproval/SubWorkflow) —
+     * flow-control types (Loop/JoinPaths/Wait/HumanApproval/SubWorkflow):
      * see `has()`'s docblock for why those aren't in `$builtins`. `icon`/
      * `color` come from the node's `NodeCategory` row; `requires_connector`
      * is derived from whether the class uses `ResolvesConnectorCredential`.
@@ -222,7 +222,7 @@ class NodeRegistry
     }
 
     /**
-     * Static metadata for the flow-control types — they never go through
+     * Static metadata for the flow-control types: they never go through
      * `execute()`, so there's no `NodeContract` instance to read from.
      *
      * @param  Collection<string, NodeCategory>  $categories  keyed by slug

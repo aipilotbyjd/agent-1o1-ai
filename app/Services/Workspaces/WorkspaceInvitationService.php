@@ -51,7 +51,7 @@ class WorkspaceInvitationService
 
         // `count: 0`, not 1: this invitation is still pending, so it is already
         // counted against the seat cap by `PlanLimitGate::usage()` and accepting
-        // it only converts that seat from invitation to member — no net gain.
+        // it only converts that seat from invitation to member: no net gain.
         // The check still bites when the workspace is *already* over cap, which
         // is what catches invitations sent before a downgrade.
         $this->limits->assertCanCreate($invitation->workspace, PlanLimit::Members, count: 0);

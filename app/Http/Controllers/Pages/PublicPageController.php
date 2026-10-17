@@ -21,8 +21,8 @@ use Illuminate\Http\Request;
  * A workflow page at its public link. No session and no API key: the token
  * in the URL finds the page, a password page also wants the access token
  * `unlock()` hands out, and a result is read with the secret its submission
- * returned. A page that is private, unpublished or switched off answers 404
- * — whether it exists is not something a stranger gets to learn.
+ * returned. A page that is private, unpublished or switched off answers 404,
+ * whether it exists is not something a stranger gets to learn.
  *
  * Problems that are the owner's to fix (out of credits, the workflow no
  * longer publishable) are reported to visitors only as "can't run right now".
@@ -39,8 +39,8 @@ class PublicPageController extends Controller
     ) {}
 
     /**
-     * The page as this visitor gets it — version B when an A/B test puts
-     * them there — counted as a view.
+     * The page as this visitor gets it (version B when an A/B test puts
+     * them there) counted as a view.
      */
     public function show(Request $request, string $token)
     {

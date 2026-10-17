@@ -6,14 +6,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * What a user message asked the builder for — see
+ * What a user message asked the builder for: see
  * `App\Enums\Workflows\BuilderMessageMode`. Ask mode used to be an
  * instruction the client wrote into the message itself; those messages are
  * moved onto the column, with the instruction taken back out of their text.
  */
 return new class extends Migration
 {
-    private const string LEGACY_ASK_PREFIX = '[Ask mode: answer the question below about this workflow. Do not add, remove, or modify any nodes or connections — just explain.]';
+    private const string LEGACY_ASK_PREFIX = '[Ask mode: answer the question below about this workflow. Do not add, remove, or modify any nodes or connections, just explain.]';
 
     public function up(): void
     {

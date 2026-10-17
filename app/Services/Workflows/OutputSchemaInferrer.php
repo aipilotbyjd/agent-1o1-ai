@@ -3,7 +3,7 @@
 namespace App\Services\Workflows;
 
 /**
- * Infers the shape of a node's output from real outputs it has produced —
+ * Infers the shape of a node's output from real outputs it has produced:
  * `NodeContract` declares a config schema but no output schema, so observed
  * outputs are the only record of what `{{ nodes.<key>.<field> }}` can point
  * at.
@@ -16,7 +16,7 @@ namespace App\Services\Workflows;
 final class OutputSchemaInferrer
 {
     /**
-     * How deep nested objects are described — enough for API responses,
+     * How deep nested objects are described: enough for API responses,
      * shallow enough that one huge payload can't blow up a prompt.
      */
     private const int MAX_DEPTH = 4;
@@ -36,7 +36,7 @@ final class OutputSchemaInferrer
 
     /**
      * A stand-in output shaped like the inferred schema, with a neutral
-     * placeholder per type — what a dry run feeds downstream templates.
+     * placeholder per type: what a dry run feeds downstream templates.
      *
      * @param  array<string, array<string, mixed>>  $schema
      * @return array<string, mixed>

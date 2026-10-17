@@ -13,7 +13,7 @@ use Throwable;
  * The shape of a workflow page, and what's wrong with one.
  *
  * A page is a tree: sections hold blocks and columns, columns hold one
- * column per layout part, and a column holds blocks — see
+ * column per layout part, and a column holds blocks: see
  * `PageBlockType::fitsIn()`. Containers keep their blocks in `children`.
  *
  * `normalize()` turns whatever the builder sent into the canonical content
@@ -22,7 +22,7 @@ use Throwable;
  * keeps at least one prop, so `props` never round-trips through PHP as `[]`
  * instead of `{}`.
  *
- * `issues()` checks the content against the workflow it runs — that each
+ * `issues()` checks the content against the workflow it runs: that each
  * field fills in an input the workflow has, that nothing the workflow
  * requires is missing, and that each output block shows a value the
  * workflow returns. Errors block publishing; warnings don't.
@@ -154,7 +154,7 @@ class PageSchema
     }
 
     /**
-     * Content from outside the builder — a template, or a page AI designed —
+     * Content from outside the builder (a template, or a page AI designed)
      * made safe to put in front of the workflow: normalized, every field and
      * output bound to one the workflow has (see `fromTemplate()`), and a Run
      * button added if there isn't one.
@@ -277,7 +277,7 @@ class PageSchema
     }
 
     /**
-     * The output names a page's content shows — the only values of a run's
+     * The output names a page's content shows: the only values of a run's
      * result a visitor ever receives.
      *
      * @param  Content  $content
@@ -300,7 +300,7 @@ class PageSchema
     }
 
     /**
-     * Gives every block in the tree a new id — for blocks copied into a page
+     * Gives every block in the tree a new id, for blocks copied into a page
      * that may already hold the originals.
      *
      * @param  array<int, Block>  $blocks
@@ -413,7 +413,7 @@ class PageSchema
     }
 
     /**
-     * Binds every `$type` block's `$prop` to one of `$keys` — see
+     * Binds every `$type` block's `$prop` to one of `$keys`: see
      * `fromTemplate()`. `$reset` is the wording a slot loses when it moves
      * to a different key.
      *
@@ -501,7 +501,7 @@ class PageSchema
 
     /**
      * Widens the last `$type` block of each run when the run doesn't fill
-     * its last row — so a half-width field whose partner slot was dropped
+     * its last row, so a half-width field whose partner slot was dropped
      * doesn't sit alone at half the page. Applied at every level of the tree.
      *
      * @param  array<int, Block>  $blocks
@@ -603,7 +603,7 @@ class PageSchema
 
     /**
      * Retitles the first top-level heading and fills or drops an empty text
-     * block right below it — see `fromTemplate()`.
+     * block right below it: see `fromTemplate()`.
      *
      * @param  array<int, Block>  $blocks
      * @return array<int, Block>
@@ -882,7 +882,7 @@ class PageSchema
     }
 
     /**
-     * Only absolute http(s) URLs — anything else (`javascript:`, `data:`)
+     * Only absolute http(s) URLs: anything else (`javascript:`, `data:`)
      * could run in a visitor's browser.
      */
     private static function url(mixed $value): ?string

@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
 
 /**
  * The owner's connected apps as assistant tools: every integration node
- * whose app the owner can use, each pinned to one account — their own
+ * whose app the owner can use, each pinned to one account: their own
  * default for that app, else the workspace's shared one. Apps they haven't
  * connected contribute no tools.
  */
@@ -65,7 +65,7 @@ class ConnectorToolProvider implements ProvidesAssistantTools
     }
 
     /**
-     * The default one, or the only one — with several and none marked
+     * The default one, or the only one, with several and none marked
      * default, a newest-first pick keeps the choice stable.
      *
      * @param  Collection<int, ConnectorCredential>  $candidates

@@ -11,7 +11,7 @@ use Laravel\Ai\ToolChoice;
 
 /**
  * Smart mode's second pair of eyes: judges whether one action an agent is
- * about to take is safe to run without asking — see
+ * about to take is safe to run without asking: see
  * `Services\Agents\Approvals\ActionReviewer`. Its only tool carries the
  * verdict back and can't act on anything.
  */

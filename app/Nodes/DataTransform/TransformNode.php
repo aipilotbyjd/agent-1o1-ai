@@ -13,7 +13,7 @@ use Illuminate\Support\Arr;
 
 /**
  * Reshapes data: `config.mapping` is `{output_key: "dot.path.into.context"}`.
- * Paths are resolved against `$context` as-is — templating
+ * Paths are resolved against `$context` as-is: templating
  * (`{{ node.output }}` expressions) lands in Stage 5, see
  * docs/WORKFLOWS_AGENTS_BUILD_PLAN.md.
  */

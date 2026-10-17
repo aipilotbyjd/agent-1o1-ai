@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Public, token-authenticated — mirrors `WebhookController`'s "the URL
+ * Public, token-authenticated: mirrors `WebhookController`'s "the URL
  * segment is the entire auth story" pattern for trigger webhooks
  * (docs/TRIGGERS_PLAN.md), applied to a `Wait` node's one-time callback
  * token instead of a `Trigger`'s.

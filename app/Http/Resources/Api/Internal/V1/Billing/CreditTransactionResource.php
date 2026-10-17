@@ -8,8 +8,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * `credits` is the whole charge. `topup_credits` and `overage_credits` say
- * how it was funded — out of the purchased top-up pool, and out of billable
- * overage — so the credit-log screen can mark the rows that will turn into
+ * how it was funded (out of the purchased top-up pool, and out of billable
+ * overage) so the credit-log screen can mark the rows that will turn into
  * an invoice line. The remainder came out of the plan allowance.
  *
  * @mixin CreditTransaction

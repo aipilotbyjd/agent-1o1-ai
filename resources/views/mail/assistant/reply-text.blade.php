@@ -1,4 +1,4 @@
 {{ $body }}
 
-—
+-
 {{ $brand->name }}

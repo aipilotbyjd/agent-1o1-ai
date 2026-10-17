@@ -3,8 +3,8 @@
 namespace App\Enums\Notifications;
 
 /**
- * How loud an admin alert is. Unlike `NotificationEvent` — the tenant-facing
- * catalogue exposed at `GET /notifications/events` — this never reaches a
+ * How loud an admin alert is. Unlike `NotificationEvent` (the tenant-facing
+ * catalogue exposed at `GET /notifications/events`) this never reaches a
  * workspace UI: it only decides which of the operator destinations in
  * `config/admin_alerts.php` a raised alert reaches.
  */

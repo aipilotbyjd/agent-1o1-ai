@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Creating and changing triggers — shared by the settings screen and the
+ * Creating and changing triggers: shared by the settings screen and the
  * assistant's own tools, so both obey the same rules.
  */
 class TriggerDefinitions

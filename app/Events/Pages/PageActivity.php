@@ -11,11 +11,11 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * Something changed on a page that everyone building it should see without
- * reloading. Carries ids and states only — the builder refetches.
+ * reloading. Carries ids and states only: the builder refetches.
  *
  * Event names on the wire (`page.<type>`):
- * - `page.comments`   — a comment was added, edited, resolved or deleted.
- * - `page.generation` — an AI generation finished (`id`, `status`).
+ * - `page.comments`: a comment was added, edited, resolved or deleted.
+ * - `page.generation`: an AI generation finished (`id`, `status`).
  */
 class PageActivity implements ShouldBroadcastNow
 {

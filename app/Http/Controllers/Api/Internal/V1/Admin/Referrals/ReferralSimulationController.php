@@ -11,7 +11,7 @@ use App\Services\Referrals\ReferralSimulator;
 use App\Services\Referrals\TriggerContext;
 
 /**
- * "What would this program give for this event?" — without writing
+ * "What would this program give for this event?" - without writing
  * anything.
  */
 class ReferralSimulationController extends Controller

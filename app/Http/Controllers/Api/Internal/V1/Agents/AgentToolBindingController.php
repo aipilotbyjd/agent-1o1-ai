@@ -42,7 +42,7 @@ class AgentToolBindingController extends Controller
     }
 
     /**
-     * Changes a tool's bound config or its approval rule — see
+     * Changes a tool's bound config or its approval rule: see
      * `Services\Agents\Approvals\ActionGate` for how the rule is applied.
      */
     public function update(UpdateAgentToolBindingRequest $request, Workspace $workspace, Agent $agent, AgentToolBinding $toolBinding)

@@ -9,7 +9,7 @@ use Illuminate\Database\Seeder;
 /**
  * The catalog shown in the trigger picker. Priority 1 integrations from
  * docs/NODES_CATALOG.md (GitHub, Slack, Stripe) plus the two most common
- * schedule presets — the rest of the catalog grows alongside the connectors
+ * schedule presets: the rest of the catalog grows alongside the connectors
  * that back it.
  */
 class TriggerPresetSeeder extends Seeder

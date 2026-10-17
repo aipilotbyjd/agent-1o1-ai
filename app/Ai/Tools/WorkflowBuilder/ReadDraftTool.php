@@ -11,7 +11,7 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * The agent's view of the draft as it is *now* — reloaded on every call, so
+ * The agent's view of the draft as it is *now*: reloaded on every call, so
  * it reflects edits the user made on the canvas since the turn started, and
  * the nodes a session seeded from an existing workflow began with.
  */

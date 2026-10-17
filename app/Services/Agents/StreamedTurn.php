@@ -10,7 +10,7 @@ use Laravel\Ai\Responses\StreamableAgentResponse;
  * recorded against, and the provider stream to iterate.
  *
  * Nothing has been sent to the provider until `$response` is iterated, which
- * is why the caller — not `AgentRunner` — is the one that must report a
+ * is why the caller (not `AgentRunner`) is the one that must report a
  * failure (`AgentRunner::failTurn()`).
  */
 final readonly class StreamedTurn

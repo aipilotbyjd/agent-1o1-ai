@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Plan entitlement that doesn't come from a Stripe subscription — today a
+ * Plan entitlement that doesn't come from a Stripe subscription: today a
  * lifetime purchase (`mode=payment` Checkout, so no `customer.subscription.*`
  * webhook ever fires and nothing lands in `subscriptions`), tomorrow a comped
  * or promotional grant.
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Schema;
  * Mirrors `credit_packs`' lifecycle: recorded `pending` at checkout, flipped
  * `active` on `checkout.session.completed`, `revoked` on refund or dispute.
  * `expires_at` is null for a grant that never lapses, which is every lifetime
- * purchase — it exists so a fixed-term comp doesn't need a second table.
+ * purchase: it exists so a fixed-term comp doesn't need a second table.
  */
 return new class extends Migration
 {

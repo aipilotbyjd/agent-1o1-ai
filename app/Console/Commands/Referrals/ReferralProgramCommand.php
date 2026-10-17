@@ -14,7 +14,7 @@ use Illuminate\Console\Command;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Create and tune referral programs from the command line — the same
+ * Create and tune referral programs from the command line: the same
  * operations, validation and audit trail as the admin API.
  *
  *   referrals:program show default
@@ -86,7 +86,7 @@ class ReferralProgramCommand extends Command
     private function update(ReferralAdmin $admin, ReferralProgram $program): int
     {
         if ($this->option('set') === []) {
-            $this->error('Nothing to change — pass one or more --set key=value.');
+            $this->error('Nothing to change: pass one or more --set key=value.');
 
             return self::FAILURE;
         }
@@ -106,7 +106,7 @@ class ReferralProgramCommand extends Command
 
     private function show(ReferralProgram $program, ReferralRuleDescriber $describer): int
     {
-        $this->line("<info>{$program->name}</info> ({$program->slug}) — ".($program->isLive() ? 'live' : 'not live').($program->is_default ? ', default' : ''));
+        $this->line("<info>{$program->name}</info> ({$program->slug}): ".($program->isLive() ? 'live' : 'not live').($program->is_default ? ', default' : ''));
 
         $settings = collect($program->only([
             'is_active', 'starts_at', 'ends_at', 'attribution_window_days', 'claim_window_hours',
@@ -189,11 +189,11 @@ class ReferralProgramCommand extends Command
     private function display(mixed $value): string
     {
         return match (true) {
-            $value === null => '—',
+            $value === null => '-',
             is_bool($value) => $this->yesNo($value),
             $value instanceof BackedEnum => (string) $value->value,
             $value instanceof DateTimeInterface => $value->format('Y-m-d H:i'),
-            is_array($value) => $value === [] ? '—' : json_encode($value),
+            is_array($value) => $value === [] ? '-' : json_encode($value),
             default => (string) $value,
         };
     }

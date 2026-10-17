@@ -7,7 +7,7 @@ use App\Services\Ai\ModelCatalogResolver;
 use Illuminate\Console\Command;
 
 /**
- * Adds (or updates) an execution backend for a `ModelCatalog` entry —
+ * Adds (or updates) an execution backend for a `ModelCatalog` entry:
  * there's no HTTP endpoint for this since it's a platform-level decision
  * (which backends actually run a public model), not something scoped to a
  * workspace. See `Services\Ai\ModelCatalogResolver`.

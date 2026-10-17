@@ -53,7 +53,7 @@ class NodeRun extends Model
     }
 
     /**
-     * Applies `$attributes` only if the row is still in one of `$from` —
+     * Applies `$attributes` only if the row is still in one of `$from`:
      * checked under a row lock, so two workers (or a worker and a
      * cancellation) can't both act on the same state. Returns `false`, with
      * the model refreshed, when someone else moved the node first.
@@ -93,8 +93,8 @@ class NodeRun extends Model
     }
 
     /**
-     * Child `runs` started against this `NodeRun` as their `parent_node_id`
-     * — a `subflow` node has one, a `loop` node has one per item.
+     * Child `runs` started against this `NodeRun` as their `parent_node_id`:
+     * a `subflow` node has one, a `loop` node has one per item.
      */
     public function childRuns(): HasMany
     {
@@ -103,7 +103,7 @@ class NodeRun extends Model
 
     /**
      * The `CreditTransaction` `RecordRunCreditUsage` billed this node run
-     * under — null until the (queued) listener has run, or if the node run
+     * under: null until the (queued) listener has run, or if the node run
      * never finished. `credit_transactions.source_type`/`source_id` isn't a
      * real Eloquent morph (it's a `CreditTransactionType` string, not a
      * class name), so this pins the type explicitly rather than using

@@ -14,8 +14,8 @@ use Illuminate\Queue\SerializesModels;
 /**
  * Executes exactly one `NodeRun` via `WorkflowRunner::executeStep()`. Kept
  * separate from `DispatchNextNodesJob` (its own `Queue::WorkflowExecute`
- * queue/supervisor) so a burst of cheap node executions can't starve —
- * or be starved by — the traversal work that decides what runs next. See
+ * queue/supervisor) so a burst of cheap node executions can't starve
+ * (or be starved by) the traversal work that decides what runs next. See
  * docs/STRUCTURE.md's "Queues & Horizon" table.
  */
 class ExecuteNodeJob implements ShouldQueue

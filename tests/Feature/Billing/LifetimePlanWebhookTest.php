@@ -102,7 +102,7 @@ it('revokes a lifetime grant when its charge is refunded', function () {
 
     expect($workspace->currentPlan()->id)->toBe($plan->id);
 
-    // Without this the refunded customer would keep the plan forever — the
+    // Without this the refunded customer would keep the plan forever: the
     // grant has no expiry and no subscription status to lapse.
     $this->postJson('/api/stripe/webhook', [
         'id' => 'evt_lifetime_refund',

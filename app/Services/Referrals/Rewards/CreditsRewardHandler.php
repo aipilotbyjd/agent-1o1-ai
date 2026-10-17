@@ -6,7 +6,7 @@ use App\Models\Referrals\ReferralReward;
 use App\Models\Workspaces\Workspace;
 
 /**
- * Adds to the workspace's non-expiring `topup_credits` pool — the same pool
+ * Adds to the workspace's non-expiring `topup_credits` pool: the same pool
  * credit packs land in, spent after the plan allowance.
  */
 class CreditsRewardHandler implements RewardHandler

@@ -5,14 +5,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * One row per `Agent` — whether/how its live `AgentSession`s are
+ * One row per `Agent`, whether/how its live `AgentSession`s are
  * automatically graded after each turn. See
  * `Services\Agents\SessionEvaluator` and
  * docs/gumloop/output/raw/core-concepts/evaluations.md, the feature this
  * mirrors.
  *
  * `criteria`/`tags`/`data_points` are JSON arrays rather than normalized
- * tables — the same choice `agent_eval_cases.assertions` made — because
+ * tables (the same choice `agent_eval_cases.assertions` made) because
  * nothing here is ever queried by its own columns; it is only ever read or
  * written whole, as one agent's configuration.
  */

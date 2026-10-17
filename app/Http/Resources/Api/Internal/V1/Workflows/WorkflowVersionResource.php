@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class WorkflowVersionResource extends JsonResource
 {
     /**
-     * The graphs are left out when the query didn't select them — a version
+     * The graphs are left out when the query didn't select them: a version
      * list only needs the timeline, and every graph can be large.
      *
      * @return array<string, mixed>

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
  * Makes the usage ledger safe to replay. `RecordRunCreditUsage` charges one
  * row per node run inside a queued job; if any single charge failed partway
  * through the loop the job retried and re-charged every node before it, so
- * `(source_type, source_id)` becomes unique — one `NodeRun`/`AgentMessage`
+ * `(source_type, source_id)` becomes unique: one `NodeRun`/`AgentMessage`
  * can be billed exactly once, enforced by the database rather than by the
  * caller remembering to check.
  *

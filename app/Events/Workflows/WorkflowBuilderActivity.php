@@ -13,15 +13,15 @@ use Illuminate\Support\Str;
 /**
  * One step of a builder turn, pushed live to the session's channel while
  * `ProcessWorkflowBuilderMessageJob` runs. Broadcast immediately (not
- * queued) — a text delta that arrives after the reply finished is useless.
+ * queued): a text delta that arrives after the reply finished is useless.
  *
  * Event names on the wire (`builder.<type>`):
- * - `builder.status`       — the assistant message moved to processing/completed/failed.
- * - `builder.delta`        — a chunk of assistant text; concatenate in order.
- * - `builder.tool-call`    — the assistant called a tool.
- * - `builder.tool-result`  — that tool returned (output trimmed).
- * - `builder.draft`        — the draft changed; carries the new lock version and
- *                            label, never the graph itself — refetch the session.
+ * - `builder.status`: the assistant message moved to processing/completed/failed.
+ * - `builder.delta`: a chunk of assistant text; concatenate in order.
+ * - `builder.tool-call`: the assistant called a tool.
+ * - `builder.tool-result`: that tool returned (output trimmed).
+ * - `builder.draft`: the draft changed; carries the new lock version and
+ *                            label, never the graph itself: refetch the session.
  *
  * Reverb and Pusher drop any event over 10 KB, so every string in the
  * payload is capped; the persisted message and draft are the source of truth.

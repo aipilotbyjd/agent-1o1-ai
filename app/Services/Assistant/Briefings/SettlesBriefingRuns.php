@@ -65,7 +65,7 @@ trait SettlesBriefingRuns
     }
 
     /**
-     * True for exactly one caller per report — whoever gets to deliver it.
+     * True for exactly one caller per report: whoever gets to deliver it.
      */
     private function claimDelivery(AssistantBriefingRun $run): bool
     {

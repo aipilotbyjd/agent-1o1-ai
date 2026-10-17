@@ -7,13 +7,13 @@ use RuntimeException;
 
 /**
  * Thrown by `Workflow::replaceGraph()` (config-schema issues only) and
- * `Workflow::publishVersion()` (full `GraphValidator` run) — mapped to a 422
+ * `Workflow::publishVersion()` (full `GraphValidator` run): mapped to a 422
  * response in `bootstrap/app.php`. See docs/WORKFLOWS_PLAN.md's "Validation"
  * section for the checks that can produce these errors.
  *
  * The response carries both `errors` (the technical wording existing
- * clients read) and `issues` — each pointed at its node and config field,
- * with a message for the person building the workflow — which the editor
+ * clients read) and `issues` (each pointed at its node and config field,
+ * with a message for the person building the workflow) which the editor
  * uses to list what to fix and jump to it.
  */
 class WorkflowValidationException extends RuntimeException

@@ -37,7 +37,7 @@ use Throwable;
 /**
  * Runs one `AssistantTurn` from start to finish inside `RunAssistantTurnJob`:
  * builds the agent, streams the model's reply to the owner over Reverb,
- * stops early if the owner cancels, and settles the turn — completed,
+ * stops early if the owner cancels, and settles the turn: completed,
  * paused for approvals, failed or cancelled. A paused turn is run again by
  * the same job once every waiting call has a decision.
  */
@@ -135,7 +135,7 @@ class TurnRunner
     /**
      * Pulls the stream to its end, broadcasting the reply and tool activity
      * as it goes. Returns the text written so far and whether the owner
-     * cancelled — in which case the rest of the stream is never pulled.
+     * cancelled, in which case the rest of the stream is never pulled.
      *
      * @return array{0: string, 1: bool}
      */
@@ -187,8 +187,8 @@ class TurnRunner
     }
 
     /**
-     * Runs the approved calls of a paused turn — each exactly once, through
-     * the same gate that paused it — then hands the model every outcome.
+     * Runs the approved calls of a paused turn (each exactly once, through
+     * the same gate that paused it) then hands the model every outcome.
      *
      * @param  list<object>  $tools
      */
@@ -251,7 +251,7 @@ class TurnRunner
     }
 
     /**
-     * Writes the reply — or, for a resumed turn, folds the rest of it into
+     * Writes the reply, or, for a resumed turn, folds the rest of it into
      * the message it paused on, so one user message gets one reply.
      */
     private function storeReply(AssistantTurn $turn, StreamedAgentResponse $response): AssistantMessage
@@ -346,7 +346,7 @@ class TurnRunner
     }
 
     /**
-     * Charged once per turn, on the turn id, after it settles — a paused
+     * Charged once per turn, on the turn id, after it settles: a paused
      * turn is charged when it finally completes, for both halves.
      */
     private function charge(AssistantTurn $turn): void

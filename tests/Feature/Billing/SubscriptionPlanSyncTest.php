@@ -9,8 +9,8 @@ use App\Services\Workspaces\WorkspaceService;
 
 /**
  * Resolving the plan behind a Stripe subscription event. Stripe tells us a
- * price id and nothing else, so the whole entitlement — `subscriptions.plan_id`
- * and the period's `credits_limit` — hangs on reversing that id back to a plan.
+ * price id and nothing else, so the whole entitlement (`subscriptions.plan_id`
+ * and the period's `credits_limit`) hangs on reversing that id back to a plan.
  *
  * A lookup that covered only some intervals resolved nothing for the rest,
  * which quietly sized a quarterly subscriber's allowance from the default
@@ -116,7 +116,7 @@ it('finds a plan by a price on any interval', function () {
 });
 
 it('still resolves a plan that has since been withdrawn from sale', function () {
-    // Entitlement follows what was bought, not what is still on the shelf —
+    // Entitlement follows what was bought, not what is still on the shelf:
     // deactivating a plan must not strand an existing subscriber's allowance.
     $plan = Plan::factory()->create([
         'is_active' => false,

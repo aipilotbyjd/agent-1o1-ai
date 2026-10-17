@@ -33,7 +33,7 @@ class ListReferralProgramsCommand extends Command
             ]);
 
             $this->newLine();
-            $this->line("<info>{$program->name}</info> ({$program->slug}) — ".implode(', ', $flags));
+            $this->line("<info>{$program->name}</info> ({$program->slug}): ".implode(', ', $flags));
 
             $this->table(
                 ['Id', 'Order', 'Rule', 'Terms', 'Active'],

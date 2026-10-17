@@ -13,7 +13,7 @@ use App\Nodes\Support\Field;
 
 /**
  * One value the workflow returns. A finished run's result is its Output
- * steps' values by name (`WorkflowIo::runResult()`) — what the run panel,
+ * steps' values by name (`WorkflowIo::runResult()`): what the run panel,
  * the API and a parent workflow's Sub-Workflow step receive.
  */
 class WorkflowOutputNode implements DeclaresEffect, DeclaresOutputSchema, HasIcon, NodeContract
@@ -52,7 +52,7 @@ class WorkflowOutputNode implements DeclaresEffect, DeclaresOutputSchema, HasIco
 
     /**
      * `value` has no declared type: it returns whatever the referenced step
-     * produced — text, a number or a whole object — and isn't marked
+     * produced (text, a number or a whole object) and isn't marked
      * required, since a reference that resolves to nothing should return
      * null rather than fail the run. An empty `value` is refused at publish
      * by `WorkflowIo::issues()` instead.

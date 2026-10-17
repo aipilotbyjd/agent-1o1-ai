@@ -17,14 +17,14 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * A `Workflow` attached as a tool — calls `StartWorkflowRunAction` the same
+ * A `Workflow` attached as a tool: calls `StartWorkflowRunAction` the same
  * way a `subflow` node does (`SubWorkflowCoordinator`). The run executes on
  * the queue, so the tool waits up to `WAIT_SECONDS` for it to finish; a run
  * still going after that, or one paused for an approval or callback, is
  * reported back as in progress (with its id) rather than as a result.
  *
  * No formal per-workflow input schema exists yet (`ContractGenerator` is
- * deferred, per docs/WORKFLOWS_PLAN.md) — the model is given a single
+ * deferred, per docs/WORKFLOWS_PLAN.md): the model is given a single
  * free-form `input` object.
  *
  * `$effect` is the strongest effect of any node in the workflow's published

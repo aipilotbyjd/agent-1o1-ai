@@ -13,11 +13,11 @@ use Illuminate\Validation\Rule;
  *
  * Three sources, in order:
  *
- * 1. **Nodes** — the graph's Input steps (`WorkflowIo::fields()`), which
+ * 1. **Nodes**: the graph's Input steps (`WorkflowIo::fields()`), which
  *    carry their own labels, types, defaults and required-ness.
- * 2. **Declared** — `workflows.input_schema`, authored deliberately in the
+ * 2. **Declared**: `workflows.input_schema`, authored deliberately in the
  *    run form editor or through the API.
- * 3. **Derived** — every `{{ input.* }}` reference in the graph, so a
+ * 3. **Derived**: every `{{ input.* }}` reference in the graph, so a
  *    workflow nobody has annotated still presents a usable interface
  *    instead of an empty one.
  *
@@ -48,7 +48,7 @@ class WorkflowInterface
     }
 
     /**
-     * The values a finished run returns, by name — what a page can show as
+     * The values a finished run returns, by name: what a page can show as
      * the workflow's result. Read from the same graph as `describe()`.
      *
      * @return array<int, array{name: string}>
@@ -88,7 +88,7 @@ class WorkflowInterface
 
     /**
      * Fills in any field the submission omitted but the schema gives a
-     * default for — so a form can leave optional inputs out entirely and the
+     * default for, so a form can leave optional inputs out entirely and the
      * run still receives what the graph expects.
      *
      * @param  array<string, mixed>  $submitted
@@ -136,7 +136,7 @@ class WorkflowInterface
                 $isNested = str_contains($remainder, '.');
 
                 // A key seen once as `input.a` and once as `input.a.b` is an
-                // object — the nested reading wins.
+                // object: the nested reading wins.
                 $fields[$key] = [
                     ...$this->normalizeField([
                         'key' => $key,
@@ -160,8 +160,8 @@ class WorkflowInterface
     }
 
     /**
-     * The canvas as it would run — published when there is a published
-     * version — with positions, so Input steps keep their on-canvas order.
+     * The canvas as it would run (published when there is a published
+     * version) with positions, so Input steps keep their on-canvas order.
      *
      * @return array{nodes?: array<int, array<string, mixed>>, edges?: array<int, array<string, mixed>>}
      */

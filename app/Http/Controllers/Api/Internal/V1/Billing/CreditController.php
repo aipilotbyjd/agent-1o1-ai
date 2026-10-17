@@ -11,7 +11,7 @@ use App\Models\Workspaces\Workspace;
 class CreditController extends Controller
 {
     /**
-     * The workspace's append-only credit ledger, newest first — every row
+     * The workspace's append-only credit ledger, newest first: every row
      * `DeductCreditsAction` has ever written.
      */
     public function index(Workspace $workspace)

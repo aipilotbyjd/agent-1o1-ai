@@ -98,13 +98,13 @@ return [
 
     'waits' => [
         'redis:default' => 60,
-        // Webhook-fired, latency-sensitive — alert fast if it backs up.
+        // Webhook-fired, latency-sensitive: alert fast if it backs up.
         'redis:triggers-event' => 10,
-        // Bulk/periodic — tolerates more lag before it's worth paging anyone.
+        // Bulk/periodic: tolerates more lag before it's worth paging anyone.
         'redis:triggers-poll' => 120,
-        // Traversal work — quick, but a backlog here stalls every run behind it.
+        // Traversal work: quick, but a backlog here stalls every run behind it.
         'redis:workflows-dispatch' => 30,
-        // Node execution — the actual work; can legitimately take longer per job.
+        // Node execution: the actual work; can legitimately take longer per job.
         'redis:workflows-execute' => 60,
     ],
 
@@ -225,7 +225,7 @@ return [
             'nice' => 0,
         ],
 
-        // FireTriggerEvent — split from polling so a burst of bulk/periodic
+        // FireTriggerEvent: split from polling so a burst of bulk/periodic
         // polls can never delay a webhook-fired event queued behind it.
         'supervisor-triggers-event' => [
             'connection' => 'redis',
@@ -241,7 +241,7 @@ return [
             'nice' => 0,
         ],
 
-        // PollTrigger — bulk/periodic, tolerates more lag than the event queue.
+        // PollTrigger: bulk/periodic, tolerates more lag than the event queue.
         'supervisor-triggers-poll' => [
             'connection' => 'redis',
             'queue' => ['triggers-poll'],
@@ -256,7 +256,7 @@ return [
             'nice' => 0,
         ],
 
-        // DispatchNextNodesJob — pure traversal (no external calls), isolated
+        // DispatchNextNodesJob: pure traversal (no external calls), isolated
         // from ExecuteNodeJob so a burst of node completions can't starve
         // the work that figures out what runs next, or vice versa.
         'supervisor-workflows-dispatch' => [
@@ -273,7 +273,7 @@ return [
             'nice' => 0,
         ],
 
-        // ExecuteNodeJob — the actual node work (HTTP calls, AI prompts, ...).
+        // ExecuteNodeJob: the actual node work (HTTP calls, AI prompts, ...).
         'supervisor-workflows-execute' => [
             'connection' => 'redis',
             'queue' => ['workflows-execute'],
@@ -288,7 +288,7 @@ return [
             'nice' => 0,
         ],
 
-        // FireTriggerEvent for agent-targeted triggers — blocks on a model
+        // FireTriggerEvent for agent-targeted triggers: blocks on a model
         // call, so it's isolated from every other queue and its maxProcesses
         // doubles as a concurrency ceiling against provider rate limits
         // (docs/STRUCTURE.md's "Queues & Horizon" table). `timeout` must stay
@@ -325,7 +325,7 @@ return [
         // Subagents started by `InvokeAgentTool`. Separate from `ai-agent` so a
         // parent waiting on its subagents never occupies the workers they need
         // (subagents can't start subagents, so nothing here waits on this
-        // queue), and sized for parallel work — `InvokeAgentTool::MAX_CONCURRENT`
+        // queue), and sized for parallel work: `InvokeAgentTool::MAX_CONCURRENT`
         // caps how many one conversation can start.
         'supervisor-ai-subagent' => [
             'connection' => 'redis',
@@ -340,7 +340,7 @@ return [
             'timeout' => 320,
             'nice' => 0,
         ],
-        // ProcessWorkflowBuilderMessageJob — one builder chat turn, which can
+        // ProcessWorkflowBuilderMessageJob: one builder chat turn, which can
         // run many tool calls against the draft. Kept off `ai-agent` so a
         // burst of people building workflows can't hold up agent-targeted
         // triggers (or the other way round). `timeout` must stay above the
@@ -358,7 +358,7 @@ return [
             'timeout' => 320,
             'nice' => 0,
         ],
-        // RecordRunCreditUsage — money-adjacent, so it runs on its own
+        // RecordRunCreditUsage: money-adjacent, so it runs on its own
         // supervisor rather than queuing behind workflow load
         // (docs/STRUCTURE.md's "Queues & Horizon" table). Raising its OS
         // priority with a negative `nice` needs Horizon to run as root, so

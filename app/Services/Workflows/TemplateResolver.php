@@ -4,14 +4,14 @@ namespace App\Services\Workflows;
 
 /**
  * The `{{ node.output }}` templating engine a node's `config` is resolved
- * through before `execute()` (or a pause/coordinator path) ever sees it —
+ * through before `execute()` (or a pause/coordinator path) ever sees it:
  * wired in by `WorkflowRunner::executeStep()`. See docs/WORKFLOWS_PLAN.md's
  * `TemplateResolver`/`ExpressionEvaluator`/`SafePattern`/`TemplatePaths`
  * entry.
  *
  * Existing dot-path config fields (`TransformNode`'s `mapping` values,
  * `RouterNode`/`FilterNode`'s `path`, `LoopNode`'s `items_path`, ...)
- * predate this stage and were never `{{ }}`-wrapped — they pass through
+ * predate this stage and were never `{{ }}`-wrapped: they pass through
  * untouched here, since resolution only ever touches substrings that
  * actually contain `{{`.
  */

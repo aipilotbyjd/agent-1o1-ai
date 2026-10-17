@@ -63,7 +63,7 @@ class GoogleSheetsOptions extends HttpOptionsSource
 
     /**
      * A tab name as Sheets reads it in a range: bare when it's a plain word,
-     * otherwise quoted with any `'` doubled — including names that would
+     * otherwise quoted with any `'` doubled, including names that would
      * read as a cell reference (`'AB12'`, `'R1C1'`).
      */
     public static function a1SheetName(string $title): string

@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Guards the `/v1/admin/*` routes: the caller must be a platform admin (set
  * only by `php artisan admin:grant`) and, unless switched off in
  * `config/platform_admin.php`, must have two-factor authentication
- * confirmed — these routes can grant credits and plan time to anyone.
+ * confirmed: these routes can grant credits and plan time to anyone.
  *
  * With `platform_admin.api_enabled` off the routes answer 404 to everyone,
  * so a deployment managed only from the command line exposes no admin

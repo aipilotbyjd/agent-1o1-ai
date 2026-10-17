@@ -17,7 +17,7 @@ Route::middleware('api-key:workflows:read')->group(function () {
 /*
  * Programmatic authoring. Draft edits and publishing are separate calls for
  * the same reason they are in the editor: a draft may be mid-edit, a
- * published version may not — see WorkflowGraphController.
+ * published version may not: see WorkflowGraphController.
  */
 Route::middleware('api-key:workflows:write')->group(function () {
     Route::post('workflows', [WorkflowController::class, 'store']);

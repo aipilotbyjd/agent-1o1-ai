@@ -10,7 +10,7 @@ use App\Services\Workspaces\WorkspaceService;
 
 /**
  * A run that *fails* has to abandon its in-flight work exactly as a
- * cancelled one does — see `RunCanceller`. Settling only `pending`/`running`
+ * cancelled one does: see `RunCanceller`. Settling only `pending`/`running`
  * nodes left the two parked states (`awaiting_approval`, `awaiting_callback`)
  * live on a dead run, and left `subflow`/`loop` child runs executing for a
  * parent node that had already settled.

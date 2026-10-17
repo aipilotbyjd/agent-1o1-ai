@@ -6,7 +6,7 @@ use RuntimeException;
 
 /**
  * A node's config failed its schema once its `{{ }}` templates were filled
- * in from upstream outputs — thrown by `ResolvedConfigCaster`. The same
+ * in from upstream outputs: thrown by `ResolvedConfigCaster`. The same
  * upstream data would fail the same way again, so `StepFailureHandler`
  * never retries it.
  */

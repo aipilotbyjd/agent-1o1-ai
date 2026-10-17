@@ -12,8 +12,8 @@ use App\Models\Workflows\Workflow;
 use Illuminate\Support\Arr;
 
 /**
- * Loop Mode as real child `runs` rows, one per item, not an in-handler batch
- * — see docs/WORKFLOWS_PLAN.md's `LoopCoordinator` entry. Each item runs
+ * Loop Mode as real child `runs` rows, one per item, not an in-handler batch:
+ * see docs/WORKFLOWS_PLAN.md's `LoopCoordinator` entry. Each item runs
  * `config.workflow_id` as a child run (`input: {item, index}`); up to
  * `max_concurrent` run at once, releasing the next queued item as an earlier
  * one settles (`resume()`). `on_item_error` governs a mid-batch failure:
@@ -25,7 +25,7 @@ use Illuminate\Support\Arr;
  *
  * Progress lives in `NodeRun.state` (docs/WORKFLOWS_AGENTS_BUILD_PLAN.md
  * Stage 4's `add_state_to_node_runs_table` migration) while the loop node's
- * own status stays `Running` — there's no dedicated table for this
+ * own status stays `Running`: there's no dedicated table for this
  * bookkeeping, and it's never queried outside this class.
  */
 class LoopCoordinator
@@ -46,7 +46,7 @@ class LoopCoordinator
         $items = array_values((array) Arr::get($context, $config['items_path'] ?? '', []));
         // Scoped to the run's own workspace: `workflow_id` is plain config, and
         // an unscoped lookup would let one workspace run another's published
-        // workflow — and read its output back through this node.
+        // workflow, and read its output back through this node.
         $childWorkflow = Workflow::query()
             ->whereKey($config['workflow_id'] ?? null)
             ->where('workspace_id', $run->workspace_id)
@@ -92,7 +92,7 @@ class LoopCoordinator
     public function resume(Run $childRun, NodeRun $nodeRun): void
     {
         // Already finished (e.g. fail_fast already tripped by a sibling, or
-        // a replayed settle event) — later-arriving siblings are no-ops.
+        // a replayed settle event): later-arriving siblings are no-ops.
         if ($nodeRun->status !== NodeRunStatus::Running) {
             return;
         }
@@ -110,8 +110,8 @@ class LoopCoordinator
             }
         }
 
-        // Persisted before releaseNext() runs, since — with the sync queue
-        // driver — releasing the next item can synchronously cascade back
+        // Persisted before releaseNext() runs, since (with the sync queue
+        // driver) releasing the next item can synchronously cascade back
         // into resume() for that item before this call returns; that nested
         // call must see this item already recorded, not a stale copy.
         $nodeRun->forceFill(['state' => $state])->save();
@@ -155,7 +155,7 @@ class LoopCoordinator
      * Starts as many queued items as available concurrency slots allow.
      * Re-reads state fresh before *every* release (not just once up front)
      * since starting a child can synchronously cascade all the way back
-     * into a nested `releaseNext()` call under the sync queue driver — a
+     * into a nested `releaseNext()` call under the sync queue driver: a
      * stale local `$state` would re-release an already-started item.
      */
     private function releaseNext(NodeRun $nodeRun): void

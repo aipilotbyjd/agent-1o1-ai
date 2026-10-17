@@ -53,7 +53,7 @@ class ConnectorCredentialController extends Controller
         $connector = Connector::findOrFail($request->validated('connector_id'));
 
         if ($connector->isOAuth()) {
-            throw new ConnectorException("Connector [{$connector->key}] is OAuth-only — use the OAuth connect flow instead of storing credential data directly.");
+            throw new ConnectorException("Connector [{$connector->key}] is OAuth-only: use the OAuth connect flow instead of storing credential data directly.");
         }
 
         $credential = $workspace->connectorCredentials()->create([
@@ -117,7 +117,7 @@ class ConnectorCredentialController extends Controller
 
     /**
      * Sets this credential as the one a node/agent gets when nothing pins
-     * a `credential_id` — see `ResolvesConnectorCredential`.
+     * a `credential_id`: see `ResolvesConnectorCredential`.
      */
     public function setDefault(Request $request, Workspace $workspace, ConnectorCredential $connectorCredential)
     {
@@ -133,7 +133,7 @@ class ConnectorCredentialController extends Controller
 
     /**
      * Checks the connection works right now. A failed check is a result,
-     * not an error — the response is 200 either way, with `ok` saying which.
+     * not an error: the response is 200 either way, with `ok` saying which.
      */
     public function test(Request $request, Workspace $workspace, ConnectorCredential $connectorCredential, ConnectorCredentialTester $tester)
     {
@@ -164,7 +164,7 @@ class ConnectorCredentialController extends Controller
 
     /**
      * A personal credential belonging to someone else is treated as if it
-     * doesn't exist — hidden, not merely forbidden, matching the "cannot
+     * doesn't exist: hidden, not merely forbidden, matching the "cannot
      * see or use" guarantee.
      */
     private function ensureVisible(Request $request, ConnectorCredential $connectorCredential): void

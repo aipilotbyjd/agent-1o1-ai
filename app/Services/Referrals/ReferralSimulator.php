@@ -9,7 +9,7 @@ use App\Models\Referrals\ReferralRewardRule;
 
 /**
  * Dry-runs a program's rules against a hypothetical event so an admin can
- * see what a change would do before a real referral hits it. Reads only —
+ * see what a change would do before a real referral hits it. Reads only:
  * nothing is written. Workspace-dependent adjustments (already on the plan,
  * the monthly credit cap) are left out, since there is no real recipient.
  */

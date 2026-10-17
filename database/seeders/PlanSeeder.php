@@ -6,7 +6,7 @@ use App\Models\Billing\Plan;
 use Illuminate\Database\Seeder;
 
 /**
- * The plan catalog. Paid plans read their Stripe price IDs from env — they
+ * The plan catalog. Paid plans read their Stripe price IDs from env: they
  * must be created ahead of time in the Stripe dashboard: three recurring
  * prices (monthly, every-3-months, yearly) plus a one-time price for the
  * lifetime purchase. A price ID left unset simply means the plan isn't sold

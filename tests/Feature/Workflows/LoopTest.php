@@ -150,7 +150,7 @@ it('fails fast on the first item error when on_item_error is fail_fast', functio
     expect($loopNode->status)->toBe(NodeRunStatus::Failed);
 
     // fail_fast stops releasing further items once max_concurrent=1 serializes
-    // execution — only the first item ever actually ran.
+    // execution, only the first item ever actually ran.
     expect(Run::where('parent_node_id', $loopNode->id)->count())->toBe(1);
 });
 
@@ -158,7 +158,7 @@ it('tolerates item errors and still completes when on_item_error is continue', f
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
 
-    // A child that fails for every item — asserts "continue" still runs
+    // A child that fails for every item: asserts "continue" still runs
     // every item and completes the loop (vs. "fail_fast" stopping early).
     $failingChild = Workflow::factory()->forWorkspace($workspace)->create();
     $failingChild->replaceGraph(['nodes' => [
@@ -281,7 +281,7 @@ it('cancels items still in flight when fail_fast trips', function () {
     $child = $child->fresh();
 
     // The loop node has an error edge, so the *run* survives the loop
-    // failing — which is what isolates this to the loop's own cleanup
+    // failing, which is what isolates this to the loop's own cleanup
     // rather than the whole-run teardown `StepFailureHandler` does.
     $parent = Workflow::factory()->forWorkspace($workspace)->create();
     $parent->replaceGraph([

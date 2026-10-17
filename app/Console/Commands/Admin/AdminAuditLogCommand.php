@@ -24,7 +24,7 @@ class AdminAuditLogCommand extends Command
             ->get();
 
         $summarise = fn (?array $values): string => $values === null
-            ? '—'
+            ? '-'
             : Str::limit(collect($values)->map(fn ($value, $key): string => "{$key}: ".(is_scalar($value) || $value === null ? var_export($value, true) : json_encode($value)))->implode(', '), 60);
 
         $this->table(
@@ -33,7 +33,7 @@ class AdminAuditLogCommand extends Command
                 $log->created_at?->format('Y-m-d H:i'),
                 $log->admin?->email ?? 'command line',
                 $log->action,
-                $log->subject_type ? "{$log->subject_type} ".Str::substr((string) $log->subject_id, -8) : '—',
+                $log->subject_type ? "{$log->subject_type} ".Str::substr((string) $log->subject_id, -8) : '-',
                 $summarise($log->before),
                 $summarise($log->after),
             ])->all(),

@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
  * next migration. Before charges were idempotent a retried
  * `RecordRunCreditUsage` job could bill the same `NodeRun` twice, so any
  * install with such a duplicate would fail to add the index. Keeps the
- * earliest row per source — the one whose credits were counted into
- * `usage_periods.credits_used` first — and drops the later re-charges.
+ * earliest row per source (the one whose credits were counted into
+ * `usage_periods.credits_used` first) and drops the later re-charges.
  *
  * Irreversible by design: `down()` cannot resurrect rows that should never
  * have been written.

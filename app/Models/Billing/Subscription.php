@@ -12,7 +12,7 @@ class Subscription extends CashierSubscription
     use HasUuids;
 
     /**
-     * Only the columns this subclass adds — Laravel merges these over
+     * Only the columns this subclass adds: Laravel merges these over
      * Cashier's own `$casts` property, so redeclaring its dates here would
      * just risk drifting from them.
      *
@@ -30,7 +30,7 @@ class Subscription extends CashierSubscription
     /**
      * Whether Stripe is currently failing to collect on this subscription.
      *
-     * Deliberately not an entitlement check — this app grants no grace period,
+     * Deliberately not an entitlement check: this app grants no grace period,
      * so `Workspace::activeSubscription()` has already withdrawn the plan by
      * the time this returns true. It exists so the billing screen can say why.
      */
@@ -54,7 +54,7 @@ class Subscription extends CashierSubscription
     }
 
     /**
-     * Collection succeeded — the cycle is over. Returns whether there was
+     * Collection succeeded: the cycle is over. Returns whether there was
      * actually a cycle to clear, so callers only announce a recovery that the
      * customer was told about in the first place.
      */
@@ -91,7 +91,7 @@ class Subscription extends CashierSubscription
     }
 
     /**
-     * Alias of Cashier's owner() relation — this app's billable model is Workspace.
+     * Alias of Cashier's owner() relation: this app's billable model is Workspace.
      *
      * @return BelongsTo<Workspace, $this>
      */

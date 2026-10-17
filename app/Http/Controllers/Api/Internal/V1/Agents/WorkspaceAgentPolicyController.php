@@ -11,7 +11,7 @@ use App\Models\Agents\WorkspaceAgentPolicy;
 use App\Models\Workspaces\Workspace;
 
 /**
- * The workspace's guardrails over every agent — readable by anyone who can
+ * The workspace's guardrails over every agent: readable by anyone who can
  * see agents (so they know why an action was blocked), changeable only by
  * an admin.
  */

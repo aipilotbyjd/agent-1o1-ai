@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A workspace's model choices — see `App\Models\Ai\WorkspaceModelSettings`.
+ * A workspace's model choices: see `App\Models\Ai\WorkspaceModelSettings`.
  * At most one row per workspace; no row means no default and every model
  * allowed.
  */

@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Everything that has to be settled when a run stops before its graph is
- * finished. Extracted from `WorkflowRunner::cancel()` so the *failure* paths
- * — `StepFailureHandler::failRun()` and `LoopCoordinator`'s `fail_fast` —
+ * finished. Extracted from `WorkflowRunner::cancel()` so the *failure* paths:
+ * `StepFailureHandler::failRun()` and `LoopCoordinator`'s `fail_fast`:
  * can reuse it without depending on `WorkflowRunner`, which would close a
  * dependency cycle (`WorkflowRunner` → `StepFailureHandler` → back again).
  *
@@ -26,8 +26,8 @@ use Illuminate\Support\Facades\DB;
  *   webhook (`awaiting_callback`). Their callback URL keeps resolving until
  *   the token is nulled, so an approval on an already-dead run stays
  *   actionable and a `Wait` node stays resumable.
- * - Child runs a `subflow`/`loop` node started. Those keep executing — and
- *   keep billing — to produce output whose parent node has already settled
+ * - Child runs a `subflow`/`loop` node started. Those keep executing (and
+ *   keep billing) to produce output whose parent node has already settled
  *   and will never read it.
  */
 class RunCanceller
@@ -87,7 +87,7 @@ class RunCanceller
 
     /**
      * Settles every `NodeRun` that hasn't reached a terminal state as
-     * `cancelled` — the two parked states included, or a paused
+     * `cancelled`: the two parked states included, or a paused
      * `HumanApproval`/`Wait` node would outlive the run it belongs to.
      *
      * Leaves already-terminal rows alone, so the node that *caused* a
@@ -117,7 +117,7 @@ class RunCanceller
     }
 
     /**
-     * Cancels every in-flight run started beneath `$run` — one level down
+     * Cancels every in-flight run started beneath `$run`: one level down
      * here, but `cancel()` recurses, so a whole nested tree unwinds.
      */
     public function cancelChildRuns(Run $run, ?User $cancelledBy = null): void

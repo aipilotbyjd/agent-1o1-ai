@@ -45,7 +45,7 @@ class TargetRunStarter implements RunStarter
 
         return match (true) {
             // An unpublished workflow has no `current_version_id` to pin a run
-            // to — StartWorkflowRunAction would throw, so refuse here instead
+            // to: StartWorkflowRunAction would throw, so refuse here instead
             // and let intake record a Skipped event.
             $target instanceof Workflow => $target->isPublished(),
             $target instanceof Agent => true,
@@ -95,7 +95,7 @@ class TargetRunStarter implements RunStarter
             $workflow,
             $payload,
             // The trigger's creator is the closest thing an automated firing
-            // has to an actor — it's what run history and per-user skill
+            // has to an actor: it's what run history and per-user skill
             // injection attribute the run to.
             $trigger->creator,
             $trigger->type->value,
@@ -116,8 +116,8 @@ class TargetRunStarter implements RunStarter
             "{$trigger->type->value} trigger #{$trigger->id}",
         );
 
-        // A trigger can run its agent under a different mode than chat does
-        // — typically stricter, since nobody is watching a triggered turn.
+        // A trigger can run its agent under a different mode than chat does,
+        // typically stricter, since nobody is watching a triggered turn.
         $session->forceFill([
             'autonomy_mode' => AutonomyMode::tryFrom((string) ($trigger->config['autonomy_mode'] ?? '')),
             'test_mode' => isset($trigger->config['test_mode']) ? (bool) $trigger->config['test_mode'] : null,
@@ -157,8 +157,8 @@ class TargetRunStarter implements RunStarter
 
     /**
      * The trigger's target, or null when it can't be run at all: deleted
-     * (morphTo excludes soft-deleted rows), never existed, or — the one that
-     * matters for tenancy — belongs to a different workspace than the trigger
+     * (morphTo excludes soft-deleted rows), never existed, or (the one that
+     * matters for tenancy) belongs to a different workspace than the trigger
      * itself.
      */
     private function targetFor(Trigger $trigger): ?Model

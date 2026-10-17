@@ -209,7 +209,7 @@ class ReferralLifecycle
 
     /**
      * Moves a referral forward to `$status` against the freshly locked row,
-     * never backwards and never out of `rejected` — concurrent lifecycle
+     * never backwards and never out of `rejected`: concurrent lifecycle
      * events work from stale models, so a plain `update()` could overwrite a
      * later stage. Returns whether this call made the move; the caller's
      * model is refreshed to match.

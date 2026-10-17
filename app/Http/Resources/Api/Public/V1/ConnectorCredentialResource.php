@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Never includes `data` — the same rule as the internal resource: a stored
+ * Never includes `data`: the same rule as the internal resource: a stored
  * secret does not come back out, whoever is asking.
  *
  * @mixin ConnectorCredential

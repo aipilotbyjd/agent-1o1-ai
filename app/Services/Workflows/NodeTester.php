@@ -20,13 +20,13 @@ use App\Services\Secrets\SecretResolver;
 use Throwable;
 
 /**
- * Runs a single draft node on demand — the "test this step" button in the
+ * Runs a single draft node on demand: the "test this step" button in the
  * editor, without publishing a version or executing the rest of the graph.
  *
  * This executes for real: the node's `NodeContract::execute()` is called, so
  * a Slack node posts an actual message. It is deliberately *not* a dry run
  * (`DryRunner` is, and calls nothing external), and it is deliberately
- * recorded — a real `Run` (`trigger_type = node_test`) plus its one
+ * recorded: a real `Run` (`trigger_type = node_test`) plus its one
  * `NodeRun`, so the work shows up in run history and is metered by
  * `RecordRunCreditUsage` exactly like any other node execution. Hiding real
  * spend from the ledger would be the only alternative, and it isn't one.
@@ -39,7 +39,7 @@ use Throwable;
 class NodeTester
 {
     /**
-     * `runs.trigger_type` for a single-node test — distinct from `manual` so
+     * `runs.trigger_type` for a single-node test: distinct from `manual` so
      * these never masquerade as a real execution in run history, and so
      * pinned data (which only short-circuits `manual` runs) can't stop a test
      * from actually calling out.
@@ -58,7 +58,7 @@ class NodeTester
 
     /**
      * @param  array<string, mixed>  $input  stands in for the run input the node would have seen
-     * @param  array<string, mixed>  $upstreamOutputs  keyed by node key — stands in for `context.nodes`
+     * @param  array<string, mixed>  $upstreamOutputs  keyed by node key: stands in for `context.nodes`
      * @param  array<string, mixed>|null  $configOverride  unsaved editor config; falls back to the stored one
      *
      * @throws WorkflowValidationException when the node type can't be tested standalone, or its config is invalid
@@ -111,8 +111,8 @@ class NodeTester
 
             event(new RunCompleted($run));
         } catch (Throwable $e) {
-            // A node that throws is a *successful* test — the editor wants to
-            // see the error, not a 500 — so the failure is recorded on the
+            // A node that throws is a *successful* test (the editor wants to
+            // see the error, not a 500) so the failure is recorded on the
             // node run and returned rather than rethrown.
             $message = $this->secretRedactor->redactString($e->getMessage(), $secrets->sensitiveValues());
 
@@ -141,7 +141,7 @@ class NodeTester
     {
         if (FlowControlNodeType::tryFrom($node->type) !== null) {
             throw new WorkflowValidationException([
-                "Node '{$node->key}' is a flow-control node ({$node->type}) — it only has meaning inside a full run and can't be tested on its own.",
+                "Node '{$node->key}' is a flow-control node ({$node->type}): it only has meaning inside a full run and can't be tested on its own.",
             ]);
         }
 

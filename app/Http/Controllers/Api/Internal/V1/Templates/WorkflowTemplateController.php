@@ -100,7 +100,7 @@ class WorkflowTemplateController extends Controller
 
     /**
      * Materialize a new draft `Workflow` from the template's graph via
-     * `Workflow::replaceGraph()` — the same method the builder canvas uses
+     * `Workflow::replaceGraph()`: the same method the builder canvas uses
      * to save an ordinary edit.
      */
     public function use(UseWorkflowTemplateRequest $request, Workspace $workspace, WorkflowTemplate $workflowTemplate, PlanLimitGate $limits)

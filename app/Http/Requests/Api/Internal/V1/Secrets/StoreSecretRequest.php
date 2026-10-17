@@ -18,8 +18,8 @@ class StoreSecretRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Constrained to the charset `SafePattern` allows inside `{{ }}`
-            // — a key that can't be referenced from a node config would be
+            // Constrained to the charset `SafePattern` allows inside `{{ }}`:
+            // a key that can't be referenced from a node config would be
             // storable but useless.
             'key' => [
                 'required', 'string', 'max:255', 'regex:/^[A-Z][A-Z0-9_]*$/',

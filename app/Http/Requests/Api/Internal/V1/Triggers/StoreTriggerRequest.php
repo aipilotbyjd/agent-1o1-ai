@@ -28,8 +28,8 @@ class StoreTriggerRequest extends FormRequest
         return [
             'target_type' => ['required', Rule::enum(TriggerTargetType::class)],
             // Scoped to the route's workspace: without this a member could
-            // point a trigger — and therefore a real run, now that
-            // `TargetRunStarter` starts one — at another tenant's workflow.
+            // point a trigger (and therefore a real run, now that
+            // `TargetRunStarter` starts one) at another tenant's workflow.
             // `TargetRunStarter` re-checks the same invariant at fire time,
             // since a target can be moved or deleted after creation.
             'target_id' => [
@@ -67,7 +67,7 @@ class StoreTriggerRequest extends FormRequest
     }
 
     /**
-     * The model the `target_id` must exist in — the same class the morph map
+     * The model the `target_id` must exist in: the same class the morph map
      * aliases `target_type` to.
      *
      * @return class-string<Model>

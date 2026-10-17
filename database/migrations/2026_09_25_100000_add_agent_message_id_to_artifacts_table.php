@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Files a member attached to one specific chat message — see
+ * Files a member attached to one specific chat message: see
  * `App\Models\Agents\AgentMessage::attachments()`. Null for every other
  * artifact (agent exports and standalone uploads).
  */

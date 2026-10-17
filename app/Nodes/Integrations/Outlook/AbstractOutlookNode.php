@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * Shared request/error handling for the Outlook node family — mail and
+ * Shared request/error handling for the Outlook node family: mail and
  * calendar through Microsoft Graph, with the account's token resolved by
  * `ResolvesConnectorCredential` like every other integration.
  */

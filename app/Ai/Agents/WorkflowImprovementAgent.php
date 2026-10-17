@@ -31,7 +31,7 @@ class WorkflowImprovementAgent implements Agent, HasTools
         about; independent steps that run one after another but could run in parallel; and
         credentials written into configs instead of {{ secrets.<NAME> }} references.
 
-        Give 3 to 7 suggestions, each specific to this workflow — name the nodes involved. If a fix
+        Give 3 to 7 suggestions, each specific to this workflow: name the nodes involved. If a fix
         needs a new node, pick its type from the catalog. Don't pad the list with generic advice.
 
         Submit the suggestions by calling the submit_workflow_improvements tool.

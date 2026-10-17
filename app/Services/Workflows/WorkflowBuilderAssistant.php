@@ -28,13 +28,13 @@ use Laravel\Ai\Responses\TextResponse;
 use RuntimeException;
 
 /**
- * The builder's one-shot helpers — suggest the next nodes, configure one
+ * The builder's one-shot helpers: suggest the next nodes, configure one
  * node, explain the draft, suggest improvements. Unlike a chat turn these
  * never edit the draft: each returns a proposal the client shows and the
  * user applies (by hand, or by asking the assistant).
  *
  * Each is one forced tool call (`ToolSubmission`) with everything the model
- * needs — the draft, the catalog, schemas — already in the prompt, so it is
+ * needs (the draft, the catalog, schemas) already in the prompt, so it is
  * a single cheap round trip rather than an agent loop. Types the model
  * invents and configs that don't match their schema are filtered or flagged
  * here, never passed through. Every call is charged like an agent draft.
@@ -104,7 +104,7 @@ class WorkflowBuilderAssistant
         }
 
         $arguments = $this->ask($session, new WorkflowNodeConfigAgent, SubmitNodeConfigTool::NAME, implode("\n\n", array_filter([
-            "Node type: {$type} — {$node['name']}: {$node['description']}",
+            "Node type: {$type} ({$node['name']}): {$node['description']}",
             FlowControlNodeType::tryFrom($type)?->builderGuide(),
             'Config schema: '.json_encode($node['config_schema'], JSON_THROW_ON_ERROR),
             $existing !== null ? "This is the existing node [{$key}]; its current config is: ".json_encode($existing['config'] ?? [], JSON_THROW_ON_ERROR) : null,
@@ -176,8 +176,8 @@ class WorkflowBuilderAssistant
 
     /**
      * One forced-tool-call round trip: gate, prompt, charge, and hand back
-     * the submitted arguments. Charged only once a usable answer came back
-     * — a `ModelSubmissionException` (502) costs nothing, like an agent draft.
+     * the submitted arguments. Charged only once a usable answer came back:
+     * a `ModelSubmissionException` (502) costs nothing, like an agent draft.
      *
      * @return array<string, mixed>
      */
@@ -229,7 +229,7 @@ class WorkflowBuilderAssistant
     private function catalogSection(): string
     {
         $lines = collect($this->registry->placeableTypes())
-            ->map(fn (array $node): string => "- {$node['type']} ({$node['category']}): {$node['name']} — {$node['description']}")
+            ->map(fn (array $node): string => "- {$node['type']} ({$node['category']}): {$node['name']}; {$node['description']}")
             ->implode("\n");
 
         return "Node types you can use:\n{$lines}";
@@ -250,8 +250,8 @@ class WorkflowBuilderAssistant
     }
 
     /**
-     * The same model the builder chat runs on — see
-     * `ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG` — on the
+     * The same model the builder chat runs on (see
+     * `ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG`) on the
      * session owner's own provider key where there is one.
      *
      * @return array<string, string>|null

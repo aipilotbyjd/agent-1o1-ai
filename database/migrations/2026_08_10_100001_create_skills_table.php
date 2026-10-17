@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A reusable instruction/knowledge snippet an Agent can use — see
+ * A reusable instruction/knowledge snippet an Agent can use: see
  * docs/AGENTS_PLAN.md's "Skills" section. `version` increments on
  * instruction edits, same "don't let the model behind an in-flight session
  * change under it" reasoning as `Agent`/`agent_versions`.

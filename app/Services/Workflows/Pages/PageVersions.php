@@ -17,8 +17,8 @@ class PageVersions
     public const int KEEP = 100;
 
     /**
-     * Saves the page's current drafts — or `$content` and `$variantContent`
-     * when given, as on publish — as the next version.
+     * Saves the page's current drafts (or `$content` and `$variantContent`
+     * when given, as on publish) as the next version.
      *
      * @param  array<string, mixed>|null  $content
      * @param  array<string, mixed>|null  $variantContent
@@ -48,7 +48,7 @@ class PageVersions
     }
 
     /**
-     * Puts a version back as the page's draft — and version B's, when the
+     * Puts a version back as the page's draft, and version B's, when the
      * version has one and the page still runs a test. Nothing goes live
      * until the page is published.
      */

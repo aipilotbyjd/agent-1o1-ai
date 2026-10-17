@@ -8,7 +8,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Fires whether `Run.runnable_type` is a `Workflow` or (once
- * docs/AGENTS_PLAN.md lands) an `AgentSession` — decouples side effects
+ * docs/AGENTS_PLAN.md lands) an `AgentSession`: decouples side effects
  * (credit deduction, notifications) from `GraphAdvancer`/`AgentRunner`
  * needing to know about every consumer. See docs/STRUCTURE.md's
  * "Public vs. Internal API" section.

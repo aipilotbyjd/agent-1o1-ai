@@ -13,7 +13,7 @@ use App\Services\Referrals\ReferralRecipientWorkspace;
 use Illuminate\Support\Str;
 
 /**
- * A goodwill reward an admin hands out directly — from the admin API or
+ * A goodwill reward an admin hands out directly, from the admin API or
  * `php artisan referrals:grant`. It goes on the same ledger as earned
  * rewards (trigger `manual`) and is granted immediately.
  */

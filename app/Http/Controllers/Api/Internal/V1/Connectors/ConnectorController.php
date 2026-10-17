@@ -10,7 +10,7 @@ use App\Models\Connectors\Connector;
 class ConnectorController extends Controller
 {
     /**
-     * The integration catalog — what `ConnectorCredentialController::store`'s
+     * The integration catalog: what `ConnectorCredentialController::store`'s
      * `connector_id` must reference, and what the credential form UI renders
      * per `Connector::fields`/`oauth`.
      */

@@ -14,11 +14,11 @@ use Illuminate\View\View;
 /**
  * The page an approval email links to. The link is signed for one recipient
  * and one action (`AgentActionApprovalRequestedNotification`), which is what
- * authenticates it — no login needed to approve or reject from a phone.
+ * authenticates it: no login needed to approve or reject from a phone.
  *
  * Opening the link only shows the action; nothing is decided until the form
  * is submitted, because mail scanners open links on their own. Editing the
- * arguments isn't offered here — that needs the app.
+ * arguments isn't offered here: that needs the app.
  */
 class AgentActionSignedDecisionController extends Controller
 {

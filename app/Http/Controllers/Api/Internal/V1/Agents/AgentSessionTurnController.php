@@ -16,8 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * The same chat turn `AgentSessionController::sendMessage()` runs, delivered
- * over Reverb instead of in the response. The request only opens the turn —
- * credit gate, the user's message, its attachments — so a busy conversation
+ * over Reverb instead of in the response. The request only opens the turn
+ * (credit gate, the user's message, its attachments) so a busy conversation
  * or an empty balance is refused right here; the model call runs on the
  * queue and streams to the conversation's private channel
  * (`Channels::agentSession()`). See `AgentTurnBroadcaster` for the event

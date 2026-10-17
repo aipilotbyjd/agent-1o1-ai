@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * The integration catalog (Slack, GitHub, Gmail, ...) — one row per
+ * The integration catalog (Slack, GitHub, Gmail, ...): one row per
  * `NodeContract::category()` that needs a credential. `fields` is the
  * form schema a manual (`api_key`/`bearer_token`/`basic_auth`) credential's
  * `data` must satisfy; `oauth` carries the authorize/token URLs and default

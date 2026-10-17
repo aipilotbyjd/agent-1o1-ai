@@ -11,12 +11,12 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * One step of a run changed state — what lights a node up on an open canvas.
+ * One step of a run changed state: what lights a node up on an open canvas.
  * Broadcast only on the run's own channel, never the workspace-wide one: a
  * fan-out graph can settle dozens of nodes a second, which a runs *list* has
  * no use for.
  *
- * `output` is deliberately excluded — it can be megabytes (an API node's
+ * `output` is deliberately excluded: it can be megabytes (an API node's
  * response body) and is fetched on demand from the node-run detail endpoint
  * when a node is actually opened.
  */

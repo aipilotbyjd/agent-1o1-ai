@@ -46,7 +46,7 @@ class WorkflowGraphController extends Controller
     }
 
     /**
-     * Publishing is what pins future runs — see `StartWorkflowRunAction`.
+     * Publishing is what pins future runs: see `StartWorkflowRunAction`.
      */
     public function publish(PublishWorkflowRequest $request, Workflow $workflow)
     {
@@ -63,7 +63,7 @@ class WorkflowGraphController extends Controller
     /**
      * A dry validation of the draft, for a caller that wants to know whether
      * `publish()` would succeed before committing to it. Answers 200 with the
-     * findings — an invalid graph is the expected result of asking.
+     * findings: an invalid graph is the expected result of asking.
      */
     public function validateGraph(Request $request, Workflow $workflow, GraphValidator $validator)
     {

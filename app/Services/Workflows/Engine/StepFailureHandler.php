@@ -16,7 +16,7 @@ use App\Services\Workflows\StepOptions;
 use Throwable;
 
 /**
- * Retry-vs-route-vs-fail policy for a failed `NodeRun` — ported design from
+ * Retry-vs-route-vs-fail policy for a failed `NodeRun`: ported design from
  * docs/WORKFLOWS_PLAN.md's `StepFailureHandler` section: exponential backoff
  * with jitter, redact credentials from the persisted error, and only route
  * down an `error` edge or fail the whole run once retries are exhausted.
@@ -112,7 +112,7 @@ class StepFailureHandler
 
     /**
      * A run that fails abandons its in-flight work exactly as a cancelled
-     * one does, and for the same reasons — hence the shared `RunCanceller`.
+     * one does, and for the same reasons, hence the shared `RunCanceller`.
      * Settling only `pending`/`running` nodes here used to leave the two
      * parked states behind: an approval on a failed run stayed actionable,
      * and a `Wait` node's public callback URL kept resolving. Child runs
@@ -158,7 +158,7 @@ class StepFailureHandler
     }
 
     /**
-     * Minimal secret redaction — strips common credential-shaped substrings
+     * Minimal secret redaction: strips common credential-shaped substrings
      * before a message is ever persisted. Not the full `RunLogger::redact()`
      * port (docs/WORKFLOWS_PLAN.md); revisit once real credentials
      * (docs/PLAN.md Phase 6) flow through node execution.
@@ -167,7 +167,7 @@ class StepFailureHandler
      * Two passes: the plaintext of the secrets this step actually resolved
      * (exact, and the only thing that catches a secret that isn't key-shaped),
      * then the key-shaped-string pattern, which still catches values the
-     * engine never stored — a token pasted into a config by hand, or one an
+     * engine never stored: a token pasted into a config by hand, or one an
      * upstream API handed back.
      *
      * @param  array<int, string>  $secretValues

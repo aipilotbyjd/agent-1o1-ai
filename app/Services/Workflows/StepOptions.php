@@ -3,7 +3,7 @@
 namespace App\Services\Workflows;
 
 /**
- * Per-node execution knobs, parsed once from a node's `config._options` —
+ * Per-node execution knobs, parsed once from a node's `config._options`:
  * namespaced under `_options` so it never collides with the node's own
  * `configSchema()` fields. A per-step timeout is deliberately absent (a
  * running node can't be interrupted); `GraphValidator` rejects it. See

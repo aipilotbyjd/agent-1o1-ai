@@ -5,7 +5,7 @@ namespace App\Enums\Referrals;
 /**
  * What a plan-time reward does when the recipient's workspace is already
  * entitled to that plan (or a more generous one) by something other than
- * referral time — free Pro days are worthless to a Pro subscriber.
+ * referral time: free Pro days are worthless to a Pro subscriber.
  */
 enum AlreadyOnPlanBehavior: string
 {

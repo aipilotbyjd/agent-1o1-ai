@@ -12,7 +12,7 @@ use Stringable;
 use Throwable;
 
 /**
- * RAG over `document_embeddings` — auto-attached by `ToolRegistry` to every
+ * RAG over `document_embeddings`: auto-attached by `ToolRegistry` to every
  * agent whose workspace has any embedded chunks (see docs/AGENTS_PLAN.md's
  * "Knowledge / RAG" section). The chunking, embedding, and cosine ranking
  * itself lives in `Services\Agents\KnowledgeBase`, shared with the Internal
@@ -40,7 +40,7 @@ class SearchKnowledgeTool implements Tool
         try {
             $found = $this->knowledgeBase->search($this->workspace, (string) $request['query'], $this->collection);
         } catch (Throwable $exception) {
-            // A provider outage shouldn't abort the whole turn — the model
+            // A provider outage shouldn't abort the whole turn: the model
             // can carry on and tell the user the lookup failed.
             report($exception);
 

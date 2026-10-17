@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  * period: raising `usage_periods.credits_limit` (as this used to) meant
  * purchased credits were thrown away at month rollover, were wiped outright
  * the next time `OpenUsagePeriodForSubscriptionAction` reset the limit from
- * the plan, and were silently dropped altogether on an unlimited period —
+ * the plan, and were silently dropped altogether on an unlimited period:
  * a customer paying and receiving nothing.
  *
  * Packs also don't write to `credit_transactions`; that ledger is

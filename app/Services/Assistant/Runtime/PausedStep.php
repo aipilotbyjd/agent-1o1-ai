@@ -23,7 +23,7 @@ use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
  * message must carry the calls of the step that paused, the undecided ones
  * still unanswered. A stored reply flattens all its steps into one list of
  * calls, so the paused step's call ids are recorded and replayed as their
- * own message — with the provider's raw content blocks, which Anthropic
+ * own message, with the provider's raw content blocks, which Anthropic
  * and Gemini need verbatim (thinking signatures) to accept the resume.
  */
 final class PausedStep
@@ -45,7 +45,7 @@ final class PausedStep
 
     /**
      * The paused reply as the SDK must see it on resume: earlier steps'
-     * calls with their results, then the paused step's calls — those still
+     * calls with their results, then the paused step's calls: those still
      * waiting left unanswered.
      *
      * @return list<Message>

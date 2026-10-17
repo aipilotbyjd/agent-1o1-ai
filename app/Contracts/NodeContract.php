@@ -6,10 +6,10 @@ use App\Models\Runs\Run;
 
 /**
  * Implemented by every node type that actually does work when the engine
- * reaches it. Flow-control node types (Condition/Router excepted — it does
+ * reaches it. Flow-control node types (Condition/Router excepted: it does
  * evaluate and implements this) such as Merge, Delay's parent Loop(foreach),
  * HumanApproval, SubWorkflow, and Wait are driven directly by the engine's
- * graph traversal instead — see docs/WORKFLOWS_PLAN.md's "Node contract &
+ * graph traversal instead: see docs/WORKFLOWS_PLAN.md's "Node contract &
  * registry" section.
  */
 interface NodeContract
@@ -26,14 +26,14 @@ interface NodeContract
     public function category(): string;
 
     /**
-     * Short, human-readable label — what `WorkflowBuilderAgent`'s
+     * Short, human-readable label: what `WorkflowBuilderAgent`'s
      * `list_available_nodes` tool shows the model instead of the raw
      * `type()` string.
      */
     public function name(): string;
 
     /**
-     * One sentence on what this node does — shown alongside `name()`.
+     * One sentence on what this node does: shown alongside `name()`.
      */
     public function description(): string;
 
@@ -42,7 +42,7 @@ interface NodeContract
      * validate both draft saves and publishes (`ConfigSchemaValidator`).
      * Every implementation's `config` may also carry a reserved `_loop` key
      * ({items_path, max_concurrent?, on_item_error?}) enabling Gumloop-style
-     * per-node "Loop Mode" — `Services\Workflows\LoopModeCompiler` compiles
+     * per-node "Loop Mode" - `Services\Workflows\LoopModeCompiler` compiles
      * it away at publish time, so it's never seen by `execute()` and never
      * needs to be declared here.
      *

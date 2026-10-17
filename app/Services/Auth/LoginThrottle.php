@@ -10,7 +10,7 @@ use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
  *
  * Distinct from the `auth` rate limiter in `AppServiceProvider`, which is keyed
  * on IP and email and caps request *rate*. This counts failures against one
- * account across every source and stops answering them for a while — the lock
+ * account across every source and stops answering them for a while: the lock
  * lengthens with each repeat so a patient attacker gains nothing by waiting the
  * first one out.
  *

@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * A `HumanApproval` node waiting on a decision, carrying enough context to be
- * actionable straight from a dashboard card — which node of which workflow,
+ * actionable straight from a dashboard card, which node of which workflow,
  * and how long it has been sitting there. `WorkflowApprovalResource` stays
  * the shape returned when deciding one; this is the shape for a queue of
  * them, where a bare `run_id` tells the reader nothing.

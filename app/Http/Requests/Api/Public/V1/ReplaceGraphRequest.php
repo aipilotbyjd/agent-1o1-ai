@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Mirrors the internal builder's graph payload. Node `position` is accepted
- * but optional — an integrator writing a graph programmatically has no
+ * but optional: an integrator writing a graph programmatically has no
  * canvas coordinates to supply, and the editor lays out positionless nodes
  * itself.
  */

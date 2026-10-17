@@ -35,7 +35,7 @@ class AgentWorkflowToolController extends Controller
     }
 
     /**
-     * Sets the approval rule for running this workflow as a tool — the same
+     * Sets the approval rule for running this workflow as a tool: the same
      * shape a node tool's `approval_policy` takes.
      */
     public function update(UpdateAgentWorkflowToolRequest $request, Workspace $workspace, Agent $agent, Workflow $workflow)

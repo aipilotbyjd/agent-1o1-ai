@@ -10,7 +10,7 @@ enum ReflectionType: string
     case ToolAccess = 'tool_access';
 
     /**
-     * `tool_access` proposals need a human to grant a connector/credential —
+     * `tool_access` proposals need a human to grant a connector/credential:
      * there is nothing safe to automate, so these never auto-apply
      * regardless of the agent's `apply_behavior`.
      */

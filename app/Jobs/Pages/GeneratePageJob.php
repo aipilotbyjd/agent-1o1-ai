@@ -28,7 +28,7 @@ use Throwable;
 
 /**
  * Has `PageDesignerAgent` design or rework a page for a generation request,
- * and stores what it made — bound to the workflow's real inputs and outputs —
+ * and stores what it made (bound to the workflow's real inputs and outputs)
  * as the generation's proposed content. Nothing on the page changes here;
  * the builder shows the proposal and the member decides.
  *
@@ -147,7 +147,7 @@ class GeneratePageJob implements ShouldQueue
         return implode("\n\n", [
             "Request:\n{$generation->prompt}",
             "Page name: {$page->name}",
-            'Workflow: '.$workflow->name.(filled($workflow->description) ? " — {$workflow->description}" : ''),
+            'Workflow: '.$workflow->name.(filled($workflow->description) ? " - {$workflow->description}" : ''),
             "Workflow inputs (one field block each):\n".$json($inputs),
             "Workflow outputs (show with output blocks):\n".$json(array_column($outputs, 'name')),
             "Current page:\n".Str::limit($json($current), self::CURRENT_PAGE_LIMIT, ' …(cut)'),

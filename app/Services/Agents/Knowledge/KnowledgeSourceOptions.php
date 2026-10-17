@@ -12,8 +12,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * What can be picked when adding an app source — the account's Drive
- * folders, Gmail labels, Outlook folders, repos or Slack channels — so
+ * What can be picked when adding an app source (the account's Drive
+ * folders, Gmail labels, Outlook folders, repos or Slack channels) so
  * nobody has to copy ids by hand. Read-only, through the chosen account.
  */
 class KnowledgeSourceOptions

@@ -7,7 +7,7 @@ use RuntimeException;
 
 /**
  * Thrown by `Services\Billing\PlanLimitGate` when creating a resource would
- * push the workspace past its current plan's cap for that resource — mapped
+ * push the workspace past its current plan's cap for that resource: mapped
  * to 402 in `bootstrap/app.php`, the same status as
  * `InsufficientCreditsException`, since both mean "this needs a bigger plan"
  * and the frontend handles them as one upgrade prompt.

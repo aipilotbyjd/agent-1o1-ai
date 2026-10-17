@@ -26,7 +26,7 @@ class UpdateWorkflowInterfaceRequest extends FormRequest
         return [
             'fields' => ['present', 'array'],
             // Keys become top-level entries of the run's `input` array, so
-            // they can't carry dots — `{{ input.a.b }}` addresses inside the
+            // they can't carry dots: `{{ input.a.b }}` addresses inside the
             // value of field `a`, it isn't a field named `a.b`.
             'fields.*.key' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z_][A-Za-z0-9_-]*$/'],
             'fields.*.label' => ['nullable', 'string', 'max:255'],

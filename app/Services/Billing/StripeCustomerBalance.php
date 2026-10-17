@@ -5,7 +5,7 @@ namespace App\Services\Billing;
 use App\Models\Workspaces\Workspace;
 
 /**
- * Credits or debits a workspace's Stripe customer balance — money off (or
+ * Credits or debits a workspace's Stripe customer balance: money off (or
  * onto) its next invoice, never a payout. Wrapped so the referral program's
  * `StripeBalanceRewardHandler` can be exercised without calling Stripe.
  */
@@ -14,7 +14,7 @@ class StripeCustomerBalance
     /**
      * With an `$operationKey`, the call is safe to repeat: the key is stored
      * on the balance transaction, and an earlier transaction carrying it is
-     * returned instead of applying the amount a second time — covering a
+     * returned instead of applying the amount a second time: covering a
      * crash after Stripe accepted the call but before the caller recorded it.
      *
      * @return string The Stripe customer balance transaction id.

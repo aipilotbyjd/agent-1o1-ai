@@ -15,7 +15,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 /**
- * An Anthropic streaming body — a resumed turn is streamed, so its faked
+ * An Anthropic streaming body: a resumed turn is streamed, so its faked
  * reply has to arrive as server-sent events rather than one JSON message.
  */
 function anthropicStream(string $id, string $text, int $inputTokens, int $outputTokens): string
@@ -37,7 +37,7 @@ function anthropicStream(string $id, string $text, int $inputTokens, int $output
  * paused turn through the real Anthropic gateway (HTTP faked) to prove the
  * resume is accepted: the paused message replays with its call still
  * unanswered, the decision matches it, and the provider is handed the
- * action's real result — which ran once, before the resume.
+ * action's real result, which ran once, before the resume.
  */
 it('resumes a paused turn through the real provider with the approved action\'s result', function () {
     config(['ai.providers.anthropic.key' => 'test-key']);

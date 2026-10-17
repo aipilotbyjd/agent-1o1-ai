@@ -9,7 +9,7 @@ use Throwable;
 
 /**
  * Sends a finished turn back where the message came from. Approvals are
- * never decided over email, Slack or text — the reply links to the app instead.
+ * never decided over email, Slack or text: the reply links to the app instead.
  */
 class ChannelReplies
 {

@@ -14,7 +14,7 @@ use Laravel\Ai\Tools\Request;
 it('creates a new artifact on first export', function () {
     Storage::fake('local');
     // text/plain export gets indexed into the agent's artifact knowledge
-    // collection — see StoreArtifactAction::indexForAgent().
+    // collection: see StoreArtifactAction::indexForAgent().
     Embeddings::fake([[[1.0, 0.0]]]);
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
@@ -40,7 +40,7 @@ it('creates a new artifact on first export', function () {
 
 it('creates a new version instead of overwriting on re-export', function () {
     Storage::fake('local');
-    // Each export indexes the artifact afresh — two calls, two embed calls.
+    // Each export indexes the artifact afresh: two calls, two embed calls.
     Embeddings::fake([[[1.0, 0.0]], [[1.0, 0.0]]]);
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);

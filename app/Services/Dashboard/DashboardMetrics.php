@@ -46,7 +46,7 @@ final class DashboardMetrics
 
     /**
      * Run counts for the window, keyed by `RunStatus` value, plus the totals a
-     * header row needs. `success_rate` is over *finished* runs only — dividing
+     * header row needs. `success_rate` is over *finished* runs only: dividing
      * completed by every run would drag the number down whenever the window
      * happens to catch a run mid-flight, which is noise, not failure.
      *
@@ -156,7 +156,7 @@ final class DashboardMetrics
     }
 
     /**
-     * Runs that are still going right now — not window-scoped, because a run
+     * Runs that are still going right now, not window-scoped, because a run
      * that has been stuck since last week is exactly the one an operator
      * needs to see on today's dashboard.
      *
@@ -195,7 +195,7 @@ final class DashboardMetrics
     }
 
     /**
-     * Agent actions waiting on a person — the agent-side counterpart of
+     * Agent actions waiting on a person: the agent-side counterpart of
      * `pendingApprovals()`, listed in full by `WorkspaceAgentActionController`.
      */
     public function pendingAgentActions(Workspace $workspace): Builder
@@ -229,7 +229,7 @@ final class DashboardMetrics
 
     /**
      * Window spend split by what caused it, keyed by `CreditTransactionType`
-     * value — the breakdown that answers "is our bill workflows or agents".
+     * value: the breakdown that answers "is our bill workflows or agents".
      *
      * @return array{total: int, topup: int, by_source_type: array<string, int>}
      */
@@ -262,7 +262,7 @@ final class DashboardMetrics
 
     /**
      * The workflows that cost the most in the window. Walks the ledger back to
-     * a workflow through `node_runs` — a node run is the only charge that has
+     * a workflow through `node_runs`: a node run is the only charge that has
      * a workflow behind it, which is why the `source_type` filter is not
      * optional here.
      *
@@ -292,7 +292,7 @@ final class DashboardMetrics
     }
 
     /**
-     * The agents that cost the most in the window — the `agent_step`
+     * The agents that cost the most in the window: the `agent_step`
      * counterpart of `topWorkflowsByCredits()`, walking the ledger back
      * through the `AgentMessage` each charge was billed against. Eval and
      * session-evaluation spend is deliberately left out: it belongs to a test
@@ -326,7 +326,7 @@ final class DashboardMetrics
     }
 
     /**
-     * The base run query the whole dashboard counts over — see the class
+     * The base run query the whole dashboard counts over: see the class
      * docblock for why loop children and node tests are excluded.
      *
      * @return Builder<Run>
@@ -367,7 +367,7 @@ final class DashboardMetrics
     /**
      * Mean wall-clock time of the runs that actually finished in the window.
      * Null when nothing has finished, and also on a driver this doesn't know
-     * how to subtract two timestamps on — an absent number beats a wrong one.
+     * how to subtract two timestamps on: an absent number beats a wrong one.
      */
     private function averageRunDurationMs(Workspace $workspace, DashboardWindow $window, ?string $workflowId): ?int
     {
@@ -404,7 +404,7 @@ final class DashboardMetrics
 
     /**
      * Milliseconds between two timestamp columns, per driver. Null for a
-     * driver with no known expression — `averageRunDurationMs()` reports no
+     * driver with no known expression: `averageRunDurationMs()` reports no
      * average rather than guessing at one.
      */
     private function durationMs(string $start, string $end): ?string

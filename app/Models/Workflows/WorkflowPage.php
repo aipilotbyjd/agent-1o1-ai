@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  * its result, so people can use the workflow without opening the canvas.
  *
  * `content` is the draft the builder edits; `published_content` is what
- * visitors see, copied from the draft on publish — the same split workflows
+ * visitors see, copied from the draft on publish: the same split workflows
  * have, so an edit in progress never shows on a live page. Both are always
  * in the canonical shape `PageSchema::normalize()` returns.
  *
@@ -48,7 +48,7 @@ class WorkflowPage extends Model
             $page->public_token ??= self::newToken();
         });
 
-        // Whatever changes a draft — the builder, a restore, version B — moves
+        // Whatever changes a draft (the builder, a restore, version B) moves
         // the revision on; see `WorkflowPages::update()`.
         static::updating(function (self $page): void {
             if ($page->isDirty(['content', 'variant_content'])) {
@@ -129,7 +129,7 @@ class WorkflowPage extends Model
     }
 
     /**
-     * The content of version `$variant` — the live one, or the draft.
+     * The content of version `$variant`: the live one, or the draft.
      *
      * @return array{blocks: array<int, array<string, mixed>>, theme: array<string, mixed>}|null
      */

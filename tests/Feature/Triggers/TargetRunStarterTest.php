@@ -70,7 +70,7 @@ it('refuses a target that belongs to another workspace', function () {
     $owner = User::factory()->create();
     $theirWorkflow = Workflow::factory()->forWorkspace(workspaceFor($owner, 'Theirs'))->published()->create();
 
-    // Same target id, different workspace on the trigger itself — the shape a
+    // Same target id, different workspace on the trigger itself: the shape a
     // tampered-with or moved target leaves behind.
     $trigger = Trigger::factory()
         ->webhook()

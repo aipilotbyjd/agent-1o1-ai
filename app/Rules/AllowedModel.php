@@ -8,7 +8,7 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * A model the workspace lets its members pick — see
+ * A model the workspace lets its members pick: see
  * `WorkspaceModelSettings::allowed_model_catalog_ids`. Takes a catalog id,
  * or with `bySlug` a catalog slug (a value that matches no catalog entry,
  * such as a raw model id, isn't the allow-list's business).

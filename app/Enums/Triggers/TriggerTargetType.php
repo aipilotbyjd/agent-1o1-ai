@@ -17,7 +17,7 @@ enum TriggerTargetType: string
     case Agent = 'agent';
 
     /**
-     * The model backing this target type — the same class the morph map
+     * The model backing this target type: the same class the morph map
      * aliases this value to.
      *
      * @return class-string<Model>

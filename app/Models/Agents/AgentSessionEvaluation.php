@@ -18,9 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
- * The latest automatic QA grading of one `AgentSession` — see
+ * The latest automatic QA grading of one `AgentSession`: see
  * `Services\Agents\SessionEvaluator` and the migration's docblock.
- * `status`/`grade`/result columns are engine-managed — written by
+ * `status`/`grade`/result columns are engine-managed: written by
  * `SessionEvaluator` via `forceFill()`, never mass-assigned, same convention
  * as `AgentEvalRun`.
  */
@@ -74,7 +74,7 @@ class AgentSessionEvaluation extends Model
     }
 
     /**
-     * The `CreditTransaction` this grading was billed under — see
+     * The `CreditTransaction` this grading was billed under: see
      * `NodeRun::creditTransaction()`'s docblock for why this isn't a real
      * `morphOne`.
      */

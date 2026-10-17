@@ -12,7 +12,7 @@ use App\Models\User;
  * Decides at signup whether a referral may be attributed, returning the
  * reason when not. Every check (and the referrer eligibility rules) is
  * switched and tuned per program from the admin API; the card-fingerprint
- * check runs later, on the first payment — see `PaymentFingerprintChecker`.
+ * check runs later, on the first payment: see `PaymentFingerprintChecker`.
  */
 class ReferralFraudChecker
 {

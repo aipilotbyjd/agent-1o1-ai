@@ -161,7 +161,7 @@ class ReferralRewardRule extends Model
     }
 
     /**
-     * The rule as it stood when a reward was earned — stored on the reward
+     * The rule as it stood when a reward was earned: stored on the reward
      * so later edits never rewrite history.
      *
      * @return array<string, mixed>

@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 
 /**
  * Reward rules: "when X happens, give Y to Z". Edits never change rewards
- * already earned — each reward keeps a snapshot of its rule.
+ * already earned: each reward keeps a snapshot of its rule.
  */
 class ReferralRewardRuleController extends Controller
 {

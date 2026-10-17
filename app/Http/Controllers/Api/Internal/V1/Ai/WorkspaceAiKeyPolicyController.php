@@ -13,7 +13,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Ai\AiKeyPolicyImpact;
 
 /**
- * The workspace's rules for its own AI provider keys — readable by anyone
+ * The workspace's rules for its own AI provider keys: readable by anyone
  * who can see the keys (so they know why a model is unavailable or their
  * personal key isn't used), changeable only by an admin.
  */
@@ -27,7 +27,7 @@ class WorkspaceAiKeyPolicyController extends Controller
     }
 
     /**
-     * What a proposed policy would change, before an admin saves it — see
+     * What a proposed policy would change, before an admin saves it: see
      * `AiKeyPolicyImpact`. Fields left out keep their current value.
      */
     public function preview(UpdateWorkspaceAiKeyPolicyRequest $request, Workspace $workspace, AiKeyPolicyImpact $impact)

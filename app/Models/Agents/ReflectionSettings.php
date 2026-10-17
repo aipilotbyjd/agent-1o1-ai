@@ -11,9 +11,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Whether/how one `Agent` periodically reviews its own past `AgentSession`s —
+ * Whether/how one `Agent` periodically reviews its own past `AgentSession`s:
  * see `Services\Agents\ReflectionAnalyzer`. `last_run_at`/`next_run_at` are
- * engine-managed — not in `#[Fillable]` — written by
+ * engine-managed (not in `#[Fillable]`) written by
  * `Console\Commands\Agents\RunDueReflectionsCommand` and
  * `ReflectionAnalyzer`, the same "the schedule can't be forged through the
  * settings form" reasoning as `Trigger.last_run_at`.

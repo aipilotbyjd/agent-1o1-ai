@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * An admin's guardrails over every agent in the workspace — see the
+ * An admin's guardrails over every agent in the workspace: see the
  * `workspace_agent_policies` migration. `forWorkspace()` returns an unsaved
  * default when none has been set, so callers never branch on "no policy".
  *

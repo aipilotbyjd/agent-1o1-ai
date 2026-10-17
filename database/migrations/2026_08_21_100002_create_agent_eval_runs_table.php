@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * One execution of a suite.
  *
- * `agent_version_id` records *which behavior was graded* — an eval result is
+ * `agent_version_id` records *which behavior was graded*: an eval result is
  * meaningless without it, since the whole reason to run a suite is that the
  * agent's instructions changed. It also makes "v4 passed 12/12, v5 passes
  * 9/12" answerable from the table rather than from memory.

@@ -9,7 +9,7 @@ use App\Notifications\Workspace\WorkspaceEventNotification;
 /**
  * The other half of `PaymentFailedNotification`. Only sent when the workspace
  * was actually told about a failure, so a first-time successful charge stays
- * silent — see `Subscription::clearDunning()`.
+ * silent: see `Subscription::clearDunning()`.
  */
 class PaymentRecoveredNotification extends WorkspaceEventNotification
 {

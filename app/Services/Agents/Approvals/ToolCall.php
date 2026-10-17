@@ -8,7 +8,7 @@ use App\Enums\Agents\ActionToolKind;
 /**
  * One call the gate is asked to weigh. `$arguments` is what the model sent
  * (already narrowed to what it may set); `$effectiveArguments` is what the
- * call would really run with — bound values merged over — which is what
+ * call would really run with (bound values merged over) which is what
  * rule conditions are checked against.
  */
 final readonly class ToolCall

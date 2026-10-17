@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * A conversational, tool-driven assistant — the "Agent" layer distinct from
+ * A conversational, tool-driven assistant: the "Agent" layer distinct from
  * the Workflow engine (docs/PLAN.md's "Architecture Overview"). Named `Agent`
  * (not `AgentModel`) per project convention; registered in
  * `AppServiceProvider::configureMorphMap()` as `TriggerTargetType::Agent`.
@@ -86,7 +86,7 @@ class Agent extends Model
     }
 
     /**
-     * The public model identity this agent runs against, when opted in —
+     * The public model identity this agent runs against, when opted in:
      * see `Services\Ai\ModelCatalogResolver`. `null` means this agent still
      * runs on its plain `provider`/`model` columns directly.
      */
@@ -116,7 +116,7 @@ class Agent extends Model
     }
 
     /**
-     * Built-in/custom nodes attached as tools — see `AgentToolBinding`'s
+     * Built-in/custom nodes attached as tools: see `AgentToolBinding`'s
      * docblock for the security-boundary design. Not a `BelongsToMany`
      * (unlike `workflows()` below) since built-in nodes have no row of
      * their own to belong to.
@@ -127,7 +127,7 @@ class Agent extends Model
     }
 
     /**
-     * Workflows attached as tools (`Ai/Tools/WorkflowTool`) — a real
+     * Workflows attached as tools (`Ai/Tools/WorkflowTool`): a real
      * `BelongsToMany` since, unlike built-in nodes, a `Workflow` is a real
      * Eloquent row.
      */
@@ -148,7 +148,7 @@ class Agent extends Model
 
     /**
      * Reusable instruction snippets injected into the system prompt
-     * alongside `instructions()` — see `Services\Agents\SkillInjector`.
+     * alongside `instructions()`: see `Services\Agents\SkillInjector`.
      */
     public function skills(): BelongsToMany
     {
@@ -158,7 +158,7 @@ class Agent extends Model
     /**
      * Static "always know this" context, distinct from
      * `document_embeddings`/`SearchKnowledgeTool`'s "look this up when
-     * relevant" — see docs/AGENTS_PLAN.md's "Knowledge / RAG" section.
+     * relevant": see docs/AGENTS_PLAN.md's "Knowledge / RAG" section.
      */
     public function knowledge(): HasMany
     {
@@ -166,7 +166,7 @@ class Agent extends Model
     }
 
     /**
-     * `document_embeddings.collection`s explicitly attached to this agent —
+     * `document_embeddings.collection`s explicitly attached to this agent:
      * the opt-in scoping `ToolRegistry` prefers over its workspace-wide
      * fallback. See `AgentKnowledgeCollection`'s docblock.
      */
@@ -177,7 +177,7 @@ class Agent extends Model
 
     /**
      * The `document_embeddings.collection` this agent's own exported
-     * artifacts are indexed under — see `StoreArtifactAction`. Always
+     * artifacts are indexed under: see `StoreArtifactAction`. Always
      * implicitly searchable by this agent, unlike `knowledgeCollections()`
      * which must be attached explicitly.
      */
@@ -196,7 +196,7 @@ class Agent extends Model
 
     /**
      * The memories a conversation with `$userId` may see: that user's own
-     * plus workspace-wide ones (user_id null) — a memory tied to one user
+     * plus workspace-wide ones (user_id null): a memory tied to one user
      * must never reach another user's conversation.
      */
     public function memoriesVisibleTo(?string $userId): HasMany
@@ -205,7 +205,7 @@ class Agent extends Model
     }
 
     /**
-     * Saved test suites graded against this agent — see `EvalRunner`.
+     * Saved test suites graded against this agent: see `EvalRunner`.
      */
     public function evalSuites(): HasMany
     {
@@ -213,7 +213,7 @@ class Agent extends Model
     }
 
     /**
-     * Whether/how this agent periodically reviews its own past sessions —
+     * Whether/how this agent periodically reviews its own past sessions:
      * see `Services\Agents\ReflectionAnalyzer`.
      */
     public function reflectionSettings(): HasOne
@@ -228,7 +228,7 @@ class Agent extends Model
 
     /**
      * Whether/how this agent's live sessions are automatically graded after
-     * each turn — see `Services\Agents\SessionEvaluator`.
+     * each turn: see `Services\Agents\SessionEvaluator`.
      */
     public function evaluationSettings(): HasOne
     {
@@ -246,7 +246,7 @@ class Agent extends Model
     }
 
     /**
-     * Every side-effecting tool call this agent made or tried to make —
+     * Every side-effecting tool call this agent made or tried to make:
      * see `Services\Agents\Approvals\ActionGate`.
      */
     public function actions(): HasMany

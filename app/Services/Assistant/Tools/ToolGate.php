@@ -59,7 +59,7 @@ class ToolGate
 
         $existing = $this->actionFor($request);
 
-        // Already decided (or run) — a resumed turn re-checks the call.
+        // Already decided (or run): a resumed turn re-checks the call.
         if ($existing !== null && $existing->status !== AssistantActionStatus::Pending) {
             return false;
         }
@@ -82,7 +82,7 @@ class ToolGate
     }
 
     /**
-     * Runs the call — or returns the stored outcome if it already ran.
+     * Runs the call, or returns the stored outcome if it already ran.
      *
      * A failing call is reported back to the model as its result rather
      * than thrown, so it can fix its arguments or tell the owner what went

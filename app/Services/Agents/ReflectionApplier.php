@@ -15,11 +15,11 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Executes an accepted `Reflection` — creates/updates a `Skill` or edits
+ * Executes an accepted `Reflection`: creates/updates a `Skill` or edits
  * `Agent::instructions` (which `AgentObserver` snapshots into a new
  * `AgentVersion` on save, same as any other instruction edit). Records the
  * change as its own `Run` so it shows up in the agent's history exactly like
- * the "self-improvement interaction" the feature this mirrors describes —
+ * the "self-improvement interaction" the feature this mirrors describes:
  * see docs/gumloop/output/raw/core-concepts/reflections.md.
  *
  * `tool_access` reflections have nothing safe to automate: applying one only
@@ -46,7 +46,7 @@ class ReflectionApplier
                 ReflectionType::NewSkill => $this->applyNewSkill($reflection, $agent, $actor),
                 ReflectionType::SkillFix => $this->applySkillFix($reflection),
                 ReflectionType::InstructionUpdate => $this->applyInstructionUpdate($reflection, $agent),
-                ReflectionType::ToolAccess => null, // unreachable — guarded above
+                ReflectionType::ToolAccess => null, // unreachable: guarded above
             };
 
             $reflection->forceFill(['status' => ReflectionStatus::Applied, 'applied_run_id' => $run->id])->save();
@@ -99,7 +99,7 @@ class ReflectionApplier
     private function applyInstructionUpdate(Reflection $reflection, Agent $agent): void
     {
         // Triggers `AgentObserver`, which snapshots the prior behavior into a
-        // new `AgentVersion` — no need to call `AgentVersioner` directly.
+        // new `AgentVersion`: no need to call `AgentVersioner` directly.
         $agent->update(['instructions' => $reflection->proposed_prompt]);
     }
 

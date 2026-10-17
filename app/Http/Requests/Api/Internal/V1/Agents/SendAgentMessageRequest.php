@@ -25,7 +25,7 @@ class SendAgentMessageRequest extends FormRequest
         return [
             'message' => ['required', 'string'],
             // A skill picked for this message (`/` in the chat); must be
-            // attached to the agent — see `chosenSkill()`.
+            // attached to the agent: see `chosenSkill()`.
             'skill_id' => ['nullable', 'uuid'],
             // Sent as multipart `attachments[]`. Each file is stored as an
             // artifact on the new message and handed to the model with it.

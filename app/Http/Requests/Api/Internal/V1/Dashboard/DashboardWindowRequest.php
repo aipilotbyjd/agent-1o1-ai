@@ -8,13 +8,13 @@ use Illuminate\Foundation\Http\FormRequest;
 /**
  * The `days` window shared by every dashboard endpoint. Capped at a year
  * because the series these endpoints return is one point per day and the
- * client has to draw all of them — a caller wanting a longer history wants a
+ * client has to draw all of them: a caller wanting a longer history wants a
  * report, not a dashboard.
  */
 class DashboardWindowRequest extends FormRequest
 {
     /**
-     * The window a caller gets when they don't ask for one — long enough to
+     * The window a caller gets when they don't ask for one: long enough to
      * cover a monthly billing period, which is what the credit numbers are
      * measured against.
      */

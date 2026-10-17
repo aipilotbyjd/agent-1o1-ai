@@ -11,7 +11,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
 /**
- * The Daily report by email — the summary and catch-up, with a link to the
+ * The Daily report by email: the summary and catch-up, with a link to the
  * full report and its Situations in the app.
  */
 class DailyReportNotification extends Notification implements ShouldQueue
@@ -37,7 +37,7 @@ class DailyReportNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject($this->title.' — '.now()->toFormattedDayDateString())
+            ->subject($this->title.' - '.now()->toFormattedDayDateString())
             ->line((string) $this->run->summary);
 
         if (filled($this->run->document)) {

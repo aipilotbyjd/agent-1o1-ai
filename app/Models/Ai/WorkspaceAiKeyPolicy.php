@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * An admin's rules for the workspace's own AI provider keys: when the
  * platform's keys may still be used (`platform_usage`), and whether members
- * may add keys only they use (`allow_personal_keys` — when off, existing
+ * may add keys only they use (`allow_personal_keys`, when off, existing
  * personal keys are kept but never used). Applied by
  * `ByokProviderRegistrar`. `forWorkspace()` returns an unsaved default when
  * none has been set, so callers never branch on "no policy".

@@ -35,7 +35,7 @@ class EnsureApiKeyIsValid
             abort_if($apiKey === null, 401, 'Invalid API key.');
             abort_if($apiKey->isExpired(), 401, 'This API key has expired.');
 
-            // Only touched when the stored time is stale — "last used" doesn't
+            // Only touched when the stored time is stale: "last used" doesn't
             // need a write on every request.
             if ($apiKey->last_used_at === null || $apiKey->last_used_at->lt(now()->subMinutes(self::LAST_USED_RESOLUTION_MINUTES))) {
                 $apiKey->forceFill(['last_used_at' => now()])->save();

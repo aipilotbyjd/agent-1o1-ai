@@ -51,7 +51,7 @@ it('processes a webhook event exactly once even if redelivered', function () {
     expect(ProcessedWebhookEvent::query()->where('stripe_event_id', 'evt_test_1')->count())->toBe(1);
     expect($workspace->currentUsagePeriod()->fresh()->credits_limit)->toBe(5000);
 
-    // Stripe redelivers the same event — must not process it twice.
+    // Stripe redelivers the same event: must not process it twice.
     $this->postJson('/api/stripe/webhook', $payload)->assertOk();
 
     expect(ProcessedWebhookEvent::query()->where('stripe_event_id', 'evt_test_1')->count())->toBe(1);
@@ -62,7 +62,7 @@ it('opens the usage period sized to the plan when a subscription is created', fu
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $workspace->forceFill(['stripe_id' => 'cus_test_456'])->save();
 
-    // Consume some credits before subscribing — the pre-existing period should
+    // Consume some credits before subscribing: the pre-existing period should
     // gain a limit, not lose its recorded usage.
     $period = $workspace->currentUsagePeriod();
     $period->forceFill(['credits_used' => 10])->save();

@@ -13,7 +13,7 @@ use Stringable;
 /**
  * Plan mode's one way forward: the agent lays out the actions it intends to
  * take, a person approves (or edits, or rejects) the plan, and from then on
- * a call matching a pending step runs without asking — see
+ * a call matching a pending step runs without asking: see
  * `ActionGate::planVerdict()`. Only offered by `ToolRegistry` in Plan mode.
  *
  * A new plan replaces any still open in the conversation, so the agent can

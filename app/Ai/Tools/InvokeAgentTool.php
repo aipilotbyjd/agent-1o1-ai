@@ -15,14 +15,14 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * Starts a subagent — a clone of this agent ("Me") or one of the agents
- * attached as its subagents — on a task in the background and returns
+ * Starts a subagent: a clone of this agent ("Me") or one of the agents
+ * attached as its subagents, on a task in the background and returns
  * straight away, so several can run in parallel. Each runs in a new
  * conversation owned by the subagent, linked back through
  * `parent_session_id`; results are collected with `WaitForSubagentsTool`.
  *
  * `ToolRegistry` only offers this tool in a top-level conversation, so a
- * subagent never starts subagents of its own — see
+ * subagent never starts subagents of its own: see
  * `ToolRegistry::subagentTools()`.
  */
 class InvokeAgentTool implements Tool
@@ -36,7 +36,7 @@ class InvokeAgentTool implements Tool
     /**
      * `$parentMode`/`$parentTestMode` are what this conversation runs under.
      * A subagent's conversation runs under the stricter of that and its own
-     * agent's mode, and inherits Test run — so delegating can never get
+     * agent's mode, and inherits Test run, so delegating can never get
      * work done with less oversight than the parent has.
      *
      * @param  array<string, Agent>  $targets  Keyed by the name the model uses.

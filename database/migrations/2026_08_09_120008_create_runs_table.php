@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignUuid('workflow_version_id')->nullable()->constrained('workflow_versions')->nullOnDelete();
             $table->uuid('parent_run_id')->nullable();
 
-            // FK to node_runs added once that table exists — see
+            // FK to node_runs added once that table exists: see
             // create_node_runs_table / the parent_node_id foreign-key follow-up
             // migration, same "column now, constraint later" pattern the
             // triggers table already uses for credential_id.

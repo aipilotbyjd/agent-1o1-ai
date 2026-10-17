@@ -11,7 +11,7 @@ use App\Models\Workspaces\Workspace;
 use Illuminate\Http\Request;
 
 /**
- * The workspace's default model and allowed-model list — readable by anyone
+ * The workspace's default model and allowed-model list: readable by anyone
  * who can see agents (the model picker shows both), changeable only by an
  * admin.
  */

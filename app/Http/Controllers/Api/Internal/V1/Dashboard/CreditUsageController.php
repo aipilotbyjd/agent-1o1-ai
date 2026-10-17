@@ -20,7 +20,7 @@ class CreditUsageController extends Controller
      *
      * This reads the ledger, so it answers "what did we spend between these
      * dates". `GET /billing` answers the different question of "what is left
-     * this period" — the two only line up when the window happens to be the
+     * this period": the two only line up when the window happens to be the
      * current billing month.
      *
      * `topup_credits` is the slice of the total that came out of the

@@ -12,7 +12,7 @@ use RuntimeException;
 /**
  * Shared request/error-handling for the Slack node family
  * (docs/NODES_CATALOG.md's "Priority 1" list). Resolves the access token via
- * `ResolvesConnectorCredential` — a workspace-scoped `ConnectorCredential`
+ * `ResolvesConnectorCredential`: a workspace-scoped `ConnectorCredential`
  * referenced by `config['credential_id']`, or a plain `access_token` config
  * field for nodes configured before `ConnectorCredential` existed.
  */
@@ -49,7 +49,7 @@ abstract class AbstractSlackNode implements DeclaresEffect, NodeContract
 
     /**
      * Slack's API always answers 200 and signals failure via a body-level
-     * `ok: false` + `error` code, not an HTTP status — so a normal
+     * `ok: false` + `error` code, not an HTTP status, so a normal
      * `$response->throw()` would never catch a Slack-side failure.
      *
      * @param  array<string, mixed>  $config

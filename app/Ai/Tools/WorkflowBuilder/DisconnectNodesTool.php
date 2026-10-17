@@ -26,7 +26,7 @@ class DisconnectNodesTool implements Tool
 
     public function description(): Stringable|string
     {
-        return "Remove the edges from one node to another. Pass 'condition' to remove only the edge with that condition (\"none\" for the unconditional one) and keep the rest — e.g. to turn an always-edge into an error path, disconnect with condition \"none\", then connect with condition \"error\".";
+        return "Remove the edges from one node to another. Pass 'condition' to remove only the edge with that condition (\"none\" for the unconditional one) and keep the rest, e.g. to turn an always-edge into an error path, disconnect with condition \"none\", then connect with condition \"error\".";
     }
 
     public function handle(Request $request): Stringable|string

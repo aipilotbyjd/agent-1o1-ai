@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A plan an agent in Plan mode proposes before acting — see
+ * A plan an agent in Plan mode proposes before acting: see
  * `Ai\Tools\SubmitPlanTool`. `steps` is the ordered list of actions it
  * intends to take; once approved, a call matching a pending step runs
  * without asking and ticks that step off.

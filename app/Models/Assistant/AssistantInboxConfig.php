@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * The owner's Smart Inbox: which mailbox it watches, how it drafts, and
- * how far it has read. One per assistant — connecting another mailbox
+ * how far it has read. One per assistant: connecting another mailbox
  * replaces the first.
  */
 #[Fillable(['assistant_id', 'provider', 'connector_credential_id', 'enabled', 'draft_mode', 'drafting_instructions', 'known_senders_only', 'skip_existing_labels', 'enabled_at', 'last_checked_at', 'last_error'])]

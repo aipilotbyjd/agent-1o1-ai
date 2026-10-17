@@ -24,7 +24,7 @@ class StoreConnectorCredentialRequest extends FormRequest
             'data' => ['required', 'array'],
             'expires_at' => ['sometimes', 'nullable', 'date'],
             // Defaults to 'team' (this table's original, workspace-shared
-            // behavior) when omitted — see ConnectorCredentialScope.
+            // behavior) when omitted: see ConnectorCredentialScope.
             'scope' => ['sometimes', new Enum(ConnectorCredentialScope::class)],
             'is_default' => ['sometimes', 'boolean'],
         ];

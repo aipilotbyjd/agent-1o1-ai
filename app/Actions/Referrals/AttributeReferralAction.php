@@ -97,7 +97,7 @@ class AttributeReferralAction
     }
 
     /**
-     * The code's own program while it's live, else the current default —
+     * The code's own program while it's live, else the current default:
      * an influencer whose campaign ended keeps earning on standard terms.
      */
     private function programFor(ReferralCode $code): ?ReferralProgram

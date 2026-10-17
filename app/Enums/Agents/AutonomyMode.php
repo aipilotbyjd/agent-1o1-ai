@@ -3,7 +3,7 @@
 namespace App\Enums\Agents;
 
 /**
- * How freely an agent may act on its own — see
+ * How freely an agent may act on its own: see
  * `Services\Agents\Approvals\ActionGate` for what each mode does to a call.
  * Declared from strictest to most permissive; `rank()` follows that order,
  * which is what `strictest()` compares.

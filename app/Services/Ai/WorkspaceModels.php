@@ -7,7 +7,7 @@ use App\Models\Ai\WorkspaceModelSettings;
 
 /**
  * A workspace's default model and allowed-model list, as every place that
- * picks or validates a model needs them — see `WorkspaceModelSettings`.
+ * picks or validates a model needs them: see `WorkspaceModelSettings`.
  */
 class WorkspaceModels
 {

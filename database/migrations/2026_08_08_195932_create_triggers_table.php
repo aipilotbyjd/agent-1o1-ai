@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('signing_secret')->nullable();
             $table->boolean('is_active')->default(true);
 
-            // No FK yet — connector_credentials doesn't exist until Connectors ship
+            // No FK yet: connector_credentials doesn't exist until Connectors ship
             // (docs/NODES_CATALOG.md build order). Column is real; constraint follows.
             $table->uuid('credential_id')->nullable();
 

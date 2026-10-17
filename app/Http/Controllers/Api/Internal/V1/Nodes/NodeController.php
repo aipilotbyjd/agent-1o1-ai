@@ -53,7 +53,7 @@ class NodeController extends Controller
     }
 
     /**
-     * The global built-in catalog only — no workspace, no custom nodes.
+     * The global built-in catalog only: no workspace, no custom nodes.
      */
     public function globalCatalog(Request $request)
     {
@@ -69,7 +69,7 @@ class NodeController extends Controller
     }
 
     /**
-     * Just this workspace's custom nodes — no built-ins merged in.
+     * Just this workspace's custom nodes: no built-ins merged in.
      */
     public function custom(Workspace $workspace)
     {

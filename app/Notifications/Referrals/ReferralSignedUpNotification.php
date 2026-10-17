@@ -8,7 +8,7 @@ use App\Models\Workspaces\Workspace;
 use App\Notifications\Workspace\WorkspaceEventNotification;
 
 /**
- * Tells a referrer someone joined with their link. Names nobody — the
+ * Tells a referrer someone joined with their link. Names nobody: the
  * referred person's identity is theirs to share, not ours.
  */
 class ReferralSignedUpNotification extends WorkspaceEventNotification

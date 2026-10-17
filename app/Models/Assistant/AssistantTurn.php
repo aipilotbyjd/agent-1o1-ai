@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * One run of the assistant for one user message — queued, run by
+ * One run of the assistant for one user message: queued, run by
  * `RunAssistantTurnJob`, possibly paused for approvals, then finished.
  * A turn that pauses and resumes stays one turn with one reply message.
  */

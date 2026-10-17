@@ -3,7 +3,7 @@
 /**
  * Cashier only verifies Stripe's signature when a webhook secret is
  * configured, so the endpoint must refuse to run without one outside
- * local/testing — otherwise anyone could forge billing events.
+ * local/testing, otherwise anyone could forge billing events.
  */
 function stripePayload(): string
 {

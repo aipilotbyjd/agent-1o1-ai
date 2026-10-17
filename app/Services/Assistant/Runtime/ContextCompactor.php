@@ -115,7 +115,7 @@ class ContextCompactor
     }
 
     /**
-     * All but the kept tail — and the tail always starts on a user
+     * All but the kept tail, and the tail always starts on a user
      * message, so the model never sees a reply without its question.
      *
      * @param  Collection<int, AssistantMessage>  $live

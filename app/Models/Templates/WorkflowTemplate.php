@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * A reusable workflow blueprint — its `graph` is the same
+ * A reusable workflow blueprint: its `graph` is the same
  * `{nodes, edges}` shape as `WorkflowVersion.graph`, materialized into a new
  * `Workflow` via `Workflow::replaceGraph()` when used. `workspace_id` null
  * means a global/system template visible to every workspace.

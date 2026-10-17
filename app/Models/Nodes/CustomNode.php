@@ -12,10 +12,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A workspace-defined node — resolved by `NodeRegistry` from a `custom:{id}`
+ * A workspace-defined node: resolved by `NodeRegistry` from a `custom:{id}`
  * type string instead of a PHP `NodeContract` class. Execution machinery
  * (interpreting `config_schema` at runtime) is Stage 11
- * (docs/WORKFLOWS_AGENTS_BUILD_PLAN.md) — this model only carries the
+ * (docs/WORKFLOWS_AGENTS_BUILD_PLAN.md): this model only carries the
  * definition for now.
  */
 #[Fillable([

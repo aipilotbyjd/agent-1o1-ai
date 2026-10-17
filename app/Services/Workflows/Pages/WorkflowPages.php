@@ -156,7 +156,7 @@ class WorkflowPages
     }
 
     /**
-     * Makes the drafts live — version B too when there is one, which starts
+     * Makes the drafts live: version B too when there is one, which starts
      * (or updates) the A/B test.
      */
     public function publish(WorkflowPage $page, User $publisher): WorkflowPage

@@ -38,7 +38,7 @@ class TwoFactorController extends Controller
 
         return ApiResponse::success(
             ['recovery_codes' => $recoveryCodes],
-            'Two-factor authentication enabled. Store these recovery codes somewhere safe — they will not be shown again.',
+            'Two-factor authentication enabled. Store these recovery codes somewhere safe: they will not be shown again.',
         );
     }
 
@@ -53,7 +53,7 @@ class TwoFactorController extends Controller
 
     /**
      * Note: recovery codes are hashed at rest, so this only reflects how many remain,
-     * not their plaintext values — those are only ever shown once, at confirm/regenerate time.
+     * not their plaintext values: those are only ever shown once, at confirm/regenerate time.
      */
     public function recoveryCodes(Request $request)
     {
@@ -70,7 +70,7 @@ class TwoFactorController extends Controller
 
         return ApiResponse::success(
             ['recovery_codes' => $recoveryCodes],
-            'Recovery codes regenerated. Store these somewhere safe — they will not be shown again.',
+            'Recovery codes regenerated. Store these somewhere safe: they will not be shown again.',
         );
     }
 }

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Something the knowledge base keeps in sync — a web page or a
+        // Something the knowledge base keeps in sync: a web page or a
         // connected app (Drive folder, Gmail label, repo, channel). Shared
         // with the workspace, or private to `owner_id`.
         Schema::create('knowledge_sources', function (Blueprint $table) {

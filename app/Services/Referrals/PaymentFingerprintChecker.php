@@ -11,8 +11,8 @@ use Throwable;
  * The `card_fingerprint` fraud check: does the referred workspace pay with
  * a card the referrer has also used? Stripe gives the same card the same
  * fingerprint across customers, so a match means one person referred
- * themselves. Any Stripe error counts as "no match" — a failed lookup must
- * never cost an honest referrer their reward — and is reported.
+ * themselves. Any Stripe error counts as "no match" (a failed lookup must
+ * never cost an honest referrer their reward) and is reported.
  */
 class PaymentFingerprintChecker
 {

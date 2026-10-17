@@ -90,7 +90,7 @@ class SkillSync
     }
 
     /**
-     * Creates the folder's skill, or brings it up to date — restoring it if
+     * Creates the folder's skill, or brings it up to date: restoring it if
      * the folder had been removed and has come back.
      */
     public function put(SkillSource $source, SkillPackage $package): void

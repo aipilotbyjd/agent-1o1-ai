@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `App\Enums\Auth\AuthEvent` case it stores; the table keeps the plain
  * `auth_events` name.
  *
- * Rows carry no `updated_at` — nothing ever edits one.
+ * Rows carry no `updated_at`: nothing ever edits one.
  */
 #[Fillable(['user_id', 'email', 'event', 'ip_address', 'user_agent', 'context'])]
 class AuthEventLog extends Model

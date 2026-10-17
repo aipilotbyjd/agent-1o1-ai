@@ -66,7 +66,7 @@ class AuthEventRecorder
     }
 
     /**
-     * Truncated to the column's practical width — a user agent is context for a
+     * Truncated to the column's practical width: a user agent is context for a
      * human reading the log, not something we parse.
      */
     private function userAgent(): ?string

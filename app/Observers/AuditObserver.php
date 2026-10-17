@@ -20,13 +20,13 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Turns changes to the security-relevant models into audit log entries, so
- * every route in — the internal API, the public API, a job — is covered by
+ * every route in (the internal API, the public API, a job) is covered by
  * one place instead of a call in each controller.
  *
  * Only model events are seen: a query-builder `->delete()` or `->update()`
  * skips them, so code that must be audited loads and changes models.
  *
- * What is recorded is names, ids and which attributes changed — never a
+ * What is recorded is names, ids and which attributes changed, never a
  * value, since several of these models hold secrets.
  */
 class AuditObserver
@@ -40,7 +40,7 @@ class AuditObserver
     private const array SYSTEM_COLUMNS = ['updated_at', 'last_used_at', 'last_run_at'];
 
     /**
-     * Workspace columns worth auditing — the rest (billing state, credit
+     * Workspace columns worth auditing: the rest (billing state, credit
      * balances) are rewritten by the system constantly.
      *
      * @var list<string>
@@ -48,7 +48,7 @@ class AuditObserver
     private const array WORKSPACE_COLUMNS = ['name', 'slug', 'avatar', 'owner_id'];
 
     /**
-     * AI provider key columns a person changes — the rest are re-check
+     * AI provider key columns a person changes: the rest are re-check
      * results and the default flag, which has its own audit entry.
      *
      * @var list<string>

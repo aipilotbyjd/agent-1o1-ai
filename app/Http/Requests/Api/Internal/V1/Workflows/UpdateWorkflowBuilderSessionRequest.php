@@ -14,7 +14,7 @@ class UpdateWorkflowBuilderSessionRequest extends FormRequest
     }
 
     /**
-     * `status` only moves a session in or out of the archive — `promoted` is
+     * `status` only moves a session in or out of the archive: `promoted` is
      * set by promoting, never directly.
      *
      * @return array<string, mixed>

@@ -38,7 +38,7 @@ class AssistantSlackEventsController extends Controller
     }
 
     /**
-     * A person's own message in a DM — not the bot's replies, edits or joins.
+     * A person's own message in a DM, not the bot's replies, edits or joins.
      *
      * @param  array<string, mixed>  $event
      */

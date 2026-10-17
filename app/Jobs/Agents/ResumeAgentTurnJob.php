@@ -15,7 +15,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Throwable;
 
 /**
- * Continues a chat turn whose waiting actions have all been decided — see
+ * Continues a chat turn whose waiting actions have all been decided: see
  * `AgentRunner::resumeStream()`. Whoever decided may have long since left,
  * and a triggered turn never had anyone watching, so this runs on the queue;
  * an open chat follows along through the conversation's broadcasts, the
@@ -56,7 +56,7 @@ class ResumeAgentTurnJob implements ShouldQueue
     }
 
     /**
-     * Resuming blew up, or the worker was killed mid-turn — close the run
+     * Resuming blew up, or the worker was killed mid-turn: close the run
      * out and tell the chat, which would otherwise wait on it forever.
      */
     public function failed(Throwable $e): void

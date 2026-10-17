@@ -17,7 +17,7 @@ use Throwable;
  * Lets an agent export a generated file (report, image, code, spreadsheet,
  * HTML, etc.) as a downloadable, versioned `Artifact`. Re-exporting the same
  * filename within the same session creates a new version instead of
- * overwriting — see `Artifact::versions()`/`group_id`. Auto-attached to
+ * overwriting: see `Artifact::versions()`/`group_id`. Auto-attached to
  * every agent by `ToolRegistry`, same as `RememberTool`. Storage itself
  * (versioning, path layout, filename safety) lives in `StoreArtifactAction`,
  * shared with the Internal API's upload endpoint.
@@ -49,7 +49,7 @@ class ExportArtifactTool implements Tool
             .'IMPORTANT: you must call this tool every single time you export or re-export a file, including '
             .'when a user asks you to regenerate, update, or redo a file you already exported earlier in this '
             .'conversation. Never claim a file was exported or a new version was created unless you actually '
-            .'called this tool for that exact request — a fresh call is required each time, even if the content '
+            .'called this tool for that exact request: a fresh call is required each time, even if the content '
             .'or filename is unchanged.';
     }
 

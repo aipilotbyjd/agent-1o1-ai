@@ -10,7 +10,7 @@ use App\Services\Assistant\Branding\BrandRepository;
 use App\Services\Assistant\Personalization\StyleProfiles;
 
 /**
- * Builds the assistant's system prompt. The base text is brand-neutral —
+ * Builds the assistant's system prompt. The base text is brand-neutral:
  * `:name` is filled from `BrandRepository` at build time, so the model
  * introduces itself by whatever the product is called today.
  */
@@ -70,7 +70,7 @@ class AssistantInstructions
 
     /**
      * The latest summary of messages folded out of the context
-     * (`ContextCompactor`) — it already includes any earlier summary.
+     * (`ContextCompactor`): it already includes any earlier summary.
      */
     public function recapFor(AssistantSession $session): ?string
     {

@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Polymorphic membership row for a `TemplateCollection` "pack" — `templatable`
+ * Polymorphic membership row for a `TemplateCollection` "pack" - `templatable`
  * resolves to either a `WorkflowTemplate` or an `AgentTemplate` via the
  * `workflow_template`/`agent_template` morph map aliases (registered in
  * `AppServiceProvider::configureMorphMap()`), so one pack can mix both kinds.

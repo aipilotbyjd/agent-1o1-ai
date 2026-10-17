@@ -26,7 +26,7 @@ final class ConversationHistory
 
     /**
      * A user message with no reply after it belonged to a turn that failed
-     * or was cancelled — kept in the transcript, left out here so the model
+     * or was cancelled: kept in the transcript, left out here so the model
      * isn't handed a question it never answered. When the limit cuts the
      * transcript, the window also starts on a user message.
      *
@@ -62,8 +62,8 @@ final class ConversationHistory
     }
 
     /**
-     * Calls without a stored result are dropped — providers reject a call
-     * left unanswered — and long results are cut short.
+     * Calls without a stored result are dropped (providers reject a call
+     * left unanswered) and long results are cut short.
      *
      * @return list<Message>
      */

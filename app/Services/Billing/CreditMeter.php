@@ -13,14 +13,14 @@ use App\Services\Ai\ByokProviderRegistrar;
  * The per-node/per-agent-step cost table docs/PLAN.md's "Architecture
  * Overview" describes: "1 base credit/run, AI nodes billed by tokens, some
  * integration nodes have fixed costs". Per-node fixed costs are read from
- * `config('billing.node_costs')` — see that file for how to price a node
+ * `config('billing.node_costs')`: see that file for how to price a node
  * type.
  *
- * A call served by a workspace's own provider key (bring your own key —
+ * A call served by a workspace's own provider key (bring your own key:
  * see `ByokProviderRegistrar`) costs no token credits: the workspace pays
  * the provider directly. Its tokens still sit on the usage record for
- * visibility, and the rest of the formula — base credit, node surcharge,
- * tool calls, compute, orchestration — is still billed, since that work
+ * visibility, and the rest of the formula (base credit, node surcharge,
+ * tool calls, compute, orchestration) is still billed, since that work
  * runs here either way.
  *
  * Workflow node runs and agent chat turns are priced by two different
@@ -28,7 +28,7 @@ use App\Services\Ai\ByokProviderRegistrar;
  * a node run is `1 base credit + its fixed node cost + its token cost`,
  * with no compute or orchestration fee, while a chat turn is
  * `reasoning + tool calls + compute`, plus an orchestration fee on that
- * subtotal — `costForNodeRun` implements the former, `costForChatTurn` (used
+ * subtotal: `costForNodeRun` implements the former, `costForChatTurn` (used
  * by every agent-turn/eval/session-evaluation method below, since all three
  * are "priced identically to a production turn") implements the latter.
  */
@@ -50,7 +50,7 @@ class CreditMeter
 
     /**
      * Credits per session-minute of active processing, and the floor below
-     * which a turn still costs at least one credit — Gumloop's "5 credits
+     * which a turn still costs at least one credit: Gumloop's "5 credits
      * per session-minute of active processing, with a minimum of 1 credit
      * per response."
      */
@@ -59,7 +59,7 @@ class CreditMeter
     private const int MINIMUM_COMPUTE_CREDITS = 1;
 
     /**
-     * 1 credit per successful tool call — Gumloop's "Tool Calls" component.
+     * 1 credit per successful tool call: Gumloop's "Tool Calls" component.
      */
     private const int CREDITS_PER_TOOL_CALL = 1;
 
@@ -85,7 +85,7 @@ class CreditMeter
 
     /**
      * One graded eval case. Priced identically to a production turn, because
-     * it is one — the same agent, the same model, the same tokens.
+     * it is one: the same agent, the same model, the same tokens.
      */
     public function costForEvalCase(AgentEvalCaseResult $result): int
     {
@@ -94,7 +94,7 @@ class CreditMeter
 
     /**
      * One automatic session grading. Priced the same as any other judge
-     * call — it is one, on the same models, same tokens.
+     * call: it is one, on the same models, same tokens.
      */
     public function costForSessionEvaluation(AgentSessionEvaluation $evaluation): int
     {
@@ -123,7 +123,7 @@ class CreditMeter
     }
 
     /**
-     * Trying a model from the picker — priced as the chat turn it is.
+     * Trying a model from the picker: priced as the chat turn it is.
      *
      * @param  array<string, mixed>  $usage
      */
@@ -133,7 +133,7 @@ class CreditMeter
     }
 
     /**
-     * A workflow-builder chat turn or assist call — priced as the chat turn
+     * A workflow-builder chat turn or assist call: priced as the chat turn
      * it is.
      *
      * @param  array<string, mixed>  $usage
@@ -144,7 +144,7 @@ class CreditMeter
     }
 
     /**
-     * One AI page design (`GeneratePageJob`) — priced like a builder assist
+     * One AI page design (`GeneratePageJob`): priced like a builder assist
      * call: the tokens, the one forced tool call and the compute time.
      *
      * @param  array<string, mixed>  $usage
@@ -155,7 +155,7 @@ class CreditMeter
     }
 
     /**
-     * One Smart-mode review of an agent action — priced as the judge call
+     * One Smart-mode review of an agent action: priced as the judge call
      * it is.
      *
      * @param  array<string, mixed>  $usage
@@ -166,7 +166,7 @@ class CreditMeter
     }
 
     /**
-     * One personal-assistant turn — the same chat-turn formula as an agent's.
+     * One personal-assistant turn: the same chat-turn formula as an agent's.
      *
      * @param  array<string, mixed>|null  $usage
      */
@@ -178,7 +178,7 @@ class CreditMeter
     /**
      * A node an agent called as a tool. Its turn already bills one credit
      * for the call itself (`CREDITS_PER_TOOL_CALL`), which stands in for the
-     * base credit a workflow node run would carry — so this is only what the
+     * base credit a workflow node run would carry, so this is only what the
      * node costs on top: its fixed surcharge and its own tokens.
      *
      * @param  array<string, mixed>|null  $usage
@@ -199,9 +199,9 @@ class CreditMeter
     }
 
     /**
-     * Roughly what one typical chat message costs on `$provider`/`$model` —
+     * Roughly what one typical chat message costs on `$provider`/`$model`:
      * `TYPICAL_PROMPT_TOKENS` in, `TYPICAL_COMPLETION_TOKENS` out, no tool
-     * calls, the compute floor — for the model picker's cost hint. A
+     * calls, the compute floor, for the model picker's cost hint. A
      * workspace's own key (`ByokProviderRegistrar::PREFIX`) makes the token
      * part free, as it does for a real call.
      */
@@ -218,7 +218,7 @@ class CreditMeter
     /**
      * Gumloop's agent-chat formula: Chat & Reasoning + Tool Calls + Compute,
      * then an Orchestration Fee on top of that subtotal. Unlike a workflow
-     * node run, a chat turn has no separate flat base credit — Compute's own
+     * node run, a chat turn has no separate flat base credit: Compute's own
      * one-credit floor already guarantees a minimum charge.
      *
      * @param  array<string, mixed>|null  $usage
@@ -279,7 +279,7 @@ class CreditMeter
      * Real dollar cost of this call, from `config('billing.model_prices')`
      * keyed by the `provider`/`model` the SDK reports back on `usage` (see
      * `AgentRunner::usageFor()`/`AskAiNode::execute()`). Null when the model
-     * isn't priced — `tokenCost()` falls back to the flat ratio instead.
+     * isn't priced: `tokenCost()` falls back to the flat ratio instead.
      *
      * @param  array<string, mixed>  $usage
      */

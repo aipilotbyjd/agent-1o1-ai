@@ -10,13 +10,13 @@ use Stripe\Invoice as StripeInvoice;
 use Stripe\StripeClient;
 
 /**
- * Billing history — what Stripe charged, as distinct from `CreditController`'s
+ * Billing history: what Stripe charged, as distinct from `CreditController`'s
  * ledger of what the workspace consumed. Invoices live in Stripe, not in our
  * database, so every one of these reads is a live API call in production.
  *
  * `Cashier::stripe()` resolves the client out of the container, which is the
  * seam these tests use: binding a stub means no test ever reaches Stripe (it
- * couldn't anyway — `cashier.secret` is empty in the test environment, and a
+ * couldn't anyway: `cashier.secret` is empty in the test environment, and a
  * real resolution throws on the empty api key).
  */
 function stubStripeInvoices(array $invoices = [], mixed $upcoming = null): void
@@ -150,7 +150,7 @@ it('lists invoices with money in both raw and formatted form', function () {
 
 /**
  * An unpaid invoice is exactly what a customer needs to see when a charge has
- * failed, so the list must not filter down to paid ones — Cashier's default
+ * failed, so the list must not filter down to paid ones: Cashier's default
  * `invoices()` does, which is why the controller goes through the paginator.
  */
 it('includes open invoices, not just paid ones', function () {

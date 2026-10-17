@@ -13,7 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use RuntimeException;
 
 /**
- * Scheduled every five minutes (`routes/console.php`) — the durability net
+ * Scheduled every five minutes (`routes/console.php`): the durability net
  * for an agent turn whose process died mid-reply: a web request killed by a
  * time limit or a restart, or a worker lost while running a subagent or a
  * queued chat turn (`RunAgentTurnJob`) whose `failed()` never got to run. None of

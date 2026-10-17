@@ -4,7 +4,7 @@ namespace App\Services\Referrals;
 
 /**
  * Referral fraud checks compare signups by network, but a raw IP is never
- * stored — only this keyed hash, which can be matched but not reversed.
+ * stored, only this keyed hash, which can be matched but not reversed.
  */
 class IpHasher
 {

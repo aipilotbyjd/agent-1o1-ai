@@ -26,14 +26,14 @@ use RuntimeException;
  * on chunking and scoring instead of each implementing their own.
  *
  * Ranking is cosine similarity computed in PHP rather than a native vector
- * query — `document_embeddings.embedding` is JSON, deliberately, for
+ * query: `document_embeddings.embedding` is JSON, deliberately, for
  * sqlite/Postgres portability. See that migration's docblock and
  * docs/AGENTS_PLAN.md's "Knowledge / RAG" section for the follow-up path to
  * a native pgvector column.
  *
  * Search is hybrid: a chunk's score is its cosine similarity plus a bonus for
  * containing the query's words. Embeddings are good at meaning and poor at
- * exact tokens — an invoice number, a product SKU, a person's surname — so a
+ * exact tokens (an invoice number, a product SKU, a person's surname) so a
  * chunk that literally contains them is lifted above ones that are merely
  * about something similar. Chunks that are neither semantically close nor
  * share a word with the query are dropped instead of returned as the "best"
@@ -78,7 +78,7 @@ class KnowledgeBase
     private const int CHUNK_CHARACTERS = 1000;
 
     /**
-     * Inputs per embeddings call — providers cap how many strings one
+     * Inputs per embeddings call: providers cap how many strings one
      * request may carry, so a long document is embedded in batches.
      */
     private const int EMBED_BATCH = 64;
@@ -92,17 +92,17 @@ class KnowledgeBase
 
     /**
      * Split text into chunks, embed them, and store one row per chunk. The
-     * embedding tokens are charged to `$workspace` — see `chargeForEmbeddings()`.
+     * embedding tokens are charged to `$workspace`: see `chargeForEmbeddings()`.
      * With `$ownerId` the chunks are private to that member (their Brain).
-     * Embedding runs on the workspace's own provider key where it has one —
-     * the owner's personal key for private chunks, else the team key — and
+     * Embedding runs on the workspace's own provider key where it has one
+     * (the owner's personal key for private chunks, else the team key) and
      * then costs no token credits.
      *
      * Embedding happens first and everything is written in one transaction,
      * so a provider failure or a billing failure never leaves a half-ingested
      * document behind. With `$replaceSource`, chunks already stored for the
      * same `$source` in the same `$collection` (and with the same owner) are
-     * swapped for the new ones in that same transaction — re-ingesting a
+     * swapped for the new ones in that same transaction: re-ingesting a
      * revised document replaces it rather than duplicating it, and a failed
      * re-ingest keeps the old one.
      *
@@ -217,7 +217,7 @@ class KnowledgeBase
     /**
      * Removes every chunk of one document, returning how many were deleted.
      * Only shared chunks are touched unless `$ownerId` is given, in which case
-     * only that member's private ones are — a document is never removed
+     * only that member's private ones are: a document is never removed
      * across the shared/private line.
      *
      * @param  string|array<int, string>|null  $collection
@@ -233,7 +233,7 @@ class KnowledgeBase
     /**
      * Bills the ingestion's embedding tokens against its first stored chunk.
      * With overdraft: the provider has already been paid by the time the
-     * chunks exist. Retrieval (`search()`) isn't charged — one short query's
+     * chunks exist. Retrieval (`search()`) isn't charged: one short query's
      * embedding rounds to nothing, and an agent's search is already billed
      * as the tool call it is.
      *
@@ -261,10 +261,10 @@ class KnowledgeBase
      * The top-scoring chunks for a query, highest first.
      *
      * @param  string|array<int, string>|null  $collection  One collection, a
-     *                                                      list to search across (an agent's attached sources — see
+     *                                                      list to search across (an agent's attached sources: see
      *                                                      `ToolRegistry`), or null for every collection in the workspace.
      * @param  User|null  $viewer  With no viewer only shared knowledge is searched (what agents see);
-     *                             with one, their private knowledge too — or only it, when `$includeShared` is false.
+     *                             with one, their private knowledge too, or only it, when `$includeShared` is false.
      * @return Collection<int, array{id: string, collection: string, source: string|null, url: string|null, private: bool, text: string, score: float}>
      */
     public function search(
@@ -328,7 +328,7 @@ class KnowledgeBase
 
         if ($mismatched > 0) {
             // A chunk embedded with a different model has a different vector
-            // length and can only ever match on keywords — worth knowing when
+            // length and can only ever match on keywords: worth knowing when
             // search quality drops after changing the embeddings provider.
             Log::warning('Knowledge base search skipped semantic scoring for chunks with mismatched embedding dimensions.', [
                 'workspace_id' => $workspace->id,
@@ -371,7 +371,7 @@ class KnowledgeBase
     }
 
     /**
-     * The full text of one "document" — every chunk sharing a `source`
+     * The full text of one "document": every chunk sharing a `source`
      * (and, when given, a `collection`), reassembled in reading order. If the
      * same `source` exists in several collections and none was asked for, the
      * first collection alphabetically wins rather than interleaving different

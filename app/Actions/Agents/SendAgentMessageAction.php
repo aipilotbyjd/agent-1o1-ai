@@ -13,7 +13,7 @@ class SendAgentMessageAction
     public function __construct(private readonly AgentRunner $runner) {}
 
     /**
-     * `$triggerType` is recorded on the turn's own `Run` — it defaults to
+     * `$triggerType` is recorded on the turn's own `Run`: it defaults to
      * `manual` (a person chatting through the API) and is set to the trigger's
      * type when the turn was started by the trigger pipeline
      * (`App\Services\Triggers\TargetRunStarter`).

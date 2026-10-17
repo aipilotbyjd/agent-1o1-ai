@@ -18,8 +18,8 @@ use Psr\Http\Message\ServerRequestInterface;
  * access/refresh token pair.
  *
  * This grant exists so social sign-in never has to touch the user's password.
- * The obvious shortcut — rotating the password to a random value and running the
- * password grant — is what this replaces: it worked, but it silently destroyed
+ * The obvious shortcut (rotating the password to a random value and running the
+ * password grant) is what this replaces: it worked, but it silently destroyed
  * the credential of anyone who also signs in with a password, which permanently
  * ruled out letting a social account set one.
  *

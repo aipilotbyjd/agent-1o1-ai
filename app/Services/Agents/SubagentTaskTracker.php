@@ -9,7 +9,7 @@ use App\Models\Agents\SubagentTask;
 
 /**
  * Keeps a subagent's `SubagentTask` in step with its conversation's turn,
- * which `AgentRunner` settles — including a turn that pauses for approvals
+ * which `AgentRunner` settles, including a turn that pauses for approvals
  * and finishes much later, long after `RunSubagentTaskJob` has returned.
  * A no-op for any conversation that isn't a subagent's.
  */

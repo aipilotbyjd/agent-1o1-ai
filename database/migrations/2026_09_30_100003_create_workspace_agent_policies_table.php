@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Workspace-wide guardrails over every agent — set by an admin, and never
+ * Workspace-wide guardrails over every agent: set by an admin, and never
  * loosened by an agent's own mode or tool rules. See
  * `Services\Agents\Approvals\ActionGate` for the order they are applied in.
  * At most one row per workspace; no row means the defaults.

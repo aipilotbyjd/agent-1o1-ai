@@ -50,20 +50,20 @@ it('leaves a short conversation alone', function () {
 
 it('folds older messages into a recap and keeps the recent ones word for word', function () {
     ($this->exchange)(8);
-    RecapAgent::fake(['Goals — plan the launch.']);
+    RecapAgent::fake(['Goals: plan the launch.']);
     $compactor = app(ContextCompactor::class);
 
     expect($compactor->needsCompaction($this->session))->toBeTrue();
 
     $recap = $compactor->compact($this->session);
 
-    expect($recap)->role->toBe(AssistantMessageRole::Recap)->content->toBe('Goals — plan the launch.')
+    expect($recap)->role->toBe(AssistantMessageRole::Recap)->content->toBe('Goals: plan the launch.')
         ->and(AssistantMessage::query()->where('compacted_into_id', $recap->id)->count())->toBe(12)
         ->and(CreditTransaction::query()->where('source_type', CreditTransactionType::AssistantTurn)->where('source_id', $recap->id)->exists())->toBeTrue();
 
     $history = (new ConversationHistory($this->session->refresh()))->messages();
     expect(collect($history)->pluck('content')->all())->toBe(['Question 7', 'Answer 7', 'Question 8', 'Answer 8'])
-        ->and(app(AssistantInstructions::class)->for($this->assistant, $this->session))->toContain('Goals — plan the launch.');
+        ->and(app(AssistantInstructions::class)->for($this->assistant, $this->session))->toContain('Goals: plan the launch.');
 });
 
 it('builds each new recap on the previous one', function () {

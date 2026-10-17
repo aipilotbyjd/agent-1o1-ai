@@ -12,7 +12,7 @@ enum AssistantActionStatus: string
     case Expired = 'expired';
 
     /**
-     * Whether the call has run (or tried to) — its stored result is what
+     * Whether the call has run (or tried to): its stored result is what
      * the model is told from then on, so it never runs twice.
      */
     public function hasRun(): bool

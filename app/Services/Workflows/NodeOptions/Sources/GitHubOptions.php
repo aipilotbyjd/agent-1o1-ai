@@ -21,7 +21,7 @@ class GitHubOptions extends HttpOptionsSource
 
     /**
      * GitHub's own rules for an owner (`acme-inc`) and a repo name
-     * (`widgets.js`) — never `.`/`..`, which would walk the request path.
+     * (`widgets.js`), never `.`/`..`, which would walk the request path.
      */
     private const string REPO_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/(?!\.+$)[A-Za-z0-9._-]{1,100}$/';
 
@@ -72,7 +72,7 @@ class GitHubOptions extends HttpOptionsSource
     }
 
     /**
-     * The organisations the signed-in user belongs to — leaving the field
+     * The organisations the signed-in user belongs to: leaving the field
      * empty means their own account.
      */
     private function owners(NodeOptionsQuery $query): NodeOptionsPage
@@ -106,7 +106,7 @@ class GitHubOptions extends HttpOptionsSource
 
     /**
      * `/repos/{owner}/{name}` for the node's `repo` field, which must be a
-     * real `owner/name` — anything else could point the request elsewhere.
+     * real `owner/name`: anything else could point the request elsewhere.
      *
      * @throws ValidationException
      */

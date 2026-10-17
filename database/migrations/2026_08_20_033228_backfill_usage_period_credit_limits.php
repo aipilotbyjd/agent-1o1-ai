@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
  * Sizes already-open usage periods that were created with a `null` (i.e.
  * unlimited) `credits_limit` because their workspace had no subscription.
  * `Workspace::currentUsagePeriod()` now falls back to the default plan, but
- * it only applies that on *creation* — rows opened before this change would
+ * it only applies that on *creation*: rows opened before this change would
  * otherwise keep billing unlimited until the next month rolled over.
  *
  * Only periods that are still open are touched: closed ones are historical

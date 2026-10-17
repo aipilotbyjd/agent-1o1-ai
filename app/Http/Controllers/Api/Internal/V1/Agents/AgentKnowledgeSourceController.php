@@ -10,7 +10,7 @@ use App\Models\Agents\DocumentEmbedding;
 use App\Models\Workspaces\Workspace;
 
 /**
- * Which `document_embeddings.collection`s an agent may search — Gumloop's
+ * Which `document_embeddings.collection`s an agent may search: Gumloop's
  * "Knowledge Sources" agent-configuration section (see
  * docs/gumloop/output/raw/core-concepts/brain.md). Attaching a collection
  * here is what scopes `ToolRegistry`'s `SearchKnowledgeTool`/

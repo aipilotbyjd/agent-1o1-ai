@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
  * influencer program); a referral code points at one, or at whichever is
  * `is_default`, and a referral keeps the program it signed up under.
  *
- * `fraud_checks` holds each anti-abuse check's on/off switch and tuning —
+ * `fraud_checks` holds each anti-abuse check's on/off switch and tuning:
  * see `ReferralProgram::fraudCheck()` for the keys.
  */
 return new class extends Migration

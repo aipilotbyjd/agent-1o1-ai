@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * What the owner's apps say about a meeting's people and topic — read only,
+ * What the owner's apps say about a meeting's people and topic: read only,
  * and each app on its own, so one failing app doesn't stop the brief.
  */
 class MeetingResearch

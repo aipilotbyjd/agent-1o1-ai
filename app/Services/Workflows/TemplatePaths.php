@@ -4,7 +4,7 @@ namespace App\Services\Workflows;
 
 /**
  * Normalizes a template expression's `[n]` array-index syntax into the plain
- * dot-notation `Arr::get()` understands — `nodes.a[0].field` becomes
+ * dot-notation `Arr::get()` understands: `nodes.a[0].field` becomes
  * `nodes.a.0.field`.
  */
 final class TemplatePaths
@@ -18,7 +18,7 @@ final class TemplatePaths
 
     /**
      * Every `{{ }}` expression referenced anywhere in a config tree,
-     * normalized — used by `DryRunner` to flag a path nothing in the
+     * normalized: used by `DryRunner` to flag a path nothing in the
      * simulated context provides.
      *
      * @param  mixed  $value

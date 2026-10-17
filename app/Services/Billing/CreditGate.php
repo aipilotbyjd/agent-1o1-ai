@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * The pre-flight balance check. Credits are metered *after* the fact, on
- * `RunCompleted` — without a gate a workspace at zero still executed its
+ * `RunCompleted`, without a gate a workspace at zero still executed its
  * whole DAG (and paid for the LLM tokens) before the charge was even
  * attempted. This refuses the run up front instead, mapping to a 402 through
  * `bootstrap/app.php`.
@@ -21,20 +21,20 @@ use Illuminate\Support\Facades\Cache;
  * The check is deliberately coarse: a run's true cost isn't knowable until
  * its nodes have executed, so this only asserts the workspace can afford to
  * begin. A run that overruns the remaining balance still completes and is
- * billed in full (see `DeductCreditsAction`'s overdraft mode) — the *next*
+ * billed in full (see `DeductCreditsAction`'s overdraft mode): the *next*
  * run is the one that gets refused.
  *
  * A workspace that opted into credit overage is not refused at zero: the
  * allowance it may still spend on top is `CreditOverage`'s to answer, and
  * only once *that* is gone does this refuse. Both paths raise the
  * `usage.limit_exhausted` admin alert, but they tell the customer different
- * things — a spent allowance resets with the period, a spent overage cap
+ * things: a spent allowance resets with the period, a spent overage cap
  * does not.
  */
 class CreditGate
 {
     /**
-     * Cost of the cheapest possible unit of billable work — one node run or
+     * Cost of the cheapest possible unit of billable work: one node run or
      * one agent turn that consumes no tokens. A workspace that can't cover
      * this can't usefully start anything.
      */
@@ -42,7 +42,7 @@ class CreditGate
 
     /**
      * How long a workspace goes without a repeat "you're out of credits"
-     * notification — independent of `admin_alerts.enabled`, since that flag
+     * notification: independent of `admin_alerts.enabled`, since that flag
      * governs operator alerting, not what customers are told.
      */
     private const int NOTIFICATION_THROTTLE_SECONDS = 3600;
@@ -86,8 +86,8 @@ class CreditGate
         $this->adminAlerts->raise(
             key: 'usage.limit_exhausted',
             title: $cappedByOverage
-                ? "{$workspace->name} is blocked — overage cap reached"
-                : "{$workspace->name} is blocked — out of credits",
+                ? "{$workspace->name} is blocked: overage cap reached"
+                : "{$workspace->name} is blocked: out of credits",
             body: $cappedByOverage
                 ? 'New workflow runs and agent turns are being refused until the overage cap is raised or the billing period resets.'
                 : 'New workflow runs and agent turns are being refused until the plan allowance resets or top-up credits are purchased.',
@@ -105,7 +105,7 @@ class CreditGate
 
     /**
      * Told once per throttle window, same as the admin alert above but on
-     * its own key — this must fire even when `admin_alerts.enabled` is off,
+     * its own key: this must fire even when `admin_alerts.enabled` is off,
      * since that flag is an operator kill switch, not a customer-facing one.
      *
      * A workspace running on overage gets the cap-reached message instead:

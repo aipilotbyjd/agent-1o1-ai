@@ -4,7 +4,7 @@ namespace App\Services\Secrets;
 
 /**
  * Scrubs the plaintext of the secrets a step used out of anything that gets
- * persisted — a node's output and its error message. Without this a node that
+ * persisted: a node's output and its error message. Without this a node that
  * echoes its own config back (an HTTP node returning the request it made, an
  * API returning the token it was called with, an exception quoting the URL)
  * would write the secret straight into `node_runs`, where every run-viewer in

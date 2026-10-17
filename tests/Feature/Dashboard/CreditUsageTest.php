@@ -18,7 +18,7 @@ beforeEach(function () {
 });
 
 /**
- * Bills a node run of `$workflow` the way the engine does — through the
+ * Bills a node run of `$workflow` the way the engine does: through the
  * ledger, so the endpoint's join back to a workflow is exercised rather than
  * bypassed.
  */

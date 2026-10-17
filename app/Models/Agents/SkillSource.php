@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A GitHub repository the workspace's skills are synced from — see
+ * A GitHub repository the workspace's skills are synced from: see
  * `Services\Agents\Skills\SkillSync`. Sources are read-only unless
  * two-way sync is explicitly enabled. Sync state and baselines are
  * engine-managed and cannot be mass assigned.

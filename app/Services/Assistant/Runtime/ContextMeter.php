@@ -10,7 +10,7 @@ use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Laravel\Ai\Messages\Message;
 
 /**
- * How full a conversation's context window is, and with what — an estimate
+ * How full a conversation's context window is, and with what: an estimate
  * (characters ÷ chars_per_token), close enough to show the owner when the
  * conversation is about to be summarized.
  */

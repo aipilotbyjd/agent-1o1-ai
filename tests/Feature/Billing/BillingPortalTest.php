@@ -80,8 +80,8 @@ it('opens the portal for the workspace stripe customer', function () {
 
 /**
  * Stripe sends the customer's browser wherever `return_url` points, so it is
- * built from `config('app.frontend_url')` and the workspace slug — the same
- * rule the checkout actions follow — and never read from the request.
+ * built from `config('app.frontend_url')` and the workspace slug (the same
+ * rule the checkout actions follow) and never read from the request.
  */
 it('builds the return url server-side from config', function () {
     config(['app.frontend_url' => 'https://app.example.com/']);
@@ -111,7 +111,7 @@ it('ignores a return url supplied by the caller', function () {
 /**
  * A Free workspace that never reached checkout has no Stripe customer.
  * Cashier's `billingPortalUrl()` throws `InvalidCustomer` for that, which
- * would surface as a 500 — it's an ordinary state, so it answers 409 and the
+ * would surface as a 500: it's an ordinary state, so it answers 409 and the
  * frontend can send them to checkout instead.
  */
 it('409s for a workspace that has never been to checkout', function () {
@@ -131,7 +131,7 @@ it('does not call stripe for a workspace with no billing account', function () {
 });
 
 /**
- * `BillingManage`, not `BillingView` — the portal can change the payment
+ * `BillingManage`, not `BillingView`: the portal can change the payment
  * method and cancel the subscription. Every role down to Viewer can *see*
  * billing; only admins and owners can act on it.
  */

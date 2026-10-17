@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Asks a provider whether an API key works, with one cheap authenticated
- * GET (`config('byok.providers.*.check')`) — no tokens spent. Three
+ * GET (`config('byok.providers.*.check')`): no tokens spent. Three
  * outcomes, because "the provider said no" and "we couldn't reach the
  * provider" mean different things: a rejected key is never used, while a
  * provider outage leaves what we already knew about the key alone.

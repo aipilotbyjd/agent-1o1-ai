@@ -23,7 +23,7 @@ use Illuminate\Http\Response;
 
 /**
  * Conversations with the member's own assistant. A session that belongs to
- * anyone else's assistant answers 404, not 403 — its existence isn't
+ * anyone else's assistant answers 404, not 403: its existence isn't
  * something another member should learn.
  */
 class AssistantSessionController extends Controller

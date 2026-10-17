@@ -28,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 /**
  * A single execution of either a `Workflow` (runnable_type = 'workflow')
  * or an `AgentSession` (runnable_type = AgentSession::class, added in
- * docs/AGENTS_PLAN.md) — see docs/WORKFLOWS_PLAN.md's `runs` table section for
+ * docs/AGENTS_PLAN.md): see docs/WORKFLOWS_PLAN.md's `runs` table section for
  * why this stays one shared, polymorphic table rather than two.
  */
 #[Fillable([
@@ -95,7 +95,7 @@ class Run extends Model
     }
 
     /**
-     * The run this one was retried from, if any — see `RetryRunAction`.
+     * The run this one was retried from, if any: see `RetryRunAction`.
      */
     public function retriedFrom(): BelongsTo
     {
@@ -123,8 +123,8 @@ class Run extends Model
     }
 
     /**
-     * The agent this run was done on behalf of — its chat turn, reflection,
-     * chat grading or eval suite — or null for a workflow run. Eager load
+     * The agent this run was done on behalf of (its chat turn, reflection,
+     * chat grading or eval suite) or null for a workflow run. Eager load
      * `withOwnerNames()` first to avoid a query per run.
      */
     public function owningAgent(): ?Agent
@@ -188,7 +188,7 @@ class Run extends Model
      * - An `AgentSessionEvaluation` grading or a `ReflectionRun` review: the
      *   one transaction for the runnable this run belongs to (`runnable_id`).
      *
-     * Returns null for an `AgentEvalRun` run — that runnable bills one
+     * Returns null for an `AgentEvalRun` run: that runnable bills one
      * `CreditTransaction` per graded case (`AgentEvalCaseResult`), not one
      * per run, so summing it here would mean joining through eval case
      * results rather than reusing this run's own relations; left for when

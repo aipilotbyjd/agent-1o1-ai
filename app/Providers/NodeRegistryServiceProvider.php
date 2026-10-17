@@ -84,12 +84,12 @@ class NodeRegistryServiceProvider extends ServiceProvider
 
     /**
      * Type strings are registered as literals here rather than instantiated
-     * and read via `NodeContract::type()` — `AgentNode`'s constructor needs
+     * and read via `NodeContract::type()` - `AgentNode`'s constructor needs
      * `AgentRunner` → `ToolRegistry` → `NodeRegistry`, so eagerly building
      * an instance while `NodeRegistry` itself is still being constructed is
      * a real circular dependency (infinite recursion, not just untidy).
      * Every type string here must still match its class's own `type()`
-     * return value exactly — nothing enforces that at compile time, so
+     * return value exactly: nothing enforces that at compile time, so
      * double-check it when adding a node.
      *
      * @return array<string, class-string<NodeContract>>

@@ -8,7 +8,7 @@ use App\Models\Triggers\TriggerEvent;
 use Illuminate\Console\Command;
 
 /**
- * Recovers events left `queued`/`running` past their grace period — the
+ * Recovers events left `queued`/`running` past their grace period: the
  * durability net for a lost dispatch, a flushed queue, or a killed worker.
  * See docs/TRIGGERS_PLAN.md's "The one rule that makes it lossless".
  */
@@ -41,7 +41,7 @@ class RetryStuckEventsCommand extends Command
                     return;
                 }
 
-                // Back to queued first — claim() only accepts non-terminal
+                // Back to queued first: claim() only accepts non-terminal
                 // events, and a stale `running` row looks identical to a live one.
                 $event->requeue();
 

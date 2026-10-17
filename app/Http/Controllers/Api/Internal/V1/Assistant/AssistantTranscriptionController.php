@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Voice input: the recording becomes text for the chat box. Only the
- * transcript comes back — the audio is never stored or sent to the model.
+ * transcript comes back: the audio is never stored or sent to the model.
  */
 class AssistantTranscriptionController extends Controller
 {

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
  * One-time credit top-ups purchased via Stripe Checkout (mode=payment),
  * separate from the subscription-driven `usage_periods.credits_limit`.
  * Activating a pack (on `checkout.session.completed`) adds its
- * `credits_amount` onto the workspace's *current* usage period limit —
+ * `credits_amount` onto the workspace's *current* usage period limit:
  * see `Actions\Billing\ActivateCreditPackAction`.
  */
 return new class extends Migration

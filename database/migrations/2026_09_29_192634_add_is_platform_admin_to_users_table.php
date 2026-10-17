@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Marks the people who run the platform — the only accounts allowed through
+ * Marks the people who run the platform: the only accounts allowed through
  * the `/v1/admin/*` routes. Deliberately not mass-assignable and never
  * writable over the API: it is set only by `php artisan admin:grant`.
  */

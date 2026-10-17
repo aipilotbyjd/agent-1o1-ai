@@ -175,7 +175,7 @@ it('answers an ask-mode message without the tools that edit the draft', function
     $url = "/api/v1/workspaces/{$workspace->id}/workflow-builder-sessions/{$session->id}/messages";
     $this->postJson($url, ['message' => 'What does this do?', 'mode' => 'ask'])->assertAccepted();
 
-    // Stored as asked — the instruction lives on the turn, not in the text.
+    // Stored as asked: the instruction lives on the turn, not in the text.
     $this->getJson($url)
         ->assertOk()
         ->assertJsonPath('data.messages.0.content', 'What does this do?')

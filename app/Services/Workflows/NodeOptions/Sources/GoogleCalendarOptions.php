@@ -31,7 +31,7 @@ class GoogleCalendarOptions extends HttpOptionsSource
     }
 
     /**
-     * Primary calendar first, as the value `primary` — what the nodes
+     * Primary calendar first, as the value `primary`: what the nodes
      * default to anyway.
      */
     private function calendars(NodeOptionsQuery $query): NodeOptionsPage

@@ -9,7 +9,7 @@ use App\Services\Assistant\Briefings\SourceCollector;
 use Carbon\CarbonInterface;
 
 /**
- * The next day's schedule — a calendar is about what's coming, not what
+ * The next day's schedule: a calendar is about what's coming, not what
  * changed, so it ignores `$since`.
  */
 class GoogleCalendarCollector implements SourceCollector

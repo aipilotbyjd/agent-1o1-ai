@@ -99,7 +99,7 @@ class AuthService
     }
 
     /**
-     * Completes a 2FA login challenge and issues tokens via the password grant — same
+     * Completes a 2FA login challenge and issues tokens via the password grant: same
      * shape as a normal login, for frontend parity.
      *
      * The password is held encrypted in the cache alongside the challenge token (5 min TTL,
@@ -323,7 +323,7 @@ class AuthService
 
     /**
      * Revokes every token before deleting the row. The access tokens alone are
-     * not enough — a live refresh token would still mint new ones.
+     * not enough: a live refresh token would still mint new ones.
      */
     public function deleteAccount(User $user): void
     {
@@ -336,7 +336,7 @@ class AuthService
 
     /**
      * Resolves (or creates) the account behind a completed provider handshake.
-     * Issues no tokens — the caller mints a one-time code and the
+     * Issues no tokens: the caller mints a one-time code and the
      * `social_exchange` grant turns that into a token pair.
      *
      * @return array{user: User, provider: string}
@@ -389,7 +389,7 @@ class AuthService
 
     /**
      * Mints the one-time code the social callback hands to the frontend. Only the
-     * user id is stored — tokens are issued at exchange time by the
+     * user id is stored: tokens are issued at exchange time by the
      * `social_exchange` grant, so a leaked code that is never redeemed never
      * corresponded to a token at all.
      */
@@ -546,7 +546,7 @@ class AuthService
      * more than a timestamp.
      *
      * The token id is read out of the JWT's own `jti` claim rather than by
-     * looking up the user's newest row — the grant may have issued concurrently
+     * looking up the user's newest row: the grant may have issued concurrently
      * with another sign-in, and guessing wrong would label the wrong session.
      *
      * The request is resolved here rather than injected because the router
@@ -615,8 +615,8 @@ class AuthService
             $response = app(Kernel::class)->handle(Request::create('/oauth/token', 'POST', $parameters));
         } finally {
             // The kernel rebinds the container's `request` and never restores it,
-            // which would leave every later `request()` in this request — resources,
-            // the audit trail, device stamping — describing the synthetic sub-request.
+            // which would leave every later `request()` in this request (resources,
+            // the audit trail, device stamping) describing the synthetic sub-request.
             app()->instance('request', $originalRequest);
             Facade::clearResolvedInstance('request');
         }

@@ -7,7 +7,7 @@ use App\Models\Agents\AgentSessionEvaluation;
 use App\Notifications\Workspace\WorkspaceEventNotification;
 
 /**
- * Fired the moment a `SessionEvaluator` run grades `needs_attention` — a
+ * Fired the moment a `SessionEvaluator` run grades `needs_attention`: a
  * `notify`-priority criterion failed. Mirrors Gumloop's "Notify" alert: it
  * reaches the agent's owners/admins, never the end user who was chatting
  * with the agent.

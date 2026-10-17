@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One side-effecting tool call an agent made or tried to make — see the
+ * One side-effecting tool call an agent made or tried to make: see the
  * `agent_actions` migration. Written by `ActionGate` when the call is
  * weighed; `status` and the decision fields are engine-managed (set through
  * `forceFill()` by the gate, `ResolveAgentActionsAction` and
@@ -113,7 +113,7 @@ class AgentAction extends Model
     /**
      * Whether a tool rule named who may decide this call. Only those people
      * (and the workspace's owners and admins) can, so it can't be decided
-     * where the decider isn't a known account here — a chat button or an
+     * where the decider isn't a known account here: a chat button or an
      * API key.
      */
     public function hasNamedApprovers(): bool
@@ -122,7 +122,7 @@ class AgentAction extends Model
     }
 
     /**
-     * Whether a person was asked about this call — decided or not. A
+     * Whether a person was asked about this call: decided or not. A
      * resumed turn has to hand the SDK a decision for every one of these.
      */
     public function wasAsked(): bool

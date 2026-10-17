@@ -23,7 +23,7 @@ use LogicException;
 use RuntimeException;
 
 /**
- * Fills a node field's dropdown in the workflow editor — the spreadsheets,
+ * Fills a node field's dropdown in the workflow editor: the spreadsheets,
  * tabs, channels, repos, labels… the member would otherwise have to copy
  * IDs for. The field must declare `x-options` in its node's
  * `configSchema()` (see `App\Nodes\Support\Field::dynamic()`); the source
@@ -31,7 +31,7 @@ use RuntimeException;
  * load lists some node actually offers.
  *
  * Connected-account sources use the same credential the node would run
- * with — pinned `credential_id`, else the member's personal default, else
+ * with: pinned `credential_id`, else the member's personal default, else
  * the workspace's team default (`ConnectorCredentialResolver`). A raw
  * `access_token` in the request is never used.
  */
@@ -117,7 +117,7 @@ class NodeOptionsService
     }
 
     /**
-     * A dependency must be set, and set to a literal — a `{{template}}` only
+     * A dependency must be set, and set to a literal: a `{{template}}` only
      * has a value at run time.
      *
      * @param  array<string, array<string, mixed>>  $properties
@@ -151,7 +151,7 @@ class NodeOptionsService
     {
         $credentialId = $config['credential_id'] ?? null;
 
-        // A templated account can't be resolved here — fall back to the default.
+        // A templated account can't be resolved here: fall back to the default.
         if (! is_string($credentialId) || str_contains($credentialId, '{{')) {
             $config['credential_id'] = null;
         }

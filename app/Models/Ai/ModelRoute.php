@@ -10,12 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One concrete backend that may serve a `ModelCatalog` entry — a real
+ * One concrete backend that may serve a `ModelCatalog` entry: a real
  * `laravel/ai` provider name (a `Lab` value or a custom `openai-compatible`
  * config key such as `fireworks`/`together`) plus the model id that
  * provider actually expects. `ModelCatalogResolver` orders a catalog
  * entry's enabled routes by `priority` into the array `laravel/ai`'s
- * native failover retries across on a transient error — see the SDK's
+ * native failover retries across on a transient error: see the SDK's
  * "Failover" docs. Never serialized to agent/workflow-facing API responses.
  * Routes run on the platform's own keys; a workspace's own key is put in
  * front per call by `ByokProviderRegistrar`.

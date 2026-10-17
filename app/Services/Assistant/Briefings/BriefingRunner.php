@@ -26,7 +26,7 @@ use Throwable;
  * Produces one Daily report: read each app since its own cursor (each one
  * on its own, so one failing app doesn't sink the report), write it, keep
  * the Situations, advance the cursors of the apps that were read, and
- * deliver it — exactly once.
+ * deliver it: exactly once.
  */
 class BriefingRunner
 {
@@ -146,7 +146,7 @@ class BriefingRunner
 
         $prompt = <<<PROMPT
             You are {$name}, writing {$person}'s Daily report from what happened in their connected apps.
-            summary: at most two sentences and 40 words — the one thing to know, not a list. Don't restate routine calendar entries here.
+            summary: at most two sentences and 40 words; the one thing to know, not a list. Don't restate routine calendar entries here.
             catch_up: Markdown bullet points of what changed, most important first. End each bullet with the app it came from in parentheses, e.g. "(Gmail)". Weave related items across apps into one bullet. No title, no date, no preamble. Leave out noise (newsletters, automated notifications) unless it matters.
             situations: at most {$maxSituations}, only for concrete work {$person} owns with a clear outcome you could help deliver (a reply they owe, a review requested from them, a deadline). Being mentioned or cc'd is not a situation. Each has a short title, a one-sentence summary, an optional next_step, the apps it came from (sources), and 1–4 ordered steps you could take. Return an empty list when there are none.
             Use only the material given. Never invent people, dates or numbers.
@@ -175,7 +175,7 @@ class BriefingRunner
         $grouped = $items->groupBy('source')->map(fn (Collection $group, string $source): string => "## {$source}\n".$group
             ->map(fn (array $item): string => '- '.$item['title']
                 .($item['at'] ? " [{$item['at']}]" : '')
-                .($item['people'] !== [] ? ' — '.implode(', ', $item['people']) : '')
+                .($item['people'] !== [] ? ' - '.implode(', ', $item['people']) : '')
                 .(filled($item['detail']) ? "\n  ".$item['detail'] : '')
                 .($item['url'] ? "\n  {$item['url']}" : ''))
             ->implode("\n"));

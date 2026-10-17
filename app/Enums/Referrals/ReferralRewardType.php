@@ -9,7 +9,7 @@ use App\Services\Referrals\Rewards\StripeBalanceRewardHandler;
 use App\Services\Referrals\Rewards\TrialExtensionRewardHandler;
 
 /**
- * What a reward gives. Each type is one `RewardHandler` class — adding a
+ * What a reward gives. Each type is one `RewardHandler` class: adding a
  * type means a new case here and a new handler, nothing else.
  */
 enum ReferralRewardType: string

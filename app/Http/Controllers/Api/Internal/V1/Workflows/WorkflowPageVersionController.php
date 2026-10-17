@@ -14,7 +14,7 @@ use App\Services\Workflows\Pages\PageVersions;
 use Illuminate\Http\Request;
 
 /**
- * A page's version history — see `PageVersions`. Building pages takes
+ * A page's version history: see `PageVersions`. Building pages takes
  * `page.manage`, and so does looking back through their history.
  */
 class WorkflowPageVersionController extends Controller
@@ -39,7 +39,7 @@ class WorkflowPageVersionController extends Controller
     }
 
     /**
-     * Saves the drafts as they are now, with an optional label — also used
+     * Saves the drafts as they are now, with an optional label, also used
      * by the builder before it applies an AI design.
      */
     public function store(Request $request, Workspace $workspace, WorkflowPage $page)

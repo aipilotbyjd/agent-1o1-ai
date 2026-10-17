@@ -33,7 +33,7 @@ use Stringable;
  * tool at all.
  *
  * Only when the person it's working for (or the agent's creator, for a run
- * nobody started) may manage agents — otherwise anyone who can chat with it
+ * nobody started) may manage agents, otherwise anyone who can chat with it
  * could permanently change it for the whole workspace, which the agent's
  * settings page wouldn't let them do.
  *

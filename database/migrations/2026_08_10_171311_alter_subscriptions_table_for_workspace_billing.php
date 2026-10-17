@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Cashier's published migration hardcodes `user_id` — this app's Billable is
+ * Cashier's published migration hardcodes `user_id`: this app's Billable is
  * `Workspace`, not `User` (see docs/STRUCTURE.md). Renamed here rather than
  * editing the original migration since it has already run.
  */

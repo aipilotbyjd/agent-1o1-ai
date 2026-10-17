@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The personal assistant's public identity. This is the only place the
-    | brand name may appear — code, tables, routes and prompts stay neutral
+    | brand name may appear: code, tables, routes and prompts stay neutral
     | ("assistant") and read it through `BrandRepository`, so a rename is an
     | `.env` change. See docs/ASSISTANT_BRANDING_PLAN.md.
     |
@@ -35,7 +35,7 @@ return [
         'email_local_part' => env('ASSISTANT_EMAIL', 'orb'),
         'email_aliases' => array_values(array_filter(array_map('trim', explode(',', (string) env('ASSISTANT_EMAIL_ALIASES', ''))))),
         'inbound_domain' => env('ASSISTANT_INBOUND_DOMAIN', 'agent1o1.ai'),
-        'sms_signature' => env('ASSISTANT_SMS_SIGNATURE', '— :name'),
+        'sms_signature' => env('ASSISTANT_SMS_SIGNATURE', '- :name'),
     ],
 
     /*
@@ -54,7 +54,7 @@ return [
 
     'runtime' => [
         // The model when the owner hasn't picked one: this internal catalog
-        // entry's routes (see ModelCatalogSeeder), or — if it has none —
+        // entry's routes (see ModelCatalogSeeder), or (if it has none)
         // the raw provider/model below.
         'catalog' => env('ASSISTANT_MODEL_CATALOG', 'personal-assistant'),
         'provider' => env('ASSISTANT_PROVIDER', 'anthropic'),
@@ -106,7 +106,7 @@ return [
         // How far back the very first report looks.
         'first_run_lookback_hours' => 16,
 
-        // Items read from each app per report — keeps the prompt bounded.
+        // Items read from each app per report: keeps the prompt bounded.
         'max_items_per_source' => 25,
 
         'max_situations' => 5,

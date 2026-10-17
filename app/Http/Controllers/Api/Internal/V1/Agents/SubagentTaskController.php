@@ -12,7 +12,7 @@ use App\Models\Workspaces\Workspace;
 
 /**
  * The subagents a conversation has started, for the chat's live status
- * cards — polled while any are still running.
+ * cards: polled while any are still running.
  */
 class SubagentTaskController extends Controller
 {

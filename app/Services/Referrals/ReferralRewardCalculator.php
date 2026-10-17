@@ -23,7 +23,7 @@ use App\Models\Workspaces\Workspace;
 class ReferralRewardCalculator
 {
     /**
-     * The rule's raw values with the multiplier applied — no workspace
+     * The rule's raw values with the multiplier applied: no workspace
      * state involved. Used by `simulate` and as the starting point of
      * `calculate()`.
      *
@@ -81,8 +81,8 @@ class ReferralRewardCalculator
     }
 
     /**
-     * The best plan the workspace holds *other than* through referral time
-     * — a subscription or a purchased/comped grant. Referral grants are
+     * The best plan the workspace holds *other than* through referral time:
+     * a subscription or a purchased/comped grant. Referral grants are
      * left out so earned time can keep stacking.
      */
     public function paidEntitlement(Workspace $workspace): ?Plan

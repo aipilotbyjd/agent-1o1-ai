@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A saved set of test cases run against one `Agent` — docs/AGENTS_PLAN.md's
+ * A saved set of test cases run against one `Agent`: docs/AGENTS_PLAN.md's
  * "Evals" section. The point is to be able to change an agent's instructions
  * and find out whether it still behaves, instead of hoping.
  */

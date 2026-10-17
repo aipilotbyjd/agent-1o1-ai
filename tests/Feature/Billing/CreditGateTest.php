@@ -51,7 +51,7 @@ it('refuses to start a workflow run when the workspace is out of credits', funct
     expect(fn () => app(StartWorkflowRunAction::class)->execute($workflow))
         ->toThrow(InsufficientCreditsException::class);
 
-    // Refused before any Run row or node execution — not after the spend.
+    // Refused before any Run row or node execution, not after the spend.
     expect(Run::where('workspace_id', $workspace->id)->count())->toBe(0);
 });
 

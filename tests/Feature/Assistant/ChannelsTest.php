@@ -160,7 +160,7 @@ it('queues each Slack DM once and skips the bot\'s own messages', function () {
 
 it('answers a Slack DM in its thread', function () {
     ($this->slackInstall)();
-    AssistantAgent::fake(['**Done** — see [the doc](https://example.test/doc).']);
+    AssistantAgent::fake(['**Done**: see [the doc](https://example.test/doc).']);
     Http::fake([
         'slack.com/api/users.info*' => Http::response(['ok' => true, 'user' => ['profile' => ['email' => 'owner@example.test']]]),
         'slack.com/api/chat.postMessage' => Http::response(['ok' => true]),
@@ -174,7 +174,7 @@ it('answers a Slack DM in its thread', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), 'chat.postMessage')
         && $request['channel'] === 'D1'
         && $request['thread_ts'] === '100.1'
-        && $request['text'] === '*Done* — see <https://example.test/doc|the doc>.'
+        && $request['text'] === '*Done*: see <https://example.test/doc|the doc>.'
         && $request->hasHeader('Authorization', 'Bearer xoxb-test'));
 });
 

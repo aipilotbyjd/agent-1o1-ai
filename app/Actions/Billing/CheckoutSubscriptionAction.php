@@ -20,7 +20,7 @@ class CheckoutSubscriptionAction
      *
      * Recurring intervals only. `Lifetime` is a one-off `mode=payment`
      * purchase with no subscription behind it, so it goes through
-     * `CheckoutLifetimePlanAction` — guarded here rather than left to fail
+     * `CheckoutLifetimePlanAction`: guarded here rather than left to fail
      * deeper in Cashier with an unrecurring price.
      */
     public function execute(Workspace $workspace, Plan $plan, BillingInterval $interval): ?string
@@ -56,7 +56,7 @@ class CheckoutSubscriptionAction
         // timestamp computed when the Checkout Session is created. Stripe's
         // Checkout page then displays "days free" as time-remaining-until-
         // that-timestamp at render time, which is always a hair under the
-        // configured length — so a 14-day trial reads as "13 days free".
+        // configured length, so a 14-day trial reads as "13 days free".
         // Passing `trial_period_days` instead is relative to when the
         // customer actually completes checkout, so the displayed and actual
         // trial length always match.
@@ -65,7 +65,7 @@ class CheckoutSubscriptionAction
             'cancel_url' => $this->cancelUrl($workspace),
         ];
 
-        // Referral `trial_extension` rewards lengthen the plan's own trial —
+        // Referral `trial_extension` rewards lengthen the plan's own trial,
         // or grant one on a plan that has none.
         $trialDays = $plan->trial_days + $this->referralTrialBonus->daysFor($workspace);
 

@@ -102,7 +102,7 @@ class FakeMailbox implements Mailbox
 
     public function recentRepliesTo(string $address, int $limit): array
     {
-        return ['Thanks Sam, sounds good. — Priya'];
+        return ['Thanks Sam, sounds good. Priya'];
     }
 
     public function saveDraft(?string $draftId, MailMessage $original, array $to, array $cc, string $body): string
@@ -263,7 +263,7 @@ it('drafts a reply-all to a known sender when confident, and never sends', funct
     $this->mailbox->sentTo = ['sam@globex.test'];
     $this->mailbox->add('m1');
     ($this->classify)(['Needs reply' => 0.9], needsReply: true);
-    ReplyDrafterAgent::fake([['should_reply' => true, 'confident' => true, 'body' => 'Hi Sam, confirming the terms. — Priya']]);
+    ReplyDrafterAgent::fake([['should_reply' => true, 'confident' => true, 'body' => 'Hi Sam, confirming the terms. Priya']]);
 
     ($this->check)($config);
 

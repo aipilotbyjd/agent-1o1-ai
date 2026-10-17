@@ -11,7 +11,7 @@ use Laravel\Passport\Passport;
  * The plan catalog's four billing windows. `Plan::stripePriceId()` and
  * `priceFor()` are unguarded `match`es over this enum, so a case added
  * without an arm is an `UnhandledMatchError` at checkout rather than a
- * compile-time failure — hence the exhaustive sweeps below.
+ * compile-time failure, hence the exhaustive sweeps below.
  */
 it('resolves a stripe price for every billing interval', function () {
     $plan = Plan::factory()->soldForLifetime()->create();

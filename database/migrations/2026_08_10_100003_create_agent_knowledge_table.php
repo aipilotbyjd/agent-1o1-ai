@@ -6,9 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Static per-agent text/file/URL knowledge chunks, injected directly into
- * the agent's instructions (`SkillInjector`) — not retrieved via similarity
+ * the agent's instructions (`SkillInjector`), not retrieved via similarity
  * search, unlike `document_embeddings`/`SearchKnowledgeTool`. "Always know
- * this" vs. "look this up when relevant" — see docs/AGENTS_PLAN.md's
+ * this" vs. "look this up when relevant": see docs/AGENTS_PLAN.md's
  * "Knowledge / RAG" section.
  */
 return new class extends Migration

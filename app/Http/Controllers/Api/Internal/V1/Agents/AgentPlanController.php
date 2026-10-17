@@ -18,7 +18,7 @@ use App\Models\Workspaces\Workspace;
 /**
  * Plan mode's review step: the plans an agent proposed in a conversation,
  * and approving or rejecting one. Deciding needs the same right as deciding
- * the actions themselves — the person the conversation belongs to, or a
+ * the actions themselves: the person the conversation belongs to, or a
  * role that may approve agent actions.
  */
 class AgentPlanController extends Controller

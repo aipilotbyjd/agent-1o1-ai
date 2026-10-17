@@ -12,7 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 
 /**
- * Tells the agent its plan was approved and to carry it out now — a normal
+ * Tells the agent its plan was approved and to carry it out now: a normal
  * turn in the plan's conversation, on the queue, so approving a long plan
  * doesn't hold the request open. The chat follows along through the
  * conversation's broadcasts.

@@ -100,7 +100,7 @@ class WorkflowController extends Controller
     }
 
     /**
-     * `destroy` only soft-deletes, so the trash is every trashed workflow —
+     * `destroy` only soft-deletes, so the trash is every trashed workflow:
      * most recently trashed first.
      */
     public function trash(Workspace $workspace)
@@ -135,7 +135,7 @@ class WorkflowController extends Controller
     }
 
     /**
-     * Only from the trash. Takes the hidden loop-mode children with it —
+     * Only from the trash. Takes the hidden loop-mode children with it:
      * `LoopModeCompiler` names them `loop-{id}-{node}`, and nothing else
      * would ever clean them up once their parent is gone.
      */
@@ -160,7 +160,7 @@ class WorkflowController extends Controller
     }
 
     /**
-     * Copy a workflow into a new draft in the same workspace — name suffixed
+     * Copy a workflow into a new draft in the same workspace: name suffixed
      * with "(copy)", same folder, current graph carried over as-is (unlike
      * `WorkflowTemplate::storeFromWorkflow()`, credentials don't need
      * stripping here since the copy never leaves the source workspace).

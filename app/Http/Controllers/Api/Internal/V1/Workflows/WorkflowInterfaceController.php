@@ -14,7 +14,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Workflows\WorkflowInterface;
 
 /**
- * A workflow's front door — the fields a run expects, and a way to submit
+ * A workflow's front door: the fields a run expects, and a way to submit
  * them. This is what makes a workflow usable by someone who did not build it:
  * without an interface, "run this workflow" means "post the right arbitrary
  * JSON", which only its author knows how to do.
@@ -51,7 +51,7 @@ class WorkflowInterfaceController extends Controller
 
         $fields = $request->validated('fields');
 
-        // An empty declaration is stored as null, not as `{fields: []}` —
+        // An empty declaration is stored as null, not as `{fields: []}`;
         // "no declaration" and "declared to have no fields" would otherwise
         // be indistinguishable, and only the first should fall back to
         // deriving the interface from the graph.

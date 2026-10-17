@@ -7,7 +7,7 @@ use RuntimeException;
 
 /**
  * Thrown when an action requires a `Plan.features` flag the workspace's
- * current plan doesn't have — mapped to 403 in `bootstrap/app.php`.
+ * current plan doesn't have: mapped to 403 in `bootstrap/app.php`.
  */
 class FeatureNotAvailableException extends RuntimeException
 {

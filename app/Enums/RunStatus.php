@@ -18,7 +18,7 @@ enum RunStatus: string
     }
 
     /**
-     * Every non-terminal status — i.e. "this run is still in flight". Returned
+     * Every non-terminal status, i.e. "this run is still in flight". Returned
      * as cases (not values) since its only callers pass it straight into a
      * query builder clause, which binds a BackedEnum by its value.
      *

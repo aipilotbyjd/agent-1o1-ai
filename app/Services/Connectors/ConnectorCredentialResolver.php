@@ -11,13 +11,13 @@ use RuntimeException;
 /**
  * Turns a node's `config` into a usable access token for one connector,
  * scoped to a workspace and the user acting in it. A `ConnectorCredential`
- * is always looked up by `workspace_id` first — a caller can never reach a
- * credential belonging to another workspace by guessing its id — with a
+ * is always looked up by `workspace_id` first (a caller can never reach a
+ * credential belonging to another workspace by guessing its id) with a
  * fallback to a plain `access_token` config field for backward
  * compatibility with nodes configured before `ConnectorCredential` existed
  * (docs/PLAN.md Phase 6).
  *
- * With neither pinned, falls back to a *default* credential — Gumloop's
+ * With neither pinned, falls back to a *default* credential: Gumloop's
  * "Personal Default"/"if you only have one account connected, it's
  * automatically your default" (see
  * docs/gumloop/output/raw/core-concepts/credentials.md). The acting user's
@@ -55,7 +55,7 @@ class ConnectorCredentialResolver
 
     /**
      * A pinned credential must still be one the caller may use: the
-     * workspace's, for this connector, and — when personal — created by the
+     * workspace's, for this connector, and (when personal) created by the
      * acting user. Anything else reads as "not found" rather than
      * confirming the id exists.
      */

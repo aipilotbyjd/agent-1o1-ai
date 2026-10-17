@@ -36,8 +36,8 @@ class UserController extends Controller
     }
 
     /**
-     * A new email is staged rather than applied — see
-     * `AuthService::requestEmailChange()` — so the response reports it as
+     * A new email is staged rather than applied (see
+     * `AuthService::requestEmailChange()`) so the response reports it as
      * pending and the account keeps its current address until the new mailbox
      * confirms.
      */
@@ -59,7 +59,7 @@ class UserController extends Controller
         return ApiResponse::success(
             ['user' => UserResource::make($user->fresh())],
             $emailChangeRequested
-                ? "Profile updated. Confirm the change from the link we sent to {$newEmail} — until then your sign-in address stays the same."
+                ? "Profile updated. Confirm the change from the link we sent to {$newEmail}: until then your sign-in address stays the same."
                 : 'User updated successfully.',
         );
     }

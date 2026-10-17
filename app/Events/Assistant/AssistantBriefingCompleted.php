@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
- * A report finished (or failed) — the owner's open home screen refreshes
+ * A report finished (or failed): the owner's open home screen refreshes
  * its Daily and Situations tabs. Sent on the assistant's owner-only channel.
  */
 class AssistantBriefingCompleted implements ShouldBroadcastNow

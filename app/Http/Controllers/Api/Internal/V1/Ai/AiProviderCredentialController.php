@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * A workspace's own AI provider keys (bring your own key) — see
+ * A workspace's own AI provider keys (bring your own key): see
  * `AiProviderCredential` and `ByokProviderRegistrar`. Every key is checked
  * with the provider before it is stored or replaced: one the provider
  * rejects is refused outright, while one the provider couldn't be reached
@@ -215,7 +215,7 @@ class AiProviderCredentialController extends Controller
 
     /**
      * Checks the key with the provider now. A failed check is a result, not
-     * an error — the response is 200 either way, with `ok` saying which.
+     * an error: the response is 200 either way, with `ok` saying which.
      */
     public function validateKey(Request $request, Workspace $workspace, AiProviderCredential $aiProviderCredential)
     {
@@ -251,7 +251,7 @@ class AiProviderCredentialController extends Controller
     }
 
     /**
-     * Another member's personal key is treated as if it doesn't exist —
+     * Another member's personal key is treated as if it doesn't exist:
      * hidden, not merely forbidden.
      */
     private function authorizeManage(Request $request, Workspace $workspace, AiProviderCredential $credential): void

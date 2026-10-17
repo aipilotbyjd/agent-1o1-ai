@@ -18,8 +18,8 @@ use Illuminate\Validation\Validator;
 /**
  * Validates a rule create (POST) or partial update (PATCH), then checks the
  * rule *as it would be saved* (input merged over the existing rule) makes
- * sense as a whole — a plan-time reward needs a plan and a length, a trial
- * extension can only go to the referred user, and so on — so no rule that
+ * sense as a whole (a plan-time reward needs a plan and a length, a trial
+ * extension can only go to the referred user, and so on) so no rule that
  * can never pay out can be saved.
  */
 class ReferralRewardRuleRequest extends FormRequest
@@ -100,7 +100,7 @@ class ReferralRewardRuleRequest extends FormRequest
     }
 
     /**
-     * Checks the rule as it would be saved — `$input` merged over `$rule` —
+     * Checks the rule as it would be saved (`$input` merged over `$rule`)
      * makes sense as a whole. Shared with the `referrals:rule` command.
      *
      * @param  array<string, mixed>  $input

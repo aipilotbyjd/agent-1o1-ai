@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\DB;
  * Personal/Team visibility and one-default-per-group for a stored
  * credential (`scope`, `is_default`, `created_by`, `workspace_id`). A team
  * credential is visible to every member allowed to see the resource; a
- * personal one only to whoever created it — hidden from every other
+ * personal one only to whoever created it: hidden from every other
  * member regardless of role, including owners/admins.
  *
- * The model says which column completes its default group — the connector
+ * The model says which column completes its default group: the connector
  * for a `ConnectorCredential`, the provider for an `AiProviderCredential`.
  */
 trait HasScopedVisibility
@@ -40,7 +40,7 @@ trait HasScopedVisibility
     /**
      * Marks this credential as the default for its (workspace, group column,
      * scope[, creator for a personal credential]) group, unsetting any
-     * sibling default in the same group first — at most one default per
+     * sibling default in the same group first, at most one default per
      * group at a time.
      */
     public function markAsDefault(): void

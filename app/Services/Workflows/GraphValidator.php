@@ -7,7 +7,7 @@ use App\Models\Workflows\WorkflowEdge;
 /**
  * Runs at both draft-save time (`Workflow::replaceGraph()`, config-schema
  * issues only, via `ConfigSchemaValidator` directly) and publish time
- * (`Workflow::publishVersion()`, the full sequence below) — see
+ * (`Workflow::publishVersion()`, the full sequence below): see
  * docs/WORKFLOWS_PLAN.md's "Validation" section. Checks run in order, later
  * ones skipped once an earlier one fails, since a dangling-edge graph makes
  * cycle/reachability checks meaningless.
@@ -63,7 +63,7 @@ class GraphValidator
         if ($entryKeys === []) {
             return [new ValidationIssue(
                 'Every step has a connection coming into it, so the workflow has nowhere to start.',
-                detail: 'The graph has no entry node — every node has an incoming edge.',
+                detail: 'The graph has no entry node; every node has an incoming edge.',
             )];
         }
 
@@ -84,13 +84,13 @@ class GraphValidator
     }
 
     /**
-     * The problems that make a graph impossible to even *store* — repeated
+     * The problems that make a graph impossible to even *store*: repeated
      * node keys and edges to nodes that aren't there both break
      * `workflow_nodes`/`workflow_edges` constraints. Every save path
      * (`Workflow::replaceGraph()`, `WorkflowBuilderSession::replaceDraft()`)
      * checks these even though a draft may otherwise be mid-edit, so a bad
      * payload is a 422 naming the problem rather than a constraint-violation
-     * 500. A repeated edge is not an error — see `uniqueEdges()`.
+     * 500. A repeated edge is not an error: see `uniqueEdges()`.
      *
      * @param  array<int, array<string, mixed>>  $nodes
      * @param  array<int, array<string, mixed>>  $edges
@@ -118,7 +118,7 @@ class GraphValidator
     }
 
     /**
-     * The edges with exact repeats — same `from`, `to` and `condition` —
+     * The edges with exact repeats (same `from`, `to` and `condition`)
      * dropped. A repeat changes nothing about how a run moves (a node is
      * only ever started once per run), and it sits exactly on top of its
      * twin on the canvas where nobody can see it to delete it, so saves
@@ -199,7 +199,7 @@ class GraphValidator
 
         foreach ($edges as $edge) {
             // A failure-only edge never advances a graph traversal used for
-            // cycle detection or reachability — it only fires when the
+            // cycle detection or reachability: it only fires when the
             // source has already failed, which is not a path a healthy run
             // takes.
             if ($edge['condition'] === WorkflowEdge::ERROR_CONDITION) {
@@ -254,7 +254,7 @@ class GraphValidator
     }
 
     /**
-     * An entry node is one with no incoming *healthy-path* edge — an
+     * An entry node is one with no incoming *healthy-path* edge: an
      * error-only edge doesn't disqualify a node from being an entry point,
      * since it's only reachable when something upstream has already failed.
      *
@@ -305,7 +305,7 @@ class GraphValidator
     }
 
     /**
-     * Nodes whose type doesn't exist at all — a typo, or a node type that
+     * Nodes whose type doesn't exist at all: a typo, or a node type that
      * was since removed. `Workflow::replaceGraph()` lets a draft hold one
      * (it only checks what it has a schema for); publishing must not, or
      * every run fails at that node. `custom:` nodes are the exception: they
@@ -344,16 +344,16 @@ class GraphValidator
             // interrupted, so promising a per-step timeout would be a lie.
             if (isset($node['config']['_options']['timeout_seconds'])) {
                 $errors[] = new ValidationIssue(
-                    "Per-step timeouts aren't supported — a running step can't be interrupted.",
+                    "Per-step timeouts aren't supported: a running step can't be interrupted.",
                     $node['key'],
-                    detail: "Node '{$node['key']}': _options.timeout_seconds is not supported — a running node cannot be interrupted.",
+                    detail: "Node '{$node['key']}': _options.timeout_seconds is not supported; a running node cannot be interrupted.",
                 );
             }
 
             // Flow-control types (loop, subflow, human_approval, wait, ...)
             // are checked against their catalog schemas like any other
-            // node. Types with no schema at all — `custom:` nodes and
-            // unknown types (reported by `unknownTypeErrors()`) — are skipped.
+            // node. Types with no schema at all (`custom:` nodes and
+            // unknown types (reported by `unknownTypeErrors()`)) are skipped.
             $schema = $this->registry->configSchemaFor($node['type']);
 
             if ($schema === null) {

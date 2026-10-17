@@ -107,7 +107,7 @@ class SkillController extends Controller
         }
 
         // A version bump is a signal to callers that an in-flight session's
-        // Skill context may have changed — bump it only when the instructions
+        // Skill context may have changed: bump it only when the instructions
         // actually change, not on cosmetic fields like color/icon. Set in the
         // same save as the edit; `version` isn't fillable.
         $skill->fill($request->validated());

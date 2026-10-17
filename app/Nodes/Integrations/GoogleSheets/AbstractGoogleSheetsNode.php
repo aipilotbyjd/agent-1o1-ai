@@ -11,7 +11,7 @@ use RuntimeException;
 
 /**
  * Shared request/error-handling for the Google Sheets node family. Resolves
- * the access token via `ResolvesConnectorCredential` — the same
+ * the access token via `ResolvesConnectorCredential`: the same
  * workspace-scoped `ConnectorCredential` (`gmail` connector, whose OAuth
  * scopes cover every Google product node) used by `AbstractGmailNode`.
  */
@@ -27,7 +27,7 @@ abstract class AbstractGoogleSheetsNode implements DeclaresEffect, NodeContract
     }
 
     /**
-     * `/spreadsheets/{id}/values/{range}` with both segments URL-encoded — a
+     * `/spreadsheets/{id}/values/{range}` with both segments URL-encoded: a
      * tab name may hold spaces, quotes or `#` (`'Q1 Sales'!A1:B2`). `!` and
      * `:` are left readable; Sheets accepts them either way.
      *

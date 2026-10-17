@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Every side-effecting tool call an agent makes — the approval queue and the
+ * Every side-effecting tool call an agent makes: the approval queue and the
  * action log in one table. A call that ran without asking is still recorded
  * (`outcome = allow`), so "what has this agent done" is one query, and rate
  * limits and trust suggestions are counted from the same rows.

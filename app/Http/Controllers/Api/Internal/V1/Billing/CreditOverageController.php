@@ -14,7 +14,7 @@ use App\Services\Billing\CreditOverage;
 /**
  * Gumloop's Subscription-page overage switch: whether the workspace keeps
  * running once its allowance is spent, and the ceiling on what that may
- * cost it. Read with `billing.view`, changed with `billing.manage` — the
+ * cost it. Read with `billing.view`, changed with `billing.manage`: the
  * same split the rest of the billing surface uses, since flipping this on
  * commits the workspace to a charge.
  */
@@ -63,7 +63,7 @@ class CreditOverageController extends Controller
     /**
      * `limit` is what the workspace chose (`null` = "whatever the default
      * is"), `effective_limit` what will actually be enforced, and
-     * `maximum_limit` the highest cap it may choose — the settings screen
+     * `maximum_limit` the highest cap it may choose: the settings screen
      * needs all three to render a slider that can't submit an invalid value.
      *
      * @return array{available: bool, enabled: bool, limit: int|null, effective_limit: int|null, maximum_limit: int|null, credits_used: int, credits_remaining: int|null, credit_value_usd: float}

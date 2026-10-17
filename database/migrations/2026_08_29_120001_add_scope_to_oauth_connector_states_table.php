@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Carries the requested `ConnectorCredentialScope` through the OAuth
  * round-trip, so `OAuthConnectorFlowService::handleCallback()` knows
- * whether to create a personal or team credential — the provider callback
+ * whether to create a personal or team credential: the provider callback
  * has no request body of its own to read it from.
  */
 return new class extends Migration

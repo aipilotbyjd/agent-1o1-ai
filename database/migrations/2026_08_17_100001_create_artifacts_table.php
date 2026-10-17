@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Files an agent produces during a session — versioned by `group_id` so a
+ * Files an agent produces during a session: versioned by `group_id` so a
  * re-generated file (e.g. an updated report) becomes a new row sharing the
  * same group rather than overwriting history.
  */

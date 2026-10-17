@@ -9,7 +9,7 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * Deletes a fact saved with `remember` — when the owner says it's wrong or
+ * Deletes a fact saved with `remember`, when the owner says it's wrong or
  * asks the assistant to forget it.
  */
 class ForgetTool extends AssistantTool

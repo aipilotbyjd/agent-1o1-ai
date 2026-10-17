@@ -12,7 +12,7 @@ use App\Services\Workflows\NodeRegistry;
 use LogicException;
 
 /**
- * Runs integration nodes for background reports — and only nodes that
+ * Runs integration nodes for background reports, and only nodes that
  * declare themselves read-only. A report can never send, change or delete
  * anything, even if a collector asked for the wrong node.
  */

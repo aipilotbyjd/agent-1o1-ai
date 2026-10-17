@@ -26,7 +26,7 @@ return new class extends Migration
             $table->index(['assistant_session_id', 'created_at']);
         });
 
-        // Self-reference added once the primary key exists — Postgres
+        // Self-reference added once the primary key exists: Postgres
         // rejects it inside the same CREATE.
         Schema::table('assistant_messages', function (Blueprint $table) {
             $table->foreign('compacted_into_id')->references('id')->on('assistant_messages')->nullOnDelete();

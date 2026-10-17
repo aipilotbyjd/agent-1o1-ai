@@ -11,7 +11,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 /**
  * A chat turn moved: started streaming, paused for approvals, finished or
- * failed. Anything but `running` is final for this stretch of the turn —
+ * failed. Anything but `running` is final for this stretch of the turn:
  * the chat swaps its live draft for the stored message (`message_id`) and,
  * for `awaiting_approval`, fetches the waiting actions
  * (`pending_action_ids`). `error` is a message that is safe to show; the

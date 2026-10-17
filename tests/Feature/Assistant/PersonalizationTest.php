@@ -65,7 +65,7 @@ it('puts tone and design notes in the instructions', function () {
 it('saves a preference the owner states in chat', function () {
     AssistantAgent::fake([
         new ToolCall('call_1', 'update_style', ['kind' => 'tone', 'notes' => '- Keep answers under 3 sentences.', 'reason' => 'Asked for shorter answers']),
-        'Got it — shorter answers from now on.',
+        'Got it: shorter answers from now on.',
     ]);
 
     app(AssistantLoop::class)->send($this->session, 'Please always keep answers short');
@@ -80,7 +80,7 @@ it('learns a lasting preference from a feedback comment', function () {
     Passport::actingAs($this->owner);
     $message = ($this->reply)();
 
-    $this->postJson("{$this->base}/sessions/{$this->session->id}/messages/{$message->id}/feedback", ['rating' => 'down', 'comment' => 'Too long — give me the summary first'])
+    $this->postJson("{$this->base}/sessions/{$this->session->id}/messages/{$message->id}/feedback", ['rating' => 'down', 'comment' => 'Too long: give me the summary first'])
         ->assertSuccessful();
 
     $feedback = AssistantFeedback::query()->sole();

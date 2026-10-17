@@ -9,7 +9,7 @@ use App\Services\Workflows\WorkflowInterface;
 use Illuminate\Http\Request;
 
 /**
- * The input contract a caller must satisfy to start this workflow — the same
+ * The input contract a caller must satisfy to start this workflow: the same
  * description the editor shows, so an external form or a generated client can
  * be built from it without anyone hand-documenting the payload.
  *

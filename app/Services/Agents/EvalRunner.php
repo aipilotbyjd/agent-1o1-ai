@@ -26,15 +26,15 @@ use Throwable;
  * conversation: cases must not be able to influence one another, or a suite's
  * result would depend on the order its cases happen to be in.
  *
- * **Cases execute for real, tools included.** That is the point — an eval of
+ * **Cases execute for real, tools included.** That is the point: an eval of
  * an agent whose tools were stubbed would grade a different agent than the
- * one in production — but it does mean a suite aimed at a tool-using agent
+ * one in production, but it does mean a suite aimed at a tool-using agent
  * can cause real side effects, exactly as chatting with that agent would.
  * Suites for such agents should be written against read-only prompts.
  *
  * The whole grading pass is recorded as one `Run` (`runnable_type =
  * AgentEvalRun`), which is what puts eval spend on the same ledger as
- * everything else — see `RecordRunCreditUsage`. A case's recorded usage
+ * everything else: see `RecordRunCreditUsage`. A case's recorded usage
  * includes its rubric judge's tokens, so judging is billed too.
  *
  * `start()` is the HTTP entry point: a suite makes one model call per case
@@ -119,7 +119,7 @@ class EvalRunner
                 );
             }
         } catch (Throwable $e) {
-            // Only something outside an individual case can land here — a
+            // Only something outside an individual case can land here: a
             // single case's failure is caught per case and recorded as a
             // failing result, since one broken case shouldn't discard the
             // evidence from all the others.
@@ -162,7 +162,7 @@ class EvalRunner
     }
 
     /**
-     * The credit gate runs here, before anything is queued — a workspace out
+     * The credit gate runs here, before anything is queued: a workspace out
      * of credits is refused at request time, not discovered by the job.
      */
     private function createEvalRun(AgentEvalSuite $suite, ?User $triggeredBy, EvalRunTrigger $trigger): AgentEvalRun
@@ -171,7 +171,7 @@ class EvalRunner
 
         return $suite->runs()->create([
             'workspace_id' => $suite->workspace_id,
-            // Records which behavior was graded — see the migration.
+            // Records which behavior was graded: see the migration.
             'agent_version_id' => $this->versioner->currentVersion($suite->agent)->id,
             'trigger' => $trigger,
             'triggered_by' => $triggeredBy?->id,
@@ -236,7 +236,7 @@ class EvalRunner
         foreach ($case->assertions ?? [] as $assertion) {
             $grade = $this->grader->grade($assertion, $answer['text'], $evalRun->suite->agent, $answer['tool_calls']);
 
-            // The judge's tokens are real spend on this case — fold them into
+            // The judge's tokens are real spend on this case: fold them into
             // the case's usage rather than storing them per assertion.
             if (isset($grade['usage'])) {
                 $usage = $this->addUsage($usage, $grade['usage']);
@@ -251,7 +251,7 @@ class EvalRunner
             'usage' => $usage,
             'assertions' => $graded,
             // A case with no assertions can't fail, but it also proves
-            // nothing — the API refuses to create one, so this only guards
+            // nothing: the API refuses to create one, so this only guards
             // against rows written before that rule existed.
             'passed' => ! in_array(false, array_column($graded, 'passed'), true),
         ])->save();

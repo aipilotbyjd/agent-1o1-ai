@@ -9,7 +9,7 @@ use Illuminate\Http\Client\PendingRequest;
 
 /**
  * Outlook mail folders, recent messages and upcoming events, via Microsoft
- * Graph. Pages are `$skip` offsets — never Graph's `@odata.nextLink`, which
+ * Graph. Pages are `$skip` offsets, never Graph's `@odata.nextLink`, which
  * is a full URL the client could swap for any other.
  */
 class OutlookOptions extends HttpOptionsSource

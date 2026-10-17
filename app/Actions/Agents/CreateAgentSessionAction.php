@@ -13,7 +13,7 @@ class CreateAgentSessionAction
 
     /**
      * The session is pinned to the agent's current version at creation, so
-     * every turn of this conversation runs the behavior it started with —
+     * every turn of this conversation runs the behavior it started with:
      * see `AgentSession::pinnedAgent()`.
      */
     public function execute(Agent $agent, ?User $user = null, ?string $title = null): AgentSession

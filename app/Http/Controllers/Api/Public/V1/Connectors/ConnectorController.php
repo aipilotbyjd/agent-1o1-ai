@@ -8,7 +8,7 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Connectors\Connector;
 
 /**
- * The connector catalog — global, not workspace-scoped, the same way the
+ * The connector catalog: global, not workspace-scoped, the same way the
  * internal catalog endpoint is. It tells an integrator which `connector_id`
  * to use and which `data` fields a credential for it needs.
  */

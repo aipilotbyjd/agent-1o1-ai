@@ -13,7 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Scheduled every minute (`routes/console.php`) — the durability net for a
+ * Scheduled every minute (`routes/console.php`): the durability net for a
  * `Wait` node whose `callback_expires_at` has passed with no callback
  * received, mirroring `RetryStuckEventsCommand`'s recovery pattern for
  * trigger events (docs/TRIGGERS_PLAN.md).

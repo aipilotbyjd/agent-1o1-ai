@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Credit overage — the opt-in that lets a workspace keep running once its
+ * Credit overage: the opt-in that lets a workspace keep running once its
  * plan allowance and top-up pool are both spent, billed after the fact at
  * `config('billing.credit_value_usd')` per credit.
  *

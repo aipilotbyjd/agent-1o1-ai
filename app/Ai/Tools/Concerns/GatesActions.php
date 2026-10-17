@@ -17,8 +17,8 @@ use Throwable;
 
 /**
  * Puts a tool behind an agent's approvals (`Services\Agents\Approvals`).
- * `ToolRegistry` attaches the guard; a tool built without one — directly in
- * a test, or anywhere outside an agent turn — runs exactly as it did before
+ * `ToolRegistry` attaches the guard; a tool built without one (directly in
+ * a test, or anywhere outside an agent turn) runs exactly as it did before
  * approvals existed.
  *
  * The using tool supplies three things: which of the request's arguments the
@@ -79,8 +79,8 @@ trait GatesActions
      * than thrown: an exception would end the whole turn, while the error
      * text ("channel_not_found", "credential has expired") is usually enough
      * for the model to fix its arguments and retry, or to tell the user what
-     * went wrong. Failures that must stop the turn itself — no credits left,
-     * a plan limit, a pause for approval — are still thrown.
+     * went wrong. Failures that must stop the turn itself (no credits left,
+     * a plan limit, a pause for approval) are still thrown.
      *
      * @param  Closure(array<string, mixed>): string  $execute  given the (possibly edited) model arguments
      */

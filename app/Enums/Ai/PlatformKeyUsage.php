@@ -4,7 +4,7 @@ namespace App\Enums\Ai;
 
 /**
  * When a workspace's AI calls may run on the platform's own keys (and so
- * cost token credits) — see `WorkspaceAiKeyPolicy`.
+ * cost token credits): see `WorkspaceAiKeyPolicy`.
  */
 enum PlatformKeyUsage: string
 {

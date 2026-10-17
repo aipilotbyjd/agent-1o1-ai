@@ -42,10 +42,10 @@ use Laravel\Ai\Tools\ToolNameResolver;
 use Throwable;
 
 /**
- * The Agent layer's engine entry point — mirrors `WorkflowRunner`'s role for
+ * The Agent layer's engine entry point: mirrors `WorkflowRunner`'s role for
  * the Workflow engine.
  *
- * One `Run` per turn (`runnable_type = AgentSession::class`) — a session's
+ * One `Run` per turn (`runnable_type = AgentSession::class`): a session's
  * `runs()` relation lists its full turn history, the same way a workflow's
  * `Run` list works. See docs/WORKFLOWS_PLAN.md's `runs` table note on why
  * agent invocations and workflow executions share one table. This turn's own
@@ -53,8 +53,8 @@ use Throwable;
  * `NodeContract::execute()` for any tool call made during it.
  *
  * A turn can stop partway on calls that need a person's approval (see
- * `Approvals\ActionGate`): it is then paused, not completed — its `Run`
- * waits in `awaiting_approval` — and `resume()` continues it once every
+ * `Approvals\ActionGate`): it is then paused, not completed (its `Run`
+ * waits in `awaiting_approval`) and `resume()` continues it once every
  * waiting call is decided.
  */
 class AgentRunner
@@ -81,7 +81,7 @@ class AgentRunner
 
     /**
      * `$skill` is one the person picked for this message; its instructions
-     * are added to this turn's prompt — see `SkillInjector::chosenSkillSection()`.
+     * are added to this turn's prompt: see `SkillInjector::chosenSkillSection()`.
      *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
@@ -103,7 +103,7 @@ class AgentRunner
     /**
      * Continues a turn that paused for approvals, once every waiting call
      * has a decision (`ResolveAgentActionsAction` checks that). The decided
-     * calls are settled first — approved ones run, exactly once — then the
+     * calls are settled first (approved ones run, exactly once) then the
      * model is handed the outcomes and carries on. It may finish, or pause
      * again on a new call that needs approval.
      *
@@ -127,7 +127,7 @@ class AgentRunner
     }
 
     /**
-     * `resume()`, delivered as a stream — see `streamBegun()` for who owns
+     * `resume()`, delivered as a stream: see `streamBegun()` for who owns
      * failure.
      */
     public function resumeStream(Run $run): StreamedTurn
@@ -145,8 +145,8 @@ class AgentRunner
 
     /**
      * Opens a turn that is delivered later, from the queue: everything
-     * `openTurn()` does that can be refused or needs the uploaded files —
-     * credit gate, the turn's `Run`, the user's message and its attachments —
+     * `openTurn()` does that can be refused or needs the uploaded files
+     * (credit gate, the turn's `Run`, the user's message and its attachments)
      * so the sender hears about a busy conversation or an empty balance
      * right away. The turn stays `running` until `RunAgentTurnJob` streams
      * it with `streamBegun()`.
@@ -159,7 +159,7 @@ class AgentRunner
     }
 
     /**
-     * Streams a turn `beginTurn()` opened — the provider call and the reply.
+     * Streams a turn `beginTurn()` opened: the provider call and the reply.
      * The caller iterates the returned `StreamableAgentResponse`
      * (`AgentTurnBroadcaster` does, inside `RunAgentTurnJob`) and the turn is
      * closed out by the `then()` callback registered here once the provider
@@ -167,7 +167,7 @@ class AgentRunner
      *
      * The caller owns failure: nothing runs until the stream is iterated, so
      * an exception surfaces *there*, not here, and whoever iterates must call
-     * `failTurn()` — otherwise the turn's `Run` would sit in `running`
+     * `failTurn()`, otherwise the turn's `Run` would sit in `running`
      * forever.
      */
     public function streamBegun(Run $run): StreamedTurn
@@ -221,7 +221,7 @@ class AgentRunner
 
     /**
      * The part of a turn that can be refused or needs the uploaded files:
-     * credit gate (before the turn's `Run` exists — a workspace out of
+     * credit gate (before the turn's `Run` exists: a workspace out of
      * credits is refused up front rather than after the model call is paid
      * for), the `Run`, the user's message and its attachments.
      *
@@ -254,7 +254,7 @@ class AgentRunner
 
     /**
      * The SDK agent for a turn whose `Run`, user message and attachments
-     * already exist — instructions, tools and model from the pinned version.
+     * already exist: instructions, tools and model from the pinned version.
      * Doesn't fail the run on an exception; the caller does.
      *
      * @param  array<int, Artifact>  $storedAttachments
@@ -262,7 +262,7 @@ class AgentRunner
     private function buildTurn(AgentSession $session, Run $run, AgentMessage $userMessage, array $storedAttachments, ?Skill $skill): AgentTurn
     {
         // The version the conversation was started against, not whatever the
-        // agent looks like right now — see `AgentSession::pinnedAgent()`.
+        // agent looks like right now: see `AgentSession::pinnedAgent()`.
         $agent = $session->pinnedAgent();
 
         $instructions = $this->autonomy->withNote($this->skillInjector->instructionsFor($agent, $run->triggered_by), $agent, $session);
@@ -294,7 +294,7 @@ class AgentRunner
 
     /**
      * The agent's model, on the workspace's own provider key where it has
-     * one for whoever started the run — see `ByokProviderRegistrar`.
+     * one for whoever started the run: see `ByokProviderRegistrar`.
      *
      * @return array{0: string|array<string, string>|null, 1: ?string}
      */
@@ -306,7 +306,7 @@ class AgentRunner
     }
 
     /**
-     * Keeps what this turn is sent on its `Run` — see the `agent_context`
+     * Keeps what this turn is sent on its `Run`: see the `agent_context`
      * migration. A resumed turn is rebuilt from the same pinned version, so
      * the context recorded when it opened still describes it.
      *
@@ -326,7 +326,7 @@ class AgentRunner
 
     /**
      * Creates the turn's `Run`, refusing while another turn on the same
-     * session is still in flight — two interleaved turns would each build
+     * session is still in flight: two interleaved turns would each build
      * their context from a transcript the other is halfway through writing.
      * The lock only covers check-and-create; the `running` run itself is
      * what holds the session for the length of the turn.
@@ -366,8 +366,8 @@ class AgentRunner
 
     /**
      * Stores each attached file as an `Artifact` on `$userMessage`. Every
-     * file starts its own artifact group — attaching `report.pdf` twice is
-     * two attachments, not a second version of the first — and none is
+     * file starts its own artifact group (attaching `report.pdf` twice is
+     * two attachments, not a second version of the first) and none is
      * indexed into the agent's shared knowledge (`searchable: false`).
      *
      * @param  array<int, UploadedFile>  $files
@@ -438,7 +438,7 @@ class AgentRunner
     /**
      * Parks the turn until its waiting calls are decided: the reply so far
      * is kept with what resuming needs (`PausedTurn`), the calls are linked
-     * to it, and the turn's `Run` waits in `awaiting_approval` — not
+     * to it, and the turn's `Run` waits in `awaiting_approval`, not
      * `running`, so it neither blocks the conversation nor gets failed as
      * stuck, and isn't billed until it finishes.
      */
@@ -571,7 +571,7 @@ class AgentRunner
      * Folds the resumed part of the turn into the message it paused on: the
      * settled calls' outcomes, any new calls and results, the rest of the
      * reply, and the combined usage. A result the SDK reports for a call
-     * this turn already settled is ignored — the settled one is what really
+     * this turn already settled is ignored: the settled one is what really
      * happened.
      */
     private function mergeResumed(Resumption $resumption, AgentResponse $response): AgentMessage
@@ -612,7 +612,7 @@ class AgentRunner
     /**
      * Closes out every turn in this conversation still waiting on approvals:
      * the waiting calls are cancelled and the turn completes with the reply
-     * it had, billed for what it used. Called when a new message arrives —
+     * it had, billed for what it used. Called when a new message arrives:
      * the person has moved on.
      */
     public function abandonPausedTurns(AgentSession $session): void
@@ -679,7 +679,7 @@ class AgentRunner
 
     /**
      * Marks a turn's `Run` failed. Public because a streamed turn fails in
-     * the caller's loop rather than inside this class — see `streamBegun()`.
+     * the caller's loop rather than inside this class: see `streamBegun()`.
      * Idempotent, so a caller that fails a turn the SDK already closed out
      * can't overwrite a completed run.
      */
@@ -700,7 +700,7 @@ class AgentRunner
 
     /**
      * A single, stateless prompt against `$agent` with no history and no
-     * conversation of its own — what `EvalRunner` calls for a graded eval
+     * conversation of its own: what `EvalRunner` calls for a graded eval
      * case, where each case is meant to be a fresh, independent turn.
      * `$run` is the *calling* run (an eval run's own `Run`, not a fresh
      * per-turn one), and is the execution context any attached tool call
@@ -708,7 +708,7 @@ class AgentRunner
      * `NodeTool::handle()`.
      *
      * `$simulateActions` simulates every call that would change something,
-     * as Test run does — for runs nobody is watching, such as the eval runs
+     * as Test run does, for runs nobody is watching, such as the eval runs
      * `RunEvalsOnAgentChangeJob` starts. `tool_calls` lists the names of the
      * tools the answer called, in order, so an eval can check them.
      *
@@ -732,18 +732,18 @@ class AgentRunner
     }
 
     /**
-     * What `Nodes\AiAutomation\AgentNode` calls during a workflow run — see
+     * What `Nodes\AiAutomation\AgentNode` calls during a workflow run: see
      * docs/gumloop/output/raw/core-concepts/agent_node.md's "Node Inputs"/
      * "Node Outputs"/"Continuing Conversations" sections. Unlike `ask()`,
      * this turn is persisted as a real `AgentSession`/`AgentMessage` pair so
-     * a later Agent-node call can continue it via `$previousConversationId`
-     * — started fresh when that's null, otherwise loaded and validated
+     * a later Agent-node call can continue it via `$previousConversationId`:
+     * started fresh when that's null, otherwise loaded and validated
      * against `$agent` and `$run`'s workspace.
      *
      * Deliberately creates no `Run` of its own and never fires
      * `RunCompleted`: this call's tokens are already billed as part of the
-     * calling workflow node's own `NodeRun.usage` (`CreditMeter::costForNodeRun`)
-     * — billing them again under `AgentStep` would double-charge the same
+     * calling workflow node's own `NodeRun.usage` (`CreditMeter::costForNodeRun`):
+     * billing them again under `AgentStep` would double-charge the same
      * tokens. `AgentMessage.usage` is still recorded, purely so the turn's
      * cost is visible when inspecting the conversation later.
      *
@@ -795,7 +795,7 @@ class AgentRunner
     }
 
     /**
-     * Continues an Agent node's conversation that paused for approvals —
+     * Continues an Agent node's conversation that paused for approvals:
      * the embedded counterpart of `resume()`. `$run` is the workflow run
      * the node belongs to, which the calls ran against. Throws
      * `AgentTurnPausedException` again if the agent stops on another call
@@ -863,7 +863,7 @@ class AgentRunner
     }
 
     /**
-     * Loads and validates a conversation to continue — it must exist, in
+     * Loads and validates a conversation to continue: it must exist, in
      * the calling run's own workspace, for this same `$agent`. A session
      * belongs to exactly one agent (`AgentSession::pinnedAgent()`), so
      * continuing it with a different agent selected on the node wouldn't

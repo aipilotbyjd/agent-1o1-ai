@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('source');
             $table->string('status')->default('queued');
 
-            // No FK yet — workflow_runs doesn't exist until the workflow engine ships
+            // No FK yet: workflow_runs doesn't exist until the workflow engine ships
             // (docs/WORKFLOWS_PLAN.md). Column is real; constraint follows.
             $table->uuid('workflow_run_id')->nullable();
 

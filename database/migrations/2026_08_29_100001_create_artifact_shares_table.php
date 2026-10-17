@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Explicit per-user grants on an artifact group, checked when the group's
- * `general_access` is `restricted` — see `Artifact::isAccessibleBy()`.
+ * `general_access` is `restricted`: see `Artifact::isAccessibleBy()`.
  * Keyed by `group_id` rather than `artifact_id` so a share applies to every
  * version, not just the one it was granted on.
  */

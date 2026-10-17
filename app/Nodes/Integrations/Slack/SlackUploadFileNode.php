@@ -12,7 +12,7 @@ use RuntimeException;
  * Ported against Slack's classic `files.upload` endpoint (multipart, one
  * request) rather than the newer three-step external-upload flow, since no
  * file storage/`Artifact` abstraction exists yet to source a real file from
- * (docs/PLAN.md's `Artifact` entry is still a plan) — `content` is raw text
+ * (docs/PLAN.md's `Artifact` entry is still a plan): `content` is raw text
  * passed straight through as the file body.
  */
 class SlackUploadFileNode extends AbstractSlackNode

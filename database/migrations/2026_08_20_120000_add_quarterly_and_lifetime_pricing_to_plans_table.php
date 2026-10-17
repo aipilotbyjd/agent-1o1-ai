@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  * Checkout Session (see `Actions\Billing\CheckoutLifetimePlanAction`).
  *
  * A null `stripe_price_id_*` means the plan simply isn't sold on that
- * interval — `Plan::availableIntervals()` reads exactly that, so the Free
+ * interval: `Plan::availableIntervals()` reads exactly that, so the Free
  * plan offering nothing needs no extra flag.
  */
 return new class extends Migration

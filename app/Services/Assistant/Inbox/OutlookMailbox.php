@@ -15,7 +15,7 @@ use RuntimeException;
  * Smart Inbox's Outlook access through Microsoft Graph. Outlook has
  * categories instead of labels: a category is named on the message, so its
  * name is its id. Archiving moves the message to the Archive folder. Like
- * Gmail, it has no way to send mail — drafts only.
+ * Gmail, it has no way to send mail: drafts only.
  */
 class OutlookMailbox implements Mailbox
 {

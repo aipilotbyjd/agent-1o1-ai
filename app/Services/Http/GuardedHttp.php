@@ -41,7 +41,7 @@ class GuardedHttp
     /**
      * @param  array<string, mixed>  $headers
      * @param  array<string, mixed>|null  $json  Sent as the JSON body; `null` sends no body.
-     * @param  array<string, mixed>  $query  Merged into the first request only — a redirect target already carries its own query.
+     * @param  array<string, mixed>  $query  Merged into the first request only: a redirect target already carries its own query.
      */
     public function send(
         string $method,
@@ -77,7 +77,7 @@ class GuardedHttp
                 );
             }
 
-            // 303 always, and 301/302 for anything but GET/HEAD, become a body-less GET — what browsers do.
+            // 303 always, and 301/302 for anything but GET/HEAD, become a body-less GET: what browsers do.
             if ($response->status() === 303 || (in_array($response->status(), [301, 302], true) && ! in_array($method, ['GET', 'HEAD'], true))) {
                 $method = $method === 'HEAD' ? 'HEAD' : 'GET';
                 $json = null;

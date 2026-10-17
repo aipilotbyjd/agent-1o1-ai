@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
  * Verifies that admin alert delivery is wired correctly in an environment
  * without waiting for a real condition to occur. Uses a random throttle key so
  * it can be run repeatedly, and reports which destinations the chosen severity
- * actually resolves to — a severity routed only to destinations that have no
+ * actually resolves to: a severity routed only to destinations that have no
  * URL configured sends nothing, which is exactly what this surfaces.
  */
 class TestAdminAlertCommand extends Command

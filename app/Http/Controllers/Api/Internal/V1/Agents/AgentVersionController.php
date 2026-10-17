@@ -14,7 +14,7 @@ use App\Services\Agents\AgentVersioner;
 
 /**
  * An agent's behavioral history. Versions are written by `AgentObserver`
- * rather than created here — there is no endpoint to mint one by hand,
+ * rather than created here: there is no endpoint to mint one by hand,
  * because a version that doesn't correspond to a real edit would make the
  * history lie.
  *
@@ -49,7 +49,7 @@ class AgentVersionController extends Controller
 
     /**
      * Restoring rolls the agent's behavior back *forward*: it produces a new
-     * version rather than deleting the ones in between — see
+     * version rather than deleting the ones in between: see
      * `AgentVersioner::restore()`.
      */
     public function restore(Workspace $workspace, Agent $agent, int $version)

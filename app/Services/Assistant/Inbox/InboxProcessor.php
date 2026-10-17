@@ -25,8 +25,8 @@ use Throwable;
 /**
  * Smart Inbox, one check: every new inbox email is classified once against
  * the owner's labels, labelled in the mailbox, moved out of the inbox only
- * when every label it got says so ("keep wins"), and — when it wants a
- * reply — answered with a draft in the owner's voice. It never sends.
+ * when every label it got says so ("keep wins"), and (when it wants a
+ * reply) answered with a draft in the owner's voice. It never sends.
  */
 class InboxProcessor
 {
@@ -230,7 +230,7 @@ class InboxProcessor
     }
 
     /**
-     * Not for mailers or no-reply senders, and — by default — only for people
+     * Not for mailers or no-reply senders, and (by default) only for people
      * the owner has written to before or who share their work domain.
      */
     private function worthDrafting(AssistantInboxConfig $config, Mailbox $mailbox, MailMessage $message): bool
@@ -277,8 +277,8 @@ class InboxProcessor
         $prompt = <<<PROMPT
             You draft {$person}'s reply to one email, written as {$person} in the first person. {$person} will review and send it themselves.
             should_reply: false if the email only shares information, is automated, or the ask isn't aimed at {$person}.
-            confident: true only if you can answer well from the email, its thread and {$person}'s past replies — not when it needs facts, decisions or commitments you don't have. When not confident, still write your best draft.
-            body: only the reply text — no subject, no quoted email, no placeholder brackets. Match the tone and length of {$person}'s past replies.
+            confident: true only if you can answer well from the email, its thread and {$person}'s past replies, not when it needs facts, decisions or commitments you don't have. When not confident, still write your best draft.
+            body: only the reply text; no subject, no quoted email, no placeholder brackets. Match the tone and length of {$person}'s past replies.
             PROMPT;
 
         if (filled($config->drafting_instructions)) {

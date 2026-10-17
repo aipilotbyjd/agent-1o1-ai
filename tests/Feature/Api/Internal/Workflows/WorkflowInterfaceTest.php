@@ -45,7 +45,7 @@ it('derives an interface from the graphs input references', function () {
     $fields = collect($response->json('data.interface.fields'))->keyBy('key');
 
     // `mapping` values are dot-paths, not templates, so only templated
-    // references are derived — endpoint and trace, not customer_name.
+    // references are derived: endpoint and trace, not customer_name.
     expect($fields->keys()->sort()->values()->all())->toBe(['endpoint', 'trace']);
     expect($fields['endpoint']['type'])->toBe('string');
     // `{{ input.trace.id }}` means the run input needs a `trace` object.

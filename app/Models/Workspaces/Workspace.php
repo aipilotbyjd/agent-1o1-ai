@@ -264,7 +264,7 @@ class Workspace extends Model
     }
 
     /**
-     * The subscription whose plan currently entitles this workspace —
+     * The subscription whose plan currently entitles this workspace:
      * `null` unless Cashier considers it `valid()` (active, on trial, or on
      * its grace period). Cashier's `subscription()` returns the row whatever
      * its status, so reading entitlements straight off it would keep a
@@ -281,7 +281,7 @@ class Workspace extends Model
      * The plan whose credits and limits apply right now, resolved from two
      * independent sources: an active `PlanGrant` (a lifetime purchase or a
      * comp) and a valid Cashier subscription. When a workspace holds both,
-     * the *more generous* of the two applies — a lifetime Starter holder who
+     * the *more generous* of the two applies: a lifetime Starter holder who
      * later subscribes to Pro must not be silently downgraded to what they
      * bought outright, and a Pro subscriber who buys a lifetime Starter must
      * not lose their Pro allowance. Falls back to the configured default
@@ -289,7 +289,7 @@ class Workspace extends Model
      * tier and not an unmetered one.
      */
     /**
-     * Whether changes must be reviewed before they go live — the admin's
+     * Whether changes must be reviewed before they go live: the admin's
      * switch, honoured only while the plan includes approvals. A lapsed plan
      * quietly lifts the rule rather than locking every workflow.
      */
@@ -314,7 +314,7 @@ class Workspace extends Model
     }
 
     /**
-     * The workspace's non-subscription entitlement, if any — a lifetime
+     * The workspace's non-subscription entitlement, if any: a lifetime
      * purchase, a comp, or time earned through referrals. When a workspace
      * holds several the *most generous* wins, newest breaking a tie: a
      * lifetime Pro holder who earns a month of referral Starter must not be
@@ -335,7 +335,7 @@ class Workspace extends Model
     }
 
     /**
-     * Finds (or creates) the `UsagePeriod` covering right now — a plain
+     * Finds (or creates) the `UsagePeriod` covering right now: a plain
      * calendar month until Stripe billing-cycle-aligned periods are wired.
      * `credits_limit` is sized off `currentPlan()`, so an unsubscribed
      * workspace lands on the Free plan's allowance instead of an unlimited
@@ -375,7 +375,7 @@ class Workspace extends Model
 
     /**
      * Percentages of this period's allowance at which the workspace wants to
-     * be told it is running low — Gumloop's Credit Usage Notifications,
+     * be told it is running low: Gumloop's Credit Usage Notifications,
      * defaulting to 75% and 90%.
      *
      * `null` means the workspace never chose, so the estate default applies.

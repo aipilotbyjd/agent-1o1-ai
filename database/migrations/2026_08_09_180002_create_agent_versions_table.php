@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Schema only for now — no publish-time snapshot logic yet (deferred until
+ * Schema only for now: no publish-time snapshot logic yet (deferred until
  * an `AgentSession` needs to pin its behavior the way a `Run` pins to a
  * `WorkflowVersion`). See docs/AGENTS_PLAN.md's `agent_versions` note on why
  * this is built now rather than retrofitted later.

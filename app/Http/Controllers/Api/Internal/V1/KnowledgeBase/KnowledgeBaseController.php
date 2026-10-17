@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
  * is chunked, embedded, and stored in `document_embeddings`, which
  * `ToolRegistry` turns into a `SearchKnowledgeTool` for every agent in the
  * workspace as soon as a single chunk exists. The per-agent, always-injected
- * counterpart is `AgentKnowledgeController` — see docs/AGENTS_PLAN.md's
+ * counterpart is `AgentKnowledgeController`: see docs/AGENTS_PLAN.md's
  * "Knowledge / RAG" section for why both exist.
  *
  * Every member can also keep private knowledge here (their Brain): chunks
@@ -58,7 +58,7 @@ class KnowledgeBaseController extends Controller
 
     /**
      * Collections are just a string column, so the catalog is derived rather
-     * than stored — this is what a picker needs to offer the existing ones.
+     * than stored: this is what a picker needs to offer the existing ones.
      * Agents' own exported-artifact collections are internal and left out.
      */
     public function collections(Request $request, Workspace $workspace)
@@ -88,8 +88,8 @@ class KnowledgeBaseController extends Controller
      * embedded during the request; longer text is queued (202), since
      * embedding a multi-megabyte file outlasts an HTTP request.
      *
-     * Ingesting a `source` that already exists in the collection replaces it
-     * — re-uploading a revised file never duplicates its chunks.
+     * Ingesting a `source` that already exists in the collection replaces it:
+     * re-uploading a revised file never duplicates its chunks.
      */
     public function store(IngestKnowledgeRequest $request, Workspace $workspace, CreditGate $creditGate)
     {
@@ -130,7 +130,7 @@ class KnowledgeBaseController extends Controller
     /**
      * Runs the exact retrieval `Ai\Tools\ReadKnowledgeDocumentTool` would,
      * so a workspace can preview a document's full text without starting a
-     * conversation — the "read document" counterpart to `search()`.
+     * conversation: the "read document" counterpart to `search()`.
      */
     public function document(ReadKnowledgeDocumentRequest $request, Workspace $workspace)
     {
@@ -179,7 +179,7 @@ class KnowledgeBaseController extends Controller
     }
 
     /**
-     * Removes a whole document — every chunk sharing a source — so a file
+     * Removes a whole document (every chunk sharing a source) so a file
      * can be taken out without deleting its collection. With `private`, only
      * the member's own copy is removed; otherwise only the shared one.
      */
@@ -228,7 +228,7 @@ class KnowledgeBaseController extends Controller
 
             // An agent left attached to a collection that no longer exists
             // would keep a search tool scoped to nothing instead of falling
-            // back to the workspace — detach it along with the data. Agents
+            // back to the workspace: detach it along with the data. Agents
             // only ever see shared knowledge, so a private delete leaves them be.
             if ($deleted > 0 && ! $private) {
                 AgentKnowledgeCollection::query()

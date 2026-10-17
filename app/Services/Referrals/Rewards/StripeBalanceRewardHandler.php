@@ -7,7 +7,7 @@ use App\Services\Billing\StripeCustomerBalance;
 
 /**
  * Money off the workspace's next Stripe invoice. How a paying subscriber
- * gets a "free month" that a plan-time grant couldn't give them — no cash
+ * gets a "free month" that a plan-time grant couldn't give them: no cash
  * ever leaves the business.
  */
 class StripeBalanceRewardHandler implements RewardHandler

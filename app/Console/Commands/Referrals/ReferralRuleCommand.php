@@ -88,7 +88,7 @@ class ReferralRuleCommand extends Command
     private function update(ReferralAdmin $admin, ReferralRuleDescriber $describer, ReferralRewardRule $rule): int
     {
         if ($this->option('set') === []) {
-            $this->error('Nothing to change — pass one or more --set key=value.');
+            $this->error('Nothing to change: pass one or more --set key=value.');
 
             return self::FAILURE;
         }

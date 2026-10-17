@@ -51,7 +51,7 @@ final class ApiResponse
 
     /**
      * The cursor-paginated counterpart of `paginated()`, for collections that
-     * can't be counted or offset — Stripe's invoice list being the case that
+     * can't be counted or offset: Stripe's invoice list being the case that
      * introduced it. There is no `total` or `last_page` because the upstream
      * API doesn't report one; the client walks the cursors instead.
      */

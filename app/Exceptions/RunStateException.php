@@ -5,7 +5,7 @@ namespace App\Exceptions;
 use RuntimeException;
 
 /**
- * Thrown when a `Run` is asked to do something its current status forbids —
+ * Thrown when a `Run` is asked to do something its current status forbids:
  * cancelling an already-finished run, retrying one that is still in flight,
  * retrying from a node key the run never had. Mapped to a 409 in
  * `bootstrap/app.php`: the request itself is well-formed, it is the
@@ -20,17 +20,17 @@ class RunStateException extends RuntimeException
 
     public static function stillRunning(): self
     {
-        return new self('The run is still in flight — cancel it before retrying.');
+        return new self('The run is still in flight: cancel it before retrying.');
     }
 
     public static function sessionBusy(): self
     {
-        return new self('This conversation is still answering the previous message — wait for it to finish.');
+        return new self('This conversation is still answering the previous message: wait for it to finish.');
     }
 
     public static function notAwaitingApproval(): self
     {
-        return new self('This turn is not waiting on any approvals — it may already have been resumed.');
+        return new self('This turn is not waiting on any approvals: it may already have been resumed.');
     }
 
     public static function approvalsUndecided(): self

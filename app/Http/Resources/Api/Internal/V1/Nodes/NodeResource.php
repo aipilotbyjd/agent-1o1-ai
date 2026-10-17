@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * A workspace-authored node (`CustomNode`). Built-in nodes never reach this
- * class — `NodeController::index()` renders `NodeRegistry::catalog()`'s
+ * class: `NodeController::index()` renders `NodeRegistry::catalog()`'s
  * plain arrays directly, since they have no Eloquent row to wrap.
  *
  * @mixin CustomNode

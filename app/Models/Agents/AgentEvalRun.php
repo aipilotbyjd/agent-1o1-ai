@@ -20,11 +20,11 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * One execution of a suite. Like `AgentSession`, this is a `runnable`
  * (`runs.runnable_type = AgentEvalRun::class`) so grading shows up in the
  * workspace's run list and is metered through the same ledger as everything
- * else — an eval that quietly called a model twenty times without appearing
+ * else: an eval that quietly called a model twenty times without appearing
  * anywhere would be the one kind of spend nobody could account for.
  *
  * `status`/`passed`/`failed`/`regressed`/timestamps are written by `EvalRunner`, not
- * mass-assigned — same convention as `Run` and `NodeRun`.
+ * mass-assigned: same convention as `Run` and `NodeRun`.
  */
 #[Fillable(['workspace_id', 'agent_eval_suite_id', 'agent_version_id', 'trigger', 'triggered_by'])]
 class AgentEvalRun extends Model
@@ -70,7 +70,7 @@ class AgentEvalRun extends Model
     }
 
     /**
-     * The agent behavior that was graded — see the migration's docblock.
+     * The agent behavior that was graded: see the migration's docblock.
      */
     public function agentVersion(): BelongsTo
     {

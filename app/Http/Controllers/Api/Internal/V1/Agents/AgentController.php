@@ -41,7 +41,7 @@ class AgentController extends Controller
 
     /**
      * An agent created without a model starts on the workspace's default
-     * model, when one is set — see `WorkspaceModels`.
+     * model, when one is set: see `WorkspaceModels`.
      */
     public function store(StoreAgentRequest $request, Workspace $workspace, PlanLimitGate $limits, WorkspaceModels $models)
     {
@@ -77,7 +77,7 @@ class AgentController extends Controller
     }
 
     /**
-     * Configuration only — see `DuplicateAgentAction` for what a copy does
+     * Configuration only: see `DuplicateAgentAction` for what a copy does
      * and doesn't carry over.
      */
     public function duplicate(DuplicateAgentRequest $request, Workspace $workspace, Agent $agent, DuplicateAgentAction $duplicate)
@@ -101,7 +101,7 @@ class AgentController extends Controller
     }
 
     /**
-     * `destroy` only soft-deletes, so the trash is every trashed agent —
+     * `destroy` only soft-deletes, so the trash is every trashed agent:
      * most recently trashed first.
      */
     public function trash(Workspace $workspace)

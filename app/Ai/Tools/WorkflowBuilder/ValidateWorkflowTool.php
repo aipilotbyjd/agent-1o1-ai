@@ -20,7 +20,7 @@ class ValidateWorkflowTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Check the current draft for problems that would stop it being published — cycles, unreachable nodes, dangling edges, and missing or mistyped config. Call this before telling the user the workflow is ready.';
+        return 'Check the current draft for problems that would stop it being published: cycles, unreachable nodes, dangling edges, and missing or mistyped config. Call this before telling the user the workflow is ready.';
     }
 
     public function handle(Request $request): Stringable|string

@@ -10,7 +10,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Workflows\NodeOptions\NodeOptionsService;
 
 /**
- * The live choices for one node field's dropdown — see `NodeOptionsService`.
+ * The live choices for one node field's dropdown: see `NodeOptionsService`.
  * Needs connector access as well as node access, since most lists are read
  * through a connected account.
  */

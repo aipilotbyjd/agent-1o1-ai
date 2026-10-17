@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The latest QA grading of one `AgentSession` — see
+ * The latest QA grading of one `AgentSession`: see
  * `Services\Agents\SessionEvaluator`. Unique on `agent_session_id`: a
  * session that continues after being graded and completes again produces a
  * new evaluation that *replaces* the old one, same as Gumloop's "you always

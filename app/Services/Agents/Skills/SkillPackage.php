@@ -3,7 +3,7 @@
 namespace App\Services\Agents\Skills;
 
 /**
- * One skill read from a repository folder — see `SkillPackageParser`.
+ * One skill read from a repository folder: see `SkillPackageParser`.
  */
 final readonly class SkillPackage
 {

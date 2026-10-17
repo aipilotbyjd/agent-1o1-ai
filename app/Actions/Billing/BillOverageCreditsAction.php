@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Turns accrued overage into a Stripe invoice — the second half of
+ * Turns accrued overage into a Stripe invoice: the second half of
  * Gumloop's "keep running past your monthly credits, billed at $0.005 per
  * credit". Overage is metered as it is spent (`DeductCreditsAction` writes
  * `usage_periods.overage_credits_used`) and charged after the fact, because
@@ -54,8 +54,8 @@ class BillOverageCreditsAction
 
     /**
      * Bills the unbilled overage of all `$periods` as one invoice. Returns
-     * `null` when there is nothing to do — no unbilled overage, or too little
-     * of it, in total, to be worth an invoice — so a caller can tell "billed
+     * `null` when there is nothing to do (no unbilled overage, or too little
+     * of it, in total, to be worth an invoice) so a caller can tell "billed
      * nothing" from "billed zero credits".
      *
      * @param  Collection<int, UsagePeriod>  $periods
@@ -163,7 +163,7 @@ class BillOverageCreditsAction
     }
 
     /**
-     * Settles attempts that were still pending long after they started — the
+     * Settles attempts that were still pending long after they started: the
      * process died between claiming the credits and recording the outcome.
      */
     private function reconcileInterruptedAttempts(Workspace $workspace): void
@@ -190,8 +190,8 @@ class BillOverageCreditsAction
     }
 
     /**
-     * Claims what can be claimed under each period's row lock — so two
-     * concurrent runs can't invoice the same overage twice — and records the
+     * Claims what can be claimed under each period's row lock (so two
+     * concurrent runs can't invoice the same overage twice) and records the
      * attempt in the same transaction. Returns `null` when too little was
      * left to claim to be worth an invoice.
      *

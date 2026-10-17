@@ -82,5 +82,5 @@ it('rejects a per-step timeout it cannot enforce', function () {
         [],
     );
 
-    expect($errors)->toContain("Node 'a': _options.timeout_seconds is not supported — a running node cannot be interrupted.");
+    expect($errors)->toContain("Node 'a': _options.timeout_seconds is not supported; a running node cannot be interrupted.");
 });

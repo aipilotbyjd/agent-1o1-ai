@@ -18,14 +18,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * A workspace's own API key for one AI provider (bring your own key). It
- * covers every catalog model routed through `execution_provider` — the same
- * string `model_routes.execution_provider` and `config/ai.php` use — never
+ * covers every catalog model routed through `execution_provider` (the same
+ * string `model_routes.execution_provider` and `config/ai.php` use) never
  * a single model. `ByokProviderRegistrar` puts a valid key in front of the
  * platform's own key whenever a call is made on the workspace's behalf.
  *
  * `data` (`{api_key}`) is encrypted at rest and `#[Hidden]`; `key_hint` is
  * the masked form the UI shows instead. Personal/Team visibility and the
- * per-group default work exactly as for `ConnectorCredential` — see
+ * per-group default work exactly as for `ConnectorCredential`: see
  * `HasScopedVisibility`.
  */
 #[Fillable(['workspace_id', 'created_by', 'execution_provider', 'scope', 'is_default', 'name', 'data', 'key_hint', 'validation_status', 'validation_message', 'last_validated_at', 'last_used_at'])]

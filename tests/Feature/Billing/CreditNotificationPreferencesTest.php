@@ -131,7 +131,7 @@ it('silences the out-of-credits notification when the workspace turns it off', f
 
     Notification::assertNotSentTo($workspace->owner, CreditsExhaustedNotification::class);
 
-    // The operator still hears about a blocked tenant — that switch is the
+    // The operator still hears about a blocked tenant: that switch is the
     // customer's, not theirs.
     Notification::assertSentOnDemand(AdminAlertNotification::class);
 });

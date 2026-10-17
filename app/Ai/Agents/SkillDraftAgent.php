@@ -11,7 +11,7 @@ use Laravel\Ai\ToolChoice;
 
 /**
  * Turns a plain-language request ("how we triage support tickets") into a
- * starting skill — instructions, references and scripts — answering only
+ * starting skill (instructions, references and scripts) answering only
  * through `SubmitSkillDraftTool`.
  */
 #[ToolChoice(ToolChoice::tool, SubmitSkillDraftTool::NAME)]

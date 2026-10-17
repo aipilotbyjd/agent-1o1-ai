@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 
 /**
  * Reminds a workspace a few days (`referrals.plan_time_ending_notice_days`)
- * before its earned referral plan time runs out — the moment to subscribe.
+ * before its earned referral plan time runs out: the moment to subscribe.
  * Each grant is reminded once; extending it clears the stamp.
  */
 class NotifyReferralPlanTimeEndingCommand extends Command

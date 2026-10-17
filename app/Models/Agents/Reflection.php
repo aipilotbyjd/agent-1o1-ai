@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One proposed improvement — see the migration's docblock. `status` and
- * `applied_run_id` are engine-managed — written by
+ * One proposed improvement: see the migration's docblock. `status` and
+ * `applied_run_id` are engine-managed: written by
  * `Services\Agents\ReflectionApplier` via `forceFill()`, never mass-assigned,
  * so a client can't mark its own suggestion "applied" without the apply
  * actually having happened.

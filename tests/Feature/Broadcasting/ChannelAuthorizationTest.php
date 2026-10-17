@@ -11,7 +11,7 @@ use Laravel\Passport\Passport;
 
 /*
  * Drives the real `/api/broadcasting/auth` endpoint, so the closures in
- * `routes/channels.php` run too — `WorkspaceChannelGate` alone is covered by
+ * `routes/channels.php` run too: `WorkspaceChannelGate` alone is covered by
  * RunBroadcastingTest. The `reverb` driver is the one that actually evaluates
  * channel callbacks; the default test driver does not.
  */

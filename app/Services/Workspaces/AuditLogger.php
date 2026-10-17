@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Writes the workspace audit trail.
  *
- * The actor is whoever the current request belongs to — the signed-in user,
- * or the API key on the public API — and `system` outside a request (queue
+ * The actor is whoever the current request belongs to (the signed-in user,
+ * or the API key on the public API) and `system` outside a request (queue
  * jobs, webhooks, console). The request is resolved per call, not injected:
  * the router caches controller instances, so anything held from a constructor
  * would describe whichever request built it first.
@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 class AuditLogger
 {
     /**
-     * @param  array<string, mixed>  $metadata  Names and ids only — never a secret value.
+     * @param  array<string, mixed>  $metadata  Names and ids only, never a secret value.
      */
     public function record(string $workspaceId, AuditAction $action, ?Model $subject = null, array $metadata = []): AuditLog
     {

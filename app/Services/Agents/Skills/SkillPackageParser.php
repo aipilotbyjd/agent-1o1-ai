@@ -122,8 +122,8 @@ class SkillPackageParser
 
     /**
      * Splits `SKILL.md` into its frontmatter's top-level string fields and its
-     * body. Reads the YAML a skill's frontmatter uses — `key: value`, quoted
-     * values, `|`/`>` block scalars and indented continuation lines — and
+     * body. Reads the YAML a skill's frontmatter uses (`key: value`, quoted
+     * values, `|`/`>` block scalars and indented continuation lines) and
      * skips anything nested.
      *
      * @return array{0: array<string, string>, 1: string}
@@ -166,7 +166,7 @@ class SkillPackageParser
             $value = trim($field[2]);
 
             if ($value === '' || preg_match('/^[|>][+-]?$/', $value)) {
-                // A block scalar, or a nested map/list — read the indented
+                // A block scalar, or a nested map/list: read the indented
                 // lines; a nested structure just ends up as unused text.
                 $key = $field[1];
                 $block = $value === '' ? '>' : $value[0];

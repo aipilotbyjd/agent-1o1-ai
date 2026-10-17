@@ -5,14 +5,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * One row per `Agent` — whether/how it periodically reviews its own past
+ * One row per `Agent`, whether/how it periodically reviews its own past
  * `AgentSession`s and proposes improvements. See
  * `Services\Agents\ReflectionAnalyzer` and docs/gumloop/output/raw/core-concepts/reflections.md,
  * the feature this mirrors.
  *
  * Report delivery itself (email/in-app/webhook) rides the existing
  * `NotificationEvent::ReflectionRunCompleted`/`NotificationPreference`
- * system, not a bespoke toggle here — `notify_on_skip` is the one setting
+ * system, not a bespoke toggle here: `notify_on_skip` is the one setting
  * that doesn't fit that system, since it decides whether a *skipped* run
  * fires a notification at all, not which channel a completed one uses.
  */

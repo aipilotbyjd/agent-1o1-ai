@@ -66,5 +66,5 @@ it('serialises absolute asset urls and resolved feature names', function () {
 it('fills the brand name into the sms signature', function () {
     config(['assistant.brand.name' => 'Nimbus']);
 
-    expect(brand()->smsSignature())->toBe('— Nimbus');
+    expect(brand()->smsSignature())->toBe('- Nimbus');
 });

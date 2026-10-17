@@ -80,7 +80,7 @@ class AssistantLoop
      * Stops the turn: a queued one is cancelled at once, a running one stops
      * at its next check (within about a second), and a paused one is
      * closed with its waiting calls expired. Queued follow-up messages are
-     * dropped too — stopping means stop.
+     * dropped too: stopping means stop.
      */
     public function cancel(AssistantTurn $turn): AssistantTurn
     {
@@ -168,7 +168,7 @@ class AssistantLoop
     }
 
     /**
-     * The user message and its queued turn — the session is now held.
+     * The user message and its queued turn: the session is now held.
      */
     private function openTurn(AssistantSession $session, string $content): AssistantTurn
     {
@@ -191,7 +191,7 @@ class AssistantLoop
     }
 
     /**
-     * A running turn older than the stale limit came from a dead worker — it
+     * A running turn older than the stale limit came from a dead worker: it
      * no longer holds the session.
      */
     private function inFlightTurn(AssistantSession $session): ?AssistantTurn

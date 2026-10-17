@@ -12,7 +12,7 @@ use Illuminate\Console\Command;
  * Expires waiting actions nobody decided before `expires_at` (the
  * workspace's `approval_ttl_minutes`). An expired action counts as rejected
  * with an explanation, so its turn resumes and the agent can tell the user
- * it didn't go ahead — a paused turn never waits forever.
+ * it didn't go ahead: a paused turn never waits forever.
  */
 class ExpireAgentActionsCommand extends Command
 {

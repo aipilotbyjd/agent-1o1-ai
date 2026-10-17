@@ -5,7 +5,7 @@ namespace App\Services\Assistant\Branding;
 use Illuminate\Support\Str;
 
 /**
- * The assistant's public identity at one moment — resolved by
+ * The assistant's public identity at one moment: resolved by
  * `BrandRepository`, never built from config by consumers. Everything
  * user-facing that names the assistant (prompts, mail, Slack, SMS, the API
  * the frontend reads) goes through this object, so renaming the product is
@@ -43,7 +43,7 @@ final readonly class Brand
     }
 
     /**
-     * Replaces `:name` with the brand name — for prompt and message
+     * Replaces `:name` with the brand name, for prompt and message
      * templates kept brand-neutral.
      */
     public function withName(string $template): string
@@ -57,7 +57,7 @@ final readonly class Brand
     }
 
     /**
-     * Whether mail sent to `$address` is meant for the assistant — the
+     * Whether mail sent to `$address` is meant for the assistant: the
      * current address or any former one, so a rename never strands people
      * still writing to the old name.
      */

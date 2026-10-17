@@ -23,7 +23,7 @@ use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
  * assistant message must still carry the calls waiting for a decision,
  * unanswered. `AgentMessage` flattens a turn's steps into one set of calls
  * and results, so the step that paused is recorded separately
- * (`step_tool_call_ids`) and replayed as its own assistant message — with the
+ * (`step_tool_call_ids`) and replayed as its own assistant message, with the
  * provider's raw content blocks for that step when there are any, since
  * Anthropic and Gemini need them verbatim (thinking signatures) to accept
  * the continuation.
@@ -48,7 +48,7 @@ final class PausedTurn
 
     /**
      * The paused turn as the SDK must see it on resume: earlier steps'
-     * calls with their results, then the paused step's calls — those still
+     * calls with their results, then the paused step's calls: those still
      * waiting left unanswered.
      *
      * @return list<Message>

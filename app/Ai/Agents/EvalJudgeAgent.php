@@ -11,7 +11,7 @@ use Laravel\Ai\ToolChoice;
 
 /**
  * Grades an `llm_rubric` assertion: given an agent's answer and a rubric
- * written in English, decide whether the answer satisfies it — for
+ * written in English, decide whether the answer satisfies it, for
  * expectations no string comparison can express ("politely declines",
  * "doesn't invent a refund policy").
  *

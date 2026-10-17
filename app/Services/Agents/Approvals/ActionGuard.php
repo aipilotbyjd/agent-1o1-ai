@@ -16,7 +16,7 @@ use Throwable;
  * One tool's link to the gate, built by `ToolRegistry` for every gated tool
  * in a turn. The SDK asks it twice per call: `approvalFor()` before running
  * (anything the gate says to ask pauses the turn), then `run()` in place of
- * the tool's own work — which only really executes when the call was
+ * the tool's own work, which only really executes when the call was
  * allowed or approved, and only once: a call that already ran hands back
  * its stored result, so resuming a turn can never repeat it.
  */

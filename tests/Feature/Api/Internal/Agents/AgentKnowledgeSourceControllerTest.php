@@ -89,7 +89,7 @@ it('does not offer or attach another agent\'s artifact collection', function () 
 
 it('404s for an agent from another workspace', function () {
     [$workspace, $owner, $agent] = agentWorkspaceForKnowledgeSources();
-    // Same owner, a second workspace they're actually a member of — so the
+    // Same owner, a second workspace they're actually a member of, so the
     // 404 comes from the workspace mismatch, not from lacking permission.
     $otherWorkspace = app(WorkspaceService::class)->create($owner, ['name' => 'Other']);
     Passport::actingAs($owner);

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Tracks a failing subscription's dunning cycle so the product can explain
- * itself. Entitlement is already decided by `stripe_status` — this adds no
+ * itself. Entitlement is already decided by `stripe_status`: this adds no
  * grace period and grants no access; it records *why* access stopped, since
  * "your workflows stopped running" with no in-product explanation is the
  * worst version of a failed payment.

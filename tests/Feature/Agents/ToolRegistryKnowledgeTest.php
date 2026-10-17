@@ -26,7 +26,7 @@ it('auto-attaches knowledge tools once the workspace has any embedded chunks', f
 
     $tools = app(ToolRegistry::class)->toolsFor($agent, $run);
 
-    // No explicit AgentKnowledgeCollection attached — falls back to every
+    // No explicit AgentKnowledgeCollection attached: falls back to every
     // collection in the workspace, the pre-attachment zero-config behavior.
     expect($tools)->toHaveCount(4);
     expect($tools[0])->toBeInstanceOf(SearchKnowledgeTool::class);

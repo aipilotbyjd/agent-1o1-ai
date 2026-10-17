@@ -8,7 +8,7 @@ use App\Notifications\Workspace\WorkspaceEventNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
- * Someone asked for a workflow change to be reviewed before it goes live —
+ * Someone asked for a workflow change to be reviewed before it goes live:
  * sent to the workspace's other admins and owners
  * (`PublishRequests::approvers()`).
  */

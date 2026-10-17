@@ -14,7 +14,7 @@ use App\Models\Workspaces\Workspace;
 use Illuminate\Support\Str;
 
 /**
- * Page templates — see `PageTemplate`. A template is used by creating a page
+ * Page templates: see `PageTemplate`. A template is used by creating a page
  * with its `template_id`, since a page always needs a workflow to run.
  */
 class PageTemplateController extends Controller

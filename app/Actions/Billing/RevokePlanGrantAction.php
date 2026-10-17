@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Withdraws a grant after a refund or a won dispute. Without this a refunded
- * lifetime purchase would entitle the workspace forever — the grant has no
+ * lifetime purchase would entitle the workspace forever: the grant has no
  * expiry and no subscription status to lapse.
  *
  * Re-sizes the usage period to whatever the workspace is still entitled to,

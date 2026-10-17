@@ -13,7 +13,7 @@ class PreviewSubscriptionSwapAction
 
     /**
      * The prorated invoice a swap onto `$plan`/`$interval` would produce,
-     * without charging anything — Stripe's Create Preview Invoice API, not a
+     * without charging anything: Stripe's Create Preview Invoice API, not a
      * local estimate. Null when there is nothing to swap: no active
      * subscription yet, which is `CheckoutSubscriptionAction`'s job instead.
      *

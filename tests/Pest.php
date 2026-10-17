@@ -173,7 +173,7 @@ function referralInvoicePaidPayload(string $eventId, string $customerId, int $am
 }
 
 /**
- * The text inside an `UntrustedContent::wrap()` block — agent tools wrap what
+ * The text inside an `UntrustedContent::wrap()` block: agent tools wrap what
  * they return from outside the conversation, and most assertions care about
  * what was returned, not the wrapper.
  */

@@ -6,14 +6,14 @@ use Closure;
 use Illuminate\Http\UploadedFile;
 
 /**
- * Files sent with a chat message as multipart `attachments[]` — shared by
+ * Files sent with a chat message as multipart `attachments[]`: shared by
  * every chat that hands its member's files to the model, so they all accept
  * the same types and sizes (`config('artifacts.message_attachments')`).
  */
 trait ValidatesMessageAttachments
 {
     /**
-     * `$documents: false` refuses PDFs — for a chat whose model is only ever
+     * `$documents: false` refuses PDFs, for a chat whose model is only ever
      * sent images and inlined text (see `App\Ai\InlinedAttachments`).
      *
      * @return array<string, mixed>
@@ -31,7 +31,7 @@ trait ValidatesMessageAttachments
                     }
 
                     // Detected from the file's own bytes, not the client's
-                    // Content-Type header — the same value the artifact is
+                    // Content-Type header: the same value the artifact is
                     // stored and later sent to the provider as.
                     $config = config('artifacts.message_attachments');
                     $allowed = [...$config['image_mime_types'], ...($documents ? $config['document_mime_types'] : []), ...$config['text_mime_types']];

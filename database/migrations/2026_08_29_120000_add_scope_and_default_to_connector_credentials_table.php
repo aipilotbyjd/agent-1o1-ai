@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Schema;
 /**
  * `scope` splits a credential into Gumloop's Personal (`created_by`-only,
  * private even from other workspace members) vs Team (workspace-shared,
- * this table's original behavior) — see
+ * this table's original behavior): see
  * docs/gumloop/output/raw/core-concepts/credentials.md. `is_default` is
- * which credential a node/agent gets when nothing pins a `credential_id` —
+ * which credential a node/agent gets when nothing pins a `credential_id`:
  * see `ResolvesConnectorCredential`.
  */
 return new class extends Migration

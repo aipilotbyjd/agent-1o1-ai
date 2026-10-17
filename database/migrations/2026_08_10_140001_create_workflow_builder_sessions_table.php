@@ -5,8 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A chat session that edits a `draft_graph` (`{nodes: [...], edges: [...]}`
- * — byte-for-byte what `Workflow::replaceGraph()` expects, so promoting the
+ * A chat session that edits a `draft_graph` (`{nodes: [...], edges: [...]}`;
+ * byte-for-byte what `Workflow::replaceGraph()` expects, so promoting the
  * draft to a real workflow is a direct pass-through, not a transform) via
  * `WorkflowBuilderAgent`. `conversation_id` links the `Laravel\Ai`
  * `RemembersConversations` trail; `draft_lock_version` is optimistic

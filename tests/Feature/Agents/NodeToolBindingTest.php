@@ -80,7 +80,7 @@ it('marks an exposed field required only when the underlying config schema requi
     $tool = new NodeTool(new CallApiNode, $binding, Run::factory()->create());
 
     // 'required' is only surfaced on the *parent* object's serialized
-    // 'required' array, not on a standalone property's own toArray() — so
+    // 'required' array, not on a standalone property's own toArray(), so
     // wrap the returned properties in an object type to inspect it.
     $jsonSchema = new JsonSchemaTypeFactory;
     $serialized = $jsonSchema->object(fn () => $tool->schema($jsonSchema))->toArray();

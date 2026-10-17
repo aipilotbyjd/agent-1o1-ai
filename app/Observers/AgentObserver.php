@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Keeps `agent_versions` honest without every write path having to remember
- * to snapshot — the same reasoning as `RunObserver`, and the same reason
+ * to snapshot: the same reasoning as `RunObserver`, and the same reason
  * `Workflow` gets away without one (a workflow's history is written at an
  * explicit publish step; an agent has no publish step).
  *
@@ -30,7 +30,7 @@ class AgentObserver
     public function updated(Agent $agent): void
     {
         // Cosmetic edits (name, description) ride along in the next
-        // behavioral snapshot instead of minting a version of their own —
+        // behavioral snapshot instead of minting a version of their own:
         // see `AgentVersioner::BEHAVIORAL_ATTRIBUTES`.
         if ($agent->wasChanged(AgentVersioner::BEHAVIORAL_ATTRIBUTES)) {
             $this->versioner->snapshot($agent, $this->actor());
@@ -42,7 +42,7 @@ class AgentObserver
     }
 
     /**
-     * Whoever is making the edit, when there is one — an edit from a queued
+     * Whoever is making the edit, when there is one: an edit from a queued
      * job or a console command is attributed to nobody rather than guessed.
      */
     private function actor(): ?User

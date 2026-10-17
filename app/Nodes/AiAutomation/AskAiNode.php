@@ -15,7 +15,7 @@ use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Ai\WorkspaceModels;
 
 /**
- * Gumloop's "Ask AI" node — a provider-agnostic single-turn LLM call routed
+ * Gumloop's "Ask AI" node: a provider-agnostic single-turn LLM call routed
  * through `laravel/ai`'s own provider abstraction (see docs/NODES_CATALOG.md's
  * "AI nodes" section).
  */

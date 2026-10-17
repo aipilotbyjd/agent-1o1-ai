@@ -26,7 +26,7 @@ beforeEach(function () {
 });
 
 /**
- * Two inputs (one required), a step that writes a note, and two outputs —
+ * Two inputs (one required), a step that writes a note, and two outputs:
  * `note`, which pages show, and `internal`, which they shouldn't leak.
  *
  * @return array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}

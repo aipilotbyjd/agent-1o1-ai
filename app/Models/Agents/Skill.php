@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * `skill_source_id` and `source_path` are managed by the skill sync services.
  * Linked skills are editable when their source enables two-way sync.
  *
- * `version` is engine-managed — not in `#[Fillable]`, incremented via
+ * `version` is engine-managed, not in `#[Fillable]`, incremented via
  * `forceFill()`/`increment()` whenever `instructions` changes (see
  * `SkillController::update()`), same "don't let the model behind an
  * in-flight session change under it" reasoning as `Agent`.
@@ -30,7 +30,7 @@ class Skill extends Model
     use HasFactory, HasUuids, SoftDeletes;
 
     /**
-     * The categories, icons and colors the Skills page offers — mirrors the
+     * The categories, icons and colors the Skills page offers: mirrors the
      * frontend's `skills.constants.ts`. Generated drafts pick from these.
      *
      * @var list<string>
@@ -118,8 +118,8 @@ class Skill extends Model
     }
 
     /**
-     * Bumps `version` for a change to what `toPrompt()` hands the model —
-     * the instructions or any reference — so a caller can tell an in-flight
+     * Bumps `version` for a change to what `toPrompt()` hands the model
+     * (the instructions or any reference) so a caller can tell an in-flight
      * session's skill context may have changed.
      */
     public function bumpVersion(): void

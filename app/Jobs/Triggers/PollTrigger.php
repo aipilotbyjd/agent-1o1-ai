@@ -19,7 +19,7 @@ use Throwable;
  * item found. The endpoint shape comes from the trigger's (preset-merged)
  * config: `url`, `method`, `items_path`, `id_path`, `cursor_path`,
  * `cursor_param`. Authenticated polling (`credential_id`) is wired in once
- * ConnectorCredential exists (docs/NODES_CATALOG.md) — until then this only
+ * ConnectorCredential exists (docs/NODES_CATALOG.md): until then this only
  * supports unauthenticated/public polling endpoints.
  */
 class PollTrigger implements ShouldBeUnique, ShouldQueue

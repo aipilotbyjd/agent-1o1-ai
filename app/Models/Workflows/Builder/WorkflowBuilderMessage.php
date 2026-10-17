@@ -46,7 +46,7 @@ class WorkflowBuilderMessage extends Model
     }
 
     /**
-     * Who sent a user message — null on assistant messages.
+     * Who sent a user message: null on assistant messages.
      */
     public function user(): BelongsTo
     {
@@ -60,7 +60,7 @@ class WorkflowBuilderMessage extends Model
 
     /**
      * Files a member sent along with this (user) message. Stored as
-     * `Artifact`s and handed to the model with the message on every turn —
+     * `Artifact`s and handed to the model with the message on every turn:
      * see `ProcessWorkflowBuilderMessageJob` and `WorkflowBuilderAgent::messages()`.
      */
     public function attachments(): HasMany

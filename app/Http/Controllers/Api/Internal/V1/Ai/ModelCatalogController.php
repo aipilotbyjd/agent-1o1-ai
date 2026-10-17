@@ -10,13 +10,13 @@ use App\Services\Ai\WorkspaceModelView;
 use Illuminate\Http\Request;
 
 /**
- * The public model picker for agents/workflow "Ask AI" nodes — not
+ * The public model picker for agents/workflow "Ask AI" nodes, not
  * workspace-scoped, same as `Nodes\NodeController::globalCatalog()`. Which
  * real backend(s) actually serve an entry is never exposed here; see
  * `ModelCatalogResource` and `Services\Ai\ModelCatalogResolver`.
  *
  * `?workspace_id=` (one the caller belongs to) describes each entry from
- * that member's seat — see `WorkspaceModelView`.
+ * that member's seat: see `WorkspaceModelView`.
  */
 class ModelCatalogController extends Controller
 {

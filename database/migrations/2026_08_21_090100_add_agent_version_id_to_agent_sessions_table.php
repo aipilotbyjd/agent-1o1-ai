@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Pins a conversation to the agent behavior it started with, the way a
-     * `Run` pins to a `WorkflowVersion` — docs/AGENTS_PLAN.md's reason for
+     * `Run` pins to a `WorkflowVersion`: docs/AGENTS_PLAN.md's reason for
      * building `agent_versions` from day one ("an AgentSession mid-
      * conversation shouldn't have its behavior change out from under it").
      *

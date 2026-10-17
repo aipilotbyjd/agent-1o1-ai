@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 /**
  * Discovery for the invoke endpoints: a caller holding `agents:invoke` needs
  * to know which agents exist and what their ids are before it can start a
- * session with one. Read-only — authoring an agent belongs to the internal
+ * session with one. Read-only: authoring an agent belongs to the internal
  * API.
  */
 class AgentController extends Controller

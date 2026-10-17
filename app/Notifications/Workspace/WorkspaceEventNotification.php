@@ -15,7 +15,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Base class for every workspace-scoped notification — centralizes channel
+ * Base class for every workspace-scoped notification: centralizes channel
  * selection so concrete notifications (`MemberInvitedNotification`, etc.)
  * only ever supply title/body/data, never per-notification channel logic.
  * Ported from the old project's `WorkspaceEventNotification`.

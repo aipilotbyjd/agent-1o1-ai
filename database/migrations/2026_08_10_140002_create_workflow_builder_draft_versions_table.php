@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * One row per agent-driven (or human-driven, via the same session methods)
- * edit — free undo/redo history for a `WorkflowBuilderSession`'s draft.
+ * edit: free undo/redo history for a `WorkflowBuilderSession`'s draft.
  */
 return new class extends Migration
 {

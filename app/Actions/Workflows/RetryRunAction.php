@@ -13,7 +13,7 @@ use App\Services\Billing\CreditGate;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Re-executes a finished run as a brand-new `Run` — never by mutating the
+ * Re-executes a finished run as a brand-new `Run`, never by mutating the
  * original, whose `node_runs` and credit-ledger entries are the record of
  * what actually happened.
  *
@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  * longer exist). Publishing a fix and running that is a normal new run, not a
  * retry.
  *
- * `trigger_type` carries over for the same reason — among other things it
+ * `trigger_type` carries over for the same reason: among other things it
  * decides whether pinned node data short-circuits execution
  * (`WorkflowRunner::executeNodeContract()`), so a retried webhook run must
  * stay a webhook run rather than quietly becoming a manual, pin-using one.
@@ -97,7 +97,7 @@ class RetryRunAction
         ExecuteNodeJob::dispatch($resumed->id);
 
         // With the sync queue driver the retry may already be finished by the
-        // time dispatch() returns — reload rather than hand back the
+        // time dispatch() returns: reload rather than hand back the
         // "running" snapshot taken above.
         return $retry->fresh();
     }
@@ -107,7 +107,7 @@ class RetryRunAction
      * node that is neither the resume point nor downstream of it, so the
      * resumed node sees the same upstream context it saw the first time
      * (`WorkflowRunner::buildContext()` reads completed `node_runs`) without
-     * re-executing — and paying for — work that already succeeded.
+     * re-executing (and paying for) work that already succeeded.
      *
      * Downstream rows are deliberately *not* copied: they are what the retry
      * is going to produce again.
@@ -151,7 +151,7 @@ class RetryRunAction
     }
 
     /**
-     * Every node reachable from `$fromNodeKey`, following error edges too —
+     * Every node reachable from `$fromNodeKey`, following error edges too:
      * anything the resumed node can lead to must be re-derived.
      *
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph

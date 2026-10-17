@@ -13,7 +13,7 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * The workspace's published workflows — what a `subflow` or `loop` node's
+ * The workspace's published workflows: what a `subflow` or `loop` node's
  * `workflow_id` can point at. Only published ones: the engine refuses to
  * start an unpublished child. Loop Mode's hidden internal children are left
  * out, and so is the workflow this session is building (it can't call
@@ -34,7 +34,7 @@ class ListWorkflowsTool implements Tool
 
     public function description(): Stringable|string
     {
-        return "List this workspace's published workflows (id, name, description, the inputs a run takes and the outputs it returns) — the workflow_id a subflow or loop node runs as its child workflow. A subflow's \"input\" is keyed by the child's input names, and its output by the child's output names. Pass 'search' to filter by name.";
+        return "List this workspace's published workflows (id, name, description, the inputs a run takes and the outputs it returns): the workflow_id a subflow or loop node runs as its child workflow. A subflow's \"input\" is keyed by the child's input names, and its output by the child's output names. Pass 'search' to filter by name.";
     }
 
     public function handle(Request $request): Stringable|string

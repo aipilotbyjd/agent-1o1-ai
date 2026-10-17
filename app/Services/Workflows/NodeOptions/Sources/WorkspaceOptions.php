@@ -13,8 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Choices read from this app rather than a connected account: the
- * workspace's agents and (visible) workflows, and the public model catalog
- * — the same entries `ModelCatalogController` lists.
+ * workspace's agents and (visible) workflows, and the public model catalog:
+ * the same entries `ModelCatalogController` lists.
  */
 class WorkspaceOptions implements OptionsSource
 {
@@ -80,7 +80,7 @@ class WorkspaceOptions implements OptionsSource
     }
 
     /**
-     * A LIKE pattern matching `$search` literally — `%` and `_` typed by the
+     * A LIKE pattern matching `$search` literally: `%` and `_` typed by the
      * member aren't wildcards.
      */
     private function containing(string $search): string

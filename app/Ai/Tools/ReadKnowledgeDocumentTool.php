@@ -14,7 +14,7 @@ use Stringable;
  * The companion to `SearchKnowledgeTool`: search returns ranked snippets, this
  * fetches one document's full text by the `source` a search hit reported,
  * for when a snippet isn't enough context. Attached under the same
- * conditions as `SearchKnowledgeTool` — see `ToolRegistry`.
+ * conditions as `SearchKnowledgeTool`: see `ToolRegistry`.
  */
 class ReadKnowledgeDocumentTool implements Tool
 {

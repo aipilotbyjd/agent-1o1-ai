@@ -37,7 +37,7 @@ class SecretFactory extends Factory
     }
 
     /**
-     * A readable entry — same row, same resolution, value not hidden.
+     * A readable entry: same row, same resolution, value not hidden.
      */
     public function variable(): static
     {

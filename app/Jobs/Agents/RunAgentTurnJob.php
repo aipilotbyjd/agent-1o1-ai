@@ -16,7 +16,7 @@ use Throwable;
 /**
  * Runs a chat turn the request only opened (`AgentRunner::beginTurn()`):
  * calls the model and streams the reply to the conversation's channel as it
- * is written — see `AgentTurnBroadcaster`. Sending a message never waits for
+ * is written: see `AgentTurnBroadcaster`. Sending a message never waits for
  * the reply, and an open chat follows along over Reverb.
  *
  * A turn that is no longer `running` (already picked up, or failed as stale
@@ -57,7 +57,7 @@ class RunAgentTurnJob implements ShouldQueue
     }
 
     /**
-     * The worker was killed or timed out mid-turn — nothing else will close
+     * The worker was killed or timed out mid-turn: nothing else will close
      * the run out, and the chat would wait on it forever.
      */
     public function failed(Throwable $e): void

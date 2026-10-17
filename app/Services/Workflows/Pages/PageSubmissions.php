@@ -17,8 +17,8 @@ use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 /**
  * Starting a run from a page and reading back what the page may show of it.
  *
- * A submission is validated against the workflow's interface — the same
- * rules the run form uses — so a page can't start a run the workflow would
+ * A submission is validated against the workflow's interface (the same
+ * rules the run form uses) so a page can't start a run the workflow would
  * refuse. Its result is filtered down to the outputs the page displays:
  * a visitor never receives other values, step outputs or error details.
  */
@@ -86,7 +86,7 @@ class PageSubmissions
 
     /**
      * What a page shows of a submission's run. `$content` is the page content
-     * the submission was made against — the draft for a test run from the
+     * the submission was made against: the draft for a test run from the
      * builder, the published page otherwise. Members also get the run's id
      * and its real error, to open it in run history.
      *
@@ -143,7 +143,7 @@ class PageSubmissions
     }
 
     /**
-     * How far along the run is, as counts only — a visitor learns how many
+     * How far along the run is, as counts only: a visitor learns how many
      * steps there are, not what they are.
      *
      * @return array{completed: int, total: int}

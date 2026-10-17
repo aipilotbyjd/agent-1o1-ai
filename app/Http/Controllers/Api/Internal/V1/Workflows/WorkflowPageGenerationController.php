@@ -14,7 +14,7 @@ use App\Services\Billing\CreditGate;
 use Illuminate\Http\Request;
 
 /**
- * Asking AI to design or rework a page — see `GeneratePageJob`. The request
+ * Asking AI to design or rework a page: see `GeneratePageJob`. The request
  * returns straight away; the builder hears `page.generation` on the page's
  * channel, or polls the generation, and then shows what was made.
  */

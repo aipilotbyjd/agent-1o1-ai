@@ -9,7 +9,7 @@ use Laravel\Ai\Files\Document;
 use Laravel\Ai\Files\Image;
 
 /**
- * Everything one chat turn needs after its setup and before its result —
+ * Everything one chat turn needs after its setup and before its result:
  * carried between `AgentRunner`'s `openTurn()` and `completeTurn()` so the
  * synchronous and streaming paths share exactly one definition of what a
  * turn is.
@@ -20,7 +20,7 @@ use Laravel\Ai\Files\Image;
  *
  * `provider` is either a plain provider name (agent has no `model_catalog_id`)
  * or the ordered `provider => model` failover chain resolved from one by
- * `Services\Ai\ModelCatalogResolver` — see `AgentRunner::openTurn()`. `model`
+ * `Services\Ai\ModelCatalogResolver`: see `AgentRunner::openTurn()`. `model`
  * is only meaningful in the former case; a resolved chain already carries
  * its own model ids and is passed with `model: null`.
  */

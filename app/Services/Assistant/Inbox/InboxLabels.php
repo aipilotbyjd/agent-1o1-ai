@@ -64,7 +64,7 @@ class InboxLabels
 
     /**
      * Forget the links to mailbox labels (the labels themselves stay on
-     * the mail) — on disconnect, or when switching mailboxes.
+     * the mail), on disconnect, or when switching mailboxes.
      */
     public function unlink(AssistantInboxConfig $config): void
     {

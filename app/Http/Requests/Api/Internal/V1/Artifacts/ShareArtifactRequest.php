@@ -22,7 +22,7 @@ class ShareArtifactRequest extends FormRequest
         $workspaceId = $workspace instanceof Workspace ? $workspace->id : null;
 
         return [
-            // Sharing is scoped to fellow workspace members — there's no
+            // Sharing is scoped to fellow workspace members: there's no
             // cross-workspace grant.
             'user_id' => [
                 'required',

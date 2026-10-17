@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  * Saves a session's `draft_graph` as a real `Workflow`'s draft. The draft
  * shape already matches `Workflow::replaceGraph()`'s expected input exactly
  * (see `WorkflowBuilderSession`'s docblock), so promoting needs no
- * transform — just wiring up which workflow the graph lands on. Publishing
+ * transform, just wiring up which workflow the graph lands on. Publishing
  * a version of that workflow is a separate step.
  *
  * All of it is one transaction with the session row locked: two promotes

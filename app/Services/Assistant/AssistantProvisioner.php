@@ -10,7 +10,7 @@ use LogicException;
 
 /**
  * Gives a workspace member their personal assistant the first time they
- * open it — there is no "create assistant" action. Safe to call on every
+ * open it: there is no "create assistant" action. Safe to call on every
  * request: two concurrent first opens settle on the same row.
  */
 class AssistantProvisioner

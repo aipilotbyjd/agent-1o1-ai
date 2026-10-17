@@ -20,7 +20,7 @@ class ListAvailableNodesTool implements Tool
 
     public function description(): Stringable|string
     {
-        return "List every node type you can add to the draft — integrations, AI and data nodes, and flow-logic nodes (loop, subflow, wait, human_approval, join_paths). Each entry gives the 'type' to use in add_node, its category, name, and description.";
+        return "List every node type you can add to the draft: integrations, AI and data nodes, and flow-logic nodes (loop, subflow, wait, human_approval, join_paths). Each entry gives the 'type' to use in add_node, its category, name, and description.";
     }
 
     public function handle(Request $request): Stringable|string

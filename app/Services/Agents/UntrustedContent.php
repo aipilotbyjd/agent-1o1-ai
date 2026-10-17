@@ -3,8 +3,8 @@
 namespace App\Services\Agents;
 
 /**
- * Marks text that came from outside the conversation — a web or API response,
- * a document, an email, a workflow's output — as data for the model to read,
+ * Marks text that came from outside the conversation (a web or API response,
+ * a document, an email, a workflow's output) as data for the model to read,
  * never as instructions to follow. This is the delimiter half of prompt-
  * injection defence; the other half is the rule in the agent's system prompt
  * ({@see self::RULE}), which tells the model what the delimiter means.

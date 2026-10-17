@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Marks a workflow as engine-managed plumbing rather than something a user
- * authored — same precedent as `model_catalog.is_internal`. Set by
+ * authored: same precedent as `model_catalog.is_internal`. Set by
  * `Services\Workflows\LoopModeCompiler` on the hidden, single-node child
  * workflow it auto-creates for a node with `config._loop` enabled, so it
  * never appears in workflow listings or counts toward a workspace's

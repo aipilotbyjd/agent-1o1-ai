@@ -3,7 +3,7 @@
 namespace App\Enums\Agents;
 
 /**
- * What a failing criterion does to the session's grade —
+ * What a failing criterion does to the session's grade:
  * `SessionEvaluationGrader`'s only input besides sentiment and call outcome.
  * `Flag` marks the session for review; `Notify` additionally pages the
  * workspace's owners/admins the moment it fires. Use `Notify` for rules that

@@ -19,7 +19,7 @@ enum NodeRunStatus: string
     }
 
     /**
-     * Every non-terminal status — i.e. "this node run is still in flight",
+     * Every non-terminal status, i.e. "this node run is still in flight",
      * which includes the two parked states (`AwaitingApproval`,
      * `AwaitingCallback`) as well as the two active ones. Mirrors
      * `RunStatus::inFlight()`, and is returned as cases (not values) for the

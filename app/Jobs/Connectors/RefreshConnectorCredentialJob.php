@@ -19,7 +19,7 @@ use Throwable;
  * Refreshes an OAuth `ConnectorCredential` before/after its access token
  * expires. On final failure (all retries exhausted), the credential is
  * marked expired and the workspace's owners/admins are notified so a human
- * can reconnect it — mirrors the old project's `RefreshOAuthTokenJob`.
+ * can reconnect it: mirrors the old project's `RefreshOAuthTokenJob`.
  */
 class RefreshConnectorCredentialJob implements ShouldQueue
 {

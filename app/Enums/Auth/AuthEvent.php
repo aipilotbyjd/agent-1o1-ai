@@ -7,7 +7,7 @@ namespace App\Enums\Auth;
  * the `auth_events` log by `AuthEventRecorder`.
  *
  * `notifiesUser()` marks the subset that also emails the account owner. The
- * test is "would a stranger doing this to my account matter to me?" — so a
+ * test is "would a stranger doing this to my account matter to me?" - so a
  * successful sign-in from a new device counts, but an ordinary sign-out does
  * not, and neither does a single failed password attempt (only the lockout
  * that a run of them triggers).
@@ -90,8 +90,8 @@ enum AuthEvent: string
         return match ($this) {
             self::AccountLocked => 'If this was not you, someone is trying to guess your password. Change it once the lock lifts, and turn on two-factor authentication.',
             self::PasswordChanged, self::PasswordReset => 'If this was not you, reset your password immediately and sign out of every device.',
-            self::EmailChangeRequested => 'If this was not you, change your password now — whoever requested this is trying to take the account over, and confirming the new address would let them reset your password.',
-            self::EmailChanged => 'If this was not you, contact support straight away — whoever made this change can now request password resets.',
+            self::EmailChangeRequested => 'If this was not you, change your password now: whoever requested this is trying to take the account over, and confirming the new address would let them reset your password.',
+            self::EmailChanged => 'If this was not you, contact support straight away: whoever made this change can now request password resets.',
             self::TwoFactorDisabled => 'If this was not you, turn two-factor authentication back on and change your password.',
             self::TwoFactorEnabled, self::RecoveryCodesRegenerated => 'If this was not you, change your password and review your active sessions.',
             self::LoggedOutAll => 'If this was not you, change your password and review your active sessions.',

@@ -38,7 +38,7 @@ enum AgentActionStatus: string
 
     /**
      * Whether a person has already answered this call (or the system has on
-     * their behalf) — the calls a resumed turn must hand decisions for.
+     * their behalf): the calls a resumed turn must hand decisions for.
      */
     public function isDecided(): bool
     {

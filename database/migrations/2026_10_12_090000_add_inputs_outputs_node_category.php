@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * The Input and Output steps are filed under their own core category. Core
  * categories otherwise only arrive through `NodeCategorySeeder`, so a
- * database that was already seeded gets it — and the shifted order — by
+ * database that was already seeded gets it (and the shifted order) by
  * re-running that seeder, which upserts by slug. An unseeded one is left for
  * the seeder itself.
  */

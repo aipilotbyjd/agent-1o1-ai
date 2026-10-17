@@ -53,7 +53,7 @@ class RunController extends Controller
     }
 
     /**
-     * Cancels the whole run tree — see `CancelRunAction`. 409 if the run has
+     * Cancels the whole run tree: see `CancelRunAction`. 409 if the run has
      * already finished.
      */
     public function cancel(Request $request, Run $run)

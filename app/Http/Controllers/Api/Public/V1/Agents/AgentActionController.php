@@ -16,8 +16,8 @@ use Illuminate\Http\Request;
 /**
  * Lets an API caller run their own approval step: list a conversation's
  * actions (a reply marked `awaiting_approval` is on hold until its pending
- * ones are decided) and decide them. The API key is the authority — it is
- * scoped to one workspace and granted `agents:invoke` — so there is no
+ * ones are decided) and decide them. The API key is the authority (it is
+ * scoped to one workspace and granted `agents:invoke`) so there is no
  * per-person approver check here, except that an action whose tool rule
  * names its approvers is theirs alone to decide. Decided turns resume on
  * the queue.

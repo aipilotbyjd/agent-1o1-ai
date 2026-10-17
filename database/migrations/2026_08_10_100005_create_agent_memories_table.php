@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Per-agent, optionally per-user, durable key/value facts an agent can read
- * across sessions — distinct from `AgentSession`'s per-conversation history.
+ * across sessions: distinct from `AgentSession`'s per-conversation history.
  * See docs/AGENTS_PLAN.md's "agent_knowledge, document_embeddings,
  * agent_memories" section.
  */

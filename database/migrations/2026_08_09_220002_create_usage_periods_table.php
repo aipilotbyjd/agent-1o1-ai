@@ -5,9 +5,9 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * A rolling window (monthly, by default — see `Workspace::currentUsagePeriod()`)
+ * A rolling window (monthly, by default: see `Workspace::currentUsagePeriod()`)
  * a workspace's `credit_transactions` roll up against. `credits_limit` stays
- * `null` (unlimited) until Stripe plan tiers are wired — see docs/PLAN.md's
+ * `null` (unlimited) until Stripe plan tiers are wired: see docs/PLAN.md's
  * Phase 7 for the deferred 75%/90% threshold alerts and plan-tier work this
  * table is scoped down from for now.
  */

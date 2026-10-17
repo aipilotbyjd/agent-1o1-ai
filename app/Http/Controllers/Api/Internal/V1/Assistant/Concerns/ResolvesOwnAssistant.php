@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 /**
  * Every assistant route acts on the signed-in member's own assistant. A
- * session or turn that belongs to anyone else's answers 404, not 403 — its
+ * session or turn that belongs to anyone else's answers 404, not 403: its
  * existence isn't something another member should learn.
  */
 trait ResolvesOwnAssistant

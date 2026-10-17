@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * One chunk of the knowledge base. Shared with the workspace, or private to
- * `owner_id` — a member's own Brain, which only they (and their assistant)
+ * `owner_id`: a member's own Brain, which only they (and their assistant)
  * can see.
  */
 #[Fillable(['workspace_id', 'owner_id', 'collection', 'knowledge_source_id', 'external_id', 'source', 'chunk_index', 'chunk_text', 'embedding', 'metadata', 'ingest_revision'])]
@@ -72,7 +72,7 @@ class DocumentEmbedding extends Model
      * Leaves out the app-written artifact collections. Their chunks are
      * indexed from artifacts whose access is decided per artifact
      * (`Artifact::isAccessibleBy()`), so the workspace-wide knowledge-base
-     * views must not surface them — only the owning agent's own search does.
+     * views must not surface them, only the owning agent's own search does.
      */
     public function scopeExcludingArtifactCollections(Builder $query): Builder
     {
@@ -80,7 +80,7 @@ class DocumentEmbedding extends Model
     }
 
     /**
-     * Only the workspace's shared chunks — what agents search.
+     * Only the workspace's shared chunks: what agents search.
      */
     public function scopeShared(Builder $query): Builder
     {

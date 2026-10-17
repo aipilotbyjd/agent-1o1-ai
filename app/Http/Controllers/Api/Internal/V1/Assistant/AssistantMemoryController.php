@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * What the assistant has remembered about its owner — viewable, and
+ * What the assistant has remembered about its owner: viewable, and
  * removable, by the owner.
  */
 class AssistantMemoryController extends Controller

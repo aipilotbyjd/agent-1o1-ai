@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A block saved to the workspace's library — usually a whole section — to
+ * A block saved to the workspace's library (usually a whole section) to
  * drop into any page. `block` is one block of a page's content tree, in the
  * shape `PageSchema::normalize()` gives it; it gets new ids when it's used.
  */

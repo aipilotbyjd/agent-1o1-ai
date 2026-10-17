@@ -19,7 +19,7 @@ return [
     | Recipients
     |--------------------------------------------------------------------------
     |
-    | There are no admin user accounts — alerts go to fixed destinations read
+    | There are no admin user accounts: alerts go to fixed destinations read
     | from the environment, never to `User` models. Keeping routing in config
     | (rather than a table) means alerting still works during a database
     | incident, which is exactly when it matters.
@@ -63,7 +63,7 @@ return [
     | same condition can re-trigger on every request. `AdminAlerts::raise()`
     | claims an atomic cache key per throttle key for this many seconds and
     | drops anything that arrives inside the window. Set to 0 to disable
-    | (tests only — in production this is what stops one bad workspace from
+    | (tests only, in production this is what stops one bad workspace from
     | flooding Discord).
     */
 
@@ -97,7 +97,7 @@ return [
     |
     | Percentage of a workspace's `usage_periods.credits_limit` that raises
     | `usage.threshold_crossed`. Only the deduction that crosses the line
-    | alerts — see `DeductCreditsAction`.
+    | alerts: see `DeductCreditsAction`.
     */
 
     'usage' => [

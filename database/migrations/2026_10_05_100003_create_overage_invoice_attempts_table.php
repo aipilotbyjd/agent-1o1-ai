@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * One row per attempt to invoice overage — written in the same transaction
+ * One row per attempt to invoice overage: written in the same transaction
  * that marks the credits billed, so a crash before or during the Stripe call
  * leaves a `pending` record to reconcile instead of credits that are billed
  * on paper only.

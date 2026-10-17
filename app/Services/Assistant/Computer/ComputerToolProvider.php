@@ -11,8 +11,8 @@ use App\Models\Assistant\AssistantSession;
 use App\Services\Artifacts\DocumentRenderer;
 
 /**
- * Making things: files for the owner, and — where the plan and server allow
- * — a cloud computer to run code on. Incognito conversations leave nothing
+ * Making things: files for the owner, and (where the plan and server allow
+ *) a cloud computer to run code on. Incognito conversations leave nothing
  * behind, so they get neither.
  */
 class ComputerToolProvider implements ProvidesAssistantTools

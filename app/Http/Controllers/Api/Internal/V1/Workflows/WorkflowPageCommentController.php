@@ -13,7 +13,7 @@ use App\Models\Workspaces\Workspace;
 use Illuminate\Http\Request;
 
 /**
- * Comments on a page in the builder — see `WorkflowPageComment`. Anyone who
+ * Comments on a page in the builder: see `WorkflowPageComment`. Anyone who
  * can open the page can read and add them; a comment is edited or deleted by
  * whoever wrote it, or by someone who manages pages, and so is a thread
  * resolved.

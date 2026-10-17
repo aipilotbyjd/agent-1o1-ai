@@ -134,7 +134,7 @@ it('refuses to reveal an existing secret by flipping it to a variable', function
 
     expect($secret->fresh()->is_secret)->toBeTrue();
 
-    // Replacing the value in the same request is fine — nothing previously
+    // Replacing the value in the same request is fine: nothing previously
     // hidden is revealed.
     $response = $this->patchJson("/api/v1/workspaces/{$workspace->id}/secrets/{$secret->id}", [
         'is_secret' => false,

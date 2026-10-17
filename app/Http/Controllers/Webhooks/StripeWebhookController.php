@@ -52,7 +52,7 @@ class StripeWebhookController extends CashierWebhookController
 
     /**
      * Guards every event with an idempotency check before Cashier (or our own
-     * handlers) process it — Stripe retries webhook delivery, and without
+     * handlers) process it: Stripe retries webhook delivery, and without
      * this a redelivered event could sync plan/usage-period state twice.
      */
     public function handleWebhook(Request $request)
@@ -106,8 +106,8 @@ class StripeWebhookController extends CashierWebhookController
     /**
      * Fulfils our two one-off (`mode=payment`) Checkout flows: credit-pack
      * top-ups and lifetime plan purchases. Subscription checkouts land here
-     * too — Cashier's own sync handles those via
-     * `customer.subscription.created` — so this acts only on sessions
+     * too (Cashier's own sync handles those via
+     * `customer.subscription.created`) so this acts only on sessions
      * carrying the matching metadata `type` we set at checkout.
      */
     protected function handleCheckoutSessionCompleted(array $payload): Response
@@ -266,11 +266,11 @@ class StripeWebhookController extends CashierWebhookController
     }
 
     /**
-     * Collection succeeded. Closes any open dunning cycle and says so — but
+     * Collection succeeded. Closes any open dunning cycle and says so, but
      * only if there was one, so an ordinary monthly renewal doesn't generate a
      * "payment recovered" notification nobody was waiting for. An ordinary
      * renewal (Stripe's `billing_reason: subscription_cycle`, with no
-     * dunning cycle to close) gets its own quieter notification instead — the
+     * dunning cycle to close) gets its own quieter notification instead: the
      * first charge on checkout (`subscription_create`) stays silent, since
      * the checkout response already confirmed it.
      */
@@ -313,7 +313,7 @@ class StripeWebhookController extends CashierWebhookController
 
     /**
      * The end of the line. Stripe deletes a subscription both when a customer
-     * cancels and when it gives up after exhausting its retry schedule — an
+     * cancels and when it gives up after exhausting its retry schedule: an
      * open dunning cycle is what separates the two, so it's read before
      * Cashier's handler clears the row's status.
      */
@@ -372,7 +372,7 @@ class StripeWebhookController extends CashierWebhookController
     /**
      * Hands a paid subscription invoice to the referral program. Tax is
      * taken out (Stripe's `total` minus `total_excluding_tax`) and a $0
-     * invoice — a trial start — never counts as a payment. Failures are
+     * invoice (a trial start) never counts as a payment. Failures are
      * reported, never allowed to fail the webhook.
      *
      * @param  array<string, mixed>  $invoice

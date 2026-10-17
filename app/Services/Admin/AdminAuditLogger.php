@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
  * Records every change a platform admin makes, from the admin API or its
  * artisan equivalents, so "who gave this workspace a year of Pro?" always
  * has an answer. `$subject` is stored as a snake_case label of its class
- * plus its key — not a morph type — so a new model never needs registering.
+ * plus its key (not a morph type) so a new model never needs registering.
  */
 class AdminAuditLogger
 {

@@ -17,7 +17,7 @@ use App\Services\Workflows\PublishRequests;
 use Illuminate\Http\Request;
 
 /**
- * Review before publishing — see `PublishRequests`. The list carries the
+ * Review before publishing: see `PublishRequests`. The list carries the
  * open request in full (with whether the draft or the live version has moved
  * since), and the rest as history without their graphs.
  */

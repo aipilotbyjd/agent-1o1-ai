@@ -77,7 +77,7 @@ class ArtifactController extends Controller
             workspace: $workspace,
             filename: $request->validated('filename') ?? $file->getClientOriginalName(),
             // Guessed from the file's own bytes, not the client-supplied
-            // Content-Type header — the stored value is what `preview()`
+            // Content-Type header: the stored value is what `preview()`
             // later serves the file as.
             mimeType: $file->getMimeType() ?? 'application/octet-stream',
             contents: $file,
@@ -110,7 +110,7 @@ class ArtifactController extends Controller
 
         // Soft delete: storage and every version's row survive, so a later
         // re-export with this group's filename restores the group and
-        // continues its version history — see `StoreArtifactAction`.
+        // continues its version history: see `StoreArtifactAction`.
         Artifact::where('group_id', $artifact->group_id)->delete();
 
         return ApiResponse::noContent();
@@ -128,7 +128,7 @@ class ArtifactController extends Controller
     }
 
     /**
-     * Sets the group's sharing tier — General Access in Gumloop's terms.
+     * Sets the group's sharing tier: General Access in Gumloop's terms.
      */
     public function updateAccess(UpdateArtifactAccessRequest $request, Workspace $workspace, Artifact $artifact)
     {
@@ -190,7 +190,7 @@ class ArtifactController extends Controller
 
     /**
      * Only the creator or someone with `artifact.manage` may change an
-     * artifact's sharing — narrower than `artifact.view`, which everyone
+     * artifact's sharing: narrower than `artifact.view`, which everyone
      * calling this controller already has.
      */
     private function ensureCanShare(Request $request, Artifact $artifact): void

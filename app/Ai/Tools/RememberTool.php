@@ -10,11 +10,11 @@ use Stringable;
 
 /**
  * Lets an agent save or update a durable fact about itself or the current
- * user across sessions — the write side of `AgentMemory`, complementing the
+ * user across sessions: the write side of `AgentMemory`, complementing the
  * read side `SkillInjector` injects into every turn's instructions (see
  * docs/AGENTS_PLAN.md's `agent_memories` section). Auto-attached to every
  * agent by `ToolRegistry`, unlike `SearchKnowledgeTool` which is conditional
- * on the workspace having embedded chunks — there's no equivalent
+ * on the workspace having embedded chunks: there's no equivalent
  * precondition for a write tool.
  */
 class RememberTool implements Tool

@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
 /**
  * Hands a paused turn back to the agent once nothing in it is waiting any
  * more. A turn paused on several calls resumes only after the last one is
- * decided — the SDK needs a decision for every one of them at once.
+ * decided: the SDK needs a decision for every one of them at once.
  */
 class ActionResumer
 {

@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Cached reads of the admin-editable referral configuration. Every cache
- * key embeds a version number, and `flush()` — called by the models' own
- * `saved`/`deleted` hooks — bumps it, so an admin's change is visible on
+ * key embeds a version number, and `flush()`: called by the models' own
+ * `saved`/`deleted` hooks: bumps it, so an admin's change is visible on
  * the next request without having to enumerate the keys to forget.
  *
  * Only raw attribute arrays are cached, never models: the cache refuses to
@@ -37,7 +37,7 @@ class ReferralSettings
 
     /**
      * The program a code without its own program (and a signup without a
-     * code's program) falls under — `null` when none is marked default or
+     * code's program) falls under: `null` when none is marked default or
      * the default isn't live.
      */
     public function defaultProgram(): ?ReferralProgram

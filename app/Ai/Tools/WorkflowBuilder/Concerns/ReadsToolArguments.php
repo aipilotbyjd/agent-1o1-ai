@@ -10,7 +10,7 @@ use Throwable;
 
 /**
  * Reads the builder tools' arguments defensively. They come from a model,
- * so any of them may be missing or the wrong shape — a `config_json` sent as
+ * so any of them may be missing or the wrong shape: a `config_json` sent as
  * an object instead of a string, a number where a key belongs. laravel/ai
  * does not catch what a tool throws, so a single malformed call would
  * otherwise fail the whole turn instead of letting the model correct itself.

@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * An append-only usage ledger — one row per node execution or agent turn
+ * An append-only usage ledger: one row per node execution or agent turn
  * that consumed credits. `source_type`/`source_id` point at the `NodeRun`
  * or `AgentMessage` (the assistant reply) that caused the charge. See
  * docs/PLAN.md's "Architecture Overview" `CreditTransaction` entry and

@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Chunks, embeds and stores a large document off the request — embedding is
+ * Chunks, embeds and stores a large document off the request: embedding is
  * one provider call per batch of chunks, which for a multi-megabyte upload
  * would outlast an HTTP request. Replaces any earlier ingest of the same
  * `source` in the collection, so a retry (or a re-upload) never duplicates.

@@ -114,11 +114,11 @@ class ReferralReferralCommand extends Command
             ['Code / program', "{$referral->code?->code} / {$referral->program?->slug}"],
             ['Status', $referral->status->value],
             ['Verified / active / paying', implode(' / ', [
-                $referral->verified_at?->toDateString() ?? '—',
-                $referral->activated_at?->toDateString() ?? '—',
-                $referral->converted_at?->toDateString() ?? '—',
+                $referral->verified_at?->toDateString() ?? '-',
+                $referral->activated_at?->toDateString() ?? '-',
+                $referral->converted_at?->toDateString() ?? '-',
             ])],
-            ['Rejection reason', $referral->rejection_reason ?? '—'],
+            ['Rejection reason', $referral->rejection_reason ?? '-'],
         ]);
 
         $this->table(
@@ -139,7 +139,7 @@ class ReferralReferralCommand extends Command
         $reason = $this->option('reason');
 
         if (! is_string($reason) || trim($reason) === '') {
-            $this->error('Pass --reason="…" — it is stored with the rejection.');
+            $this->error('Pass --reason="…": it is stored with the rejection.');
 
             return self::FAILURE;
         }

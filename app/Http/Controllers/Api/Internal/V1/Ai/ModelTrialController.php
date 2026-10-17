@@ -24,8 +24,8 @@ use Throwable;
 
 /**
  * "Try this model" in the model picker: one short prompt, answered by the
- * model exactly as an agent on it would be — the workspace's own key where
- * it has one — and charged like the chat turn it is. Reports how long it
+ * model exactly as an agent on it would be (the workspace's own key where
+ * it has one) and charged like the chat turn it is. Reports how long it
  * took, the tokens and the credits, so members can compare models on
  * their own question before switching.
  */
@@ -70,7 +70,7 @@ class ModelTrialController extends Controller
             if ($rejected !== null) {
                 $label = config("byok.providers.{$rejected->execution_provider}.label", $rejected->execution_provider);
 
-                return ApiResponse::error("{$label} rejected your key — it may have expired or been revoked. Replace it in Settings → AI Providers.", 422);
+                return ApiResponse::error("{$label} rejected your key: it may have expired or been revoked. Replace it in Settings → AI Providers.", 422);
             }
 
             report($exception);

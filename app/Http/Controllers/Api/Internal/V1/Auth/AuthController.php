@@ -134,7 +134,7 @@ class AuthController extends Controller
 
     /**
      * Followed from an email client, so it answers with a redirect into the SPA
-     * rather than JSON — matching the password reset link, which has always
+     * rather than JSON: matching the password reset link, which has always
      * pointed at the frontend.
      */
     public function verifyEmail(Request $request, string $id)
@@ -240,7 +240,7 @@ class AuthController extends Controller
     }
 
     /**
-     * The account's own security log — the same rows that drive the alert
+     * The account's own security log: the same rows that drive the alert
      * emails, so a user can check "was that me?" without contacting support.
      */
     public function events(Request $request)

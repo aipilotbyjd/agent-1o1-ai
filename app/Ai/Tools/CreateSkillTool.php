@@ -21,7 +21,7 @@ use Stringable;
  * workspace skill and attach it to itself, so later conversations can load it
  * through `UseSkillTool`. The skill is created as the person chatting (or the
  * agent's creator for a run nobody started), and only if that person may
- * manage skills — the same permission the Skills page requires.
+ * manage skills: the same permission the Skills page requires.
  */
 class CreateSkillTool implements Approvable, Tool
 {

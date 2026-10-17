@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  *
  * The period is sized from `currentPlan()`, not the granted plan, so buying
  * a lifetime Starter while subscribed to Pro doesn't cut the allowance down
- * to Starter's — see `Workspace::currentPlan()`.
+ * to Starter's: see `Workspace::currentPlan()`.
  *
  * Idempotent: safe to call again for the same grant (e.g. a redelivered
  * webhook), since an `Active` grant is a no-op.

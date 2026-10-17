@@ -10,7 +10,7 @@ use App\Models\Runs\Run;
 use Illuminate\Http\Request;
 
 /**
- * Step-level results for a run — what an integrator polls to find out which
+ * Step-level results for a run: what an integrator polls to find out which
  * step failed, rather than inferring it from the run's error string.
  */
 class NodeRunController extends Controller

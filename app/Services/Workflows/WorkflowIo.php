@@ -90,7 +90,7 @@ final class WorkflowIo
     }
 
     /**
-     * The names a run's result can carry — one per named Output step, in
+     * The names a run's result can carry: one per named Output step, in
      * canvas order like `fields()`. Two Output steps may share a name (one
      * per branch), so names are listed once.
      *

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * A request to have AI design or rework a page, and its result. Runs on the
- * queue (`GeneratePageJob`); the content it produces is only a proposal —
+ * queue (`GeneratePageJob`); the content it produces is only a proposal:
  * the builder shows it, and applying it is the member's call.
  */
 #[Fillable(['workflow_page_id', 'user_id', 'prompt', 'variant', 'keep_theme', 'status', 'content', 'error'])]

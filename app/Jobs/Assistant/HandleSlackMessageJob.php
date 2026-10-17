@@ -7,8 +7,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Slack wants an answer to an event within three seconds, so the work —
- * looking up the sender, starting the turn — happens here.
+ * Slack wants an answer to an event within three seconds, so the work
+ * (looking up the sender, starting the turn) happens here.
  */
 class HandleSlackMessageJob implements ShouldQueue
 {

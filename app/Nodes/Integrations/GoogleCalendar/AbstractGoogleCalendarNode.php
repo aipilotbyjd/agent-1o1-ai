@@ -11,7 +11,7 @@ use RuntimeException;
 
 /**
  * Shared request/error-handling for the Google Calendar node family.
- * Resolves the access token via `ResolvesConnectorCredential` — the same
+ * Resolves the access token via `ResolvesConnectorCredential`: the same
  * workspace-scoped `ConnectorCredential` (`gmail` connector, whose OAuth
  * scopes cover every Google product node) used by `AbstractGmailNode`.
  */

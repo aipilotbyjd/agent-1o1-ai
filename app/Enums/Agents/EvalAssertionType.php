@@ -5,7 +5,7 @@ namespace App\Enums\Agents;
 /**
  * How one expectation about an agent's answer is checked.
  *
- * The three string types are exact, free and deterministic — the same input
+ * The three string types are exact, free and deterministic: the same input
  * always grades the same way. The two tool types check which tools the answer
  * called (`value` is a tool name), which matters most with smaller models:
  * the usual failure is not a wrong answer but a tool never called at all. `LlmRubric` costs a second model call and can

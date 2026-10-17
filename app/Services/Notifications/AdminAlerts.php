@@ -16,12 +16,12 @@ use Illuminate\Support\Facades\Cache;
  *
  * The two systems are deliberately independent. There are no admin user
  * accounts, so this one has no notifiables, no preferences and no database
- * table — destinations come from `config/admin_alerts.php` alone. Alert keys
+ * table: destinations come from `config/admin_alerts.php` alone. Alert keys
  * are plain strings and must never be added to `NotificationEvent`, which
  * backs the customer-facing `GET /notifications/events` catalogue.
  *
  * Adding an alert is a single `raise()` call from wherever the condition is
- * detected — no class, no registration.
+ * detected: no class, no registration.
  */
 class AdminAlerts
 {
@@ -29,9 +29,9 @@ class AdminAlerts
 
     /**
      * Raise an alert, returning whether it was actually dispatched. `false`
-     * means it was suppressed — alerting is off, nothing is configured for
+     * means it was suppressed: alerting is off, nothing is configured for
      * this severity, or an identical alert is still inside its throttle
-     * window — never that delivery failed.
+     * window, never that delivery failed.
      *
      * @param  string  $key  Stable dot-notation identifier, e.g. `usage.threshold_crossed`.
      * @param  array<string, mixed>  $context  Rendered into the payload; secret-looking keys are redacted.
@@ -86,7 +86,7 @@ class AdminAlerts
     }
 
     /**
-     * On-demand notifiable rather than a `User` — see the class docblock.
+     * On-demand notifiable rather than a `User`: see the class docblock.
      *
      * @param  array<int, string>  $mailRecipients
      */
@@ -118,7 +118,7 @@ class AdminAlerts
     }
 
     /**
-     * Destinations this severity reaches that also have a URL configured — a
+     * Destinations this severity reaches that also have a URL configured: a
      * half-configured environment degrades quietly instead of erroring.
      *
      * @return array<int, array{type: string, url: string}>

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
  * Social sign-in now issues tokens through the `social_exchange` grant instead
  * of rotating the user's password and running the password grant. Passport
  * refuses a grant the client does not list, so the client that already exists
- * in every environment has to learn about it — otherwise the first social
+ * in every environment has to learn about it, otherwise the first social
  * sign-in after deploying fails with "unsupported grant type".
  */
 return new class extends Migration

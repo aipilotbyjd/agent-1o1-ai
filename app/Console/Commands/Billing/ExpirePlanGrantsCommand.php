@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Processes fixed-term grants (earned referral plan time, comps) whose
  * `expires_at` has passed. The grant already stopped entitling the moment
- * it lapsed — `PlanGrant::scopeActive()` checks the date — but the usage
+ * it lapsed (`PlanGrant::scopeActive()` checks the date) but the usage
  * period's `credits_limit` was sized while it was live and is otherwise
  * only re-sized at the next month boundary, so without this the lapsed
  * plan's allowance would stay spendable until month end.

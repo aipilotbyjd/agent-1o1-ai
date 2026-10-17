@@ -20,7 +20,7 @@ class SubscriptionCanceledNotification extends WorkspaceEventNotification
             event: NotificationEvent::SubscriptionCanceled,
             title: "The subscription for {$workspace->name} has ended",
             body: $afterFailedPayments
-                ? 'Stripe was unable to collect payment after several attempts, so the subscription has been canceled. The workspace has moved to the free plan — subscribe again at any time to restore your previous limits.'
+                ? 'Stripe was unable to collect payment after several attempts, so the subscription has been canceled. The workspace has moved to the free plan: subscribe again at any time to restore your previous limits.'
                 : 'The subscription has been canceled and the workspace has moved to the free plan.',
             data: [
                 'workspace_id' => $workspace->id,

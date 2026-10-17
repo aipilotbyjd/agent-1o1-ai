@@ -17,7 +17,7 @@ class InvoiceResource extends JsonResource
      * display. A client that formats its own money should read the raw pair
      * and ignore the rest, rather than parsing the formatted string back.
      *
-     * `hosted_invoice_url` and `invoice_pdf` are Stripe's own — rendering the
+     * `hosted_invoice_url` and `invoice_pdf` are Stripe's own: rendering the
      * PDF locally would mean adding `dompdf/dompdf` for a document Stripe
      * already generates, brands, and keeps correct.
      *

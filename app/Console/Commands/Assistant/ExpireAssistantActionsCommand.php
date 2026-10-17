@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 /**
  * Expires assistant actions nobody decided in time. An expired call counts
  * as declined: its turn resumes and the assistant tells the owner it
- * didn't go ahead — a paused turn never waits forever.
+ * didn't go ahead: a paused turn never waits forever.
  */
 class ExpireAssistantActionsCommand extends Command
 {

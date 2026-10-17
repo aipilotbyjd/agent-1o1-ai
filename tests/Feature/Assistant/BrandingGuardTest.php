@@ -4,7 +4,7 @@ use Symfony\Component\Finder\Finder;
 
 /*
  * The assistant's brand name may only be set in config/assistant.php and
- * .env.example. Anywhere else it would survive a rename — see
+ * .env.example. Anywhere else it would survive a rename: see
  * docs/ASSISTANT_BRANDING_PLAN.md.
  */
 it('never hardcodes the assistant brand name outside its config', function () {

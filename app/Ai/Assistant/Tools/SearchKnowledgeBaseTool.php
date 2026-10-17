@@ -55,7 +55,7 @@ class SearchKnowledgeBaseTool extends AssistantTool
             ]);
 
         if ($results->isEmpty()) {
-            return 'Nothing in the knowledge base matches. Try other words, or say it isn\'t covered — don\'t guess.';
+            return 'Nothing in the knowledge base matches. Try other words, or say it isn\'t covered: don\'t guess.';
         }
 
         return json_encode($results->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '[]';

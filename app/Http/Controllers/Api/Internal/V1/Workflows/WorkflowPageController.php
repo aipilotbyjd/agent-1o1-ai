@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
- * Workflow pages — see `WorkflowPage`. Members with `page.view` can open and
+ * Workflow pages: see `WorkflowPage`. Members with `page.view` can open and
  * use a published page from inside the app; building, publishing and sharing
  * one takes `page.manage`.
  */
@@ -135,7 +135,7 @@ class WorkflowPageController extends Controller
     }
 
     /**
-     * The page as a member using it sees it — the published page, or with
+     * The page as a member using it sees it: the published page, or with
      * `?draft=1` the draft, for someone who can edit it.
      */
     public function view(Request $request, Workspace $workspace, WorkflowPage $page)

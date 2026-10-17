@@ -145,7 +145,7 @@ class ReflectionAnalyzer
     }
 
     /**
-     * The agent's own chats since the last review — at most the latest
+     * The agent's own chats since the last review, at most the latest
      * `MAX_SESSIONS`, oldest first. Conversations a subagent ran on a
      * parent's behalf are left out: they aren't chats with a person, and the
      * clones of one request would otherwise count as separate sessions
@@ -418,7 +418,7 @@ class ReflectionAnalyzer
         // Which channel(s) each recipient actually receives this on (email,
         // in-app, webhook) is decided by `WorkspaceEventNotification::via()`
         // against their own `NotificationPreference` for
-        // `ReflectionRunCompleted` — this only decides whether the event
+        // `ReflectionRunCompleted`: this only decides whether the event
         // fires at all.
         $this->notifications->dispatch(
             $this->notifications->ownersAndAdmins($agent->workspace),

@@ -38,7 +38,7 @@ class NodeCategoryController extends Controller
 
     /**
      * A single category plus the built-in nodes filed under it. Custom nodes
-     * aren't included here — this route isn't workspace-scoped, see
+     * aren't included here: this route isn't workspace-scoped, see
      * `GET /workspaces/{workspace}/nodes?category=...` for those.
      */
     public function show(NodeCategory $nodeCategory)

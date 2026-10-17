@@ -17,7 +17,7 @@ use PhpOffice\PhpWord\Shared\Html;
 /**
  * Turns content a model can write as text into real binary documents, so an
  * agent can hand over a PDF, spreadsheet or Word file instead of trying to
- * emit the bytes itself — see `ExportArtifactTool`.
+ * emit the bytes itself: see `ExportArtifactTool`.
  *
  * - `pdf`: Markdown, or a full HTML document, rendered by Dompdf with PHP
  *   disabled and only inline `data:` resources allowed, so model-written HTML

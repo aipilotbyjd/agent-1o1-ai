@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * Previewing, connecting, re-syncing and disconnecting GitHub repositories
  * as skill sources. `repo` may be `owner/name` or any GitHub link to the
- * repository — a `/tree/{branch}/{folder}` link also sets the branch and
+ * repository: a `/tree/{branch}/{folder}` link also sets the branch and
  * folder, unless they're given separately.
  */
 class SkillSources
@@ -62,7 +62,7 @@ class SkillSources
 
     /**
      * Without a `credential_id`, reads with the member's GitHub account if
-     * they have one, else anonymously — enough for a public repository.
+     * they have one, else anonymously: enough for a public repository.
      *
      * @param  array{repo?: string, branch?: string|null, path?: string|null, credential_id?: string|null, is_shared?: bool}  $data
      */
@@ -321,7 +321,7 @@ class SkillSources
      * Reads `owner/name` out of whatever was entered: `owner/name`, a
      * github.com link (with or without `.git`), or a `/tree/` or `/blob/`
      * link, which also names a branch and folder. A branch with a slash in
-     * its name can't be told apart from a folder in a link — give it
+     * its name can't be told apart from a folder in a link: give it
      * separately.
      *
      * @return array{repo: string, branch: string|null, path: string|null}

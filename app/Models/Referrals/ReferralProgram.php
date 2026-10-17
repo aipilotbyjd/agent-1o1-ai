@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Every tunable setting of one referral program — what the admin API edits.
+ * Every tunable setting of one referral program: what the admin API edits.
  * Saving one clears the cached settings (`ReferralSettings`), so a change
  * applies to the very next request.
  */
@@ -147,7 +147,7 @@ class ReferralProgram extends Model
 
     /**
      * Switched on, not deleted, and inside its date window. A program that
-     * isn't live attributes no new referrals and grants no new rewards —
+     * isn't live attributes no new referrals and grants no new rewards:
      * the lever for pausing a campaign.
      */
     public function isLive(): bool

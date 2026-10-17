@@ -4,7 +4,7 @@ namespace App\Services\Secrets;
 
 /**
  * The secrets/variables one node's config actually referenced, resolved for a
- * single step — see `SecretResolver`.
+ * single step: see `SecretResolver`.
  */
 final readonly class ResolvedSecrets
 {

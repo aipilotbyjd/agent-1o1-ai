@@ -80,7 +80,7 @@ class KnowledgeSourceController extends Controller
     }
 
     /**
-     * Which apps can be synced, and with which of the member's accounts —
+     * Which apps can be synced, and with which of the member's accounts:
      * what the Add panel needs before any picking.
      */
     public function apps(Request $request, Workspace $workspace): JsonResponse
@@ -98,7 +98,7 @@ class KnowledgeSourceController extends Controller
                         'shared' => $credential->scope === ConnectorCredentialScope::Team,
                     ])
                     ->values(),
-                // Connected, but every connection has expired — the member needs to reconnect, not connect.
+                // Connected, but every connection has expired: the member needs to reconnect, not connect.
                 'expired' => $this->sources->hasExpiredAccount($workspace, $request->user(), $type->connector()),
             ])
             ->values();
@@ -134,7 +134,7 @@ class KnowledgeSourceController extends Controller
     }
 
     /**
-     * The documents a source brought in — one row per synced document.
+     * The documents a source brought in: one row per synced document.
      */
     public function documents(Request $request, Workspace $workspace, KnowledgeSource $knowledgeSource): JsonResponse
     {

@@ -37,8 +37,8 @@ use Throwable;
 /**
  * One workflow-builder chat turn: streams `WorkflowBuilderAgent`'s reply,
  * broadcasting each delta, tool call and draft change as it happens
- * (`WorkflowBuilderActivity`), then writes the finished reply — with a
- * summary of what it changed — onto the pending assistant message
+ * (`WorkflowBuilderActivity`), then writes the finished reply (with a
+ * summary of what it changed) onto the pending assistant message
  * `SendWorkflowBuilderMessageAction` created, and charges the turn.
  *
  * Never retried: the tools have already edited the draft by the time a turn
@@ -50,17 +50,17 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    public const string FAILURE_MESSAGE = "The assistant couldn't finish this reply. Any changes it already made to the draft are kept — send your message again to continue.";
+    public const string FAILURE_MESSAGE = "The assistant couldn't finish this reply. Any changes it already made to the draft are kept: send your message again to continue.";
 
     /**
      * Appended when the agent used its whole step budget while still calling
      * tools, so a half-built draft isn't presented as a finished one.
      */
-    public const string OUT_OF_STEPS_NOTE = "I ran out of steps before finishing. Everything I've built so far is on the canvas — say \"continue\" and I'll pick up where I left off.";
+    public const string OUT_OF_STEPS_NOTE = "I ran out of steps before finishing. Everything I've built so far is on the canvas: say \"continue\" and I'll pick up where I left off.";
 
     /**
      * The `model_catalog` slug for the workflow-builder assistant itself
-     * (not a user-selectable entry — see `ModelCatalog::is_internal`).
+     * (not a user-selectable entry: see `ModelCatalog::is_internal`).
      * Gumloop's own equivalent internal agent runs on an open-weight model
      * via Fireworks for a large cost saving with no UX change; this lets you
      * do the same here by adding/enabling a route on this slug.
@@ -139,7 +139,7 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     }
 
     /**
-     * Reached when the worker itself gave up on the job (timeout, crash) —
+     * Reached when the worker itself gave up on the job (timeout, crash):
      * `handle()` catches everything that happens inside the turn.
      */
     public function failed(?Throwable $exception = null): void
@@ -280,8 +280,8 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
      */
     private function broadcast(WorkflowBuilderSession $session, string $type, array $payload): void
     {
-        // A broadcaster outage must not fail a turn whose real output — the
-        // message and the draft — is persisted regardless.
+        // A broadcaster outage must not fail a turn whose real output (the
+        // message and the draft) is persisted regardless.
         try {
             WorkflowBuilderActivity::dispatch($session, $this->assistantMessageId, $type, $payload);
         } catch (Throwable $exception) {
@@ -292,9 +292,9 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     /**
      * Falls back to `laravel/ai`'s own default provider (`config('ai.default')`)
      * when the `workflow-builder-assistant` catalog entry hasn't been seeded
-     * or has no enabled route — so a fresh install isn't broken by this.
+     * or has no enabled route, so a fresh install isn't broken by this.
      * Runs on the workspace's own provider key where the member sending the
-     * message has one — see `ByokProviderRegistrar`.
+     * message has one: see `ByokProviderRegistrar`.
      *
      * @return array<string, string>|null
      */

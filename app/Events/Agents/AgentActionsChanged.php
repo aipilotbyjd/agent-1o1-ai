@@ -12,7 +12,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Actions in a conversation were decided, expired, cancelled or settled —
+ * Actions in a conversation were decided, expired, cancelled or settled,
  * so an approval card open in another tab (or another person's inbox) can
  * refresh rather than offer a decision that's already been made.
  */

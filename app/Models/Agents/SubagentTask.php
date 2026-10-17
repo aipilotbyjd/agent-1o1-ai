@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * A task whose job was lost (a crashed worker, a flushed queue) would stay
  * queued or running forever, holding one of the parent's
- * `InvokeAgentTool::MAX_CONCURRENT` slots and never reaching the parent —
+ * `InvokeAgentTool::MAX_CONCURRENT` slots and never reaching the parent:
  * `failStale()` gives up on it once it's had far longer than a job can run.
  */
 #[Fillable(['workspace_id', 'parent_session_id', 'agent_id', 'session_id', 'task'])]

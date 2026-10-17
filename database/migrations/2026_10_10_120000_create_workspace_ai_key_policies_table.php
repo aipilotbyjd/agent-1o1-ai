@@ -5,8 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * How a workspace's own AI provider keys and the platform's keys are mixed
- * — see `App\Models\Ai\WorkspaceAiKeyPolicy`. At most one row per
+ * How a workspace's own AI provider keys and the platform's keys are mixed:
+ * see `App\Models\Ai\WorkspaceAiKeyPolicy`. At most one row per
  * workspace; no row means the defaults.
  */
 return new class extends Migration

@@ -16,7 +16,7 @@ use Throwable;
  * Settles a paused turn's decided calls before the model hears about them:
  * each approved call is run here, through its own tool (so it goes through
  * the same guard, bound-field filter and billing as any call), and its
- * result stored on the action. Only then is the turn resumed — the SDK's
+ * result stored on the action. Only then is the turn resumed: the SDK's
  * own re-run of an approved call finds the stored result and hands it back
  * rather than running it again (`ActionGuard::run()`).
  *
@@ -75,7 +75,7 @@ class AgentActionExecutor
      * What the SDK is told about each call. A call that ran (or failed) is
      * "approved": the SDK re-runs it through the guard, which returns the
      * stored outcome. A rejection carries its explanation as the result so
-     * the model can adapt — unless the person asked to stop, which ends the
+     * the model can adapt, unless the person asked to stop, which ends the
      * turn there.
      *
      * @param  Collection<int, AgentAction>  $actions

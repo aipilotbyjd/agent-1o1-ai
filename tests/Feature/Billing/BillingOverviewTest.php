@@ -75,7 +75,7 @@ it('returns the active lifetime grant and the plan that actually applies', funct
     $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/billing")->assertOk();
 
     // No subscription exists, so `subscription.plan` cannot answer "what plan
-    // am I on" — `current_plan` is what the screen must render.
+    // am I on" - `current_plan` is what the screen must render.
     expect($response->json('data.subscription'))->toBeNull()
         ->and($response->json('data.plan_grant.status'))->toBe('active')
         ->and($response->json('data.plan_grant.source'))->toBe('lifetime_purchase')

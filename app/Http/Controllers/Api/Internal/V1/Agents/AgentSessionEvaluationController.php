@@ -44,7 +44,7 @@ class AgentSessionEvaluationController extends Controller
     }
 
     /**
-     * Manually (re-)evaluates one session — for backfilling conversations
+     * Manually (re-)evaluates one session, for backfilling conversations
      * from before evaluations were enabled, re-grading after criteria
      * changed, or retrying a failed evaluation. Runs immediately, without
      * the debounce `ScheduleSessionEvaluation` applies to the automatic

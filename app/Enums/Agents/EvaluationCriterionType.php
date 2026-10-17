@@ -3,7 +3,7 @@
 namespace App\Enums\Agents;
 
 /**
- * What kind of quality rule one evaluation criterion checks — purely
+ * What kind of quality rule one evaluation criterion checks: purely
  * descriptive, for grouping criteria in the UI. Grading itself only ever
  * looks at `EvaluationCriterionAction`.
  */

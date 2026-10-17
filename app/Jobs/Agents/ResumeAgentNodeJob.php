@@ -12,7 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 
 /**
  * Continues a workflow's Agent node whose agent paused for approvals, once
- * they are all decided — see `WorkflowRunner::resumeAgentNode()`. On the
+ * they are all decided: see `WorkflowRunner::resumeAgentNode()`. On the
  * node-execution queue, like the node itself.
  */
 class ResumeAgentNodeJob implements ShouldQueue

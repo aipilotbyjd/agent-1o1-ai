@@ -8,7 +8,7 @@ use App\Models\Workspaces\Workspace;
 
 /**
  * The one place that answers "may this workspace spend past its allowance,
- * and by how much" — Gumloop's credit overage: "enable credit overage to
+ * and by how much": Gumloop's credit overage: "enable credit overage to
  * keep running past your monthly credits, billed at $0.005 per credit"
  * (docs/gumloop/output/raw/core-concepts/credits.md).
  *
@@ -27,7 +27,7 @@ use App\Models\Workspaces\Workspace;
 class CreditOverage
 {
     /**
-     * Whether the workspace's plan sells overage at all — false on the Free
+     * Whether the workspace's plan sells overage at all: false on the Free
      * plan, matching how `credit_packs` is gated. A workspace that opted in
      * while on a paid plan and then lapsed to Free stops accruing overage
      * without its setting being rewritten, so upgrading restores it.
@@ -46,7 +46,7 @@ class CreditOverage
      * The ceiling that actually applies this period: the workspace's own cap
      * where it set one, otherwise the estate default, and never above the
      * estate default however the column was written. `null` means uncapped,
-     * which only happens when the estate default is itself uncapped —
+     * which only happens when the estate default is itself uncapped:
      * Gumloop's Enterprise case.
      */
     public function effectiveLimitFor(Workspace $workspace): ?int
@@ -83,7 +83,7 @@ class CreditOverage
      * uncapped.
      *
      * Pass the period when one is already loaded (and, in
-     * `DeductCreditsAction`'s case, locked) — resolving it again there would
+     * `DeductCreditsAction`'s case, locked): resolving it again there would
      * read around the lock.
      */
     public function remainingFor(Workspace $workspace, ?UsagePeriod $period = null): ?int
@@ -117,7 +117,7 @@ class CreditOverage
 
     /**
      * What `$credits` of overage costs, in cents, at
-     * `config('billing.credit_value_usd')` — Gumloop bills overage at the
+     * `config('billing.credit_value_usd')`: Gumloop bills overage at the
      * same $0.005 a credit is worth everywhere else. Rounded up, so a
      * fraction of a cent is never given away.
      */

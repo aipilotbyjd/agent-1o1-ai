@@ -12,8 +12,8 @@ use Illuminate\Database\Seeder;
  * `node_categories.slug` seeded by `AppNodeCategorySeeder` for the same
  * integration, so a node's `category()` doubles as its connector lookup key.
  *
- * Every Google product is its own connector — its own "Connect" button, its
- * own consent screen, its own scope — rather than one shared Google login
+ * Every Google product is its own connector: its own "Connect" button, its
+ * own consent screen, its own scope, rather than one shared Google login
  * covering all of them. Matches how Gumloop (and most workflow tools) model
  * Google integrations: users grant only what a given product needs.
  */
@@ -197,7 +197,7 @@ class ConnectorSeeder extends Seeder
                 'sort_order' => 7,
             ],
             [
-                // Mail and calendar in one connection — Microsoft grants
+                // Mail and calendar in one connection: Microsoft grants
                 // them on one consent screen.
                 'key' => 'outlook',
                 'name' => 'Outlook',

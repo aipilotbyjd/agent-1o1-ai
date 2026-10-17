@@ -18,7 +18,7 @@ it('resolves {{ }} templates in a node config against the run input before execu
             ]]],
             ['key' => 'b', 'type' => 'run_code', 'config' => ['operations' => [
                 ['op' => 'copy', 'output' => 'echoed', 'path' => 'input.name'],
-                // Whole-string form referencing an upstream node's output —
+                // Whole-string form referencing an upstream node's output:
                 // resolved to the raw value, not a stringified copy.
                 ['op' => 'set', 'output' => 'upstream', 'value' => '{{ nodes.a.greeting }}'],
             ]]],

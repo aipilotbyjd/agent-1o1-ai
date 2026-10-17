@@ -21,7 +21,7 @@ return [
 
     'hook_rate_limit_per_minute' => (int) env('TRIGGERS_HOOK_RATE_LIMIT_PER_MINUTE', 120),
 
-    // Request headers allow-listed into trigger_events.headers — everything
+    // Request headers allow-listed into trigger_events.headers: everything
     // else is dropped before it's ever persisted.
     'allowed_headers' => [
         'X-GitHub-Delivery',

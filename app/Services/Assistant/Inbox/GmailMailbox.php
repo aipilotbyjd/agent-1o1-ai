@@ -13,7 +13,7 @@ use RuntimeException;
 
 /**
  * Smart Inbox's Gmail access, through the owner's own connected account.
- * Labels, drafts and inbox moves only — it has no way to send mail.
+ * Labels, drafts and inbox moves only: it has no way to send mail.
  */
 class GmailMailbox implements Mailbox
 {

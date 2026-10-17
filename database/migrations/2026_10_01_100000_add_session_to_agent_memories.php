@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Which conversation a memory was saved in, so a person reviewing what an
  * agent remembers can see where each fact came from. Kept when the
- * conversation is deleted — the fact is still true, only its source is gone.
+ * conversation is deleted: the fact is still true, only its source is gone.
  */
 return new class extends Migration
 {

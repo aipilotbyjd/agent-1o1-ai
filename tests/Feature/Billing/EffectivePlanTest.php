@@ -8,8 +8,8 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
 
 /**
- * The workspace's *effective* plan — what actually decides its credit
- * allowance and feature access — as opposed to whatever subscription row
+ * The workspace's *effective* plan (what actually decides its credit
+ * allowance and feature access) as opposed to whatever subscription row
  * happens to exist. See `Workspace::currentPlan()`.
  */
 function workspaceForPlanResolution(): Workspace
@@ -113,7 +113,7 @@ it('counts top-up credits toward the available balance', function () {
 
     $workspace = workspaceForPlanResolution();
 
-    // topup_credits is engine-managed (not in Workspace's #[Fillable] list) —
+    // topup_credits is engine-managed (not in Workspace's #[Fillable] list),
     // only ActivateCreditPackAction and DeductCreditsAction move it.
     $workspace->increment('topup_credits', 250);
 

@@ -32,7 +32,7 @@ enum Role: string
     }
 
     /**
-     * Roles assignable via invite/role-update — Owner is derived from Workspace.owner_id only.
+     * Roles assignable via invite/role-update: Owner is derived from Workspace.owner_id only.
      *
      * @return array<int, self>
      */

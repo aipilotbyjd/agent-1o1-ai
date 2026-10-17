@@ -5,7 +5,7 @@ namespace App\Services\Agents;
 use App\Models\Agents\Agent;
 
 /**
- * The per-agent sampling options handed to the provider — `temperature`
+ * The per-agent sampling options handed to the provider: `temperature`
  * from its own column, the rest from the free-form `settings` array.
  * Unknown `settings` keys are ignored; a missing one leaves the SDK's
  * default in place.
@@ -13,7 +13,7 @@ use App\Models\Agents\Agent;
 final readonly class GenerationSettings
 {
     /**
-     * Hard ceilings, whatever an agent's settings say — a member could
+     * Hard ceilings, whatever an agent's settings say: a member could
      * otherwise set a step count that turns one prompt into a runaway,
      * credit-draining tool loop.
      */

@@ -4,7 +4,7 @@ namespace App\Enums\Triggers;
 
 /**
  * The life of one inbound event. Because events are stored before any work
- * happens, this status — not the presence of a run — is the record of what
+ * happens, this status (not the presence of a run) is the record of what
  * became of an event.
  */
 enum TriggerEventStatus: string
@@ -30,7 +30,7 @@ enum TriggerEventStatus: string
     case Ignored = 'ignored';
 
     /**
-     * The target was a draft or deleted — nothing to run.
+     * The target was a draft or deleted: nothing to run.
      */
     case Skipped = 'skipped';
 
@@ -47,7 +47,7 @@ enum TriggerEventStatus: string
     /**
      * A redelivery of something already accepted.
      *
-     * Returned as an intake outcome only — never written to the status column,
+     * Returned as an intake outcome only, never written to the status column,
      * because the row it refers to keeps whatever status it already had.
      */
     case Duplicate = 'duplicate';
@@ -66,7 +66,7 @@ enum TriggerEventStatus: string
     }
 
     /**
-     * Statuses the system has accepted responsibility for but not resolved —
+     * Statuses the system has accepted responsibility for but not resolved:
      * the retry-stuck command's search space.
      *
      * @return array<int, string>

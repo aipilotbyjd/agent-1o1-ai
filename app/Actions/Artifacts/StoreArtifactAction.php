@@ -20,21 +20,21 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Writes one artifact — the single place bytes land on disk and a row is
+ * Writes one artifact: the single place bytes land on disk and a row is
  * written, shared by the Internal API's upload endpoint and
  * `App\Ai\Tools\ExportArtifactTool` so "what does storing an artifact
  * actually do" (versioning, path layout, filename safety) has one
  * implementation.
  *
  * Versioning: a store never overwrites. It appends a new version to the
- * matching group — the group named by `$groupId`, or failing that the group
+ * matching group: the group named by `$groupId`, or failing that the group
  * of the newest artifact with the same filename in the same scope (the
- * agent session for an agent export, the workspace's uploads for an upload)
- * — and starts a fresh group when there's nothing to match.
+ * agent session for an agent export, the workspace's uploads for an upload),
+ * and starts a fresh group when there's nothing to match.
  *
  * When the artifact is filed under an agent and its content is
  * text-extractable, it is also indexed into that agent's
- * `Agent::artifactKnowledgeCollection()` — Gumloop's "Your agents'
+ * `Agent::artifactKnowledgeCollection()`: Gumloop's "Your agents'
  * artifacts" (docs/gumloop/output/raw/core-concepts/brain.md), letting the
  * agent search its own past outputs. Only the newest version stays
  * indexed, mirroring the doc's "updates in place" behavior.
@@ -43,7 +43,7 @@ class StoreArtifactAction
 {
     /**
      * Mime types read as UTF-8 text for indexing. Narrower than
-     * `config('knowledge_base.allowed_extensions')` — this only decides
+     * `config('knowledge_base.allowed_extensions')`: this only decides
      * whether an *already-stored* artifact's bytes are safe to treat as
      * text, not what a knowledge-base upload accepts.
      *
@@ -63,7 +63,7 @@ class StoreArtifactAction
 
     /**
      * `$searchable: false` skips indexing into the agent's knowledge
-     * collection — for chat message attachments, which belong to one
+     * collection, for chat message attachments, which belong to one
      * member's conversation and must not become searchable from anyone
      * else's.
      *
@@ -152,7 +152,7 @@ class StoreArtifactAction
         for ($attempt = 1; ; $attempt++) {
             // `withTrashed()`: a soft-deleted group must still be found here, both
             // to keep versioning past its last version number and so a matching
-            // re-export restores it — see the soft-delete note on the migration.
+            // re-export restores it: see the soft-delete note on the migration.
             $previous = Artifact::withTrashed()
                 ->where('workspace_id', $workspace->id)
                 ->when(
@@ -223,7 +223,7 @@ class StoreArtifactAction
 
         $collection = $agent->artifactKnowledgeCollection();
 
-        // Only the newest version stays indexed — `replaceSource` swaps the
+        // Only the newest version stays indexed: `replaceSource` swaps the
         // previous version's chunks for the new ones in one transaction, so a
         // failed embedding call leaves the old index intact.
         $this->knowledgeBase->ingest(
@@ -252,7 +252,7 @@ class StoreArtifactAction
     /**
      * The path segment for a filename. The stored `filename` keeps whatever
      * the uploader (or the model, for an agent export) supplied; the path
-     * never does — a name like `../../.env` would otherwise decide where the
+     * never does: a name like `../../.env` would otherwise decide where the
      * bytes land.
      */
     private function safeName(string $filename): string

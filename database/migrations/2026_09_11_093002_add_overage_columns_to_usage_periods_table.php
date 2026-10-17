@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
  * with the allowance, so the running total has to live beside it.
  *
  * `overage_credits_used` counts every credit this period that neither the
- * plan allowance nor the top-up pool could cover — it is a *subset* of
+ * plan allowance nor the top-up pool could cover: it is a *subset* of
  * `credits_used`, not an addition to it, so the period's own totals stay
  * self-consistent. `overage_credits_billed` tracks how much of that has been
  * invoiced, which is what makes `BillOverageCreditsAction` safe to re-run.

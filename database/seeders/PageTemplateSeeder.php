@@ -77,7 +77,7 @@ class PageTemplateSeeder extends Seeder
             ],
             'request-form' => [
                 'name' => 'Request form',
-                'description' => 'Inputs side by side in two columns and a confirmation note — good for intake, leads and requests.',
+                'description' => 'Inputs side by side in two columns and a confirmation note: good for intake, leads and requests.',
                 'category' => 'Forms',
                 'icon' => 'inbox',
                 'color' => '#F59E0B',
@@ -115,7 +115,7 @@ class PageTemplateSeeder extends Seeder
             ],
             'developer-tool' => [
                 'name' => 'Developer tool',
-                'description' => 'Dark, monospaced and compact, with copyable raw output — for internal tools and API-style workflows.',
+                'description' => 'Dark, monospaced and compact, with copyable raw output, for internal tools and API-style workflows.',
                 'category' => 'Internal tools',
                 'icon' => 'terminal',
                 'color' => '#10A37F',
@@ -152,7 +152,7 @@ class PageTemplateSeeder extends Seeder
                     'theme' => ['accent' => '#7c3aed', 'background' => 'gradient', 'radius' => 'xl', 'width' => 'wide', 'cover_url' => self::photo('1499750310107-5fef28a66643')],
                     'blocks' => [
                         self::heading('AI Content Studio', 1, 'center'),
-                        self::text('Turn a rough idea into a polished, on-brand draft in under a minute — blog posts, newsletters, product copy and social posts.', 'center'),
+                        self::text('Turn a rough idea into a polished, on-brand draft in under a minute: blog posts, newsletters, product copy and social posts.', 'center'),
                         self::block('spacer', ['size' => 'sm']),
                         self::callout('success', 'On brand', 'Writes in the tone you choose and keeps your terminology consistent.', 'third'),
                         self::callout('info', 'Ready to publish', 'Headings, short paragraphs and a clear call to action, formatted in Markdown.', 'third'),
@@ -168,9 +168,9 @@ class PageTemplateSeeder extends Seeder
                         self::block('divider', ['style' => 'solid']),
                         self::heading('How it works', 2),
                         self::text(<<<'MD'
-                            1. **Describe what you need** — the topic, who it’s for and what you want readers to do.
-                            2. **We draft it** — structure, headline and body copy, written for your audience.
-                            3. **Copy and refine** — use the copy button, paste it into your editor and make it yours.
+                            1. **Describe what you need**: the topic, who it’s for and what you want readers to do.
+                            2. **We draft it**: structure, headline and body copy, written for your audience.
+                            3. **Copy and refine**: use the copy button, paste it into your editor and make it yours.
                             MD),
                         self::heading('Frequently asked questions', 2),
                         self::text(<<<'MD'
@@ -197,7 +197,7 @@ class PageTemplateSeeder extends Seeder
                     'theme' => ['accent' => '#2563eb', 'background' => 'soft', 'radius' => 'lg', 'width' => 'medium', 'cover_url' => self::photo('1556761175-5973dc0f32e7')],
                     'blocks' => [
                         self::heading('Get your free growth assessment', 1),
-                        self::text('Tell us a little about your business and we’ll show you how well we fit — and the best next step for you — instantly.'),
+                        self::text('Tell us a little about your business and we’ll show you how well we fit (and the best next step for you) instantly.'),
                         self::callout('success', 'Free · 2 minutes · No commitment', 'You’ll see your result on this page right away.'),
                         self::field('half'),
                         self::field('half'),
@@ -214,7 +214,7 @@ class PageTemplateSeeder extends Seeder
                         self::text(<<<'MD'
                             > “The assessment told us exactly where to start. We booked a call the same day.”
                             >
-                            > — **Operations lead**, growing SaaS company
+                            > - **Operations lead**, growing SaaS company
                             MD),
                         self::heading('Questions', 2),
                         self::text(<<<'MD'
@@ -250,7 +250,7 @@ class PageTemplateSeeder extends Seeder
                         self::status('Your answer will show up here.'),
                         self::output('Answer', 'markdown', 'Ask a question to see the answer.'),
                         self::block('spacer', ['size' => 'sm']),
-                        self::callout('warning', 'Still stuck?', 'If the answer doesn’t solve it, reply to any of our emails or contact support — a person will pick it up.'),
+                        self::callout('warning', 'Still stuck?', 'If the answer doesn’t solve it, reply to any of our emails or contact support: a person will pick it up.'),
                         self::block('divider', ['style' => 'dashed']),
                         self::heading('Before you ask', 3),
                         self::text(<<<'MD'
@@ -271,7 +271,7 @@ class PageTemplateSeeder extends Seeder
                     'theme' => ['accent' => '#4f46e5', 'background' => 'plain', 'radius' => 'md', 'width' => 'wide', 'cover_url' => self::photo('1454165804606-c3d57bc86b40')],
                     'blocks' => [
                         self::heading('Document Summarizer', 1),
-                        self::text('Reports, contracts, meeting notes or research — get the gist and what to do next without reading every page.'),
+                        self::text('Reports, contracts, meeting notes or research: get the gist and what to do next without reading every page.'),
                         self::callout('info', 'The short version', 'A clear summary in a few paragraphs.', 'third'),
                         self::callout('success', 'What to do next', 'Decisions, owners and action items pulled out for you.', 'third'),
                         self::callout('warning', 'Nothing invented', 'Only what the document actually says.', 'third'),
@@ -301,7 +301,7 @@ class PageTemplateSeeder extends Seeder
                     'theme' => ['accent' => '#ea580c', 'background' => 'dots', 'radius' => 'md', 'width' => 'wide', 'cover_url' => self::photo('1551288049-bebda4e38f71')],
                     'blocks' => [
                         self::heading('Data Extractor', 1),
-                        self::text('Paste an invoice, an email thread or any messy text and get clean, structured data back — ready for a spreadsheet or your CRM.'),
+                        self::text('Paste an invoice, an email thread or any messy text and get clean, structured data back: ready for a spreadsheet or your CRM.'),
                         self::callout('warning', 'Handle with care', 'Remove passwords, full card numbers and other secrets before pasting.'),
                         self::field(),
                         self::field(),
@@ -340,18 +340,18 @@ class PageTemplateSeeder extends Seeder
                         self::block('divider', ['style' => 'solid']),
                         self::heading('Agenda', 2),
                         self::text(<<<'MD'
-                            - **9:00** — Registration and coffee
-                            - **10:00** — Opening keynote
-                            - **11:30** — Breakout workshops
-                            - **13:00** — Lunch and networking
-                            - **14:30** — Panel: what’s next
-                            - **16:30** — Closing remarks
+                            - **9:00**: Registration and coffee
+                            - **10:00**: Opening keynote
+                            - **11:30**: Breakout workshops
+                            - **13:00**: Lunch and networking
+                            - **14:30**: Panel: what’s next
+                            - **16:30**: Closing remarks
                             MD),
                         self::image(self::photo('1505373877841-8d25f7d46678'), 'The conference venue', 'md'),
                         self::heading('FAQ', 2),
                         self::text(<<<'MD'
                             ### Can I attend online?
-                            Yes — every talk is streamed. Choose online when you register.
+                            Yes: every talk is streamed. Choose online when you register.
 
                             ### Can I bring a colleague?
                             Each person should register separately so we can save them a seat.
@@ -370,7 +370,7 @@ class PageTemplateSeeder extends Seeder
                     'blocks' => [
                         self::heading('Tell us how we’re doing', 1),
                         self::text('Your feedback decides what we build next. It takes about two minutes.'),
-                        self::callout('success', 'Anonymous and short', 'Answer only what you want — every question is read by the team.'),
+                        self::callout('success', 'Anonymous and short', 'Answer only what you want: every question is read by the team.'),
                         self::field(),
                         self::field(),
                         self::field(),
@@ -421,7 +421,7 @@ class PageTemplateSeeder extends Seeder
                     'theme' => ['accent' => '#0284c7', 'background' => 'plain', 'radius' => 'md', 'width' => 'wide', 'cover_url' => self::photo('1460925895917-afdab827c52f')],
                     'blocks' => [
                         self::heading('Free website audit', 1),
-                        self::text('Find out what’s holding your site back in search — and exactly what to fix first.'),
+                        self::text('Find out what’s holding your site back in search, and exactly what to fix first.'),
                         self::field('two_thirds'),
                         self::submit('Run audit', 'Auditing your site…', 'stretch'),
                         self::status('Your report will appear below.'),
@@ -439,7 +439,7 @@ class PageTemplateSeeder extends Seeder
                             Usually under a minute, depending on the size of the site.
 
                             ### Do I need to install anything?
-                            No — just enter the address of a public page.
+                            No, just enter the address of a public page.
                             MD),
                     ],
                 ],

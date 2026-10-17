@@ -56,7 +56,7 @@ it('rejects an empty graph', function () {
 
 it('treats a node with no incoming edge as its own entry rather than unreachable', function () {
     // "Entry" here means structurally zero-incoming (no dedicated trigger
-    // node type exists yet — see docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage
+    // node type exists yet: see docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage
     // 4/11), so a disconnected node is a second valid entry point, not dead.
     // `unreachableNodeErrors()` stays in place for when entries narrow to
     // "trigger-type nodes only" and a structurally-orphaned node should
@@ -76,7 +76,7 @@ it('does not traverse error-only edges for cycle/reachability checks', function 
     );
 
     // 'recovery' is only reachable via an error edge, so from a healthy-path
-    // perspective it has no incoming edge and becomes its own entry node —
+    // perspective it has no incoming edge and becomes its own entry node,
     // not unreachable, not a false-positive "no entry node" failure either.
     expect($errors)->toBe([]);
 });

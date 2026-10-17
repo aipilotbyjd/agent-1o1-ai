@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * The workflow's declared input contract — the fields a person filling in
+     * The workflow's declared input contract: the fields a person filling in
      * a form (or a caller reading the API) is expected to supply. Optional by
      * design: `WorkflowInterface` derives an equivalent contract from the
      * graph's own `{{ input.* }}` references when none is declared, so every

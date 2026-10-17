@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Makes "is this interval for sale" an explicit switch rather than something
  * inferred from a Stripe price being present. Before this, the only way to
- * stop selling lifetime was to blank `stripe_price_id_lifetime` — which
+ * stop selling lifetime was to blank `stripe_price_id_lifetime`, which
  * throws away the configuration you'd need to turn it back on, and reads as
  * "misconfigured" rather than "deliberately withdrawn".
  *

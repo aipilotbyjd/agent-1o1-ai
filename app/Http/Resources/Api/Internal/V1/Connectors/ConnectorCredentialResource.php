@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Deliberately never includes `data` — decrypted secrets must never leave
+ * Deliberately never includes `data`: decrypted secrets must never leave
  * the server once stored, no matter who's asking.
  *
  * @mixin ConnectorCredential

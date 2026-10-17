@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The workflow editor used to write node references as `{{ <key>.output }}`
- * and `{{ <key>.output.<path> }}`, which the engine never resolved — its
+ * and `{{ <key>.output.<path> }}`, which the engine never resolved: its
  * templating context is `{ input, nodes: { <key>: <output> } }`, so those
  * values always came out empty. This rewrites them to the form the engine
  * reads, `{{nodes.<key>}}` / `{{nodes.<key>.<path>}}`, in every stored graph.

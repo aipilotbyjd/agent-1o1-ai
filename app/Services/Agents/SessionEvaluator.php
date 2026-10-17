@@ -24,7 +24,7 @@ use Throwable;
 
 /**
  * Grades one `AgentSession`'s transcript against its agent's
- * `AgentEvaluationSettings` and records the result — the live-conversation
+ * `AgentEvaluationSettings` and records the result: the live-conversation
  * counterpart to `EvalRunner`'s offline suite grading. See
  * `Listeners\Agents\ScheduleSessionEvaluation` for how this gets called
  * (debounced, off `RunCompleted`) and
@@ -48,7 +48,7 @@ class SessionEvaluator
 
     /**
      * Returns null without doing anything when evaluations aren't enabled
-     * for this agent — the caller (the queued job) doesn't need to know why
+     * for this agent: the caller (the queued job) doesn't need to know why
      * an evaluation didn't happen, only that it may not have.
      */
     public function evaluate(AgentSession $session): ?AgentSessionEvaluation

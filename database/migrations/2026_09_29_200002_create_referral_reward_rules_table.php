@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * "When `trigger` happens, give `reward_type` to `recipient`." Which of the
- * value columns matter depends on `reward_type` — see `ReferralRewardRule`.
+ * value columns matter depends on `reward_type`: see `ReferralRewardRule`.
  * `conditions` narrows when a rule applies (minimum payment, plans,
  * intervals, payment sources, nth payment).
  */

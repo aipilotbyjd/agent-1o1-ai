@@ -12,7 +12,7 @@ use Throwable;
 /**
  * Executes a pending `AgentEvalRun` queued by `EvalRunner::start()`. One
  * attempt only: cases call the real model, so a retry would pay for (and
- * bill) the suite twice — `EvalRunner::execute()` refuses a non-pending run
+ * bill) the suite twice: `EvalRunner::execute()` refuses a non-pending run
  * for the same reason.
  */
 class RunAgentEvalJob implements ShouldQueue
@@ -41,7 +41,7 @@ class RunAgentEvalJob implements ShouldQueue
     }
 
     /**
-     * The worker died mid-suite (timeout, crash) — `execute()`'s own catch
+     * The worker died mid-suite (timeout, crash): `execute()`'s own catch
      * never ran, so close the run out here.
      */
     public function failed(Throwable $e): void

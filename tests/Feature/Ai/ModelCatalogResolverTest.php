@@ -62,7 +62,7 @@ it('caches the resolved chain until forget() is called', function () {
 
     ModelRoute::factory()->forCatalog($catalog)->create(['execution_provider' => 'openrouter', 'execution_model_id' => 'openai/gpt-4o', 'priority' => 1]);
 
-    // Still cached — the newly added route isn't reflected yet.
+    // Still cached: the newly added route isn't reflected yet.
     expect($resolver->providerChain('cached-model'))->toBe(['openai' => 'gpt-4o']);
 
     $resolver->forget('cached-model');

@@ -10,7 +10,7 @@ use Illuminate\Validation\Rules\Exists;
  * A folder id taken from a request body is only valid when the folder belongs
  * to the workspace in the route and holds the right kind of item. A bare
  * `exists:folders,id` accepts another tenant's folder, which would let a
- * workflow or agent be filed under — and expose the name of — a folder in a
+ * workflow or agent be filed under (and expose the name of) a folder in a
  * workspace the caller has no access to.
  *
  * Requires a `{workspace}` route parameter.

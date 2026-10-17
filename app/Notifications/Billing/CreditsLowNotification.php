@@ -7,7 +7,7 @@ use App\Models\Workspaces\Workspace;
 use App\Notifications\Workspace\WorkspaceEventNotification;
 
 /**
- * Gumloop's Credit Usage Notification — "an email when usage crosses a
+ * Gumloop's Credit Usage Notification: "an email when usage crosses a
  * threshold", at whichever of the workspace's own thresholds this charge
  * crossed.
  *

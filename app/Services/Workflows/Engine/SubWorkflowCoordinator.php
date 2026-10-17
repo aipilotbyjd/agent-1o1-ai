@@ -17,7 +17,7 @@ use App\Models\Workflows\Workflow;
  * entry.
  *
  * Resumption is event-driven (`Listeners\Workflows\ResumeParentOnChildRun{Completed,Failed}`
- * → `WorkflowRunner::resolveSubWorkflow()`), not polled — this works
+ * → `WorkflowRunner::resolveSubWorkflow()`), not polled: this works
  * identically whether the child settles synchronously (sync queue driver, in
  * tests) or much later via real queue workers.
  */
@@ -36,7 +36,7 @@ class SubWorkflowCoordinator
         $config = $nodeDefinition['config'] ?? [];
         // Scoped to the run's own workspace: `workflow_id` is plain config, and
         // an unscoped lookup would let one workspace run another's published
-        // workflow — and read its output back through this node.
+        // workflow, and read its output back through this node.
         $childWorkflow = Workflow::query()
             ->whereKey($config['workflow_id'] ?? null)
             ->where('workspace_id', $run->workspace_id)
@@ -51,7 +51,7 @@ class SubWorkflowCoordinator
         $nodeRun->forceFill(['status' => NodeRunStatus::Running, 'started_at' => now()])->save();
 
         // {{ }} templating (docs/WORKFLOWS_AGENTS_BUILD_PLAN.md Stage 5) will
-        // resolve `config.input` against the run context — a literal object
+        // resolve `config.input` against the run context: a literal object
         // is all that's supported for now.
         $this->startWorkflowRun->execute($childWorkflow, $config['input'] ?? [], parentNode: $nodeRun);
     }

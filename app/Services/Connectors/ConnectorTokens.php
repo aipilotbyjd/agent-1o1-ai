@@ -11,7 +11,7 @@ use Throwable;
  * The one place an app's access token is read: it hands back a token that
  * is valid now, refreshing an OAuth connection that is about to expire (or
  * already has). Refreshes take a per-connection lock, because providers
- * that rotate refresh tokens (Microsoft) invalidate the old one — two
+ * that rotate refresh tokens (Microsoft) invalidate the old one: two
  * workers refreshing at once would leave the connection broken.
  */
 class ConnectorTokens
@@ -55,7 +55,7 @@ class ConnectorTokens
     /**
      * Renews the access token now. Under the lock the credential is read
      * again: if another worker refreshed it meanwhile, that token is used.
-     * A refresh the provider rejects ends the connection — it's marked
+     * A refresh the provider rejects ends the connection: it's marked
      * expired so it isn't retried, and the member is asked to reconnect.
      *
      * @throws ConnectorException

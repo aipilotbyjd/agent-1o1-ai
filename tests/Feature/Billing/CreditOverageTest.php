@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /**
- * Credit overage — Gumloop's "keep running past your monthly credits, billed
+ * Credit overage: Gumloop's "keep running past your monthly credits, billed
  * at $0.005 per credit", with a cap that can only ever be lowered.
  */
 function workspaceOnOveragePlan(int $creditsMonthly = 10, bool $sellsOverage = true): Workspace
@@ -34,7 +34,7 @@ function workspaceOnOveragePlan(int $creditsMonthly = 10, bool $sellsOverage = t
 }
 
 /**
- * A trivial one-node published workflow — enough to produce a real billable
+ * A trivial one-node published workflow: enough to produce a real billable
  * run without depending on `CreditGateTest`'s helper of the same shape.
  */
 function overageWorkflowFor(Workspace $workspace): Workflow
@@ -98,7 +98,7 @@ it('stops granting overage when the plan stops selling it', function () {
     $workspace = workspaceOnOveragePlan(sellsOverage: false);
     $workspace->forceFill(['credit_overage_enabled' => true, 'credit_overage_limit' => 500])->save();
 
-    // The opt-in is preserved, so upgrading restores it — but it entitles
+    // The opt-in is preserved, so upgrading restores it, but it entitles
     // nothing while the plan doesn't carry the feature.
     expect(app(CreditOverage::class)->remainingFor($workspace))->toBe(0)
         ->and($workspace->credit_overage_enabled)->toBeTrue();

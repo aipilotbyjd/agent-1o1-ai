@@ -12,14 +12,14 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * `id` is included because `Agent.model_catalog_id` is what
  * `StoreAgentRequest`/`UpdateAgentRequest` actually validate against
- * (`exists:model_catalog,id`) — a picker built on this response needs it to
- * submit a selection. Deliberately excludes `routes` — which real
+ * (`exists:model_catalog,id`): a picker built on this response needs it to
+ * submit a selection. Deliberately excludes `routes`, which real
  * backend(s), credentials, and priorities serve this entry is never exposed
  * to agent/workflow-facing API responses. See `Services\Ai\ModelCatalogResolver`.
  *
  * Availability, the reason a model can't run, whether it runs on the
  * workspace's own key, the admin's allow-list and default, and the cost
- * hint all come from the `WorkspaceModelView` it's given — the platform's
+ * hint all come from the `WorkspaceModelView` it's given: the platform's
  * view when none is.
  */
 class ModelCatalogResource extends JsonResource

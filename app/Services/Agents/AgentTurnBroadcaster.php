@@ -16,16 +16,16 @@ use Laravel\Ai\Streaming\Events\ToolResult;
 use Throwable;
 
 /**
- * Delivers one chat turn — a new message, or a paused turn resumed after
- * approvals — to everyone watching the conversation over Reverb, from inside
+ * Delivers one chat turn (a new message, or a paused turn resumed after
+ * approvals) to everyone watching the conversation over Reverb, from inside
  * a queue job (`RunAgentTurnJob`, `ResumeAgentTurnJob`). What goes out, on
  * the conversation's private channel:
  *
- * - `turn.changed` — the turn started (`running`), paused (`awaiting_approval`),
+ * - `turn.changed`: the turn started (`running`), paused (`awaiting_approval`),
  *   finished (`completed`) or failed. Anything but `running` is the cue to
  *   fetch the stored message.
- * - `turn.delta`   — a chunk of assistant text; concatenate in order received.
- * - `turn.tool`    — a tool call started or finished.
+ * - `turn.delta`: a chunk of assistant text; concatenate in order received.
+ * - `turn.tool`: a tool call started or finished.
  *
  * The persisted transcript is written by `AgentRunner` regardless of who is
  * listening: a dropped socket loses the live view, never the conversation.
@@ -45,7 +45,7 @@ class AgentTurnBroadcaster
      * Pulls the turn's provider stream to its end, broadcasting as it goes.
      * Failure is owned here, not by `AgentRunner`: nothing runs until the
      * stream is iterated, so an exception surfaces in this loop and the
-     * turn's `Run` must be failed from it — see `AgentRunner::failTurn()`.
+     * turn's `Run` must be failed from it: see `AgentRunner::failTurn()`.
      */
     public function broadcast(StreamedTurn $turn): void
     {

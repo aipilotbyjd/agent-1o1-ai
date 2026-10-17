@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * The staleness test is expressed in the UPDATE's own WHERE clause rather than
  * read first and compared in PHP: that keeps this to a single primary-key
- * statement per request that matches no rows — and so writes nothing — while the
+ * statement per request that matches no rows (and so writes nothing) while the
  * stamp is younger than `TOUCH_INTERVAL_MINUTES`. Writing on every
  * authenticated request would add a real write to every API call for a field
  * nobody reads to the second.
@@ -55,7 +55,7 @@ class TouchAccessTokenUsage
     /**
      * The guard hands back a `Laravel\Passport\AccessToken` (a value object over
      * the JWT claims), not the Eloquent row, so the id comes from the
-     * `oauth_access_token_id` claim — reading `->id` instead would lazily fetch
+     * `oauth_access_token_id` claim: reading `->id` instead would lazily fetch
      * the whole row just to learn its key. Cookie-authenticated requests carry a
      * `TransientToken`, which has no row to stamp.
      */

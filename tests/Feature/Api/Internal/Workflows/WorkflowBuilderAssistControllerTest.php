@@ -74,7 +74,7 @@ it('proposes a node config and reports where it breaks the schema', function () 
     expect($proposal['config'])->toBe(['method' => 'GET']);
     expect($proposal['needs_from_user'])->toBe(['The API URL']);
     expect($proposal['errors'])->not->toBe([]);
-    // A proposal only — the draft is untouched.
+    // A proposal only: the draft is untouched.
     expect($session->fresh()->draft_lock_version)->toBe(0);
 });
 

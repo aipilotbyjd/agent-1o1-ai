@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
  * A version number is allocated by reading the group's latest one, so two
  * concurrent stores can pick the same number. Uniqueness makes the database
  * reject the loser (`StoreArtifactAction` re-reads and retries) instead of
- * letting two rows share a version — and a storage path.
+ * letting two rows share a version, and a storage path.
  */
 return new class extends Migration
 {

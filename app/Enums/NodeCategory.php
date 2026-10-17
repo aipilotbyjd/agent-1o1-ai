@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Core (built-in, non-integration) node categories — the `Nodes/` folder
+ * Core (built-in, non-integration) node categories: the `Nodes/` folder
  * layout mirrors these 1:1 (docs/STRUCTURE.md's "How node folders tie to
  * NodeCategory"). App/integration categories (`slack`, `github`, ...) are
  * seeded rows only, not enum cases, since they're added per integration.

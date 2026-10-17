@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Reference documents attached to a `Skill` — knowledge text injected into
+ * Reference documents attached to a `Skill`: knowledge text injected into
  * an agent's context only when the skill is in use, not on every request.
  */
 return new class extends Migration

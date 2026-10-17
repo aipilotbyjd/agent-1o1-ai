@@ -13,7 +13,7 @@ class WorkflowBuilderSessionResource extends JsonResource
 {
     /**
      * What a session list selects: everything but `draft_graph`, which is
-     * then left out of each item (`whenHas`) — a list shows titles and
+     * then left out of each item (`whenHas`): a list shows titles and
      * status, and a full graph per session would dwarf them.
      */
     public const array LIST_COLUMNS = [

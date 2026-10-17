@@ -24,7 +24,7 @@ use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
 /**
- * The chat-based workflow builder — sessions here own a `draft_graph` edited
+ * The chat-based workflow builder: sessions here own a `draft_graph` edited
  * through `WorkflowBuilderAgent`'s tools (see `WorkflowBuilderMessageController`)
  * and, via `syncDraft()`, by hand on the canvas. Separate from
  * `WorkflowBuilderController`, which is the direct editor-autosave endpoint
@@ -54,7 +54,7 @@ class WorkflowBuilderSessionController extends Controller
             ->when(
                 $request->query('status'),
                 fn ($query, string $status) => $query->where('status', $status),
-                // Archived sessions are history — only listed when asked for.
+                // Archived sessions are history, only listed when asked for.
                 fn ($query) => $query->where('status', '!=', BuilderSessionStatus::Archived),
             )
             ->withCount('messages')
@@ -68,7 +68,7 @@ class WorkflowBuilderSessionController extends Controller
     }
 
     /**
-     * With a `prompt`, the session's first message is sent straight away —
+     * With a `prompt`, the session's first message is sent straight away:
      * "describe the workflow you want" in one request. The reply is
      * generated in the background; the pending assistant message is
      * returned so the client can follow it.
@@ -167,7 +167,7 @@ class WorkflowBuilderSessionController extends Controller
     }
 
     /**
-     * Save the draft graph as a real, workspace-visible `Workflow`'s draft —
+     * Save the draft graph as a real, workspace-visible `Workflow`'s draft:
      * a new workflow unless the session was already started from (or
      * already promoted to) one. A 409 means that workflow was edited
      * elsewhere since; `overwrite: true` replaces those edits.

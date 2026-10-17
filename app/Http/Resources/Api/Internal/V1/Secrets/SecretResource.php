@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * `value` is only ever included for a non-secret entry (a plain variable).
- * A secret's value is write-only — there is no endpoint, and no combination
+ * A secret's value is write-only: there is no endpoint, and no combination
  * of permissions, that reads it back.
  *
  * @mixin Secret

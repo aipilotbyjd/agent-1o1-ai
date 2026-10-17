@@ -15,10 +15,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * A user's personal assistant — one per (workspace, user), created on first
+ * A user's personal assistant: one per (workspace, user), created on first
  * open by `AssistantProvisioner` and visible to its owner only. Deliberately
  * separate from `Agent`: see docs/ASSISTANT_PLAN.md. Its public name is not
- * stored here — it comes from `BrandRepository`.
+ * stored here: it comes from `BrandRepository`.
  */
 #[Fillable(['workspace_id', 'user_id', 'model_catalog_id', 'instructions', 'settings'])]
 class Assistant extends Model

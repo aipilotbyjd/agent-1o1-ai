@@ -30,7 +30,7 @@ class AssertionGrader
     /**
      * `$agent` is the agent under test; an `llm_rubric` is judged with the
      * judge model set in its evaluation settings, falling back to its own
-     * model — see `ModelCatalogResolver::forJudging()`. A judged assertion
+     * model: see `ModelCatalogResolver::forJudging()`. A judged assertion
      * also carries the judge call's token `usage`, for `EvalRunner` to bill
      * against the case.
      *

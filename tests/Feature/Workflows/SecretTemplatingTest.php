@@ -22,7 +22,7 @@ function ownerWorkspaceForSecretRuns(): array
 
 /**
  * A one-node workflow whose single `run_code` operation copies a template
- * straight into its output — the shortest way to observe what the engine
+ * straight into its output: the shortest way to observe what the engine
  * substituted into a node's config, and what it then persisted.
  */
 function runWorkflowEchoing(Workspace $workspace, User $owner, string $template)
@@ -101,7 +101,7 @@ it('leaves secrets out of the context a node receives', function () {
     $workflow = Workflow::factory()->forWorkspace($workspace)->create();
 
     // `copy` reads a dot-path out of the raw run context rather than going
-    // through `{{ }}` resolution — the store must not be reachable that way.
+    // through `{{ }}` resolution: the store must not be reachable that way.
     $workflow->replaceGraph([
         'nodes' => [
             ['key' => 'a', 'type' => 'run_code', 'config' => [

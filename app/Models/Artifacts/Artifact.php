@@ -57,7 +57,7 @@ class Artifact extends Model
     }
 
     /**
-     * The chat message a member attached this file to, if any — see
+     * The chat message a member attached this file to, if any: see
      * `AgentMessage::attachments()`.
      */
     public function agentMessage(): BelongsTo
@@ -67,7 +67,7 @@ class Artifact extends Model
 
     /**
      * The workflow-builder chat message a member attached this file to, if
-     * any — see `WorkflowBuilderMessage::attachments()`.
+     * any: see `WorkflowBuilderMessage::attachments()`.
      */
     public function workflowBuilderMessage(): BelongsTo
     {
@@ -85,7 +85,7 @@ class Artifact extends Model
     }
 
     /**
-     * Explicit per-user grants on this artifact's group — only consulted
+     * Explicit per-user grants on this artifact's group, only consulted
      * when `general_access` is `restricted`.
      */
     public function shares(): HasMany
@@ -117,7 +117,7 @@ class Artifact extends Model
     }
 
     /**
-     * Only artifacts `$user` may open — the query form of `isAccessibleBy()`.
+     * Only artifacts `$user` may open: the query form of `isAccessibleBy()`.
      */
     public function scopeAccessibleBy(Builder $query, User $user, bool $canManage = false): Builder
     {
@@ -146,7 +146,7 @@ class Artifact extends Model
     }
 
     /**
-     * This file as an SDK attachment for a model prompt — how a chat message
+     * This file as an SDK attachment for a model prompt: how a chat message
      * attachment reaches the provider. Text formats are sent as `text/plain`,
      * the one text document type every provider accepts.
      */
@@ -168,7 +168,7 @@ class Artifact extends Model
     /**
      * Whether `$user` may view this artifact. The creator and anyone with
      * `artifact.manage` (checked by the caller and passed in as
-     * `$canManage`) always can; beyond that it follows `general_access` —
+     * `$canManage`) always can; beyond that it follows `general_access`:
      * `restricted` narrows to an explicit `ArtifactShare` grant, while
      * `organization`/`anyone` defer to the workspace-level `artifact.view`
      * permission already enforced by the route.

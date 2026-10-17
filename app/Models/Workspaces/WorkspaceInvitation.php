@@ -49,7 +49,7 @@ class WorkspaceInvitation extends Model
     }
 
     /**
-     * Invitations still outstanding — the query-side counterpart of
+     * Invitations still outstanding: the query-side counterpart of
      * `isAccepted()`/`isExpired()`. These consume a seat against the plan's
      * member cap (see `Services\Billing\PlanLimitGate::usage()`), since each
      * one is a member-in-waiting. Revoked invitations are soft-deleted, so

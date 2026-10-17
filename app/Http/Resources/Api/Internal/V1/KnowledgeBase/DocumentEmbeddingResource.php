@@ -23,7 +23,7 @@ class DocumentEmbeddingResource extends JsonResource
             'knowledge_source_id' => $this->knowledge_source_id,
             'source' => $this->source,
             'chunk_text' => $this->chunk_text,
-            // The vector itself is deliberately not serialized — it is
+            // The vector itself is deliberately not serialized: it is
             // hundreds to thousands of floats per row and nothing outside
             // `KnowledgeBase`'s ranking has any use for it. Its size is
             // exposed instead, since a mismatch in dimensions is the usual

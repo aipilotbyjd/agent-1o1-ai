@@ -22,7 +22,7 @@ use Illuminate\Http\Request;
  * channels, proves the click came from that Slack app; the button's
  * encrypted value proves which action and decision it was. The workspace
  * must also allow deciding from chat at all. Whoever clicked is recorded by
- * their Slack name — they may have no account here.
+ * their Slack name: they may have no account here.
  */
 class SlackAgentActionController extends Controller
 {

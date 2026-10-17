@@ -23,11 +23,11 @@ use Laravel\Ai\Responses\Data\ToolCall;
 use Laravel\Ai\Responses\Data\ToolResult;
 
 /**
- * Wraps an `AgentSession` as a `Laravel\Ai` agent — the standalone-chat path
+ * Wraps an `AgentSession` as a `Laravel\Ai` agent: the standalone-chat path
  * from docs/AGENTS_PLAN.md's "Agent turn loop" section. `$instructions` is
  * pre-composed by `Services\Agents\SkillInjector` (base instructions +
  * attached Skills + active AgentKnowledge) and `$tools` by
- * `Services\Agents\ToolRegistry` — both handed in by `AgentRunner`; this
+ * `Services\Agents\ToolRegistry`: both handed in by `AgentRunner`; this
  * class has no opinion on either, only exposes what it's given.
  */
 #[MaxSteps(15)]
@@ -51,7 +51,7 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
 
     /**
      * `$beforeMessageId` excludes the just-persisted user turn from
-     * `messages()` — `AgentRunner` writes it to `agent_messages` before
+     * `messages()` - `AgentRunner` writes it to `agent_messages` before
      * building this class, and the SDK appends the live `prompt()` argument
      * as the latest user message itself, so including it here would
      * duplicate it in the context sent to the provider.
@@ -88,7 +88,7 @@ class WorkspaceAgent implements Agent, Conversational, HasTools
     /**
      * The latest `HISTORY_LIMIT` user/assistant messages, oldest first.
      *
-     * A user message with no reply after it belongs to a turn that failed —
+     * A user message with no reply after it belongs to a turn that failed:
      * it is kept in the transcript but left out here, so the model isn't
      * handed a question it never answered. When the limit cuts the
      * transcript, the window is also trimmed to start on a user message,

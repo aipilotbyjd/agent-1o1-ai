@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * A reusable page layout — its `content` is the same `{blocks, theme}` shape
+ * A reusable page layout: its `content` is the same `{blocks, theme}` shape
  * as `WorkflowPage.content`, laid out for whichever workflow a new page runs
  * by `PageSchema::fromTemplate()`. `workspace_id` null means a global/system
  * template visible to every workspace.

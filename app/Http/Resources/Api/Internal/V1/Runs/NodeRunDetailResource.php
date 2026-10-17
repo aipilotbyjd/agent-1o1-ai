@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * The single-node view behind a run's canvas: everything `NodeRunResource`
- * carries plus what you only need when inspecting one step — the input it
+ * carries plus what you only need when inspecting one step: the input it
  * received, its token/credit usage, engine state, retry budget, and the
  * child runs a `subflow`/`loop` node spawned.
  *

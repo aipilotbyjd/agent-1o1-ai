@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Attaches a plan/subscription to the workspace's current usage period (or
- * opens one, if none exists yet) — called when a subscription is created,
+ * opens one, if none exists yet): called when a subscription is created,
  * so `UsagePeriod::credits_limit` reflects the plan the workspace just paid
  * for. Updates the existing period in place rather than replacing it, so
  * `credits_used` already recorded this month before subscribing survives.

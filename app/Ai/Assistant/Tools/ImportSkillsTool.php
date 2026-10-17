@@ -15,7 +15,7 @@ use Stringable;
 
 /**
  * Clones skills from a GitHub repository into the owner's workspace skill
- * library, kept in sync with the repository — the same synced source the
+ * library, kept in sync with the repository: the same synced source the
  * Skills page's "Sync from GitHub" makes. Only for an owner who may manage
  * skills.
  */
@@ -80,7 +80,7 @@ class ImportSkillsTool extends AssistantTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'repo' => $schema->string()->description('The repository as owner/name, or any GitHub link to it — a /tree/{branch}/{folder} link also picks the branch and folder.')->required(),
+            'repo' => $schema->string()->description('The repository as owner/name, or any GitHub link to it: a /tree/{branch}/{folder} link also picks the branch and folder.')->required(),
             'branch' => $schema->string()->description('Branch to sync from. Defaults to the repository\'s default branch.'),
             'path' => $schema->string()->description('Folder inside the repository that holds the skills. Defaults to the whole repository.'),
         ];

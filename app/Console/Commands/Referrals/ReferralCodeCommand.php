@@ -13,7 +13,7 @@ use Illuminate\Console\Command;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Shows or overrides one referrer's code — a vanity code, a pinned program
+ * Shows or overrides one referrer's code: a vanity code, a pinned program
  * (an influencer deal), a reward multiplier, a signup limit or expiry, or
  * switching it off.
  *

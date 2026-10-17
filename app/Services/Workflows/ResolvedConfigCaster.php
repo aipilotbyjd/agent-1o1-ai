@@ -6,7 +6,7 @@ use App\Exceptions\InvalidNodeInputException;
 
 /**
  * A field whose whole value is one `{{ }}` template takes whatever type the
- * upstream output had — a number field wired to a text output receives
+ * upstream output had: a number field wired to a text output receives
  * "42", a list field wired to a JSON string receives that string. After
  * `TemplateResolver` runs, this converts each such value to the type the
  * node's `configSchema()` declares, drops one that resolved to nothing (so

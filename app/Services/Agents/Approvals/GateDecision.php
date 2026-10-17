@@ -7,7 +7,7 @@ use App\Enums\Agents\ActionVerdict;
 use App\Models\Agents\AgentAction;
 
 /**
- * The gate's answer for one call, and the `AgentAction` it was recorded as —
+ * The gate's answer for one call, and the `AgentAction` it was recorded as:
  * null only for a read that ran freely, which isn't logged.
  */
 final readonly class GateDecision

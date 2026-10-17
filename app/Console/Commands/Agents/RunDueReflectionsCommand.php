@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 
 /**
  * Dispatches one `RunReflectionJob` per agent whose reflection schedule is
- * due — mirrors `Triggers\RunDueTriggersCommand`'s "write/queue due work and
+ * due: mirrors `Triggers\RunDueTriggersCommand`'s "write/queue due work and
  * return" shape rather than running analysis inline.
  */
 class RunDueReflectionsCommand extends Command
@@ -24,7 +24,7 @@ class RunDueReflectionsCommand extends Command
         $queued = 0;
 
         // Due is judged from `next_run_at`, not a fresh `isDue($now)` check
-        // against the cron expression — this command itself only runs every
+        // against the cron expression: this command itself only runs every
         // few minutes, so gating on the stored watermark (rather than exact
         // minute-precision matching) is what makes "due" independent of
         // landing on the schedule's exact minute.

@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Something the knowledge base keeps in sync — a web page, or content in a
+ * Something the knowledge base keeps in sync: a web page, or content in a
  * connected app (a Drive folder, a Gmail label, a repo, a Slack channel).
  * Shared with the workspace, or private to `owner_id` (their Brain).
  */

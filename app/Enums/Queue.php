@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Typed queue names — see docs/STRUCTURE.md's "Queues & Horizon" table for the
+ * Typed queue names: see docs/STRUCTURE.md's "Queues & Horizon" table for the
  * job-to-queue-to-supervisor mapping. Jobs declare their queue via
  * `->onQueue(Queue::WorkflowExecute->value)`, never a raw string. Dash-
  * separated (not the dot-namespaced form STRUCTURE.md sketches) to match the

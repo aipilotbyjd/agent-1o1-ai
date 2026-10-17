@@ -7,8 +7,8 @@ return [
     | Kill switch
     |--------------------------------------------------------------------------
     |
-    | Everything else about the referral program — rewards, triggers, caps,
-    | holds, fraud checks — lives in the database and is edited from the
+    | Everything else about the referral program: rewards, triggers, caps,
+    | holds, fraud checks: lives in the database and is edited from the
     | admin API. This is the one setting kept in the environment: it stops
     | all new attribution and every new reward immediately, even when the
     | database is the problem.

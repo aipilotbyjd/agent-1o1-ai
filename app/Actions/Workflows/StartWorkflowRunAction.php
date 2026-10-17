@@ -12,16 +12,16 @@ use App\Models\Workflows\Workflow;
 use App\Services\Billing\CreditGate;
 
 /**
- * Creates a `runs` row pinned to the workflow's `current_version_id` — never
+ * Creates a `runs` row pinned to the workflow's `current_version_id`, never
  * the live draft, so editing a workflow never changes what an in-flight run
- * executes (docs/WORKFLOWS_PLAN.md) — and dispatches the entry node(s).
+ * executes (docs/WORKFLOWS_PLAN.md), and dispatches the entry node(s).
  * Called from the Internal/Public API `RunController`s, `SubWorkflowCoordinator`/
  * `LoopCoordinator` (child runs, `$parentNode` set) and the trigger pipeline
  * (`App\Services\Triggers\TargetRunStarter`, docs/TRIGGERS_PLAN.md).
  *
  * Top-level runs go through `CreditGate` first, so a workspace out of credits
  * is refused before any node executes rather than after the LLM spend has
- * already happened. Child runs (`$parentNode` set) are exempt — see below.
+ * already happened. Child runs (`$parentNode` set) are exempt: see below.
  */
 class StartWorkflowRunAction
 {
@@ -50,7 +50,7 @@ class StartWorkflowRunAction
         }
 
         // `status`/`started_at` aren't in Run's #[Fillable] list (engine-
-        // managed, not user-mass-assignable) — create() would silently drop
+        // managed, not user-mass-assignable): create() would silently drop
         // them, so create first, then forceFill the status transition.
         $run = $workflow->runs()->create([
             'workspace_id' => $workflow->workspace_id,
@@ -71,7 +71,7 @@ class StartWorkflowRunAction
         DispatchNextNodesJob::dispatch($run->id);
 
         // With the sync queue driver the whole run may already have
-        // completed synchronously by the time dispatch() returns — reload
+        // completed synchronously by the time dispatch() returns: reload
         // so callers (controllers building a response right away) see the
         // current state instead of the "running" snapshot from above.
         return $run->fresh();

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * What the model picker tells people about a model beyond its name: a short
  * description, what it's good at, how fast and how costly it is relative to
- * the rest of the catalog, and — once it's being retired — when, and which
+ * the rest of the catalog, and (once it's being retired) when, and which
  * entry replaces it.
  */
 return new class extends Migration

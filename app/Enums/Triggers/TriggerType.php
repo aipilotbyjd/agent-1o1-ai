@@ -3,7 +3,7 @@
 namespace App\Enums\Triggers;
 
 /**
- * How a trigger fires. Also used for trigger_events.source — an event's source
+ * How a trigger fires. Also used for trigger_events.source: an event's source
  * is always the type of the trigger that produced it.
  */
 enum TriggerType: string

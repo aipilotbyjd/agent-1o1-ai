@@ -16,7 +16,7 @@ use App\Services\Workspaces\AuditLogger;
 use Illuminate\Http\Request;
 
 /**
- * Whether the workspace reviews workflow changes before they go live —
+ * Whether the workspace reviews workflow changes before they go live:
  * readable by anyone who can see workflows (the editor needs it to offer
  * "Request review" instead of "Publish"), changeable only by an admin, and
  * only switched on while the plan includes approvals.

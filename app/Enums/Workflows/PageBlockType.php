@@ -4,7 +4,7 @@ namespace App\Enums\Workflows;
 
 /**
  * The building blocks of a workflow page. `Field`, `Submit`, `Output` and
- * `Status` are bound to the workflow — a field to one of its interface
+ * `Status` are bound to the workflow: a field to one of its interface
  * fields, an output to one of its Output steps. `Section`, `Columns` and
  * `Column` hold other blocks in their `children`; the rest are content.
  */
@@ -38,7 +38,7 @@ enum PageBlockType: string
     }
 
     /**
-     * Whether this block may sit directly inside `$parent` — null for the
+     * Whether this block may sit directly inside `$parent`: null for the
      * page itself. A section sits on the page, columns on the page or in a
      * section, a column only in columns, and everything else anywhere but
      * directly in columns.

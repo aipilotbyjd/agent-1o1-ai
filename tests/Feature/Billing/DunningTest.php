@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /**
- * The dunning cycle — what happens between a card failing and either
+ * The dunning cycle: what happens between a card failing and either
  * recovering or the subscription ending.
  *
  * This app grants **no grace period**: `past_due` stops entitling the moment
  * Stripe reports it, because every workflow run and agent turn costs real
  * model spend. Everything recorded here exists to explain that in-product,
- * never to soften it — the first test below pins that down.
+ * never to soften it: the first test below pins that down.
  */
 function subscribedWorkspace(string $customerId = 'cus_dunning', string $status = 'active'): Workspace
 {
@@ -188,7 +188,7 @@ it('clears the dunning cycle and announces recovery when the charge succeeds', f
 });
 
 /**
- * An ordinary monthly renewal must stay silent — nobody was told anything was
+ * An ordinary monthly renewal must stay silent: nobody was told anything was
  * wrong, so "payment recovered" would be noise.
  */
 it('stays silent when a charge succeeds with no dunning cycle open', function () {

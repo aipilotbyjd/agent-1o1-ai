@@ -34,7 +34,7 @@ class WorkflowPageSubmissionController extends Controller
     ) {}
 
     /**
-     * The page's submissions, newest first, a page at a time — narrowed by
+     * The page's submissions, newest first, a page at a time: narrowed by
      * status, version, date and whether builder test runs are included.
      */
     public function index(Request $request, Workspace $workspace, WorkflowPage $page)

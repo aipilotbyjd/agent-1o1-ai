@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * `trigger` tells a person's run from an automatic one. `regressed` marks a
  * completed run that passed a smaller share of cases than the suite's
- * previous completed run — the signal worth notifying someone about.
+ * previous completed run: the signal worth notifying someone about.
  */
 return new class extends Migration
 {

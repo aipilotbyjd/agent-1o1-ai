@@ -17,10 +17,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * `usage` (token/credit accounting, same shape as `node_runs.usage`) is
- * engine-managed — not in `#[Fillable]`, written via `forceFill()` after
+ * engine-managed, not in `#[Fillable]`, written via `forceFill()` after
  * create(), mirroring `NodeRun`'s own convention. So is `paused_state`: set
  * by `AgentRunner` while the turn waits on an approval, cleared when it
- * resumes — see `Services\Agents\Approvals\PausedTurn`.
+ * resumes: see `Services\Agents\Approvals\PausedTurn`.
  */
 #[Fillable(['agent_session_id', 'role', 'content', 'skill_id', 'tool_calls', 'tool_results', 'tool_call_id'])]
 class AgentMessage extends Model
@@ -57,7 +57,7 @@ class AgentMessage extends Model
 
     /**
      * Files a member sent along with this (user) message. Stored as
-     * `Artifact`s and handed to the model with the message on every turn —
+     * `Artifact`s and handed to the model with the message on every turn:
      * see `AgentRunner::openTurn()` and `WorkspaceAgent::messages()`.
      */
     public function attachments(): HasMany
@@ -66,7 +66,7 @@ class AgentMessage extends Model
     }
 
     /**
-     * The calls this (assistant) turn paused on for approval — see
+     * The calls this (assistant) turn paused on for approval: see
      * `Models\Agents\AgentAction`.
      */
     public function actions(): HasMany
@@ -75,7 +75,7 @@ class AgentMessage extends Model
     }
 
     /**
-     * The `CreditTransaction` this turn was billed under — see
+     * The `CreditTransaction` this turn was billed under: see
      * `NodeRun::creditTransaction()`'s docblock for why this isn't a real
      * `morphOne`.
      */

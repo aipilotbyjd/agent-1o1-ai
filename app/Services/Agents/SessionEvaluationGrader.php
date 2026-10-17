@@ -5,7 +5,7 @@ namespace App\Services\Agents;
 use App\Enums\Agents\SessionEvaluationGrade;
 
 /**
- * Turns the judge's raw verdict into a `SessionEvaluationGrade`, in code —
+ * Turns the judge's raw verdict into a `SessionEvaluationGrade`, in code,
  * never the LLM. Mirrors Gumloop's published, deterministic rule
  * (docs/gumloop/output/raw/core-concepts/evaluations.md's "Grade computation
  * logic"), the one part of that feature copied faithfully because it is a

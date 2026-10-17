@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Files a member attached to one workflow-builder chat message — see
+ * Files a member attached to one workflow-builder chat message: see
  * `App\Models\Workflows\Builder\WorkflowBuilderMessage::attachments()`.
  */
 return new class extends Migration

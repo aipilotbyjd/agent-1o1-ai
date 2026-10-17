@@ -5,7 +5,7 @@ namespace App\Http\Requests\Api\Internal\V1\Workflows;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Structural validation only (shape of the payload) — node-level config
+ * Structural validation only (shape of the payload): node-level config
  * schema and graph-level checks (cycles, dangling edges, ...) are
  * `Workflow::replaceGraph()`'s/`GraphValidator`'s job, not this request's.
  */

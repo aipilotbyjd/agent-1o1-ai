@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * The draft exactly as the author left it when publishing — positions
+     * The draft exactly as the author left it when publishing: positions
      * included, loop-mode nodes not yet compiled. `graph` is what runs; this is
      * what a person previews on the canvas and restores into the draft.
      * Nullable: versions published before this column have no record of it.

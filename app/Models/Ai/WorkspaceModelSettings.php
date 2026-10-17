@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * An admin's model choices for the workspace: the model new agents, skills
- * and workflow AI steps start on (`default_model_catalog_id`), and — when
- * set — the only catalog models members may pick
+ * and workflow AI steps start on (`default_model_catalog_id`), and (when
+ * set) the only catalog models members may pick
  * (`allowed_model_catalog_ids`; null means every model). Applied through
  * `Services\Ai\WorkspaceModels`. `forWorkspace()` returns an unsaved
  * default when none has been set.

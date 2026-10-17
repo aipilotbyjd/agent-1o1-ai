@@ -51,8 +51,8 @@ class RunController extends Controller
 
     /**
      * Everything run on an agent's behalf: its chat turns, reflections, chat
-     * grading and eval suites. None of these point at the agent directly —
-     * each run belongs to the chat, review or suite — so it's matched through
+     * grading and eval suites. None of these point at the agent directly
+     * (each run belongs to the chat, review or suite) so it's matched through
      * that runnable.
      */
     private function forAgent(Builder $query, string $agentId): Builder
@@ -81,8 +81,8 @@ class RunController extends Controller
     }
 
     /**
-     * A chat turn's `Run` records the reply it produced in `output.message_id`
-     * — see `AgentRunner::completeTurn()`. A turn that failed has none.
+     * A chat turn's `Run` records the reply it produced in `output.message_id`:
+     * see `AgentRunner::completeTurn()`. A turn that failed has none.
      */
     private function agentReplyFor(Run $run): ?AgentMessage
     {
@@ -108,7 +108,7 @@ class RunController extends Controller
     }
 
     /**
-     * Cancelling any run in a tree cancels the whole tree — see
+     * Cancelling any run in a tree cancels the whole tree: see
      * `CancelRunAction`. Gated on `RunTrigger` rather than `RunView`: stopping
      * work is the same class of act as starting it.
      */

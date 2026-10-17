@@ -119,7 +119,7 @@ class Workflow extends Model
 
     /**
      * Excludes the hidden, single-node child workflows
-     * `Services\Workflows\LoopModeCompiler` auto-manages for a looped node —
+     * `Services\Workflows\LoopModeCompiler` auto-manages for a looped node:
      * a user never authored these and shouldn't see them listed, and they
      * shouldn't count toward `PlanLimit::Workflows`.
      *
@@ -133,10 +133,10 @@ class Workflow extends Model
 
     /**
      * Replace the draft graph wholesale. Only per-node config-schema issues
-     * are checked here (not the full `GraphValidator` sequence — a draft is
+     * are checked here (not the full `GraphValidator` sequence: a draft is
      * allowed to be mid-edit, e.g. temporarily missing an entry node, or a
      * newly added node whose required fields aren't filled in yet; publishing
-     * still requires them) — see docs/WORKFLOWS_PLAN.md's "Validation" section.
+     * still requires them): see docs/WORKFLOWS_PLAN.md's "Validation" section.
      *
      * @param  array{nodes?: array<int, array{key: string, type: string, config?: array<string, mixed>, position?: array<string, mixed>|null}>, edges?: array<int, array{from: string, to: string, condition?: string|null}>}  $graph
      *
@@ -174,7 +174,7 @@ class Workflow extends Model
 
         DB::transaction(function () use ($nodes, $edges): void {
             // Pin state lives on the node row, but every save deletes and
-            // recreates the rows wholesale (fresh IDs) — snapshot pinned
+            // recreates the rows wholesale (fresh IDs): snapshot pinned
             // data keyed by `key` first so it survives an ordinary canvas
             // save. A node whose `type` changed loses its pin: the output
             // shape it was pinned against may no longer apply.
@@ -214,7 +214,7 @@ class Workflow extends Model
 
     /**
      * The live draft as the same `{nodes, edges}` shape a `WorkflowVersion`
-     * snapshot uses — what `GraphValidator`, `DryRunner` and
+     * snapshot uses: what `GraphValidator`, `DryRunner` and
      * `publishVersion()` all consume, so the thing being validated is always
      * the thing that would be published.
      *
@@ -246,7 +246,7 @@ class Workflow extends Model
     }
 
     /**
-     * The draft as the editor sees it — `draftGraph()` plus each node's
+     * The draft as the editor sees it: `draftGraph()` plus each node's
      * canvas position, minus pins. This is what a version records as its
      * `editor_graph` and what `restoreVersion()` writes back.
      *
@@ -296,7 +296,7 @@ class Workflow extends Model
     }
 
     /**
-     * A hash of the draft graph as an author sees it — keys, types, configs,
+     * A hash of the draft graph as an author sees it: keys, types, configs,
      * positions and edges, independent of row order. Pins are left out:
      * pinning sample data isn't an edit to the workflow. A builder session
      * records it (`workflow_graph_hash`) when it loads or promotes into this
@@ -335,7 +335,7 @@ class Workflow extends Model
 
     /**
      * Snapshot the current draft graph as an immutable, publish-pinned
-     * `WorkflowVersion` — see `publishGraph()`. Refused while the workspace
+     * `WorkflowVersion`: see `publishGraph()`. Refused while the workspace
      * requires changes to be reviewed first: those go live through
      * `PublishRequestService::approve()` instead. Hidden child workflows
      * (`LoopModeCompiler`) are published as part of their parent and are
@@ -355,7 +355,7 @@ class Workflow extends Model
 
     /**
      * Snapshot a graph as the next version after running the full
-     * `GraphValidator` sequence — see docs/WORKFLOWS_PLAN.md's
+     * `GraphValidator` sequence: see docs/WORKFLOWS_PLAN.md's
      * `workflow_versions` section for why runs pin to a version rather than
      * the live draft. The graph is normally the draft; an approved publish
      * request passes the copy it was reviewed with.
@@ -376,7 +376,7 @@ class Workflow extends Model
         }
 
         // Compiles any node carrying a `config._loop` key into a real `loop`
-        // node pointed at an auto-managed child workflow — see
+        // node pointed at an auto-managed child workflow: see
         // `LoopModeCompiler`'s docblock. Graph-shape validation above already
         // ran against the original node (same key, same edges), so nothing
         // about the graph's structure needs revalidating after this.
@@ -386,15 +386,15 @@ class Workflow extends Model
             $graph = ['nodes' => $nodes, 'edges' => $edges];
 
             // `lockForUpdate()` on the watermark read, plus a retry on the
-            // `unique(workflow_id, version)` constraint — the same pairing
+            // `unique(workflow_id, version)` constraint: the same pairing
             // `AgentVersioner::snapshot()` uses. Two people hitting Publish
             // at once would otherwise both read the same `max('version')`
             // and the loser's request would die on the constraint. The lock
             // alone isn't enough: on a workflow's *first* publish there are
             // no rows to lock, so both readers see null and both try 1.
             //
-            // The first attempt runs in a nested transaction — i.e. a
-            // savepoint — because Postgres aborts the whole transaction on a
+            // The first attempt runs in a nested transaction, i.e. a
+            // savepoint, because Postgres aborts the whole transaction on a
             // constraint violation, which would leave the retry below unable
             // to issue any query at all. Rolling back to the savepoint keeps
             // the outer transaction usable.

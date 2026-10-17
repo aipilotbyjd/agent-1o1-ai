@@ -5,7 +5,7 @@ namespace App\Exceptions;
 use RuntimeException;
 
 /**
- * A builder session refused a change because of its current state — the
+ * A builder session refused a change because of its current state: the
  * draft moved on since the caller last read it, a reply is still being
  * generated, the session is archived, or the workflow it promotes into was
  * edited elsewhere since the session last saw it. Mapped to a 409 in

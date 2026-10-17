@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Writes a row per due trigger and returns — starts no runs itself, so the
+ * Writes a row per due trigger and returns: starts no runs itself, so the
  * every-minute tick costs the same whether one trigger is due or a thousand.
  */
 class RunDueTriggersCommand extends Command
@@ -55,7 +55,7 @@ class RunDueTriggersCommand extends Command
                     return;
                 }
 
-                // Double-firing is prevented by the delivery id, not a lock —
+                // Double-firing is prevented by the delivery id, not a lock:
                 // it's derived from the minute the trigger is due for, so a
                 // second invocation in the same minute collides on the unique
                 // index and is recorded as a duplicate. Holds across

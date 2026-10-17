@@ -26,7 +26,7 @@ class ConnectNodesTool implements Tool
 
     public function description(): Stringable|string
     {
-        return "Add an edge from one node to another. Both nodes must already exist. Use 'condition' for branching nodes (e.g. a router's branch value) or \"error\" to handle a failure from the source node. An edge's condition can't be changed in place: to make an existing edge conditional, remove the old one with disconnect_nodes first — otherwise both edges fire.";
+        return "Add an edge from one node to another. Both nodes must already exist. Use 'condition' for branching nodes (e.g. a router's branch value) or \"error\" to handle a failure from the source node. An edge's condition can't be changed in place: to make an existing edge conditional, remove the old one with disconnect_nodes first, otherwise both edges fire.";
     }
 
     public function handle(Request $request): Stringable|string

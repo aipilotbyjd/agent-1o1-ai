@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Executable code snippets attached to a `Skill`. Storage only — no
+ * Executable code snippets attached to a `Skill`. Storage only: no
  * execution wiring yet; running `code` requires a sandboxed executor that
  * does not exist in this codebase yet, see docs/AGENTS_PLAN.md.
  */

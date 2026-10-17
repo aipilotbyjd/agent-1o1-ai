@@ -13,7 +13,7 @@ use App\Models\Agents\AgentPlan;
 use Illuminate\Support\Str;
 
 /**
- * Decides what happens to one tool call: allow, ask, deny or simulate — and
+ * Decides what happens to one tool call: allow, ask, deny or simulate, and
  * records the call as an `AgentAction` (every call but a read that runs
  * freely, which would only be noise).
  *
@@ -22,10 +22,10 @@ use Illuminate\Support\Str;
  * 1. Read-only mode refuses every write outright. Nothing loosens it.
  * 2. The tool's own rule: the first of its `conditions` that matches, else
  *    its `mode` (`allow`/`ask`/`deny`). Either replaces the mode's verdict,
- *    which is how "always allow this tool" works — except that a rule can't
+ *    which is how "always allow this tool" works, except that a rule can't
  *    let a write run more freely than the workspace's `max_autonomy_mode`
  *    would (`ceilingVerdict()`).
- * 3. Otherwise the mode decides — see `modeVerdict()`.
+ * 3. Otherwise the mode decides: see `modeVerdict()`.
  * 4. The tool's `rate_limit`, then the workspace's guardrails. These only
  *    ever make the verdict stricter: no agent setting can get past them.
  * 5. Test run turns anything that would run or ask into a simulation, and so
@@ -33,7 +33,7 @@ use Illuminate\Support\Str;
  *
  * A call that was already weighed (the SDK weighs a call again when a paused
  * turn resumes) gets its recorded decision back, so the answer can't change
- * between the pause and the resume — and a Smart-mode review is never paid
+ * between the pause and the resume, and a Smart-mode review is never paid
  * for twice.
  */
 class ActionGate
@@ -121,7 +121,7 @@ class ActionGate
 
     /**
      * What the workspace's `max_autonomy_mode` would make of a write a tool
-     * rule lets run without asking — the admin's cap is a ceiling no agent
+     * rule lets run without asking: the admin's cap is a ceiling no agent
      * setting gets past, "always allow" included. Null when there is no cap
      * or the rule doesn't loosen anything.
      *
@@ -205,7 +205,7 @@ class ActionGate
 
     /**
      * The first pending step for this tool whose committed arguments all
-     * match the call — compared loosely (trimmed, case-insensitive), since
+     * match the call: compared loosely (trimmed, case-insensitive), since
      * the model restates them rather than copying them.
      *
      * A step already taken by a call that is running or ran doesn't count
@@ -302,7 +302,7 @@ class ActionGate
     /**
      * Every workspace guardrail that applies to this call. A guardrail
      * scoped by neither `tools` nor `effects` applies to every action that
-     * changes something — never to reads, unless it names them.
+     * changes something, never to reads, unless it names them.
      *
      * @return list<array{verdict: ActionVerdict, reason: array<string, mixed>}>
      */
@@ -416,7 +416,7 @@ class ActionGate
             'expires_at' => $asks ? now()->addMinutes($context->policy->approval_ttl_minutes) : null,
         ]);
 
-        // `status` is engine-managed, so not fillable — set before the first save.
+        // `status` is engine-managed, so not fillable: set before the first save.
         $action->forceFill(['status' => match ($verdict) {
             ActionVerdict::Allow => AgentActionStatus::Running,
             ActionVerdict::Ask => AgentActionStatus::Pending,

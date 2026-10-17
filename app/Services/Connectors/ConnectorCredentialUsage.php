@@ -15,8 +15,8 @@ use Illuminate\Support\Collection;
 
 /**
  * What would break if a connection went away. A workflow node or agent tool
- * uses a credential either by pinning its `credential_id`, or — with none
- * pinned — by falling back to it as the default account, following the same
+ * uses a credential either by pinning its `credential_id`, or (with none
+ * pinned) by falling back to it as the default account, following the same
  * rules as `ConnectorCredentialResolver::default()`.
  */
 class ConnectorCredentialUsage

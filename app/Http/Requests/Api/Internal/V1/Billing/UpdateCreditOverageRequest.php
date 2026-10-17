@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 /**
  * `limit` is the workspace's own ceiling on overage credits per billing
  * period. It is validated against `config('billing.overage.default_limit')`
- * so the API refuses a raise outright rather than silently clamping it —
+ * so the API refuses a raise outright rather than silently clamping it:
  * `CreditOverage::effectiveLimitFor()` clamps too, but a 422 is the honest
  * answer to "set my cap to ten million". `null` clears the workspace's
  * choice and falls back to that estate default.

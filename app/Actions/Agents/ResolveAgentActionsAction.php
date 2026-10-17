@@ -21,14 +21,14 @@ use Illuminate\Support\Facades\DB;
  * the streaming endpoint does).
  *
  * Each decision is one of:
- * - `approve` — run it as the model asked.
- * - `edit` — run it with `arguments` instead. The edit is still filtered by
+ * - `approve`: run it as the model asked.
+ * - `edit`: run it with `arguments` instead. The edit is still filtered by
  *   the tool: a field bound at attach time can't be changed this way.
- * - `reject` — don't run it. With `stop`, the agent's turn ends there;
+ * - `reject`: don't run it. With `stop`, the agent's turn ends there;
  *   otherwise it carries on, told of the rejection and any `note`.
  *
  * `remember` on an approval also sets the tool to run without asking from
- * now on — only for someone who may manage the agent.
+ * now on, only for someone who may manage the agent.
  *
  * Idempotent: an action that is no longer waiting is skipped, not
  * re-decided, so a double click or two people answering at once is safe.

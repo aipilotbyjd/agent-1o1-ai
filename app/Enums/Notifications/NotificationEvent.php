@@ -3,7 +3,7 @@
 namespace App\Enums\Notifications;
 
 /**
- * Single source of truth for the toggleable notification-event catalogue —
+ * Single source of truth for the toggleable notification-event catalogue:
  * drives both `NotificationPreferenceController::upsert`'s validation and
  * the `/notifications/events` catalogue endpoint the frontend settings
  * screen reads. Ported from the old project's `NotificationEvent`, trimmed

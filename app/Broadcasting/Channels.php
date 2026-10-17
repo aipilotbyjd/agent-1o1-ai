@@ -10,9 +10,9 @@ use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Models\Workflows\WorkflowPage;
 
 /**
- * The one place channel names are spelled out. Both halves of broadcasting —
+ * The one place channel names are spelled out. Both halves of broadcasting:
  * the events that publish (`Events\Runs\*`, `Events\Agents\*`) and the
- * authorization callbacks that gate subscription (`routes/channels.php`) —
+ * authorization callbacks that gate subscription (`routes/channels.php`):
  * build their names from here, so a rename can't leave a channel that is
  * published to but never authorized (or vice versa).
  *
@@ -24,7 +24,7 @@ final class Channels
     /**
      * Routing patterns for `routes/channels.php`. Kept beside the builders
      * below so the authorization side and the publishing side are edited
-     * together — Laravel needs a literal pattern with `{...}` placeholders to
+     * together: Laravel needs a literal pattern with `{...}` placeholders to
      * match against, which is why these can't just be the builders' output.
      */
     public const string WORKSPACE_RUNS_PATTERN = 'workspaces.{workspaceId}.runs';
@@ -42,7 +42,7 @@ final class Channels
     public const string PAGE_PATTERN = 'workspaces.{workspaceId}.pages.{pageId}';
 
     /**
-     * Workspace-wide firehose of run state transitions — what a "Runs" list
+     * Workspace-wide firehose of run state transitions: what a "Runs" list
      * subscribes to. Individual node steps do *not* land here; they would
      * flood a list view that only renders one row per run.
      */
@@ -52,7 +52,7 @@ final class Channels
     }
 
     /**
-     * One run's own stream: its status transitions plus every node step —
+     * One run's own stream: its status transitions plus every node step;
      * what an open run canvas subscribes to.
      */
     public static function run(Run $run): string
@@ -61,7 +61,7 @@ final class Channels
     }
 
     /**
-     * One agent conversation's stream — messages as they are appended.
+     * One agent conversation's stream: messages as they are appended.
      */
     public static function agentSession(AgentSession $session): string
     {
@@ -69,11 +69,11 @@ final class Channels
     }
 
     /**
-     * One workflow-builder session's stream — the assistant's reply as it is
+     * One workflow-builder session's stream: the assistant's reply as it is
      * written, its tool calls, and each change it makes to the draft.
      */
     /**
-     * One workflow page's stream for the people building it — comments as
+     * One workflow page's stream for the people building it: comments as
      * they change and AI generations as they finish. Never a visitor's.
      */
     public static function page(WorkflowPage $page): string
@@ -87,7 +87,7 @@ final class Channels
     }
 
     /**
-     * One personal-assistant conversation's stream — the reply as it is
+     * One personal-assistant conversation's stream: the reply as it is
      * written, tool activity, and turn status. Only the assistant's owner
      * may subscribe (`WorkspaceChannelGate::assistantSession()`).
      */
@@ -99,7 +99,7 @@ final class Channels
     }
 
     /**
-     * One personal assistant's own stream — background reports finishing.
+     * One personal assistant's own stream: background reports finishing.
      * Owner only (`WorkspaceChannelGate::assistant()`).
      */
     public static function assistant(Assistant $assistant): string

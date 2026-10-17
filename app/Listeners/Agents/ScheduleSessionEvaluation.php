@@ -15,9 +15,9 @@ use Illuminate\Support\Str;
  * turns rather than once per turn: each call stores a fresh token in cache
  * and (re)schedules `EvaluateAgentSessionJob` after
  * `DEBOUNCE_SECONDS`, so a conversation still going when this fires gets
- * superseded by the next turn's token — see the job's docblock.
+ * superseded by the next turn's token: see the job's docblock.
  *
- * Never fires for a `Run` whose runnable isn't an `AgentSession` — an eval
+ * Never fires for a `Run` whose runnable isn't an `AgentSession`: an eval
  * suite run, a reflection run, or a session evaluation's own `Run` (opened
  * by `SessionEvaluator` itself) all complete without ever reaching here, so
  * grading a session can't recursively schedule another evaluation.

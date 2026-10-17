@@ -9,7 +9,7 @@ use App\Services\Agents\Knowledge\KnowledgeDocumentData;
 use Throwable;
 
 /**
- * Google Docs, Sheets, Slides and text files — in one folder, or matching a
+ * Google Docs, Sheets, Slides and text files, in one folder, or matching a
  * name, or all of Drive. Each sync reads files changed since the last one.
  */
 class GoogleDriveReader implements KnowledgeReader

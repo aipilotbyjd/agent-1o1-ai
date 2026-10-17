@@ -14,7 +14,7 @@ use App\Models\Workspaces\Workspace;
 use Illuminate\Http\Request;
 
 /**
- * Undo history for a builder session — every edit, by the assistant or on
+ * Undo history for a builder session: every edit, by the assistant or on
  * the canvas, is a labelled snapshot (`WorkflowBuilderSession::applyGraph()`),
  * and restoring one is itself a new snapshot.
  */

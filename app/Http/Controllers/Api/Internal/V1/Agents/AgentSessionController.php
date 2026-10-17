@@ -57,8 +57,8 @@ class AgentSessionController extends Controller
 
     /**
      * Anyone who can chat may make a conversation stricter than its agent
-     * (a tighter mode, or Test run on). Loosening it — a freer mode, or Test
-     * run off when the agent has it on — is an agent setting in disguise,
+     * (a tighter mode, or Test run on). Loosening it (a freer mode, or Test
+     * run off when the agent has it on) is an agent setting in disguise,
      * so it takes the right to manage the agent.
      */
     public function update(UpdateAgentSessionRequest $request, Workspace $workspace, Agent $agent, AgentSession $session)
@@ -93,7 +93,7 @@ class AgentSessionController extends Controller
 
     /**
      * Paginated transcript. `show()` eager-loads the whole conversation,
-     * which is fine for a fresh session and wrong for a long-running one —
+     * which is fine for a fresh session and wrong for a long-running one:
      * this is what a chat window pages backwards through.
      */
     public function messages(Workspace $workspace, Agent $agent, AgentSession $session)

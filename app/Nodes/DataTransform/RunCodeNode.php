@@ -16,7 +16,7 @@ use InvalidArgumentException;
 /**
  * Deliberately NOT arbitrary code execution. `docs/NODES_CATALOG.md` flags
  * the old project's `CodeNode` as needing "its own security review at build
- * time" before ever accepting user-submitted PHP/JS to `eval()` or sandbox —
+ * time" before ever accepting user-submitted PHP/JS to `eval()` or sandbox:
  * that review hasn't happened. Until it does, this node only runs a
  * whitelisted set of pure, side-effect-free operations against `$context`, so
  * the `NodeContract`/engine wiring can be proven end-to-end without opening
@@ -48,7 +48,7 @@ class RunCodeNode implements DeclaresEffect, HasIcon, NodeContract
 
     public function description(): string
     {
-        return 'Runs a whitelisted set of pure operations (set/copy/uppercase/lowercase/concat) against the run context — not arbitrary code execution.';
+        return 'Runs a whitelisted set of pure operations (set/copy/uppercase/lowercase/concat) against the run context, not arbitrary code execution.';
     }
 
     public function effect(array $config): ActionEffect

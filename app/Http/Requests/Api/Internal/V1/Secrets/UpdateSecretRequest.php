@@ -33,7 +33,7 @@ class UpdateSecretRequest extends FormRequest
 
     /**
      * Flipping an existing secret to a readable variable would turn this
-     * endpoint into the read-back path the store deliberately doesn't have —
+     * endpoint into the read-back path the store deliberately doesn't have:
      * the old value has to be replaced in the same request.
      */
     public function withValidator(Validator $validator): void
@@ -42,7 +42,7 @@ class UpdateSecretRequest extends FormRequest
             $becomingReadable = $this->boolean('is_secret') === false && $this->has('is_secret');
 
             if ($becomingReadable && $this->route('secret')->is_secret && ! $this->filled('value')) {
-                $validator->errors()->add('value', 'Provide a new value when converting a secret into a readable variable — the stored one is never revealed.');
+                $validator->errors()->add('value', 'Provide a new value when converting a secret into a readable variable: the stored one is never revealed.');
             }
         });
     }

@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 /**
  * Archives builder sessions nobody has touched in a while, so the session
  * list stays about current work. Only sessions that never produced a
- * workflow are archived — a promoted one is the history behind a real
+ * workflow are archived: a promoted one is the history behind a real
  * workflow. Nothing is deleted: an archived session can be reopened by
  * setting its status back to `active`.
  */

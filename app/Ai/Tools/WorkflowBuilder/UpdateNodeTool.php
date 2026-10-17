@@ -26,7 +26,7 @@ class UpdateNodeTool implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Change an existing node\'s config, identified by its key. Fields in config_json are merged in and fields named in remove_fields are deleted — everything else on the node is kept. To turn off loop mode, remove "_loop".';
+        return 'Change an existing node\'s config, identified by its key. Fields in config_json are merged in and fields named in remove_fields are deleted: everything else on the node is kept. To turn off loop mode, remove "_loop".';
     }
 
     public function handle(Request $request): Stringable|string

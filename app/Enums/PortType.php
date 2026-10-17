@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * Port types checked by `GraphValidator`/`TypeChecker` when a `WorkflowEdge`
- * connects two node ports — see docs/WORKFLOWS_PLAN.md's "Type checking"
+ * connects two node ports: see docs/WORKFLOWS_PLAN.md's "Type checking"
  * section.
  */
 enum PortType: string

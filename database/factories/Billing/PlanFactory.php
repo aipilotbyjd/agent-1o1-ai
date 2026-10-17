@@ -55,7 +55,7 @@ class PlanFactory extends Factory
     }
 
     /**
-     * Sold on the recurring intervals only — no lifetime price.
+     * Sold on the recurring intervals only: no lifetime price.
      */
     public function withoutLifetime(): static
     {
@@ -65,7 +65,7 @@ class PlanFactory extends Factory
     }
 
     /**
-     * Priced on the interval but withdrawn from sale — the state that
+     * Priced on the interval but withdrawn from sale: the state that
      * separates "switched off" from "never configured".
      *
      * @param  list<string>  $intervals

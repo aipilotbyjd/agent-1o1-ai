@@ -14,7 +14,7 @@ use App\Models\Workspaces\Workspace;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 /**
- * See docs/TRIGGERS_PLAN.md's "Core pipeline" diagram — `receive()` is the fast
+ * See docs/TRIGGERS_PLAN.md's "Core pipeline" diagram: `receive()` is the fast
  * intake path (a few indexed queries and one INSERT, never a model call, never
  * a graph walk), `fire()` is the slow path a queued job runs after the event
  * row already exists.
@@ -126,13 +126,13 @@ class TriggerService
                 'delivery_id' => $deliveryId,
             ]);
         } catch (UniqueConstraintViolationException) {
-            // Lost the race to a concurrent delivery of the same event — the
+            // Lost the race to a concurrent delivery of the same event: the
             // unique index is the dedupe guarantee, not the earlier read-check.
             return $this->duplicateOf($trigger, $deliveryId) ?? throw new UniqueConstraintViolationException;
         }
 
-        // The insert above is its own auto-committed statement — nothing in
-        // this call path wraps receive() in an explicit transaction — so the
+        // The insert above is its own auto-committed statement (nothing in
+        // this call path wraps receive() in an explicit transaction) so the
         // row already exists by the time this dispatches. If a future caller
         // ever wraps receive() in DB::transaction(), add ->afterCommit() here
         // to keep that guarantee; the row-before-job rule is why.
@@ -142,7 +142,7 @@ class TriggerService
     }
 
     /**
-     * Rejected deliveries are stored WITHOUT a delivery id — otherwise an
+     * Rejected deliveries are stored WITHOUT a delivery id, otherwise an
      * attacker blocks a legitimate delivery by guessing its id and sending a
      * badly signed request first.
      *
@@ -172,7 +172,7 @@ class TriggerService
 
     /**
      * The slow path: actually start the target, then record the outcome.
-     * Any exception here is left to propagate — `FireTriggerEvent`'s own
+     * Any exception here is left to propagate: `FireTriggerEvent`'s own
      * retry/backoff and `failed()` circuit-breaker handling owns what happens
      * next, not this method.
      */
@@ -195,7 +195,7 @@ class TriggerService
     }
 
     /**
-     * Checked only on the manual-run path — a person double-clicking wants to
+     * Checked only on the manual-run path: a person double-clicking wants to
      * be told "busy"; a provider redelivering wants its event queued
      * regardless. See docs/TRIGGERS_PLAN.md's design decisions table.
      */
@@ -264,7 +264,7 @@ class TriggerService
 
     /**
      * Write an event that has already reached a terminal, non-`Rejected`
-     * outcome (inactive/filtered/unrunnable) — still dedupes by delivery id,
+     * outcome (inactive/filtered/unrunnable), still dedupes by delivery id,
      * unlike `reject()`.
      *
      * @param  array<string, mixed>  $payload

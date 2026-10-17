@@ -31,7 +31,7 @@ class PlanResource extends JsonResource
             'features' => $this->features,
             'trial_days' => $this->trial_days,
             'is_active' => $this->is_active,
-            // The intervals actually on sale — a plan can have a price for one
+            // The intervals actually on sale: a plan can have a price for one
             // and still have it withdrawn. Render the buy options from this,
             // not from whichever `price_*` fields are non-zero, or the screen
             // will offer a checkout that 422s on submit.

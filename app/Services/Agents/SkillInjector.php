@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
  * adding an "about you" section, the names and descriptions of its attached
  * `Skill`s (the model loads a skill's full text on demand through
  * `UseSkillTool`), active `AgentKnowledge` entries and remembered
- * `AgentMemory` facts — see docs/AGENTS_PLAN.md's "Skills", "Knowledge / RAG"
+ * `AgentMemory` facts: see docs/AGENTS_PLAN.md's "Skills", "Knowledge / RAG"
  * and `agent_memories` sections. `AgentKnowledge` is "always know this",
  * injected directly, as opposed to `SearchKnowledgeTool`'s "look this up when
  * relevant"; memory is durable and distinct from `AgentSession`'s
@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Log;
 class SkillInjector
 {
     /**
-     * How many remembered facts go into the prompt — the most recently
+     * How many remembered facts go into the prompt: the most recently
      * updated ones. Every fact is resent on every turn, so an agent that has
      * remembered hundreds would otherwise spend most of its context on them;
      * the rest stay reachable through `RecallMemoriesTool`.
@@ -44,7 +44,7 @@ class SkillInjector
 
     /**
      * Everything added to the base instructions, exactly as it appears in the
-     * final prompt — so `UpdateInstructionsTool` can strip any of it a model
+     * final prompt, so `UpdateInstructionsTool` can strip any of it a model
      * copies back into its own instructions.
      *
      * @return array<int, string>
@@ -158,7 +158,7 @@ class SkillInjector
     }
 
     /**
-     * Scoped to the run's user when known, plus workspace-wide memories —
+     * Scoped to the run's user when known, plus workspace-wide memories:
      * see `Agent::memoriesVisibleTo()`. Capped at `MAX_INJECTED_MEMORIES`.
      */
     private function memoriesSection(Agent $agent, ?string $userId): ?string

@@ -3,7 +3,7 @@
 namespace App\Enums\Workflows;
 
 /**
- * The input types a workflow's interface can declare. Deliberately small —
+ * The input types a workflow's interface can declare. Deliberately small:
  * these map onto both an HTML form control and a Laravel validation rule,
  * and anything richer belongs in the workflow's own logic rather than in its
  * front door.

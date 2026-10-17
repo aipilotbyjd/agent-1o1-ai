@@ -157,7 +157,7 @@ it('broadcasts the state a run was in when the transition happened', function ()
     $workflow->publishVersion(publisher: $owner);
     $run = app(StartWorkflowRunAction::class)->execute($workflow->fresh());
 
-    // Built while the run was still running, delivered after it finished —
+    // Built while the run was still running, delivered after it finished:
     // the queued-broadcast case. The payload must describe the transition it
     // was created for, not whatever the row says later.
     $running = $run->fresh();

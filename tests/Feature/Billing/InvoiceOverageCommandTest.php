@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Overage is metered as it is spent and invoiced afterwards, so what matters
- * here is that every accrued credit is billed exactly once — never twice on
+ * here is that every accrued credit is billed exactly once, never twice on
  * a re-run, and never written off when Stripe refuses the charge.
  *
  * The action's single Stripe call is replaced with a recorder, so these
@@ -146,7 +146,7 @@ it('does not open an invoice for less than the minimum worth billing', function 
     $workspace = workspaceWithUnbilledOverage(20);
     $biller = recordingBiller();
 
-    // 20 credits is $0.10 — held back until it is worth an invoice, not
+    // 20 credits is $0.10: held back until it is worth an invoice, not
     // written off, so the credits stay unbilled.
     expect($biller->execute($workspace, currentOveragePeriod()))->toBeNull()
         ->and($biller->invoiced)->toBeEmpty()
@@ -205,7 +205,7 @@ it('carries a remainder under the minimum into the next closed period instead of
     $workspace = workspaceWithUnbilledOverage(60);
     $biller = recordingBiller();
 
-    // 60 credits is $0.30 — under the $0.50 minimum on its own.
+    // 60 credits is $0.30, under the $0.50 minimum on its own.
     expect($biller->execute($workspace, currentOveragePeriod()))->toBeNull();
 
     $earlier = currentOveragePeriod();

@@ -15,7 +15,7 @@ use Illuminate\Support\Arr;
 use InvalidArgumentException;
 
 /**
- * Embeds an `Agent` inside a workflow — the Workflow→Agent direction (Stage 7's
+ * Embeds an `Agent` inside a workflow: the Workflow→Agent direction (Stage 7's
  * `WorkflowTool` is the reverse, Agent→Workflow), and this app's version of
  * Gumloop's Agent node (docs/gumloop/output/raw/core-concepts/agent_node.md).
  * Ported design from the old project's `AgentStepHandler`: resolves the
@@ -30,7 +30,7 @@ use InvalidArgumentException;
  * `config('billing.node_costs.agent')` surcharge.
  *
  * `config.prompt` is already `{{ }}`-resolved by the time `execute()` sees it
- * (`WorkflowRunner`'s templating pass runs before any node type) — omitting
+ * (`WorkflowRunner`'s templating pass runs before any node type): omitting
  * it falls back to `input.message` from the run's own input, mirroring the
  * old project's default.
  */

@@ -17,8 +17,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 /**
  * One execution of `Services\Agents\ReflectionAnalyzer` over an agent's
  * recent conversation history. `status`/counters/timestamps are
- * engine-managed — written by `ReflectionAnalyzer` via `forceFill()`, not
- * mass-assigned — same convention as `AgentEvalRun`.
+ * engine-managed (written by `ReflectionAnalyzer` via `forceFill()`, not
+ * mass-assigned) same convention as `AgentEvalRun`.
  */
 #[Fillable(['workspace_id', 'agent_id'])]
 class ReflectionRun extends Model

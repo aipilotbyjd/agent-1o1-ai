@@ -26,7 +26,7 @@ class ReflectionRunController extends Controller
     }
 
     /**
-     * Runs a reflection pass immediately, outside its configured schedule —
+     * Runs a reflection pass immediately, outside its configured schedule:
      * the API equivalent of the reference feature's "ask it to review its
      * recent work" escape hatch.
      */

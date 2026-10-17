@@ -15,12 +15,12 @@ use Illuminate\Support\Carbon;
 
 /**
  * How a page is doing: who opens it, who starts filling it in, how many
- * runs it starts and how they end — overall, by day, and per version while
+ * runs it starts and how they end: overall, by day, and per version while
  * an A/B test runs.
  *
  * A visitor is the random id the page keeps in their browser (sent as
  * `X-Page-Visitor`), a member's user id, or failing both their address and
- * browser — always stored as a keyed hash scoped to the page, so the same
+ * browser, always stored as a keyed hash scoped to the page, so the same
  * person can't be followed from one page to another.
  *
  * @phpstan-type Counts array{views: int, starts: int, submissions: int, completed: int, failed: int, start_rate: ?float, conversion_rate: ?float, completion_rate: ?float, avg_duration_seconds: ?float}

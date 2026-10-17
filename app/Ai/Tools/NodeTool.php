@@ -21,12 +21,12 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * Wraps a `NodeContract` as a `Laravel\Ai` tool for an `Agent` — the
+ * Wraps a `NodeContract` as a `Laravel\Ai` tool for an `Agent`: the
  * bound-config/exposed-fields security boundary from `AgentToolBinding`'s
  * docblock lives entirely in `effectiveArguments()`/`schema()` below. **This
  * must never regress**: a tool-call argument can never override a bound
  * config value, and the model is never even shown a schema field for one.
- * That holds for a reviewer's edit too — an approved call's edited
+ * That holds for a reviewer's edit too: an approved call's edited
  * arguments go through the same filter as the model's own.
  */
 class NodeTool implements Approvable, Tool
@@ -41,7 +41,7 @@ class NodeTool implements Approvable, Tool
 
     /**
      * The node's own type string, unique per agent (`agent_node`'s
-     * `unique(agent_id, node_type)`) — safe to use as the tool name.
+     * `unique(agent_id, node_type)`): safe to use as the tool name.
      */
     public function name(): string
     {
@@ -54,10 +54,10 @@ class NodeTool implements Approvable, Tool
     }
 
     /**
-     * Only the fields `schema()` offers are taken from the model — anything
+     * Only the fields `schema()` offers are taken from the model: anything
      * else it sends is dropped, so a field left out of `exposed_fields` can't
      * be set just by naming it. Bound config is spread last as well, so a
-     * matching key always loses to the bound value — the model can never
+     * matching key always loses to the bound value: the model can never
      * choose a credential, channel, or any other field the workspace member
      * fixed at attach time.
      */
@@ -105,7 +105,7 @@ class NodeTool implements Approvable, Tool
     }
 
     /**
-     * Bills what the node itself cost — nothing for most integration nodes,
+     * Bills what the node itself cost: nothing for most integration nodes,
      * a surcharge for `run_code`/`agent`, and the tokens an AI node such as
      * `ask_ai` spent on its own model call, none of which reaches the
      * calling turn's `usage`. Charged here rather than with the turn because
@@ -136,7 +136,7 @@ class NodeTool implements Approvable, Tool
     }
 
     /**
-     * Only exposed, unbound fields are ever shown to the model — a bound
+     * Only exposed, unbound fields are ever shown to the model: a bound
      * field (even if also listed in `exposed_fields` by mistake) never gets
      * a schema entry, so the model has no way to know it exists to try to
      * override it.

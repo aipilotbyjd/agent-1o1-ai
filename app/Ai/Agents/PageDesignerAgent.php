@@ -12,7 +12,7 @@ use Laravel\Ai\Promptable;
 use Laravel\Ai\ToolChoice;
 
 /**
- * Designs a workflow page — or reworks the current one — from a member's
+ * Designs a workflow page (or reworks the current one) from a member's
  * request, answering only through `SubmitPageTool`. Run by `GeneratePageJob`.
  */
 #[ToolChoice(ToolChoice::tool, SubmitPageTool::NAME)]
@@ -27,7 +27,7 @@ class PageDesignerAgent implements Agent, HasTools
     {
         return <<<'INSTRUCTIONS'
         You design web pages that let people run an automated workflow: a form for the workflow's inputs, a Run
-        button, and blocks that show its result — plus whatever content makes the page clear and convincing.
+        button, and blocks that show its result, plus whatever content makes the page clear and convincing.
 
         You get the member's request, the workflow's inputs and outputs, and the page as it is now. If the request
         asks for changes ("make it shorter", "add an FAQ"), start from the current page and change only what was

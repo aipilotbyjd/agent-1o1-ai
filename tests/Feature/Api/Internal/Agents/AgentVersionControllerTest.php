@@ -99,7 +99,7 @@ it('applies a pinned snapshot to a copy, leaving the live agent unchanged', func
     expect($session->pinnedAgent()->instructions)->toBe('be terse');
 
     // The session's own `agent` relation must not be left holding the
-    // snapshot as a dirty attribute — a later save() anywhere in the request
+    // snapshot as a dirty attribute: a later save() anywhere in the request
     // would otherwise persist a stale snapshot over the live agent.
     expect($session->agent->isDirty())->toBeFalse();
 

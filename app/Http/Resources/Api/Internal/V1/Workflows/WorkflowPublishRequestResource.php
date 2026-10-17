@@ -16,7 +16,7 @@ class WorkflowPublishRequestResource extends JsonResource
 {
     /**
      * The reviewed copy of the graph is left out when the query didn't select
-     * it — a list only needs the history. Whether the draft or the live
+     * it: a list only needs the history. Whether the draft or the live
      * version has moved on is only worked out alongside that copy, since it
      * reads the workflow's whole draft.
      *

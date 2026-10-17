@@ -87,7 +87,7 @@ class Trigger extends Model
      * Increment the circuit breaker's failure streak, disabling the trigger once
      * it crosses the configured threshold.
      *
-     * Counted in `failed()` (once per event, not per attempt) — see
+     * Counted in `failed()` (once per event, not per attempt): see
      * docs/TRIGGERS_PLAN.md's "design decisions worth keeping" table.
      */
     public function recordFailure(): void
@@ -104,11 +104,11 @@ class Trigger extends Model
     }
 
     /**
-     * A success clears the streak — only consecutive failures trip the breaker.
+     * A success clears the streak, only consecutive failures trip the breaker.
      *
      * forceFill: `consecutive_failure_count`/`last_run_at` are deliberately
-     * absent from #[Fillable] — they're system bookkeeping, not something an
-     * API consumer should set directly — so a plain update() would silently
+     * absent from #[Fillable] (they're system bookkeeping, not something an
+     * API consumer should set directly) so a plain update() would silently
      * drop them.
      */
     public function recordSuccess(): void

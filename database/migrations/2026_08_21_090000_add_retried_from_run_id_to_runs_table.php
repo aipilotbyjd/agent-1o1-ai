@@ -10,7 +10,7 @@ return new class extends Migration
      * Lineage for `RetryRunAction`: a retry is a brand-new `Run` (its own
      * node_runs, its own credit ledger entries) rather than a mutation of the
      * original, so the only thing tying the two together is this pointer.
-     * `nullOnDelete` — losing the original run should not delete its retries.
+     * `nullOnDelete`: losing the original run should not delete its retries.
      */
     public function up(): void
     {

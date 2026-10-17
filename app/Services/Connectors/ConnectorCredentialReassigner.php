@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * Moves everything pinned to one connection onto another before the first
  * is disconnected: draft workflow nodes, each workflow's live (published)
- * graph — which is what runs execute — agent tools and knowledge sources.
+ * graph (which is what runs execute) agent tools and knowledge sources.
  * If the old connection was the default, the new one takes that over so
  * steps that don't pin an account keep resolving.
  */

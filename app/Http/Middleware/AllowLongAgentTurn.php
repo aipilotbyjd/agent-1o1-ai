@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * An agent turn runs inside the request that sent the message, and one that
  * starts subagents waits on them (`WaitForSubagentsTool`) before writing its
- * reply — well past PHP's default 30-second `max_execution_time`. Hitting
+ * reply: well past PHP's default 30-second `max_execution_time`. Hitting
  * that limit is a fatal error nothing can catch: the reply is lost, the
  * subagents' results were already collected, and the turn's `Run` is left
  * `running` for good.

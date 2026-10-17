@@ -6,7 +6,7 @@ use RuntimeException;
 
 /**
  * Thrown when an operation needs a Stripe customer the workspace doesn't have
- * yet — mapped to 409 in `bootstrap/app.php`.
+ * yet: mapped to 409 in `bootstrap/app.php`.
  *
  * A workspace only becomes a Stripe customer by going through checkout, so
  * this means "you have no billing relationship to manage", not "something went

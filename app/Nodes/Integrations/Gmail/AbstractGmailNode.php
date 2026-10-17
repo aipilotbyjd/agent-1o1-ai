@@ -12,7 +12,7 @@ use RuntimeException;
 /**
  * Shared request/error-handling for the Gmail node family
  * (docs/NODES_CATALOG.md's "Priority 1" list). Resolves the access token via
- * `ResolvesConnectorCredential` — a workspace-scoped `ConnectorCredential`
+ * `ResolvesConnectorCredential`: a workspace-scoped `ConnectorCredential`
  * referenced by `config['credential_id']`, or a plain `access_token` config
  * field for nodes configured before `ConnectorCredential` existed.
  */

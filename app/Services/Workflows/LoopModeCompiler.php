@@ -9,9 +9,9 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 /**
- * Compiles Gumloop-style per-node "Loop Mode" — a reserved `config._loop`
+ * Compiles Gumloop-style per-node "Loop Mode": a reserved `config._loop`
  * key any node may carry (see docs/gumloop/output/raw/core-concepts/agent_node.md's
- * "Loop Mode Support") — into a real `loop` node, at publish time only,
+ * "Loop Mode Support"): into a real `loop` node, at publish time only,
  * never on the live draft.
  *
  * Deliberately does not touch `Services\Workflows\Engine\LoopCoordinator` or
@@ -21,11 +21,11 @@ use Illuminate\Support\Str;
  * single-node child `Workflow` (`is_internal = true`) containing just that
  * node's original `{type, config}` (minus `_loop`). Every existing
  * loop/child-workflow execution, retry, failure-routing, and Run Log code
- * path is reused unchanged — this class only ever edits the graph that gets
+ * path is reused unchanged: this class only ever edits the graph that gets
  * frozen into a `WorkflowVersion`.
  *
  * The child workflow is found (and its graph kept in sync) by a
- * deterministic slug — `"loop-{$workflow->id}-{$node['key']}"` — rather than
+ * deterministic slug: `"loop-{$workflow->id}-{$node['key']}"`, rather than
  * a stored id, since `Workflow::replaceGraph()` deletes and recreates every
  * `workflow_nodes` row on every draft save, which would otherwise need its
  * own carry-forward logic to remember the mapping.

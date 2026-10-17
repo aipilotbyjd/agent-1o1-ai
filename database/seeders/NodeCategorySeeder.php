@@ -7,7 +7,7 @@ use App\Models\Nodes\NodeCategory;
 use Illuminate\Database\Seeder;
 
 /**
- * The core, built-in node categories — one row per `Enums\NodeCategory` case.
+ * The core, built-in node categories: one row per `Enums\NodeCategory` case.
  * App/integration categories (`slack`, `github`, ...) are seeded alongside
  * their node families as those land (docs/NODES_CATALOG.md), not here.
  */

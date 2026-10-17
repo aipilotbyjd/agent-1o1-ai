@@ -30,7 +30,7 @@ class TriggerFactory extends Factory
                 ->id,
             'target_type' => TriggerTargetType::Workflow->value,
             // Filled in by configure() with a real target in this trigger's
-            // own workspace — `TargetRunStarter` refuses to fire a trigger
+            // own workspace: `TargetRunStarter` refuses to fire a trigger
             // whose target is missing or belongs to someone else, so a
             // made-up id would make every factory-built trigger unrunnable.
             'target_id' => null,

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Drives traversal of the immutable `WorkflowVersion.graph` snapshot a `Run`
  * is pinned to (never the live, editable `WorkflowNode`/`WorkflowEdge`
- * rows — see docs/WORKFLOWS_PLAN.md's `workflow_versions` note on why).
+ * rows: see docs/WORKFLOWS_PLAN.md's `workflow_versions` note on why).
  * Ported design from docs/WORKFLOWS_PLAN.md's `Services/Workflows/Engine/
  * GraphAdvancer` section; ERROR_CONDITION lives on `WorkflowEdge` since the
  * graph snapshot's edges use the same string.
@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\DB;
 class GraphAdvancer
 {
     /**
-     * Mirrors `NodeRunStatus::isTerminal()` — kept as a literal array here
+     * Mirrors `NodeRunStatus::isTerminal()`: kept as a literal array here
      * since it's used inside a query builder clause, not against a hydrated
      * enum instance.
      *
@@ -69,14 +69,14 @@ class GraphAdvancer
     public function advance(Run $run, NodeRun $settledNode, array $graph, bool $continueOnError = false): void
     {
         // A run cancelled while this traversal was queued must not sprout
-        // new work — `WorkflowRunner::cancel()` already settled everything
+        // new work: `WorkflowRunner::cancel()` already settled everything
         // it could see, and `executeStep()` catches whatever slips past.
         if ($run->status->isTerminal()) {
             return;
         }
 
-        // Everything that creates this node's successors — and the flag
-        // clearing that tells `finishIfDone()` it has — runs under the run's
+        // Everything that creates this node's successors (and the flag
+        // clearing that tells `finishIfDone()` it has) runs under the run's
         // row lock, the same lock `finishIfDone()` takes, so a sibling
         // branch can't judge the run finished while only some successors
         // exist.
@@ -92,7 +92,7 @@ class GraphAdvancer
             $matchedKeys = [];
 
             // Every sibling `NodeRun` row (pending-to-dispatch or skipped) is
-            // created before any of them is actually dispatched — with the sync
+            // created before any of them is actually dispatched, with the sync
             // queue driver, dispatching a job runs it (and everything it in turn
             // triggers, including `finishIfDone`) to completion immediately, so
             // a sibling created *after* the first dispatch would be invisible to
@@ -107,7 +107,7 @@ class GraphAdvancer
             }
 
             // A matched edge into a not-yet-ready join is silently dropped here
-            // (not created, not skipped) — the branch that finally makes the
+            // (not created, not skipped): the branch that finally makes the
             // join ready is whichever settles last; see joinReadiness().
             $readyKeys = array_values(array_filter(
                 $matchedKeys,
@@ -128,14 +128,14 @@ class GraphAdvancer
 
     /**
      * A `join_paths` (Merge) target isn't created-and-dispatched (or
-     * skipped) the moment one branch reaches it — only once every one of its
+     * skipped) the moment one branch reaches it, only once every one of its
      * incoming (non-error) edges has a *terminal* source `NodeRun`
-     * (completed, failed, or skipped — "will never contribute more").
+     * (completed, failed, or skipped: "will never contribute more").
      *
      * Returns `null` while still waiting on a sibling branch, `true` once
      * ready with at least one incoming edge actually matching (dispatch it
      * normally), or `false` once ready but every incoming edge failed to
-     * match (skip it — nothing ever arrived). Non-join nodes are always
+     * match (skip it: nothing ever arrived). Non-join nodes are always
      * `true`.
      *
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
@@ -171,7 +171,7 @@ class GraphAdvancer
         foreach ($incoming as $edge) {
             $source = $sources->get($edge['from']);
 
-            // A Skipped source never actually fired this edge — edgeMatches()
+            // A Skipped source never actually fired this edge: edgeMatches()
             // doesn't know about Skipped (it's only ever called on a settled
             // node that just executed), so it must be excluded explicitly
             // rather than asked to evaluate the condition.
@@ -196,7 +196,7 @@ class GraphAdvancer
             }
 
             // `continue_on_error`, no error edge taken: treat the failure as
-            // a soft success for unconditional edges only — there's no
+            // a soft success for unconditional edges only: there's no
             // usable `result` output to match a conditioned edge against.
             return $continueOnError && $edge['condition'] === null;
         }
@@ -214,7 +214,7 @@ class GraphAdvancer
 
     /**
      * Idempotent: a unique-constraint race on `(run_id, key)` means another
-     * branch already created this `NodeRun` — the loser is a no-op, not a
+     * branch already created this `NodeRun`: the loser is a no-op, not a
      * duplicate. See docs/WORKFLOWS_PLAN.md's "Idempotent step creation".
      *
      * @param  array<int, string>  $keys
@@ -265,11 +265,11 @@ class GraphAdvancer
     }
 
     /**
-     * Recursively marks a node — and everything only reachable through it —
+     * Recursively marks a node (and everything only reachable through it)
      * `skipped`. A `join_paths` target defers to `joinReadiness()` the same
      * way the matched path does: this branch failing to reach it doesn't
      * mean the join itself is dead, since another incoming edge might still
-     * match — only skip the join once every incoming source is terminal and
+     * match, only skip the join once every incoming source is terminal and
      * none of them matched.
      *
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph
@@ -284,14 +284,14 @@ class GraphAdvancer
 
         if ($type === FlowControlNodeType::JoinPaths->value && $this->joinReadiness($run, $key, $graph) !== false) {
             // Either still waiting on a sibling branch, or a sibling already
-            // matched (and dispatched it) — nothing for this branch to do.
+            // matched (and dispatched it): nothing for this branch to do.
             return;
         }
 
         try {
             // `status`/`finished_at` aren't in NodeRun's #[Fillable] list
-            // (engine-managed, not user-mass-assignable — see NodeRun's own
-            // convention) — create() would silently drop them, so create
+            // (engine-managed, not user-mass-assignable (see NodeRun's own
+            // convention)) create() would silently drop them, so create
             // first, then forceFill the status transition.
             $nodeRun = DB::transaction(fn (): NodeRun => $run->nodeRuns()->create(['key' => $key, 'type' => $type, 'input' => $run->input]));
         } catch (UniqueConstraintViolationException) {
@@ -306,7 +306,7 @@ class GraphAdvancer
     }
 
     /**
-     * Completes the run once nothing is left in flight — under
+     * Completes the run once nothing is left in flight, under
      * `lockForUpdate()` so two branches settling simultaneously can't both
      * observe "nothing pending" and race to complete a run whose sibling
      * node is about to be created. The run's output is its Output steps'
@@ -321,7 +321,7 @@ class GraphAdvancer
                 return null;
             }
 
-            // Anything non-terminal counts as in flight — not just
+            // Anything non-terminal counts as in flight, not just
             // Pending/Running but AwaitingApproval/AwaitingCallback too, or
             // a paused HumanApproval/Wait node would let the run complete
             // out from under it.
@@ -357,7 +357,7 @@ class GraphAdvancer
     }
 
     /**
-     * An entry node is one with no incoming *healthy-path* edge — mirrors
+     * An entry node is one with no incoming *healthy-path* edge: mirrors
      * `GraphValidator`'s definition exactly (error-only edges don't count).
      *
      * @param  array{nodes: array<int, array{key: string, type: string, config: array<string, mixed>}>, edges: array<int, array{from: string, to: string, condition: string|null}>}  $graph

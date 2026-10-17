@@ -11,7 +11,7 @@ use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 
 /**
- * Editor-only concerns (node placement, edges, autosave) — separate from
+ * Editor-only concerns (node placement, edges, autosave): separate from
  * plain resource CRUD on `WorkflowController`, per docs/STRUCTURE.md's
  * "Public vs. Internal API" section.
  */
@@ -19,7 +19,7 @@ class WorkflowBuilderController extends Controller
 {
     /**
      * Replace the draft graph wholesale (an editor autosave, not a partial
-     * patch) — see `Workflow::replaceGraph()`.
+     * patch): see `Workflow::replaceGraph()`.
      */
     public function replaceGraph(ReplaceGraphRequest $request, Workspace $workspace, Workflow $workflow)
     {

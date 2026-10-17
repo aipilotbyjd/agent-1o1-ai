@@ -12,11 +12,11 @@ use App\Models\Billing\Subscription;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Laravel\Passport\Passport;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
- * A lifetime plan is bought outright — a `mode=payment` Checkout Session, no
+ * A lifetime plan is bought outright: a `mode=payment` Checkout Session, no
  * Stripe subscription, no `customer.subscription.*` webhook. Entitlement
  * therefore has to come from a `PlanGrant`, which is a second source of truth
  * alongside Cashier. These cover that second path end to end.
@@ -150,7 +150,7 @@ it('sizes the usage period to the plan when a grant is activated', function () {
     [$workspace] = ownerWorkspaceForLifetime();
 
     // No subscription webhook fires for a lifetime purchase, so activation is
-    // the only thing that can resize the period — without it the buyer sits
+    // the only thing that can resize the period, without it the buyer sits
     // on the Free allowance until the month rolls over.
     $period = $workspace->currentUsagePeriod();
     expect($period->credits_limit)->toBe(100);
@@ -266,7 +266,7 @@ it('leaves spent credits on the ledger when a grant is revoked mid-period', func
 
     $period = $workspace->currentUsagePeriod()->fresh();
 
-    // Usage above the reinstated limit is not erased — the compute was spent.
+    // Usage above the reinstated limit is not erased: the compute was spent.
     // The balance simply floors at zero.
     expect($period->credits_used)->toBe(900)
         ->and($period->credits_limit)->toBe(100)
@@ -310,7 +310,7 @@ it('rejects a subscription checkout for an interval the plan is not sold on', fu
 it('accepts every billing interval as checkout input', function (string $interval) {
     [$workspace, $owner] = ownerWorkspaceForLifetime();
     // No Stripe price for any interval, so each request reaches the action and
-    // 422s there rather than failing validation — which is what proves the
+    // 422s there rather than failing validation, which is what proves the
     // enum accepts the value.
     $plan = Plan::factory()->create([
         'stripe_price_id_monthly' => null,

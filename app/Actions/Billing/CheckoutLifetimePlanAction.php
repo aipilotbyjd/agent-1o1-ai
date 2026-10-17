@@ -11,7 +11,7 @@ use App\Models\Workspaces\Workspace;
 use Laravel\Cashier\Checkout;
 
 /**
- * Buys a plan outright. A lifetime plan is not a Stripe subscription — it is
+ * Buys a plan outright. A lifetime plan is not a Stripe subscription: it is
  * a one-off `mode=payment` Checkout Session, so no `customer.subscription.*`
  * webhook ever fires for it and nothing lands in `subscriptions`. Entitlement
  * instead comes from the `PlanGrant` this records: `Pending` until

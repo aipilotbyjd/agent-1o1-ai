@@ -46,7 +46,7 @@ Route::middleware(['auth:api', 'workspace.context'])
 
         Route::put('{agent}/tags', [TagController::class, 'syncForAgent'])->name('tags.sync');
 
-        // Behavioral history. Addressed by version number, not row id —
+        // Behavioral history. Addressed by version number, not row id:
         // see AgentVersionController.
         Route::get('{agent}/versions', [AgentVersionController::class, 'index'])->name('versions.index');
         Route::get('{agent}/versions/{version}', [AgentVersionController::class, 'show'])->name('versions.show');
@@ -63,10 +63,10 @@ Route::middleware(['auth:api', 'workspace.context'])
 
         // The same turn as above, delivered over Reverb: the request only
         // opens it and the reply streams to the conversation's private
-        // channel — see AgentSessionTurnController.
+        // channel: see AgentSessionTurnController.
         Route::post('{agent}/sessions/{session}/turns', [AgentSessionTurnController::class, 'store'])->name('sessions.turns.store');
 
-        // Approvals: the actions an agent took or is waiting to take — see
+        // Approvals: the actions an agent took or is waiting to take; see
         // Services\Agents\Approvals\ActionGate. Deciding from the chat
         // queues the paused turn to continue, streaming over Reverb.
         Route::get('{agent}/actions', [AgentActionController::class, 'index'])->name('actions.index');
@@ -104,13 +104,13 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::patch('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'update'])->name('knowledge.update');
         Route::delete('{agent}/knowledge/{knowledge}', [AgentKnowledgeController::class, 'destroy'])->name('knowledge.destroy');
 
-        // Which workspace knowledge-base collections this agent may search
-        // — see AgentKnowledgeSourceController.
+        // Which workspace knowledge-base collections this agent may search:
+        // see AgentKnowledgeSourceController.
         Route::get('{agent}/knowledge-sources', [AgentKnowledgeSourceController::class, 'index'])->name('knowledge-sources.index');
         Route::post('{agent}/knowledge-sources/{collection}', [AgentKnowledgeSourceController::class, 'store'])->name('knowledge-sources.store');
         Route::delete('{agent}/knowledge-sources/{collection}', [AgentKnowledgeSourceController::class, 'destroy'])->name('knowledge-sources.destroy');
 
-        // Evals: saved suites of cases graded against the agent — see
+        // Evals: saved suites of cases graded against the agent; see
         // Services\Agents\EvalRunner.
         Route::get('{agent}/eval-suites', [AgentEvalSuiteController::class, 'index'])->name('eval-suites.index');
         Route::post('{agent}/eval-suites', [AgentEvalSuiteController::class, 'store'])->name('eval-suites.store');
@@ -132,7 +132,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::patch('{agent}/memories/{memory}', [AgentMemoryController::class, 'update'])->name('memories.update');
         Route::delete('{agent}/memories/{memory}', [AgentMemoryController::class, 'destroy'])->name('memories.destroy');
 
-        // Reflections: periodic review of the agent's own past sessions —
+        // Reflections: periodic review of the agent's own past sessions;
         // see Services\Agents\ReflectionAnalyzer.
         Route::get('{agent}/reflection-settings', [ReflectionSettingsController::class, 'show'])->name('reflection-settings.show');
         Route::patch('{agent}/reflection-settings', [ReflectionSettingsController::class, 'update'])->name('reflection-settings.update');
@@ -146,7 +146,7 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::post('{agent}/reflections/{reflection}/apply', [ReflectionController::class, 'apply'])->name('reflections.apply');
         Route::post('{agent}/reflections/{reflection}/dismiss', [ReflectionController::class, 'dismiss'])->name('reflections.dismiss');
 
-        // Evaluations: automatic QA grading of live sessions — see
+        // Evaluations: automatic QA grading of live sessions; see
         // Services\Agents\SessionEvaluator.
         Route::get('{agent}/evaluation-settings', [AgentEvaluationSettingsController::class, 'show'])->name('evaluation-settings.show');
         Route::patch('{agent}/evaluation-settings', [AgentEvaluationSettingsController::class, 'update'])->name('evaluation-settings.update');

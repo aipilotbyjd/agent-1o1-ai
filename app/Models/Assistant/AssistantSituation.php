@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * One piece of real work the owner owns, found by a report — with steps the
+ * One piece of real work the owner owns, found by a report, with steps the
  * assistant could take. "Send to assistant" turns it into a conversation.
  */
 #[Fillable(['assistant_id', 'assistant_briefing_run_id', 'title', 'summary', 'next_step', 'sources', 'status', 'assistant_session_id'])]

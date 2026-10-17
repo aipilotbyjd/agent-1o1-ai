@@ -6,7 +6,7 @@ use App\Services\Assistant\Branding\BrandRepository;
 use Illuminate\Console\Command;
 
 /**
- * Prints the brand as the app resolves it — a quick check after editing
+ * Prints the brand as the app resolves it: a quick check after editing
  * the `ASSISTANT_*` env vars that the new name is what will be served.
  */
 class ShowBrandCommand extends Command
@@ -25,7 +25,7 @@ class ShowBrandCommand extends Command
             ['emoji', $brand->emoji],
             ['color', $brand->color],
             ['email', $brand->email()],
-            ['email aliases', implode(', ', $brand->emailAliases) ?: '—'],
+            ['email aliases', implode(', ', $brand->emailAliases) ?: '-'],
             ...collect($brand->features)->keys()->map(fn (string $key): array => ["feature: {$key}", $brand->feature($key)])->all(),
         ]);
 

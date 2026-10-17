@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * The public, brand-facing model identity shown to end users (agent/workflow
- * model pickers) — deliberately decoupled from how a prompt actually gets
+ * model pickers): deliberately decoupled from how a prompt actually gets
  * executed. What runs a given entry (a direct provider, or one/more
  * aggregators like Fireworks/Together/OpenRouter, in priority order) lives
  * in `ModelRoute` and is never exposed through user-facing API responses.

@@ -22,7 +22,7 @@ it('logs in with valid credentials and returns access + refresh tokens', functio
     ]);
     $response->assertJsonPath('data.user.email', 'jane@example.com');
 
-    // The refresh token is deliberately kept out of the body — see
+    // The refresh token is deliberately kept out of the body: see
     // AuthController::respondWithTokens().
     $response->assertJsonMissingPath('data.tokens.refresh_token');
     expect($response->getCookie('refresh_token', false))->not->toBeNull();
@@ -61,7 +61,7 @@ it('lets a logged in user access a protected route and revokes the token on logo
         ->assertNoContent();
 
     // TokenGuard caches the resolved user on itself for the request's lifetime, and
-    // AuthManager caches that guard instance — real requests each get a fresh container,
+    // AuthManager caches that guard instance: real requests each get a fresh container,
     // but simulated test requests share one, so force re-resolution to prove revocation.
     $this->app['auth']->forgetGuards();
 

@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * A "pack" bundling any mix of `WorkflowTemplate` and `AgentTemplate` rows —
+ * A "pack" bundling any mix of `WorkflowTemplate` and `AgentTemplate` rows:
  * see `TemplateCollectionItem` for the polymorphic membership row.
  * `workspace_id` null means a global/system pack visible to every workspace.
  */

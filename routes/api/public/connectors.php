@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\Public\V1\Connectors\ConnectorCredentialController;
 use Illuminate\Support\Facades\Route;
 
 /*
- * Credential provisioning for integrators — see
+ * Credential provisioning for integrators: see
  * ConnectorCredentialController. OAuth connectors are refused: their tokens
  * can only come from a browser redirect.
  */

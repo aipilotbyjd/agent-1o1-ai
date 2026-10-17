@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * `credits_used` and the two `overage_*` counters are engine-managed
  * (incremented by `DeductCreditsAction`/`BillOverageCreditsAction` via
- * `increment()`, never mass-assigned) — only the window bounds and an
+ * `increment()`, never mass-assigned), only the window bounds and an
  * optional limit are user/system-set at creation time.
  */
 #[Fillable(['workspace_id', 'plan_id', 'subscription_id', 'starts_at', 'ends_at', 'credits_limit'])]
@@ -80,7 +80,7 @@ class UsagePeriod extends Model
     }
 
     /**
-     * Overage this period that hasn't been invoiced yet — what
+     * Overage this period that hasn't been invoiced yet: what
      * `BillOverageCreditsAction` turns into a Stripe invoice line. Charges
      * only ever add to `overage_credits_used` and billing only ever adds to
      * `overage_credits_billed`, so this can't go negative in practice; the

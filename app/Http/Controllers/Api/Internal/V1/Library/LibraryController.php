@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * The Library: a gallery of the files that passed through agent chats —
- * what members uploaded and what agents made — and what members sent the
+ * The Library: a gallery of the files that passed through agent chats
+ * (what members uploaded and what agents made) and what members sent the
  * workflow builder, newest first. A read-only
  * view, separate from the Artifacts file manager (which owns uploading,
  * sharing and versions); both read the same stored files, since a chat file

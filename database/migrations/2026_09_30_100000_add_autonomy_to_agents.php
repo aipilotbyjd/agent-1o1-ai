@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * How freely an agent may act — see `Services\Agents\Approvals\ActionGate`.
+ * How freely an agent may act: see `Services\Agents\Approvals\ActionGate`.
  *
  * `autonomy_mode` lives on the agent with an optional per-session override
  * (a trigger or a person can make one conversation stricter). It is read

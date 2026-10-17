@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
  * were deleted at month rollover and clobbered outright the next time
  * `OpenUsagePeriodForSubscriptionAction` reset the limit to the plan's
  * allowance. Keeping them on the workspace decouples them from the billing
- * period entirely — see `ActivateCreditPackAction`.
+ * period entirely: see `ActivateCreditPackAction`.
  */
 return new class extends Migration
 {

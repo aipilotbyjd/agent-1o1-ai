@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * The product-facing node taxonomy — what the node picker groups by. Every
+ * The product-facing node taxonomy: what the node picker groups by. Every
  * `NodeContract::category()` must return a string matching a row's `slug`
  * here. See docs/STRUCTURE.md's "How node folders tie to NodeCategory".
  */

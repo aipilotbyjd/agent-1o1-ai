@@ -12,7 +12,7 @@ use Stripe\StripeClient;
 use Stripe\Subscription as StripeSubscription;
 
 /**
- * `previewInvoice()` swaps nothing — it asks Stripe's Create Preview Invoice
+ * `previewInvoice()` swaps nothing: it asks Stripe's Create Preview Invoice
  * API what a swap *would* charge, so the customer can see the prorated
  * amount before `checkout()` puts it through. Stubbing `StripeClient` keeps
  * these off the network the same way `InvoiceControllerTest` does; Cashier

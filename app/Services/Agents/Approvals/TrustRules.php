@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
 /**
  * Loosening an agent's tool rules on evidence: "always allow this" from an
  * approval card, and suggestions for tools a person keeps approving
- * unchanged — the agent has earned trust on them.
+ * unchanged: the agent has earned trust on them.
  *
  * Only node and workflow tools have rules to change; the agent's own
  * built-in tools (editing its instructions or skills) always follow the

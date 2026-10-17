@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
- * A conversation thread with an `Agent` — a `runnable` itself
+ * A conversation thread with an `Agent`: a `runnable` itself
  * (`runs.runnable_type = AgentSession::class`), one `Run` per turn, per
  * docs/WORKFLOWS_PLAN.md's `runs` table note on why agent invocations and
  * workflow executions share one table rather than two.
@@ -66,7 +66,7 @@ class AgentSession extends Model
     }
 
     /**
-     * The agent behavior this conversation started with — see the
+     * The agent behavior this conversation started with: see the
      * `agent_version_id` migration.
      */
     public function agentVersion(): BelongsTo
@@ -79,7 +79,7 @@ class AgentSession extends Model
      * pinned version's behavior applied over it, so an instruction edit
      * mid-conversation can't change how the assistant answers the next turn.
      *
-     * Returned **unsaved** — `forceFill()` without `save()` — so this is a
+     * Returned **unsaved** (`forceFill()` without `save()`) so this is a
      * read-time view, never a write back onto the agent. Relations (skills,
      * knowledge, tool bindings) are deliberately left live; see
      * `AgentVersioner`'s docblock for why an old snapshot doesn't get to
@@ -88,7 +88,7 @@ class AgentSession extends Model
      * The snapshot is applied to a `clone`, not to `$this->agent` itself.
      * Filling the loaded relation would leave the session's own `agent`
      * carrying pinned values as dirty attributes, so any later `save()` on
-     * it — anywhere in the same request — would quietly persist a months-old
+     * it (anywhere in the same request) would quietly persist a months-old
      * snapshot over the live agent. Cloning keeps the relations shared (so
      * they stay live, as intended) while the attributes are the clone's own.
      */
@@ -124,7 +124,7 @@ class AgentSession extends Model
     }
 
     /**
-     * Subagents this conversation started — see `InvokeAgentTool`.
+     * Subagents this conversation started: see `InvokeAgentTool`.
      */
     public function subagentTasks(): HasMany
     {
@@ -142,7 +142,7 @@ class AgentSession extends Model
     }
 
     /**
-     * The latest automatic QA grading of this conversation — see
+     * The latest automatic QA grading of this conversation: see
      * `Services\Agents\SessionEvaluator`. A `HasOne` because a session that
      * continues and completes again replaces its evaluation rather than
      * accumulating one per turn.
@@ -153,7 +153,7 @@ class AgentSession extends Model
     }
 
     /**
-     * Tool calls made in this conversation — see `Models\Agents\AgentAction`.
+     * Tool calls made in this conversation: see `Models\Agents\AgentAction`.
      */
     public function actions(): HasMany
     {

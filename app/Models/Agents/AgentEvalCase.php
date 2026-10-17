@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * One prompt and the expectations its answer must satisfy. `assertions` is a
- * list of `{type, value}` pairs — see `EvalAssertionType`.
+ * list of `{type, value}` pairs: see `EvalAssertionType`.
  */
 #[Fillable(['agent_eval_suite_id', 'name', 'input', 'assertions', 'sort_order'])]
 class AgentEvalCase extends Model

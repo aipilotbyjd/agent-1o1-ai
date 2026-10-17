@@ -30,7 +30,7 @@ class CancelRunAction
 
         $this->runner->cancel($this->rootOf($run), $cancelledBy);
 
-        // The caller asked about *this* run, not the root — return its own
+        // The caller asked about *this* run, not the root: return its own
         // post-cancellation state.
         return $run->fresh();
     }

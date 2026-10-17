@@ -43,7 +43,7 @@ class Plan extends Model
     /**
      * The plan an unsubscribed (or lapsed) workspace falls back to, per
      * `config('billing.default_plan')`. Returns `null` when that slug isn't
-     * seeded or is inactive — callers treat that as "no plan", i.e. an
+     * seeded or is inactive: callers treat that as "no plan", i.e. an
      * unlimited allowance, so a half-seeded install fails open.
      */
     public static function default(): ?self
@@ -88,7 +88,7 @@ class Plan extends Model
     }
 
     /**
-     * The plan selling `$stripePriceId` on any interval — the reverse of
+     * The plan selling `$stripePriceId` on any interval: the reverse of
      * `stripePriceId()`, for when Stripe hands us a price and we have to work
      * out which plan it belongs to.
      *
@@ -147,8 +147,8 @@ class Plan extends Model
      * 4. a Stripe price is configured for it.
      *
      * This governs *selling* only. Entitlement is read from the subscription
-     * or plan grant a workspace already holds, so withdrawing an interval —
-     * or deactivating the plan outright — never revokes what someone already
+     * or plan grant a workspace already holds, so withdrawing an interval
+     * (or deactivating the plan outright) never revokes what someone already
      * paid for; it only stops new purchases.
      */
     public function isSoldOn(BillingInterval $interval): bool
@@ -160,7 +160,7 @@ class Plan extends Model
     }
 
     /**
-     * A null `enabled_intervals` means "all of them" — rows predating the
+     * A null `enabled_intervals` means "all of them": rows predating the
      * column keep their original behaviour rather than becoming unsellable.
      */
     public function enablesInterval(BillingInterval $interval): bool

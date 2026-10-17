@@ -12,7 +12,7 @@ use RuntimeException;
  * Which model the assistant runs on, and how big its context window is.
  * The owner's catalog pick wins; then the operator's internal
  * `personal-assistant` entry; then the raw configured provider. Whichever
- * it is runs on the owner's own provider key where they have one — see
+ * it is runs on the owner's own provider key where they have one: see
  * `ByokProviderRegistrar`.
  */
 class AssistantModel
@@ -43,7 +43,7 @@ class AssistantModel
             try {
                 return [$this->resolver->providerChain($catalog->slug), null];
             } catch (RuntimeException) {
-                // No enabled route — fall through to the configured provider.
+                // No enabled route: fall through to the configured provider.
             }
         }
 

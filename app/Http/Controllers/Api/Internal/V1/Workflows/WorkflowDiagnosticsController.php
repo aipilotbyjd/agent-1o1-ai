@@ -57,7 +57,7 @@ class WorkflowDiagnosticsController extends Controller
     }
 
     /**
-     * A `graph` in the body wins — that's the unsaved canvas. Otherwise the
+     * A `graph` in the body wins: that's the unsaved canvas. Otherwise the
      * saved draft is checked, via the same accessor `publishVersion()` uses
      * so what's validated is what would be published.
      *

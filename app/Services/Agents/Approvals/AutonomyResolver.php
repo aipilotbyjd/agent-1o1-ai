@@ -11,7 +11,7 @@ use App\Models\Runs\Run;
 /**
  * Works out the mode a conversation actually runs under: its own override
  * (set by a person, a trigger, or the parent of a subagent) or else the
- * agent's mode — never looser than the workspace's `max_autonomy_mode`.
+ * agent's mode, never looser than the workspace's `max_autonomy_mode`.
  */
 class AutonomyResolver
 {
@@ -31,7 +31,7 @@ class AutonomyResolver
 
     /**
      * Tells the model how it may act in this conversation, so it plans
-     * around approvals instead of being surprised by them — e.g. it warns
+     * around approvals instead of being surprised by them, e.g. it warns
      * the user a send needs their OK, or proposes a plan in Plan mode.
      */
     public function withNote(string $instructions, Agent $agent, ?AgentSession $session = null): string

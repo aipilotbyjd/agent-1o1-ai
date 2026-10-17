@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * One use of a workflow page: the run it started and who started it. A
  * member is recorded by `user_id`; an anonymous visitor only by a hash of
  * their address, kept to enforce the page's limits, and by the hash of the
- * secret handed back on submit — the only thing that lets them read the
+ * secret handed back on submit: the only thing that lets them read the
  * result. `is_test` marks runs started from the builder's preview, which
  * don't count toward the page's daily limit. `variant` is the version of the
  * page (`a`, or `b` during an A/B test) the submission came from.

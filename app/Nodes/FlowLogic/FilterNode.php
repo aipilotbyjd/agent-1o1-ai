@@ -43,7 +43,7 @@ class FilterNode implements DeclaresEffect, HasIcon, NodeContract
 
     public function description(): string
     {
-        return 'A binary gate — passes or fails based on comparing a context value against a condition.';
+        return 'A binary gate: passes or fails based on comparing a context value against a condition.';
     }
 
     public function effect(array $config): ActionEffect

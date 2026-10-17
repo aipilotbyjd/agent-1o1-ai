@@ -5,8 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * `embedding` is stored as JSON, deliberately not a native `vector` column
- * — Laravel's native vector support (`$table->vector()`,
+ * `embedding` is stored as JSON, deliberately not a native `vector` column:
+ * Laravel's native vector support (`$table->vector()`,
  * `whereVectorSimilarTo()`) is Postgres/pgvector-only, and this project's
  * tests run against sqlite. `SearchKnowledgeTool` ranks by cosine similarity
  * computed in PHP instead. See docs/AGENTS_PLAN.md's "Knowledge / RAG"

@@ -45,7 +45,7 @@ class OAuthConnectorController extends Controller
 
     /**
      * The provider's redirect target after the user approves/denies access.
-     * Not workspace-scoped in the URL — the workspace comes from the `state`
+     * Not workspace-scoped in the URL: the workspace comes from the `state`
      * row `initiate()` created, which is how this stays tenant-safe without
      * requiring the provider to round-trip a workspace id.
      */
@@ -66,7 +66,7 @@ class OAuthConnectorController extends Controller
 
     /**
      * The account being reconnected must be this workspace's, for this
-     * connector, and one the member can see — anything else reads as not
+     * connector, and one the member can see: anything else reads as not
      * found, as everywhere else credentials are looked up.
      */
     private function reconnectTarget(InitiateOAuthConnectorRequest $request, Workspace $workspace, Connector $connector): ?ConnectorCredential

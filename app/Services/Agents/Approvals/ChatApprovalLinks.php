@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
  * Approve/reject buttons for a chat message about waiting actions. Each
  * button's value is encrypted, so the interaction endpoint
  * (`SlackAgentActionController`) can trust which action and decision it
- * names — Slack only signs the request, not what the buttons say.
+ * names: Slack only signs the request, not what the buttons say.
  */
 class ChatApprovalLinks
 {

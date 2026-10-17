@@ -16,7 +16,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 
 /**
  * Fires the `activated` trigger once a referred workspace has completed
- * enough real work — what counts (workflow runs, agent sessions, or either),
+ * enough real work: what counts (workflow runs, agent sessions, or either),
  * how many, and within how long of signup are all program settings.
  */
 class CheckReferralActivation implements ShouldQueue
@@ -66,7 +66,7 @@ class CheckReferralActivation implements ShouldQueue
     /**
      * The `runnable_type` values that count, in both forms the column holds:
      * the morph-map alias (runs created through a relation) and the class
-     * name (runs created directly) — see `Run::totalCreditsUsed()`.
+     * name (runs created directly): see `Run::totalCreditsUsed()`.
      *
      * @return list<string>
      */

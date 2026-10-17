@@ -19,7 +19,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * The workspace's approvals inbox: every agent action waiting on someone,
- * oldest first — it's a work queue, and the agent blocked longest is the one
+ * oldest first: it's a work queue, and the agent blocked longest is the one
  * to unblock (same reasoning as `PendingApprovalController`). Filterable to
  * any status for the full action log, and decidable in bulk; decided turns
  * resume on the queue.

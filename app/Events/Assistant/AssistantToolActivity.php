@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
 /**
- * The assistant started or finished a tool call — shown live as "Searching
+ * The assistant started or finished a tool call: shown live as "Searching
  * the web…". Carries the tool's name only; arguments and results can be
  * large and stay in the stored reply.
  */

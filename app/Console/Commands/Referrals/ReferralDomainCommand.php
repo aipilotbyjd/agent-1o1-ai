@@ -34,7 +34,7 @@ class ReferralDomainCommand extends Command
             $this->table(
                 ['Domain', 'Reason', 'Added'],
                 ReferralBlockedDomain::query()->orderBy('domain')->get()
-                    ->map(fn (ReferralBlockedDomain $row): array => [$row->domain, $row->reason ?? '—', $row->created_at?->toDateString()])
+                    ->map(fn (ReferralBlockedDomain $row): array => [$row->domain, $row->reason ?? '-', $row->created_at?->toDateString()])
                     ->all(),
             );
 

@@ -20,8 +20,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * An agent's action log — everything it did or tried to do that changes
- * something, newest first — and one conversation's slice of it, which is
+ * An agent's action log (everything it did or tried to do that changes
+ * something, newest first) and one conversation's slice of it, which is
  * what a chat renders its approval cards from (and decides them from). A subagent's actions are
  * included in its parent conversation's list, since that's where a person
  * is watching.
@@ -60,7 +60,7 @@ class AgentActionController extends Controller
 
     /**
      * Deciding from an open chat: records the decisions and, if that leaves
-     * the conversation's paused turn fully decided, queues it to carry on —
+     * the conversation's paused turn fully decided, queues it to carry on:
      * the person watches the agent continue over the conversation's channel
      * (`AgentTurnBroadcaster`), the same as for a sent message.
      */
@@ -70,7 +70,7 @@ class AgentActionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
-        // Only this conversation's actions, and its subagents' — the same
+        // Only this conversation's actions, and its subagents': the same
         // set `sessionIndex()` shows it.
         $sessionIds = AgentSession::query()->where('parent_session_id', $session->id)->pluck('id')->push($session->id);
         $decisionIds = array_column($request->decisions(), 'action_id');
@@ -79,7 +79,7 @@ class AgentActionController extends Controller
 
         $decided = $this->resolve->execute($request->user(), $request->decisions(), resume: false);
 
-        // Whether this conversation's own paused turn carries on now — the
+        // Whether this conversation's own paused turn carries on now: the
         // chat follows it over the channel; subagents' turns resume quietly.
         $run = $session->runs()->where('status', RunStatus::AwaitingApproval)->latest('id')->first();
         $resumesNow = $run !== null && $this->resumer->runIsReady($run);

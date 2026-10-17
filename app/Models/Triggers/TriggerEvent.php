@@ -52,7 +52,7 @@ class TriggerEvent extends Model
     }
 
     /**
-     * The run this event started — a workflow run or an agent turn, depending
+     * The run this event started: a workflow run or an agent turn, depending
      * on the trigger's target (`App\Services\Triggers\TargetRunStarter`).
      * Null until the event reaches `fired`.
      */
@@ -62,14 +62,14 @@ class TriggerEvent extends Model
     }
 
     /**
-     * Claim the event for processing: only a `queued` event can be claimed —
+     * Claim the event for processing: only a `queued` event can be claimed;
      * a `running` event is already claimed by whoever is processing it, and
-     * claiming it again would let two workers execute the same event — and
+     * claiming it again would let two workers execute the same event, and
      * the write itself is the exclusivity check: two concurrent callers racing
      * this update will see exactly one row affected between them.
      *
      * The retry-stuck command's `requeue()` call is what makes a stranded
-     * `running` event claimable again — it flips the row back to `queued`
+     * `running` event claimable again: it flips the row back to `queued`
      * first, deliberately, rather than this method treating `running` as
      * claimable.
      */
@@ -95,7 +95,7 @@ class TriggerEvent extends Model
 
     /**
      * Move a stranded `queued`/`running` event back to `queued` so it can be
-     * claimed again — used by the retry-stuck command before re-dispatching.
+     * claimed again: used by the retry-stuck command before re-dispatching.
      */
     public function requeue(): void
     {

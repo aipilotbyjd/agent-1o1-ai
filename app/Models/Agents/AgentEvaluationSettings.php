@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Whether/how one `Agent`'s live `AgentSession`s are automatically graded
- * after each turn — see `Services\Agents\SessionEvaluator` and the
+ * after each turn: see `Services\Agents\SessionEvaluator` and the
  * migration's docblock.
  */
 #[Fillable([
@@ -25,7 +25,7 @@ class AgentEvaluationSettings extends Model
 
     /**
      * Gumloop's published limits (docs/gumloop/output/raw/core-concepts/evaluations.md's
-     * "Limits" table) — kept as the ceiling here too so a config can't grow
+     * "Limits" table): kept as the ceiling here too so a config can't grow
      * to a size the judge prompt can no longer reason about accurately.
      */
     public const int MAX_CRITERIA = 30;

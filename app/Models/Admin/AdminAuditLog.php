@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One change a platform admin made — see `AdminAuditLogger`. Append-only:
+ * One change a platform admin made: see `AdminAuditLogger`. Append-only:
  * there is no `updated_at` and nothing edits a row once written.
  */
 #[Fillable(['admin_user_id', 'action', 'subject_type', 'subject_id', 'before', 'after', 'ip_address'])]

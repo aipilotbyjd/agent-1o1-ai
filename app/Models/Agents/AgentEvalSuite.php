@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A saved set of test cases for one `Agent` — see docs/AGENTS_PLAN.md's
+ * A saved set of test cases for one `Agent`: see docs/AGENTS_PLAN.md's
  * "Evals" section.
  */
 #[Fillable(['workspace_id', 'agent_id', 'name', 'description', 'run_on_change', 'created_by'])]

@@ -12,7 +12,7 @@ use App\Models\Connectors\ConnectorCredential;
 use Illuminate\Http\Request;
 
 /**
- * Provisioning credentials without a browser — what the `connectors:manage`
+ * Provisioning credentials without a browser: what the `connectors:manage`
  * key ability was defined for. A platform that creates a workspace per
  * customer needs to attach that customer's API keys programmatically; doing
  * it by hand in the UI doesn't scale.
@@ -22,7 +22,7 @@ use Illuminate\Http\Request;
  * hand-written token data for one would produce a credential that silently
  * can't refresh itself.
  *
- * `created_by` stays null — an API key belongs to a workspace, not a person.
+ * `created_by` stays null: an API key belongs to a workspace, not a person.
  */
 class ConnectorCredentialController extends Controller
 {
@@ -53,7 +53,7 @@ class ConnectorCredentialController extends Controller
         $connector = Connector::findOrFail($request->validated('connector_id'));
 
         if ($connector->isOAuth()) {
-            throw new ConnectorException("Connector [{$connector->key}] is OAuth-only — its credentials can only be created through the OAuth connect flow.");
+            throw new ConnectorException("Connector [{$connector->key}] is OAuth-only: its credentials can only be created through the OAuth connect flow.");
         }
 
         $credential = $this->apiKeyWorkspace($request)->connectorCredentials()->create($request->validated());

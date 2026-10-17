@@ -24,7 +24,7 @@ class BillingController extends Controller
      * balance. Transaction history and credit-pack purchases live on their
      * own endpoints since they paginate independently.
      *
-     * `current_plan` is the one that actually applies — with both a
+     * `current_plan` is the one that actually applies, with both a
      * subscription and a grant in play, neither alone answers "what plan am
      * I on", so the screen should render this rather than `subscription.plan`.
      *
@@ -33,19 +33,19 @@ class BillingController extends Controller
      * bought via credit packs. `null` means unlimited.
      *
      * `limits` reports what `PlanLimitGate` will actually enforce on the next
-     * create — render the "2 of 3 workflows" counter from this rather than
+     * create: render the "2 of 3 workflows" counter from this rather than
      * from `current_plan.limits`, which carries the raw cap with no usage
      * beside it. A `max` of `null` means unlimited.
      *
      * `overage` says whether the workspace keeps running once
-     * `credits_available` hits zero, and what that is allowed to cost —
+     * `credits_available` hits zero, and what that is allowed to cost:
      * `credits_remaining` there is the second balance a run is gated on, so
      * a workspace showing `credits_available: 0` is only actually blocked
      * when this is `0` too. `PUT /billing/overage` changes it.
      *
      * `dunning` is non-null only while Stripe is failing to collect. Because
      * this app grants no grace period, `subscription` will already be null at
-     * that point — the workspace has been dropped to the free plan — so this
+     * that point (the workspace has been dropped to the free plan) so this
      * is the only thing on the response that can explain why. Render it as a
      * banner pointing at `POST /billing/portal`.
      */
@@ -72,7 +72,7 @@ class BillingController extends Controller
 
     /**
      * The same shape `GET /billing/overage` returns, minus the settings-only
-     * fields the overview has no use for — one fewer request for a screen
+     * fields the overview has no use for: one fewer request for a screen
      * that has to render the balance and the overage allowance together.
      *
      * @return array{available: bool, enabled: bool, effective_limit: int|null, credits_used: int, credits_remaining: int|null}

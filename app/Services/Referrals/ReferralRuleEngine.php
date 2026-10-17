@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
  * Decides and records what a referral event earns. For each live rule of the
  * referral's program on that trigger, it checks the rule's conditions and
  * per-recipient limit, works out the reward's value, and writes it to the
- * ledger — granting it immediately, holding it until `grant_after`, or
+ * ledger: granting it immediately, holding it until `grant_after`, or
  * parking it for an admin's approval.
  *
  * Every reward carries an idempotency key, so a replayed webhook or a

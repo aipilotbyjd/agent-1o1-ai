@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 
 /**
  * Which apps the assistant can work in for this member, and through which
- * account — what the home screen's "Apps" panel shows.
+ * account: what the home screen's "Apps" panel shows.
  */
 class AssistantAppController extends Controller
 {

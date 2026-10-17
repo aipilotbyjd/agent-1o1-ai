@@ -8,7 +8,7 @@ use App\Services\Agents\Knowledge\KnowledgeBatch;
 use App\Services\Agents\Knowledge\KnowledgeDocumentData;
 
 /**
- * A repository's issues and pull requests, open and closed — the
+ * A repository's issues and pull requests, open and closed: the
  * discussion around the code. Unchanged ones are skipped on re-sync.
  */
 class GitHubReader implements KnowledgeReader

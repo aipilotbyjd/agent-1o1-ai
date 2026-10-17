@@ -13,7 +13,7 @@ use Stringable;
 
 /**
  * Lets the assistant record a lasting preference the moment the owner
- * states one ("keep it shorter", "always use tables") — the owner can see
+ * states one ("keep it shorter", "always use tables"): the owner can see
  * and undo every change in Personalization.
  */
 class UpdateStyleTool extends AssistantTool
@@ -39,7 +39,7 @@ class UpdateStyleTool extends AssistantTool
     {
         return 'Saves a lasting preference about how you should answer the person. '
             .'Use "tone" for how you write (length, formality, language, emoji) and "design" for how answers are laid out (bullets, tables, headings, summaries first). '
-            .'Only for preferences they state about all future answers — not one-off requests. '
+            .'Only for preferences they state about all future answers, not one-off requests. '
             .'Pass the complete new notes: keep the existing ones (shown in your instructions) unless the person contradicts them, and add the new preference as a short bullet.';
     }
 

@@ -5,10 +5,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * One proposed improvement produced by a `ReflectionRun` — a new/updated
+ * One proposed improvement produced by a `ReflectionRun`: a new/updated
  * `Skill`, an `Agent::instructions` change, or a flagged missing tool. Stays
  * `pending` until a human (or auto-apply, for low-risk types) applies or
- * dismisses it — see `Services\Agents\ReflectionApplier`.
+ * dismisses it: see `Services\Agents\ReflectionApplier`.
  */
 return new class extends Migration
 {

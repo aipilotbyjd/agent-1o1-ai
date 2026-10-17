@@ -11,7 +11,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * A message was appended to an agent conversation — the user's own turn, the
+ * A message was appended to an agent conversation: the user's own turn, the
  * assistant's reply, or a tool result. Lets a second tab (or a teammate
  * watching a shared session) follow along without polling; the token-by-token
  * view of the *same* reply is `AgentTurnDelta`, streamed by `AgentTurnBroadcaster`.

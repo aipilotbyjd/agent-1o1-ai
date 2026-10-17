@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 /**
  * Both settings are optional so a screen can save one switch without having
  * to resend the other. `thresholds` is `present`-style rather than
- * `required` for that reason, but when sent it replaces the whole set — a
+ * `required` for that reason, but when sent it replaces the whole set: a
  * threshold is removed by omitting it from the new array, and `null` resets
  * the workspace to the estate defaults.
  */

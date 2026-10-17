@@ -9,7 +9,7 @@ use App\Models\Runs\Run;
  * Publishes run state to subscribers. Lives on the model rather than in the
  * engine because a run's status is written from half a dozen places
  * (`StartWorkflowRunAction`, `GraphAdvancer`, `StepFailureHandler`,
- * `WorkflowRunner::cancel()`, `AgentRunner`, `RetryRunAction`) — an observer
+ * `WorkflowRunner::cancel()`, `AgentRunner`, `RetryRunAction`): an observer
  * covers all of them, and any future one, without each having to remember.
  */
 class RunObserver

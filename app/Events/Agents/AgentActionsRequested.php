@@ -14,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 
 /**
- * A turn paused on actions that need a person — broadcast to the
+ * A turn paused on actions that need a person: broadcast to the
  * conversation so an open chat shows the approval cards, and picked up by
  * `NotifyAgentActionApprovers` for everyone else. Like `AgentMessageCreated`,
  * it only says which actions are waiting; a listener fetches them.

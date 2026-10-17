@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 
 /**
  * Records the user's message and a pending assistant message, then hands the
- * turn to `ProcessWorkflowBuilderMessageJob` — a turn can run many tool calls
+ * turn to `ProcessWorkflowBuilderMessageJob`: a turn can run many tool calls
  * and take minutes, far longer than a request should be held open. The
  * client follows the reply on the session's broadcast channel
  * (`WorkflowBuilderActivity`) or by polling the returned message.
@@ -34,7 +34,7 @@ class SendWorkflowBuilderMessageAction
     ) {}
 
     /**
-     * `$sender` is who the turn's edits are attributed to — a session is
+     * `$sender` is who the turn's edits are attributed to: a session is
      * shared across the workspace, so it isn't always the session's owner.
      *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.

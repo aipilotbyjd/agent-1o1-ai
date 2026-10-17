@@ -11,12 +11,12 @@
 | through that provider (see `App\Services\Ai\ByokProviderRegistrar`).
 |
 | `key_prefix` is what a key for the provider starts with (empty when it
-| has no fixed shape) — the settings screen uses it to spot a key pasted
+| has no fixed shape): the settings screen uses it to spot a key pasted
 | under the wrong provider. `key_guide` is the short "where do I find my
 | key" walk-through it shows.
 |
 | `check` is how a key is verified before it is trusted: an authenticated
-| GET that succeeds only for a working key. `auth` is how the key is sent —
+| GET that succeeds only for a working key. `auth` is how the key is sent:
 | `bearer` (Authorization header), `anthropic` (x-api-key header) or
 | `query` (?key=). Platform-internal gateways are deliberately absent.
 |
@@ -33,7 +33,7 @@ return [
             'key_guide' => [
                 'Sign in to platform.openai.com and open API keys.',
                 'Click “Create new secret key”, name it, and copy it.',
-                'Make sure billing is set up — a key with no credit is rejected.',
+                'Make sure billing is set up: a key with no credit is rejected.',
             ],
             'check' => ['url' => 'https://api.openai.com/v1/models', 'auth' => 'bearer'],
         ],

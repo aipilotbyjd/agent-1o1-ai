@@ -11,7 +11,7 @@ use App\Services\Agents\Approvals\TrustRules;
 use Illuminate\Http\Request;
 
 /**
- * Tools this agent has earned trust on — ones people keep approving as-is —
+ * Tools this agent has earned trust on (ones people keep approving as-is)
  * and applying a suggestion, which sets that tool to run without asking.
  * See `TrustRules`.
  */

@@ -33,12 +33,12 @@ it('alerts on a sign-in from an unrecognised device, and stays quiet on a famili
 
     Notification::assertSentToTimes($user, SecurityAlertNotification::class, 1);
 
-    // Same device again — no second alert.
+    // Same device again: no second alert.
     $signIn('203.0.113.7', 'Desktop/9.9')->assertOk();
 
     Notification::assertSentToTimes($user, SecurityAlertNotification::class, 1);
 
-    // Somewhere new — alert again.
+    // Somewhere new: alert again.
     $signIn('198.51.100.2', 'Laptop/1.0')->assertOk();
 
     Notification::assertSentToTimes($user, SecurityAlertNotification::class, 2);

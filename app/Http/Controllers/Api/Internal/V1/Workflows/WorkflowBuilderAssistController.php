@@ -13,7 +13,7 @@ use App\Services\Workflows\WorkflowBuilderAssistant;
 use InvalidArgumentException;
 
 /**
- * One-shot helpers over a builder session's draft — see
+ * One-shot helpers over a builder session's draft: see
  * `WorkflowBuilderAssistant`. None of them change the draft; each returns a
  * proposal for the client to show.
  */

@@ -81,8 +81,8 @@ class TemplateCollectionController extends Controller
     }
 
     /**
-     * Bulk-instantiate every template in the pack in one call — a workflow
-     * per `WorkflowTemplate` item, an agent per `AgentTemplate` item — each
+     * Bulk-instantiate every template in the pack in one call (a workflow
+     * per `WorkflowTemplate` item, an agent per `AgentTemplate` item) each
      * named after its own template.
      */
     public function use(Workspace $workspace, TemplateCollection $templateCollection, PlanLimitGate $limits)

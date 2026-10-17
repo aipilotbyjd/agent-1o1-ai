@@ -14,7 +14,7 @@ use Throwable;
  * workspace's closed periods so a remainder under the invoice minimum is
  * carried into the next invoice rather than stranded. Runs daily
  * rather than at the moment a period ends, so a Stripe outage or a declined
- * card is retried on the next run instead of losing the charge — the credits
+ * card is retried on the next run instead of losing the charge: the credits
  * stay unbilled until an invoice actually succeeds.
  *
  * Only *ended* periods are billed. A period still accruing would need a

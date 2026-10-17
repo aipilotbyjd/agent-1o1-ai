@@ -5,7 +5,7 @@ namespace App\Http\Requests\Api\Internal\V1\Workflows;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Structural validation only, like `ReplaceGraphRequest` — node configs and
+ * Structural validation only, like `ReplaceGraphRequest`: node configs and
  * edge endpoints are checked by `WorkflowBuilderSession::replaceDraft()`.
  */
 class SyncWorkflowBuilderDraftRequest extends FormRequest

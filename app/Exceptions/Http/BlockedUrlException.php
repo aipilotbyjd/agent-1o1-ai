@@ -7,7 +7,7 @@ use RuntimeException;
 
 /**
  * Thrown by {@see SsrfGuard} when a node-configured URL
- * resolves to a scheme or host that outbound requests must not reach — the
+ * resolves to a scheme or host that outbound requests must not reach: the
  * message is persisted onto the failing `NodeRun` and read by whoever is
  * watching the run, so it stays user-facing.
  */

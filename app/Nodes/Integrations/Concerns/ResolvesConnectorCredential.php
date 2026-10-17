@@ -8,7 +8,7 @@ use App\Services\Connectors\ConnectorCredentialResolver;
 
 /**
  * Shared by every integration node to turn a step's `config` into a usable
- * access token, tenant-scoped by the executing `Run` — see
+ * access token, tenant-scoped by the executing `Run`: see
  * `ConnectorCredentialResolver` for the lookup and default rules. A node's
  * `category()` doubles as its connector key.
  */

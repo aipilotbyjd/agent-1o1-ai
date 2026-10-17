@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Email domains whose signups are never attributed to a referrer —
+ * Email domains whose signups are never attributed to a referrer:
  * disposable-mail services, mostly. Seeded, then maintained from the admin
  * API.
  */

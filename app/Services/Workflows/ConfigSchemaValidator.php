@@ -6,7 +6,7 @@ namespace App\Services\Workflows;
  * Validates a node's `config` against its `NodeContract::configSchema()`.
  * Supports the small subset of JSON-schema shapes this project's node
  * `configSchema()` implementations actually use (`type`: object/array/
- * string/integer/boolean, `required`, `properties`, `items`, `enum`) — not a
+ * string/integer/boolean, `required`, `properties`, `items`, `enum`), not a
  * general-purpose JSON Schema implementation, and deliberately not a new
  * Composer dependency.
  *
@@ -14,7 +14,7 @@ namespace App\Services\Workflows;
  * accepted for any type when saving or publishing: its real value only
  * exists at run time, where `ResolvedConfigCaster` converts and checks it.
  *
- * A required field must be filled in — present, and not null or blank
+ * A required field must be filled in: present, and not null or blank
  * text. A draft may be mid-edit, so saving one skips that check
  * (`$requireFields = false`); publishing and running still need it. Every
  * value that is present is type-checked either way.
@@ -86,7 +86,7 @@ class ConfigSchemaValidator
             }
         }
 
-        // A null field is an unset one — a field the author cleared — so it
+        // A null field is an unset one (a field the author cleared) so it
         // isn't type-checked; if it's required, the check above reports it.
         foreach ($schema['properties'] ?? [] as $key => $fieldSchema) {
             if (array_key_exists($key, $value) && $value[$key] !== null && ! ($requireFields && in_array($key, $schema['required'] ?? [], true) && $this->isBlank($value[$key]))) {
@@ -162,7 +162,7 @@ class ConfigSchemaValidator
     }
 
     /**
-     * Nothing, or blank text — what a required field the author hasn't
+     * Nothing, or blank text: what a required field the author hasn't
      * filled in looks like. An empty list or set of fields is a real value
      * (a workflow interface with no inputs yet, a node with no headers).
      */

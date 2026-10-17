@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Never includes the key — only `key_hint`, its masked form. `can_manage`
+ * Never includes the key, only `key_hint`, its masked form. `can_manage`
  * is whether the asking member may edit, re-check or remove it: a team key
  * needs `ai-credential.manage`, a personal key is only ever visible to the
  * member who added it.

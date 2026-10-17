@@ -12,7 +12,7 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * Keeps reference material in the owner's private knowledge — a note, or a
+ * Keeps reference material in the owner's private knowledge: a note, or a
  * web page that stays in sync. Saving a note under the same title again
  * replaces it.
  */

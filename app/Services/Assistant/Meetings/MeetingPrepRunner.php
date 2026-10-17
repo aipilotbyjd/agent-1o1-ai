@@ -96,12 +96,12 @@ class MeetingPrepRunner
 
         $prompt = <<<PROMPT
             You are {$name}, preparing {$person} for a meeting.
-            summary: two or three sentences, at most 60 words — what this meeting is about and the one thing to keep in mind.
+            summary: two or three sentences, at most 60 words; what this meeting is about and the one thing to keep in mind.
             document: Markdown with up to four sections, in this order, leaving out any with nothing to say:
-            ## Attendees — who they are and their relationship to {$person}, from the material only.
-            ## Prior context — a short recap of the history with these people, then the relevant threads, decisions and risks, woven together rather than listed per app.
-            ## Open questions — what is still unresolved.
-            ## Talking points — what {$person} should raise.
+            ## Attendees, who they are and their relationship to {$person}, from the material only.
+            ## Prior context: a short recap of the history with these people, then the relevant threads, decisions and risks, woven together rather than listed per app.
+            ## Open questions: what is still unresolved.
+            ## Talking points: what {$person} should raise.
             Don't restate the meeting's time, place or guest list. Use only the material given; never invent facts. If there is little history, say so briefly.
             PROMPT;
 
@@ -134,7 +134,7 @@ class MeetingPrepRunner
             : $items->groupBy('source')->map(fn (Collection $group, string $source): string => "## {$source}\n".$group
                 ->map(fn (array $item): string => '- '.$item['title']
                     .(filled($item['at'] ?? null) ? " [{$item['at']}]" : '')
-                    .(($item['people'] ?? []) !== [] ? ' — '.implode(', ', $item['people']) : '')
+                    .(($item['people'] ?? []) !== [] ? ' - '.implode(', ', $item['people']) : '')
                     .(filled($item['detail'] ?? null) ? "\n  ".$item['detail'] : ''))
                 ->implode("\n"))->implode("\n\n");
 

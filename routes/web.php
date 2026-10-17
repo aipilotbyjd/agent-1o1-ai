@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 | Signed Agent Action Decisions
 |--------------------------------------------------------------------------
 |
-| Linked from approval emails. The URL signature is the authentication —
+| Linked from approval emails. The URL signature is the authentication:
 | see AgentActionSignedDecisionController.
 |
 */

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Deliberately narrower than `Api\Internal\V1\Workflows\WorkflowResource` —
+ * Deliberately narrower than `Api\Internal\V1\Workflows\WorkflowResource`:
  * run/list/inspect only, no builder-editing internals. See
  * docs/STRUCTURE.md's "Public vs. Internal API" section.
  *

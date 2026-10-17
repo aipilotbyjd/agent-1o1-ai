@@ -49,7 +49,7 @@ final readonly class NodeOptionsQuery
     }
 
     /**
-     * Case-insensitive "does any of these match what the member typed" — for
+     * Case-insensitive "does any of these match what the member typed", for
      * providers whose list APIs can't search server-side.
      */
     public function matches(string ...$haystacks): bool

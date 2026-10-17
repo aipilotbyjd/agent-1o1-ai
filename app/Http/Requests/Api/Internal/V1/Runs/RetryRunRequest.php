@@ -13,7 +13,7 @@ class RetryRunRequest extends FormRequest
 
     /**
      * `from_node_key` is validated against the run's own graph in
-     * `RetryRunAction` (a 409, not a 422 — the key may be perfectly valid for
+     * `RetryRunAction` (a 409, not a 422: the key may be perfectly valid for
      * a different run), so all that's checked here is its shape.
      *
      * @return array<string, mixed>

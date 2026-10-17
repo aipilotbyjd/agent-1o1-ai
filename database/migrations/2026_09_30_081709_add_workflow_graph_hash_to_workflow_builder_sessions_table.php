@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * `Workflow::graphFingerprint()` of the session's workflow as the session
- * last saw it — when it was opened on that workflow, or last promoted to it.
+ * last saw it, when it was opened on that workflow, or last promoted to it.
  * Promoting compares it against the workflow's current graph, so edits made
  * in the regular editor since then aren't silently overwritten.
  */

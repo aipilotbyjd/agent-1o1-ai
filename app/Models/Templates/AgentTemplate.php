@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * A reusable agent blueprint. `config` holds
  * `{instructions, provider, model, temperature, settings, tool_bindings,
- * workflow_ids, skill_ids}` — the same fields `AgentVersion.snapshot` is
+ * workflow_ids, skill_ids}`: the same fields `AgentVersion.snapshot` is
  * meant to carry, materialized into a new `Agent` when used. `workspace_id`
  * null means a global/system template visible to every workspace.
  */

@@ -102,7 +102,7 @@ class AgentTemplateController extends Controller
     /**
      * Materialize a new `Agent` from the template's config. Attached
      * workflows/skills only carry over when the referenced row also exists
-     * in the target workspace — a template used across workspaces (a
+     * in the target workspace: a template used across workspaces (a
      * global/public one) silently drops references that don't resolve
      * rather than failing the whole operation.
      */

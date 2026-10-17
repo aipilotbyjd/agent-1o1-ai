@@ -32,7 +32,7 @@ function optionsQuery(array $config = [], ?string $search = null, ?string $curso
 }
 
 /**
- * Each source turns a realistic provider response into options — the first
+ * Each source turns a realistic provider response into options: the first
  * option and the next-page cursor are checked against what the provider sent.
  */
 dataset('provider sources', [

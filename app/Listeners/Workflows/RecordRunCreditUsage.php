@@ -20,7 +20,7 @@ use App\Services\Billing\CreditMeter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 /**
- * Charges credits for a finished `Run` — one `CreditTransaction` per
+ * Charges credits for a finished `Run`: one `CreditTransaction` per
  * completed/failed `NodeRun` for a Workflow run (a node routed through an
  * `error` edge still consumed real work), one per turn (the assistant reply)
  * for an Agent session run, or one per graded case for an eval run. See
@@ -29,7 +29,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
  * A run that fails or is cancelled is billed the same way, for the work it
  * got through: an Ask AI node that answered before a later node failed
  * spent its tokens all the same, as did the cases an eval graded before it
- * timed out. Nothing that never ran is charged — a failed agent turn has no
+ * timed out. Nothing that never ran is charged: a failed agent turn has no
  * reply to bill, and a node that was still pending or in flight when the
  * run stopped is settled as cancelled, not completed/failed.
  *
@@ -124,7 +124,7 @@ class RecordRunCreditUsage implements ShouldQueue
 
     /**
      * One charge per evaluation. An evaluation that failed before the judge
-     * answered carries no usage and is skipped — nothing was spent on it.
+     * answered carries no usage and is skipped: nothing was spent on it.
      */
     private function chargeForSessionEvaluation(AgentSessionEvaluation $evaluation): void
     {
@@ -162,7 +162,7 @@ class RecordRunCreditUsage implements ShouldQueue
 
     /**
      * One charge per graded case. Cases that errored before the model
-     * answered carry no usage and are skipped — nothing was spent on them.
+     * answered carry no usage and are skipped: nothing was spent on them.
      */
     private function chargeForEvalRun(AgentEvalRun $evalRun): void
     {

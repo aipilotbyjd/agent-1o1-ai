@@ -11,7 +11,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Applies one auto-eligible `Reflection` — dispatched by
+ * Applies one auto-eligible `Reflection`: dispatched by
  * `Services\Agents\ReflectionAnalyzer` when `apply_behavior` is
  * `auto_apply` and the proposal clears the confidence/support bar. A
  * human-triggered "Apply" click goes through `ReflectionApplier` directly

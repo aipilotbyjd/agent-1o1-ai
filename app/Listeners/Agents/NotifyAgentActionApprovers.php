@@ -8,8 +8,8 @@ use App\Services\Agents\Approvals\ActionApprovers;
 use App\Services\Notifications\NotificationDispatcher;
 
 /**
- * Tells the people who may decide a paused turn's actions that it's waiting
- * — in the app, and by email or chat per their notification preferences.
+ * Tells the people who may decide a paused turn's actions that it's waiting,
+ * in the app, and by email or chat per their notification preferences.
  */
 class NotifyAgentActionApprovers
 {

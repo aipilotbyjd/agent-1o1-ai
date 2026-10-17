@@ -13,8 +13,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Withdrawing something from sale. Three independent switches gate a
- * purchase — the plan's `is_active`, the estate-wide
- * `config('billing.intervals')`, and the plan's own `enabled_intervals` —
+ * purchase: the plan's `is_active`, the estate-wide
+ * `config('billing.intervals')`, and the plan's own `enabled_intervals`,
  * and each must actually stop a checkout, not merely hide a button.
  *
  * @return array{0: Workspace, 1: User}
@@ -40,7 +40,7 @@ function checkoutAs(User $owner, Workspace $workspace, Plan $plan, string $inter
 it('refuses to sell an interval the plan has switched off', function (string $interval) {
     [$workspace, $owner] = ownerWorkspaceForAvailability();
 
-    // Priced and configured, but withdrawn — the switch, not a missing price,
+    // Priced and configured, but withdrawn: the switch, not a missing price,
     // is what must stop the sale.
     $plan = Plan::factory()->soldForLifetime()->sellingOnly([])->create();
 
@@ -81,7 +81,7 @@ it('withdraws an interval across every plan via config', function () {
 
     checkoutAs($owner, $workspace, $plan, 'lifetime')->assertStatus(422);
 
-    // The plan's own switch is still on — only the estate-wide one moved.
+    // The plan's own switch is still on, only the estate-wide one moved.
     expect($plan->enablesInterval(BillingInterval::Lifetime))->toBeTrue();
 });
 
@@ -93,7 +93,7 @@ it('withdraws a recurring interval across every plan via config', function () {
 
     checkoutAs($owner, $workspace, $plan, 'quarterly')->assertStatus(422);
 
-    // Only quarterly was withdrawn — the rest of the catalog is untouched.
+    // Only quarterly was withdrawn: the rest of the catalog is untouched.
     expect($plan->isSoldOn(BillingInterval::Monthly))->toBeTrue()
         ->and($plan->isSoldOn(BillingInterval::Yearly))->toBeTrue();
 });

@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * One or more decisions on waiting agent actions — see
+ * One or more decisions on waiting agent actions: see
  * `ResolveAgentActionsAction` for what each decision does.
  */
 class DecideAgentActionsRequest extends FormRequest

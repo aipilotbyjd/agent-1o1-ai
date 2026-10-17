@@ -11,7 +11,7 @@ use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
 
 /**
- * Implements `NodeContract` (unlike its `FlowLogic` siblings) — `execute()`
+ * Implements `NodeContract` (unlike its `FlowLogic` siblings): `execute()`
  * itself does no waiting, it just reports how long to wait. The engine
  * (`WorkflowRunner`) reads `seconds` back off the output and delays the
  * *next* dispatch by that long, rather than blocking a queue worker inside

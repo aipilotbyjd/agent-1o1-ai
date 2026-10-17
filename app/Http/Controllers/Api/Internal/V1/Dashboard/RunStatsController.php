@@ -18,12 +18,12 @@ class RunStatsController extends Controller
      * zero-filled daily series for the chart, and the busiest workflows.
      *
      * Passing `workflow_id` narrows `totals` and `series` to that one
-     * workflow — the same chart on a workflow's own page. `top_workflows` is
+     * workflow: the same chart on a workflow's own page. `top_workflows` is
      * left workspace-wide either way: a one-row leaderboard is not a
      * leaderboard, and the client is already showing which workflow it asked
      * about.
      *
-     * An unknown or foreign `workflow_id` reports zeros rather than 404ing —
+     * An unknown or foreign `workflow_id` reports zeros rather than 404ing:
      * the underlying query is workspace-scoped, so there is nothing to leak
      * and nothing to find.
      */

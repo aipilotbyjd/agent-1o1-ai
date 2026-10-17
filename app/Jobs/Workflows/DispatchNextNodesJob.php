@@ -15,7 +15,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Resolves what's ready to run next for a `Run` and dispatches one
- * `ExecuteNodeJob` per ready node — either from the start (`$settledNodeRunId`
+ * `ExecuteNodeJob` per ready node, either from the start (`$settledNodeRunId`
  * null, entry nodes) or after a node settles. Kept on its own queue/
  * supervisor (`Queue::WorkflowDispatch`) separate from `ExecuteNodeJob`'s
  * `Queue::WorkflowExecute`, per docs/STRUCTURE.md's "Queues & Horizon" table.
@@ -35,7 +35,7 @@ class DispatchNextNodesJob implements ShouldQueue
     /**
      * Queues the traversal that follows a settled node, flagging the node as
      * still owing its successors until `GraphAdvancer::advance()` has created
-     * them — so a sibling branch can't complete the run in between.
+     * them, so a sibling branch can't complete the run in between.
      */
     public static function afterSettling(string $runId, string $settledNodeRunId, bool $continueOnError = false): PendingDispatch
     {

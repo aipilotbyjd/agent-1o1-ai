@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * The only way a Tone or Design profile changes. Every change — the owner's
- * edit, the assistant's on the owner's word, or one learned from feedback —
+ * The only way a Tone or Design profile changes. Every change (the owner's
+ * edit, the assistant's on the owner's word, or one learned from feedback)
  * bumps the version and keeps a revision, so any of them can be undone.
  */
 class StyleProfiles

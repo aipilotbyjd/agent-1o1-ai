@@ -46,7 +46,7 @@ class PaymentFailedNotification extends WorkspaceEventNotification
             ? 'We still could not charge your payment method.'
             : 'Stripe could not charge your payment method.';
 
-        $consequence = ' Paid features are suspended until the payment succeeds — workflow runs and agent turns will be refused in the meantime.';
+        $consequence = ' Paid features are suspended until the payment succeeds: workflow runs and agent turns will be refused in the meantime.';
 
         $next = $nextAttemptAt !== null
             ? " Stripe will try again on {$nextAttemptAt->toFormattedDateString()}, or you can update your card now to restore access immediately."

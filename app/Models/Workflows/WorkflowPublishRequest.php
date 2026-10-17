@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * A request to put a workflow's draft live in a workspace that requires
- * approval to publish — see `Workspace::requiresPublishApproval()`. Not to be
+ * approval to publish: see `Workspace::requiresPublishApproval()`. Not to be
  * confused with `WorkflowApproval`, which pauses a single run at a
  * HumanApproval step.
  *

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One append-only ledger row — never updated after creation. Written only
+ * One append-only ledger row, never updated after creation. Written only
  * via `Actions\Billing\DeductCreditsAction`. `(source_type, source_id)` is
  * unique, so a given `NodeRun`/`AgentMessage` can only ever be billed once
  * however many times a queued charge is replayed.

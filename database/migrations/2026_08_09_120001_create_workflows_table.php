@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('status')->default('draft');
 
-            // FK added once workflow_versions exists — see
+            // FK added once workflow_versions exists: see
             // add_current_version_id_to_workflows_table.
             $table->uuid('current_version_id')->nullable();
 

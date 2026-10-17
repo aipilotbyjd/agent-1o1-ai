@@ -26,10 +26,10 @@ use InvalidArgumentException;
 
 /**
  * A chat session that edits a `draft_graph` on the user's behalf via
- * `WorkflowBuilderAgent`'s tools — every mutation method here is what those
+ * `WorkflowBuilderAgent`'s tools: every mutation method here is what those
  * tools actually call. `draft_graph` uses this project's own graph shape
- * (`{nodes: [...], edges: [...]}`, each node `{key, type, config, position}`)
- * — exactly what `Workflow::replaceGraph()` expects, so promoting a draft to
+ * (`{nodes: [...], edges: [...]}`, each node `{key, type, config, position}`);
+ * exactly what `Workflow::replaceGraph()` expects, so promoting a draft to
  * a real workflow needs no adapter.
  */
 #[Fillable([
@@ -43,13 +43,13 @@ class WorkflowBuilderSession extends Model
     /**
      * Undo history kept per session. Every edit snapshots the whole graph
      * (an assistant turn can make a couple of dozen), so older snapshots
-     * are pruned as new ones land — see `applyGraph()`.
+     * are pruned as new ones land: see `applyGraph()`.
      */
     public const int MAX_DRAFT_VERSIONS = 100;
 
     /**
      * A reply still "in flight" after this long lost its worker without the
-     * job's `failed()` hook running (a hard kill, a deploy mid-turn) — see
+     * job's `failed()` hook running (a hard kill, a deploy mid-turn): see
      * `failStaleReplies()`. Comfortably above the job's own timeout.
      */
     public const int STALE_REPLY_MINUTES = 10;
@@ -127,7 +127,7 @@ class WorkflowBuilderSession extends Model
 
     /**
      * Merge `$config` into a node's config and delete the top-level fields
-     * named in `$removeFields` — the only way to take an optional field
+     * named in `$removeFields`: the only way to take an optional field
      * (such as `_loop`) off a node, since merging can't express "unset".
      *
      * @param  array<string, mixed>  $config
@@ -173,7 +173,7 @@ class WorkflowBuilderSession extends Model
      *
      * Validating here (not in the agent's tools) means the agent gets the specific
      * missing or mistyped field back as a tool result and can correct itself, instead
-     * of the mistake surfacing much later as a failed publish — see
+     * of the mistake surfacing much later as a failed publish: see
      * `Workflow::replaceGraph()`'s identical draft-time-only validation.
      *
      * Flow-control types (loop, subflow, wait, human_approval, join_paths)
@@ -182,7 +182,7 @@ class WorkflowBuilderSession extends Model
      * only discover mid-run.
      *
      * `$requireKnownType` is off only where a canvas sync must be able to
-     * save around a type the catalog can't check — see `replaceDraft()`.
+     * save around a type the catalog can't check: see `replaceDraft()`.
      * `$requireFields` is off there too: a canvas the author is still
      * filling in saves like any draft, while a node the agent adds must come
      * complete, so it hears what's missing and fixes it.
@@ -281,7 +281,7 @@ class WorkflowBuilderSession extends Model
     }
 
     /**
-     * Remove the edges from `$from` to `$to` — every one of them, or with
+     * Remove the edges from `$from` to `$to`: every one of them, or with
      * `$onlyCondition` just the one carrying `$condition` (`null` meaning the
      * unconditional edge), e.g. to turn an always-edge into an error path.
      */
@@ -307,7 +307,7 @@ class WorkflowBuilderSession extends Model
     }
 
     /**
-     * Replace the whole draft with the canvas's copy of it — how edits made
+     * Replace the whole draft with the canvas's copy of it: how edits made
      * by hand (drag, delete, add from the library) reach the draft the agent
      * reads. Refused when `$expectedLockVersion` is behind, so a canvas that
      * hasn't seen the agent's latest edits can't silently undo them.
@@ -345,7 +345,7 @@ class WorkflowBuilderSession extends Model
 
         // The canvas may save a type the catalog has no schema for when it
         // is a `custom:` node (which a workflow may hold by design), or
-        // when the node is carried over unchanged from the draft — e.g. from
+        // when the node is carried over unchanged from the draft, e.g. from
         // the workflow the session was opened on, which `Workflow::replaceGraph()`
         // accepted. A node the canvas adds or retypes to an unknown type is
         // still refused. Publishing refuses unknown types either way
@@ -366,7 +366,7 @@ class WorkflowBuilderSession extends Model
      * Roll the draft back to an earlier snapshot. The restore is itself a new
      * snapshot, so it can be undone the same way. With
      * `$expectedLockVersion`, refused when the draft moved on since the
-     * caller last loaded it — so an undo can't silently throw away
+     * caller last loaded it, so an undo can't silently throw away
      * assistant edits the user hasn't seen yet.
      *
      * @throws WorkflowBuilderConflictException

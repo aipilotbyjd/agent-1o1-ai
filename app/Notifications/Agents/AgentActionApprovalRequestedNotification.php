@@ -14,14 +14,14 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /**
- * An agent paused on actions that need someone's approval — sent to the
+ * An agent paused on actions that need someone's approval: sent to the
  * people who may decide them (`ActionApprovers::recipientsFor()`).
  *
  * The email carries a link per action to a one-page approve/reject form
  * (`AgentActionSignedDecisionController`), signed for this recipient and
  * valid until the action expires, so it can be answered from a phone
- * without opening the app. The link itself changes nothing — mail scanners
- * prefetch links — only submitting the form does.
+ * without opening the app. The link itself changes nothing (mail scanners
+ * prefetch links) only submitting the form does.
  *
  * Slack channels get approve/reject buttons when the workspace allows
  * deciding from chat (`WorkspaceAgentPolicy::$allow_chat_approvals`).

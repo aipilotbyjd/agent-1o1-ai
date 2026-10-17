@@ -8,7 +8,7 @@ use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
 
 /**
- * Drafts the owner's reply to one email, in their voice — or declines when
+ * Drafts the owner's reply to one email, in their voice, or declines when
  * there's nothing substantive to answer or it isn't confident.
  */
 class ReplyDrafterAgent implements Agent, HasStructuredOutput

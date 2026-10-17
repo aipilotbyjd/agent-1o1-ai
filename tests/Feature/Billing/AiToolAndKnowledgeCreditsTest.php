@@ -101,7 +101,7 @@ it('charges knowledge ingestion for its embedding tokens', function () {
 
     $transaction = CreditTransaction::sole();
 
-    // 500k tokens at $0.02/1M is $0.01 — two $0.005 credits.
+    // 500k tokens at $0.02/1M is $0.01: two $0.005 credits.
     expect($transaction->source_type)->toBe(CreditTransactionType::KnowledgeIngestion);
     expect($transaction->source_id)->toBe(DocumentEmbedding::sole()->id);
     expect($transaction->credits)->toBe(2);

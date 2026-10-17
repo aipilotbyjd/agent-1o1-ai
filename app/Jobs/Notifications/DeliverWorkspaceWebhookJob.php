@@ -13,7 +13,7 @@ use RuntimeException;
 
 /**
  * Delivers one notification to one chat/webhook endpoint. One job per
- * endpoint, so a failing endpoint is retried with backoff on its own — it
+ * endpoint, so a failing endpoint is retried with backoff on its own: it
  * can't re-send the mail or in-app copies, or hold up the other endpoints.
  * Permanent failures (a blocked address, a 4xx) are logged and dropped
  * rather than retried.

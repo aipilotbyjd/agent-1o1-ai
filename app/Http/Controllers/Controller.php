@@ -25,7 +25,7 @@ abstract class Controller
     /**
      * The workspace an API key request is scoped to, put there by
      * `EnsureApiKeyIsValid`. Public-API controllers have no workspace route
-     * parameter and no authenticated user — the key *is* the scope.
+     * parameter and no authenticated user: the key *is* the scope.
      */
     protected function apiKeyWorkspace(Request $request): Workspace
     {

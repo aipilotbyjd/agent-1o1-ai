@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 /**
  * A message from outside the app becomes a turn in the conversation for
- * its thread — the same assistant, memory and tools as the web app.
+ * its thread: the same assistant, memory and tools as the web app.
  */
 class ChannelInbox
 {

@@ -52,7 +52,7 @@ class SimulateReferralCommand extends Command
                 $result['name'],
                 $result['applies'] ? 'yes' : 'no: '.$result['reason'],
                 $result['description'],
-                $result['applies'] ? $result['initial_status'] : '—',
+                $result['applies'] ? $result['initial_status'] : '-',
             ])->all(),
         );
 

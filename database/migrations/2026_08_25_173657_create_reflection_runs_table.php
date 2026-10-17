@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * One execution of the analysis pass over an agent's recent `AgentSession`s —
+ * One execution of the analysis pass over an agent's recent `AgentSession`s,
  * like `AgentEvalRun`, this is also a `runnable` (`runs.runnable_type =
  * reflection_run`) so the LLM spend it costs lands on the same ledger as
  * every other kind of run.

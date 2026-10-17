@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Cache;
  * `$debounceToken` implements Gumloop's "short debounce so an active chat
  * isn't evaluated prematurely": every turn re-schedules this job with a
  * fresh token stored in cache under the session's key, so only the job
- * carrying the *last* token to be scheduled actually evaluates — any job
+ * carrying the *last* token to be scheduled actually evaluates: any job
  * queued by an earlier turn in the same burst finds its token superseded and
  * exits without doing anything.
  */

@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A comment thread — or a reply in one — with who wrote it and whether the
+ * A comment thread (or a reply in one) with who wrote it and whether the
  * person reading may change it.
  *
  * @mixin WorkflowPageComment

@@ -52,7 +52,7 @@ class WorkflowVersion extends Model
      * published before `editor_graph` existed fall back to the runnable
      * `graph`: same keys and edges, but no positions (the editor lays them
      * out), with loop-mode steps turned back into the step they were
-     * compiled from — see `authoredLoopNode()`.
+     * compiled from: see `authoredLoopNode()`.
      *
      * @return array{nodes: array<int, array<string, mixed>>, edges: array<int, array<string, mixed>>}
      */
@@ -83,8 +83,8 @@ class WorkflowVersion extends Model
      * hidden child workflow the compiler made for this key becomes the
      * child's step again, with its `_loop` settings. The child is republished
      * on every parent publish, so its latest version from at or before this
-     * one holds the step as it was then. Any other node — including a `loop`
-     * node a person added themselves — returns null.
+     * one holds the step as it was then. Any other node (including a `loop`
+     * node a person added themselves) returns null.
      *
      * @param  array<string, mixed>  $node
      * @return array{key: string, type: string, config: array<string, mixed>}|null

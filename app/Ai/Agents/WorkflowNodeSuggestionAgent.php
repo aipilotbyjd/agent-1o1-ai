@@ -10,7 +10,7 @@ use Laravel\Ai\Promptable;
 use Laravel\Ai\ToolChoice;
 
 /**
- * Suggests the next few nodes for a partial draft — the "what could come
+ * Suggests the next few nodes for a partial draft: the "what could come
  * next?" helper under the builder canvas. The draft and node catalog are in
  * the prompt (`WorkflowBuilderAssistant`); answers only through
  * `SubmitNodeSuggestionsTool`.

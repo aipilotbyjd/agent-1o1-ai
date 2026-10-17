@@ -13,7 +13,7 @@ Route::middleware('api-key:runs:read')->group(function () {
 
 /*
  * Starting, stopping and retrying a run all sit under `workflows:write`
- * rather than a scope of their own — `workflows:write` has meant "may cause
+ * rather than a scope of their own: `workflows:write` has meant "may cause
  * this workspace's workflows to execute" since the start-run endpoint
  * shipped, and splitting it now would silently downgrade existing keys.
  */

@@ -12,7 +12,7 @@ use Stringable;
 /**
  * Loads one attached skill on demand. `SkillInjector` only lists each skill's
  * name and description, so the model decides when a skill applies and pulls
- * in its full instructions and references through this call — which is also
+ * in its full instructions and references through this call, which is also
  * what lets the chat show that a skill was actually used.
  */
 class UseSkillTool implements Tool

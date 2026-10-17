@@ -33,8 +33,8 @@ use Laravel\Passport\Passport;
 
 /*
  * Safety net for tenant isolation. For every route that takes exactly one
- * tenant-owned model — `/agents/{agent}`, `/secrets/{secret}`,
- * `/runs/{run}/cancel` and so on — this builds that model in a *different*
+ * tenant-owned model: `/agents/{agent}`, `/secrets/{secret}`,
+ * `/runs/{run}/cancel` and so on: this builds that model in a *different*
  * workspace, then requests it as the caller. A route that forgets its
  * ownership check serves (or mutates) the other tenant's row and fails here,
  * including routes added in future.
@@ -145,7 +145,7 @@ function foreignAssistantRow(string $class, Workspace $workspace): ?Model
         return null;
     }
 
-    // One assistant per member per workspace, and one inbox per assistant —
+    // One assistant per member per workspace, and one inbox per assistant:
     // the sweep reuses the same foreign workspace for every route.
     $assistant = Assistant::query()->firstOrCreate(['user_id' => $workspace->owner_id, 'workspace_id' => $workspace->id]);
     $inbox = fn (): AssistantInboxConfig => AssistantInboxConfig::query()->firstOrCreate(['assistant_id' => $assistant->id]);

@@ -6,7 +6,7 @@ use App\Enums\NodeCategory;
 use App\Enums\Workflows\FlowControlNodeType;
 
 /**
- * Engine-driven (`foreach` mode only — a `map` mode implementing
+ * Engine-driven (`foreach` mode only: a `map` mode implementing
  * `NodeContract` is deferred, see docs/WORKFLOWS_PLAN.md). Loop Mode is real
  * child `runs` rows, not an in-handler batch:
  * `Services\Workflows\Engine\LoopCoordinator` starts one child run per item

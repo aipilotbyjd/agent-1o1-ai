@@ -6,7 +6,7 @@ use App\Exceptions\Http\BlockedUrlException;
 
 /**
  * Guards outbound-HTTP call sites (Call API, workspace notification
- * channels, polling triggers — anything that fetches a tenant-supplied URL)
+ * channels, polling triggers: anything that fetches a tenant-supplied URL)
  * against SSRF: a tenant is any authenticated user, and without this a "make
  * an HTTP request" feature lets them make the server fetch cloud metadata
  * endpoints or internal-network services on their behalf.
@@ -89,7 +89,7 @@ class SsrfGuard
 
     /**
      * The same check as {@see self::assertUrlIsAllowed()} but without a DNS
-     * lookup — scheme, credentials, literal IPs and obviously-internal host
+     * lookup: scheme, credentials, literal IPs and obviously-internal host
      * names only. Cheap enough for request validation, where a slow or
      * unavailable resolver must not block saving a form; the runtime check
      * still enforces the rest.

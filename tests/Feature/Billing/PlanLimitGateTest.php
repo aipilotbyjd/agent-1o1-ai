@@ -20,7 +20,7 @@ use Laravel\Passport\Passport;
 /**
  * The resource-cap check. `Plan.limits` was seeded and rendered but never
  * read by any decision path, so every tier's workflow/agent/member cap was
- * advertised and unenforced — this is the gate that makes them real.
+ * advertised and unenforced: this is the gate that makes them real.
  *
  * Note what is *not* here: a plan with no `limits` entry, or none at all,
  * must stay unlimited. `PlanFactory` seeds `'limits' => []`, so every test in
@@ -166,7 +166,7 @@ it('does not count expired or accepted invitations against the seat cap', functi
 
 /**
  * Accepting converts a seat the invitation already held, so it must not be
- * double-counted — otherwise the last invitation a workspace is allowed to
+ * double-counted, otherwise the last invitation a workspace is allowed to
  * send could never be accepted.
  */
 it('lets a pending invitation be accepted when it fills the last seat', function () {
@@ -247,7 +247,7 @@ it('maps a reached cap to a 402 on the internal api', function () {
 });
 
 /**
- * The surface that bypasses the frontend entirely — a client-side counter is
+ * The surface that bypasses the frontend entirely: a client-side counter is
  * not enforcement, so this is the one that matters most.
  */
 it('maps a reached cap to a 402 on the public api', function () {

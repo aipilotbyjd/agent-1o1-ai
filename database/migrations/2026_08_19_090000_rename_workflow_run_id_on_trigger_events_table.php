@@ -9,8 +9,8 @@ return new class extends Migration
     /**
      * The column was named when a trigger could only ever start a workflow
      * (docs/TRIGGERS_PLAN.md's own "follow-up needed" note). Now that
-     * `TargetRunStarter` also starts agent sessions — whose turns are `runs`
-     * rows too — the id it stores is polymorphic, so the name follows suit
+     * `TargetRunStarter` also starts agent sessions (whose turns are `runs`
+     * rows too) the id it stores is polymorphic, so the name follows suit
      * and the deferred FK to `runs` can finally be added.
      */
     public function up(): void

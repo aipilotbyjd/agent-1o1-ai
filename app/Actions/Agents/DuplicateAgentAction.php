@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Copies an agent's *configuration* — instructions, model settings, attached
+ * Copies an agent's *configuration*: instructions, model settings, attached
  * tools, skills, workflows and always-injected knowledge and attached knowledge-base collections. Deliberately not
  * copied: sessions (a conversation belongs to the agent that had it),
  * memories (facts learned about one agent's users are not facts about
@@ -72,7 +72,7 @@ class DuplicateAgentAction
                 ]));
             }
 
-            // Which workspace collections the agent may search — without these
+            // Which workspace collections the agent may search, without these
             // the copy would fall back to searching every collection.
             foreach ($agent->knowledgeCollections as $attached) {
                 $copy->knowledgeCollections()->create(['collection' => $attached->collection]);

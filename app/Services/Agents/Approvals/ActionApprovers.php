@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
  * Who may decide an action, and who is told it's waiting.
  *
  * A tool rule can name its approvers (`user:<id>`, `role:<role>`); then only
- * they decide — plus the workspace's owners and admins, who could change the
+ * they decide, plus the workspace's owners and admins, who could change the
  * rule anyway. Without a list: the person the conversation belongs to, and
  * anyone whose role grants `agent.approve`.
  */
@@ -55,7 +55,7 @@ class ActionApprovers
     }
 
     /**
-     * Each person to notify with only the actions *they* are to hear about —
+     * Each person to notify with only the actions *they* are to hear about:
      * a mixed batch must not show one action's arguments, reason or signed
      * link to someone who may not decide it.
      *

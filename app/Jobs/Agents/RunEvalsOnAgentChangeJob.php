@@ -14,7 +14,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Re-runs an agent's suites after its behavior changed — queued by
+ * Re-runs an agent's suites after its behavior changed: queued by
  * `AgentObserver` whenever a new `agent_versions` row is written.
  *
  * Delayed and unique per agent: someone tuning instructions saves many times
@@ -24,7 +24,7 @@ use Illuminate\Foundation\Queue\Queueable;
  *
  * Runs are `EvalRunTrigger::AgentChange`, so they simulate every action that
  * would change something. A workspace that can't pay for a run is skipped
- * quietly — this is a background check, not something anyone asked for.
+ * quietly: this is a background check, not something anyone asked for.
  */
 class RunEvalsOnAgentChangeJob implements ShouldBeUnique, ShouldQueue
 {

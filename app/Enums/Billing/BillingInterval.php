@@ -13,7 +13,7 @@ enum BillingInterval: string
      * Whether Stripe bills this interval on a repeating cycle. `Lifetime` is
      * a single payment, so it is bought through a `mode=payment` Checkout
      * Session and entitles the workspace via a `PlanGrant` rather than a
-     * `Subscription` row — see `CheckoutLifetimePlanAction`.
+     * `Subscription` row: see `CheckoutLifetimePlanAction`.
      */
     public function isRecurring(): bool
     {

@@ -14,7 +14,7 @@ use Throwable;
 /**
  * Delivers admin alerts to the operator destinations configured in
  * `config/admin_alerts.php`. Separate from `WorkspaceWebhookChannel`, which
- * posts to workspace-owned `NotificationChannel` rows on behalf of tenants —
+ * posts to workspace-owned `NotificationChannel` rows on behalf of tenants:
  * this one only ever reads environment configuration.
  *
  * Delivery failures are logged, never thrown: an alert that cannot reach
@@ -121,7 +121,7 @@ class AdminAlertChannel
         }
 
         // Workspace names reach this payload verbatim, so mention parsing is
-        // disabled outright — a tenant naming their workspace `@everyone`
+        // disabled outright: a tenant naming their workspace `@everyone`
         // must not be able to ping the operator channel.
         return [
             'embeds' => [$embed],
@@ -142,7 +142,7 @@ class AdminAlertChannel
 
             $fields[] = [
                 'name' => mb_substr(AdminAlertNotification::describe((string) $name), 0, 256),
-                'value' => $rendered === '' ? '—' : mb_substr($rendered, 0, self::MAX_DISCORD_FIELD_LENGTH),
+                'value' => $rendered === '' ? '-' : mb_substr($rendered, 0, self::MAX_DISCORD_FIELD_LENGTH),
                 'inline' => true,
             ];
         }

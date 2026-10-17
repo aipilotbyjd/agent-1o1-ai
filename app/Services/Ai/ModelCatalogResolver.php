@@ -10,7 +10,7 @@ use RuntimeException;
 /**
  * Turns a public `ModelCatalog` slug into the ordered `provider => model`
  * array `laravel/ai` accepts as its `provider:` argument for automatic
- * failover (see the SDK's "Failover" docs) — the one place a catalog
+ * failover (see the SDK's "Failover" docs): the one place a catalog
  * selection becomes a real execution backend. Callers (`AgentRunner`,
  * `Nodes\AiAutomation\AskAiNode`) never see individual `ModelRoute` rows,
  * only this resolved chain, so the SDK's own retry/backoff handles a
@@ -39,8 +39,8 @@ class ModelCatalogResolver
 
     /**
      * The provider/model to grade `$agent`'s output with. `$judgeModel` (the
-     * agent's evaluation settings `model`) is a deliberate override — grade
-     * with a specific model rather than the one that wrote the answer — and
+     * agent's evaluation settings `model`) is a deliberate override (grade
+     * with a specific model rather than the one that wrote the answer) and
      * always wins. It is a model catalog slug, resolved through that entry's
      * failover chain like an agent's own model; a value that matches no
      * active catalog entry is a raw model id on the agent's own provider,
@@ -92,7 +92,7 @@ class ModelCatalogResolver
     }
 
     /**
-     * Invalidates the cached chain for a catalog entry — call after
+     * Invalidates the cached chain for a catalog entry: call after
      * changing its routes (enabling/disabling, reordering, adding a
      * backend) so the next resolution reflects the change immediately
      * rather than waiting out the cache TTL.

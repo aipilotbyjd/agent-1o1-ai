@@ -4,7 +4,7 @@ namespace App\Enums\Agents;
 
 /**
  * What `ActionGate` decided for one tool call. Also the vocabulary of tool
- * rules and guardrails (`allow`/`ask`/`deny`) — `Simulate` is only ever the
+ * rules and guardrails (`allow`/`ask`/`deny`): `Simulate` is only ever the
  * gate's own outcome, for Test run and for contexts that can't pause.
  * Declared from most to least permissive; `strictest()` picks the later one.
  */

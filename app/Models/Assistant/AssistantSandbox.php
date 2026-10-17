@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * The cloud computer a conversation runs code on — one per conversation,
+ * The cloud computer a conversation runs code on: one per conversation,
  * so files made earlier in the chat are still there. The provider deletes
  * it after a while idle; the next run starts a fresh one.
  */

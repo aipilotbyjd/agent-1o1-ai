@@ -46,7 +46,7 @@ use Laravel\Ai\Providers\Tools\WebSearch;
 
 /**
  * Builds the actual `Laravel\Ai` tool list handed to the model at agent-run
- * time — one `NodeTool` per attached `agent_node` row (types no longer in
+ * time: one `NodeTool` per attached `agent_node` row (types no longer in
  * `NodeRegistry`, e.g. a removed custom node, are silently skipped rather
  * than erroring the whole turn), one `WorkflowTool` per attached `Workflow`,
  * a `UseSkillTool` when the agent has skills attached, and a `RememberTool`
@@ -54,10 +54,10 @@ use Laravel\Ai\Providers\Tools\WebSearch;
  * "Knowledge / RAG" sections.
  *
  * Knowledge tools (`SearchKnowledgeTool`/`ReadKnowledgeDocumentTool`) follow
- * Gumloop's "attach a source to use it" model — see `knowledgeTools()`.
+ * Gumloop's "attach a source to use it" model: see `knowledgeTools()`.
  *
  * `ExportArtifactTool` is only attached when there's an `AgentSession` to
- * file an artifact under — normally `$run->runnable` for a session-backed
+ * file an artifact under: normally `$run->runnable` for a session-backed
  * chat turn, or the explicit `$session` a caller with no session-backed
  * `$run` passes in (`AgentRunner::askInConversation()`, for an Agent node's
  * own conversation). `ask()`'s stateless embedded calls pass neither and so
@@ -66,15 +66,15 @@ use Laravel\Ai\Providers\Tools\WebSearch;
  * test, and is only attached when the agent has `allow_self_updates` on.
  * `CreateSkillTool`/`ImportSkillsTool`/`UpdateSkillTool` follow the same rule, gated on
  * `allow_skill_editing` instead. `InvokeAgentTool` also needs a session, and is
- * only offered in a top-level conversation — see `subagentTools()`.
+ * only offered in a top-level conversation: see `subagentTools()`.
  *
  * Web search and page fetching are the SDK's provider-native `WebSearch`/
- * `WebFetch`, run by the model provider itself — see `webTools()`. Being
+ * `WebFetch`, run by the model provider itself: see `webTools()`. Being
  * run by the provider, they can't be gated per call; fetching is simply
  * off for an agent with `allow_web_fetch` unset.
  *
- * Every tool that can change something — attached nodes and workflows, and
- * the agent's own instruction/skill editing — is put behind an
+ * Every tool that can change something (attached nodes and workflows, and
+ * the agent's own instruction/skill editing) is put behind an
  * `ActionGuard` for this turn's `ActionContext`, so the agent's autonomy
  * mode, tool rules and the workspace guardrails decide each call (see
  * `Approvals\ActionGate`). `$canPause` is false for a stateless call with no
@@ -194,7 +194,7 @@ class ToolRegistry
     }
 
     /**
-     * The strongest effect of any node in the workflow's published graph —
+     * The strongest effect of any node in the workflow's published graph:
      * running the workflow does everything its nodes do. A workflow with no
      * published graph, or a node that doesn't declare an effect, counts as a
      * write.
@@ -227,7 +227,7 @@ class ToolRegistry
     /**
      * `InvokeAgentTool` for a top-level conversation only: "Me" when the
      * agent allows self-cloning, plus its attached subagents. A subagent's
-     * own conversation never delegates further — its job runs on an
+     * own conversation never delegates further: its job runs on an
      * `ai-subagent` worker, and one that waited on children queued behind it
      * on the same workers could leave every worker waiting and none free to
      * run them.
@@ -296,7 +296,7 @@ class ToolRegistry
     /**
      * Scoped to what this agent may actually search: its explicitly
      * attached `AgentKnowledgeCollection`s, plus its own exported artifacts
-     * (always implicitly searchable — see `Agent::artifactKnowledgeCollection()`).
+     * (always implicitly searchable: see `Agent::artifactKnowledgeCollection()`).
      * An agent with neither falls back to every collection in the
      * workspace, the zero-config behavior this had before per-agent
      * attachment existed.

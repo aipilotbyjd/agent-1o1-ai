@@ -88,7 +88,7 @@ it('activates a pending pack into the non-expiring top-up balance', function () 
     expect($pack->fresh()->status)->toBe(CreditPackStatus::Active);
     expect($workspace->fresh()->topup_credits)->toBe(500);
 
-    // The period's plan allowance is untouched — pack credits are not part of it.
+    // The period's plan allowance is untouched: pack credits are not part of it.
     expect($workspace->currentUsagePeriod()->fresh()->credits_limit)->toBe(1000);
 });
 

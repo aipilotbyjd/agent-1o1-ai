@@ -13,7 +13,7 @@ use Laravel\Ai\ToolChoice;
 
 /**
  * Grades one `AgentSession` transcript against its agent's
- * `AgentEvaluationSettings` — criteria, tags, data points, sentiment — and
+ * `AgentEvaluationSettings` (criteria, tags, data points, sentiment) and
  * returns a structured verdict for `Services\Agents\SessionEvaluationGrader`
  * to turn into a deterministic grade.
  *
@@ -22,8 +22,8 @@ use Laravel\Ai\ToolChoice;
  * incomparable, and the judge is meant to be the constant the transcript is
  * measured against.
  *
- * Given only the agent's name, description and skills — never its system
- * prompt — mirroring Gumloop's stated privacy boundary
+ * Given only the agent's name, description and skills (never its system
+ * prompt) mirroring Gumloop's stated privacy boundary
  * (docs/gumloop/output/raw/core-concepts/evaluations.md's "Does the
  * evaluator see my agent's system prompt?"). Its only tool,
  * `SubmitEvaluationTool`, carries the verdict back and can't act on
@@ -82,7 +82,7 @@ class SessionEvalJudgeAgent implements AgentContract, HasTools
         $dataPoints = empty($settings->data_points) ? 'None configured.' : json_encode($settings->data_points);
         $sentiment = $settings->sentiment_enabled
             ? 'Enabled.'.($settings->sentiment_guidance ? " Guidance: {$settings->sentiment_guidance}" : '')
-            : 'Disabled — return null for "sentiment".';
+            : 'Disabled: return null for "sentiment".';
 
         return <<<PROMPT
         Agent name: {$agent->name}

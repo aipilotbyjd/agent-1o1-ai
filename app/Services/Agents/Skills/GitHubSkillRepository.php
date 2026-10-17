@@ -17,7 +17,7 @@ use Throwable;
 /**
  * Reads a skill source's repository from GitHub: the branch's head commit
  * (one call, so an unchanged repository costs nothing more), and the files
- * at that commit as a single tarball — one request however many skills,
+ * at that commit as a single tarball: one request however many skills,
  * which keeps an anonymous public-repository sync inside GitHub's 60
  * requests an hour. The archive is read in memory; nothing is extracted.
  */
@@ -34,7 +34,7 @@ class GitHubSkillRepository
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
     /**
-     * The branch to sync — the source's own, or the repository's default.
+     * The branch to sync: the source's own, or the repository's default.
      */
     public function branch(SkillSource $source): string
     {

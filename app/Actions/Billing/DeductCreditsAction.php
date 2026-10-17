@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The only place that writes `credit_transactions`/increments
- * `usage_periods.credits_used` — everything else (the `RecordRunCreditUsage`
+ * `usage_periods.credits_used`: everything else (the `RecordRunCreditUsage`
  * listener today; agent tool-call metering, usage endpoints, later) goes
  * through this action so "what does charging credits actually do" has one
  * implementation. Locks the usage period row so two concurrent charges
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  *
  * A charge draws on the period's plan allowance first, falls back to the
  * workspace's non-expiring `topup_credits` pool for the remainder, and only
- * then — where the workspace opted into credit overage — accrues the rest as
+ * then (where the workspace opted into credit overage) accrues the rest as
  * overage to be invoiced after the fact. Purchased credits are therefore
  * consumed before anything the workspace will be billed for again.
  *
@@ -37,7 +37,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Being the single metering seam also makes it the right place to raise the
  * `usage.threshold_crossed` admin alert. It is raised *outside* the
- * transaction — the period and workspace rows are locked inside it, and no
+ * transaction: the period and workspace rows are locked inside it, and no
  * notification work may run while those locks are held. The companion
  * `usage.limit_exhausted` alert lives on `CreditGate` instead: charges here
  * run in overdraft mode for work that already executed, so this is no longer
@@ -139,7 +139,7 @@ class DeductCreditsAction
      * the non-expiring top-up pool it already paid for, then overage, which
      * is the only one that produces a new charge.
      *
-     * The returned portions are what gets *recorded* — the plan share is the
+     * The returned portions are what gets *recorded*: the plan share is the
      * remainder, so it is never stored. Anything past the overage cap is
      * deliberately not counted as overage: the workspace agreed to be billed
      * up to its cap and no further, so an overdrafting run's excess lands on
@@ -189,7 +189,7 @@ class DeductCreditsAction
      * workspace picks its own (Gumloop's 75% and 90% by default) for the
      * people who pay the bill.
      *
-     * Either way only the charge that actually crosses a line fires — every
+     * Either way only the charge that actually crosses a line fires: every
      * later charge in the same period is already above it and stays silent,
      * independently of the throttle window. A repeat (idempotent) charge
      * never reaches here, since it adds no usage.
@@ -230,7 +230,7 @@ class DeductCreditsAction
     /**
      * One charge can jump several of a workspace's thresholds at once (70% to
      * 95% crosses both 75 and 90). That is one piece of news, so it sends one
-     * notification, for the highest line crossed — the lower ones would say
+     * notification, for the highest line crossed: the lower ones would say
      * the same thing about the same balance.
      */
     private function notifyUsageThresholdCrossed(

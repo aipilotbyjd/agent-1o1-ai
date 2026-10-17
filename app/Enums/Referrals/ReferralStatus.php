@@ -3,8 +3,8 @@
 namespace App\Enums\Referrals;
 
 /**
- * A referral only moves forward — `Pending` → `Verified` → `Activated` →
- * `Converted` — except into `Rejected`, which a fraud check or an admin
+ * A referral only moves forward (`Pending` → `Verified` → `Activated` →
+ * `Converted`) except into `Rejected`, which a fraud check or an admin
  * can put it in from anywhere.
  */
 enum ReferralStatus: string

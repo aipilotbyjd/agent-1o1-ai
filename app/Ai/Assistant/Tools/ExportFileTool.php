@@ -41,8 +41,8 @@ class ExportFileTool extends AssistantTool
 
     public function description(): Stringable|string
     {
-        return 'Gives the person a downloadable file (it appears in the chat and in Artifacts). Either write the content as text — '
-            .'set format to pdf (Markdown or HTML), xlsx (CSV or JSON {"sheets":[{"name":"…","rows":[[…]]}]}) or docx (Markdown) to build a real document — '
+        return 'Gives the person a downloadable file (it appears in the chat and in Artifacts). Either write the content as text: '
+            .'set format to pdf (Markdown or HTML), xlsx (CSV or JSON {"sheets":[{"name":"…","rows":[[…]]}]}) or docx (Markdown) to build a real document: '
             .($this->sandboxes !== null ? 'or pass sandbox_path to hand over a file you made with run_code. ' : '')
             .'Saving the same filename again in this conversation creates a new version. Only say a file is ready after this tool succeeds.';
     }

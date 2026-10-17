@@ -95,7 +95,7 @@ it('draws on top-up credits only once the plan allowance is spent', function () 
     $workspace->currentUsagePeriod()->update(['credits_limit' => 10]);
     $workspace->increment('topup_credits', 20);
 
-    // Fits inside the plan allowance — top-up untouched.
+    // Fits inside the plan allowance: top-up untouched.
     $first = app(DeductCreditsAction::class)->execute($workspace, CreditTransactionType::NodeRun, 1, 8);
     expect($first->topup_credits)->toBe(0);
     expect($workspace->fresh()->topup_credits)->toBe(20);

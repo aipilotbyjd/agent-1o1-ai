@@ -14,7 +14,7 @@ use App\Services\Assistant\Runtime\AssistantModel;
 use App\Services\Billing\CreditMeter;
 
 /**
- * Turns one piece of feedback into a lasting Tone or Design change — or
+ * Turns one piece of feedback into a lasting Tone or Design change, or
  * decides it isn't one and leaves the profiles alone.
  */
 class StyleLearner

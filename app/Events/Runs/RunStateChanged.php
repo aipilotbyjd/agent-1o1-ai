@@ -12,9 +12,9 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * A `Run` entered a new status. Fired from `RunObserver` rather than from the
- * engine, so every path that moves a run — `StartWorkflowRunAction`,
+ * engine, so every path that moves a run: `StartWorkflowRunAction`,
  * `GraphAdvancer::finishIfDone()`, `StepFailureHandler::failRun()`,
- * `WorkflowRunner::cancel()`, `AgentRunner` — publishes without having to
+ * `WorkflowRunner::cancel()`, `AgentRunner`: publishes without having to
  * remember to.
  *
  * Distinct from the domain events `RunCompleted`/`RunFailed`/`RunCancelled`,

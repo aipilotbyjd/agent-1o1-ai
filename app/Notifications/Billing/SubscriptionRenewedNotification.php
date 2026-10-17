@@ -8,7 +8,7 @@ use App\Notifications\Workspace\WorkspaceEventNotification;
 
 /**
  * Sent only for an ordinary renewal charge (Stripe's `billing_reason:
- * subscription_cycle`) — never for the first charge on checkout, and never
+ * subscription_cycle`), never for the first charge on checkout, and never
  * for a recovered dunning cycle, which already gets
  * `PaymentRecoveredNotification`. `DEFAULT_EMAIL` is `false` on
  * `NotificationEvent`, so this stays in-app-only unless a workspace opts in.

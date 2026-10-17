@@ -7,7 +7,7 @@ namespace App\Enums\Referrals;
  * `ReferralLifecycle`), which is why this list is fixed while everything a
  * rule *gives* is configured in the database.
  *
- * `Manual` is never selectable on a rule — it labels a goodwill reward an
+ * `Manual` is never selectable on a rule: it labels a goodwill reward an
  * admin granted by hand.
  */
 enum ReferralTrigger: string

@@ -18,7 +18,7 @@ it('refuses another user channel even when the ids share leading digits', functi
     $user = User::factory()->create();
     $other = User::factory()->create();
 
-    // Both are UUIDv7s starting with the same digits — the old (int) cast
+    // Both are UUIDv7s starting with the same digits: the old (int) cast
     // turned both into the same number and let this through.
     expect((int) $user->id)->toBe((int) $other->id)
         ->and(userChannelCallback()($user, (string) $other->id))->toBeFalse();

@@ -7,7 +7,7 @@ use App\Models\Agents\AgentMessage;
 
 /**
  * Messages are append-only, so creation is the only transition worth
- * publishing — `usage` being force-filled onto an assistant message
+ * publishing: `usage` being force-filled onto an assistant message
  * afterwards is accounting, not conversation.
  */
 class AgentMessageObserver

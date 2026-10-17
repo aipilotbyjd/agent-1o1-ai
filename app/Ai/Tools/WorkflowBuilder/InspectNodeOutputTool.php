@@ -13,7 +13,7 @@ use Laravel\Ai\Tools\Request;
 use Stringable;
 
 /**
- * The output fields a node type is known to produce in this workspace — what
+ * The output fields a node type is known to produce in this workspace: what
  * a later node can reference as `{{ nodes.<key>.<field> }}`. Types only,
  * learnt from real outputs (see `NodeOutputShapes`); never the values.
  */
