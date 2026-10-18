@@ -36,7 +36,7 @@ class WorkflowDiagnosticsController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $workflow);
 
         $graph = $this->graphFrom($request, $workflow);
-        $issues = $this->validator->validate($graph['nodes'], $graph['edges']);
+        $issues = $this->validator->validate($graph['nodes'], $graph['edges'], $workspace->id);
 
         return ApiResponse::success([
             'valid' => $issues === [],

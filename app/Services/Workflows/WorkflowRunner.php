@@ -98,7 +98,14 @@ class WorkflowRunner
         match ($nodeRun->type) {
             FlowControlNodeType::HumanApproval->value => $this->pauseForApproval($run, $nodeRun),
             FlowControlNodeType::Wait->value => $this->pauseForWait($nodeRun, $nodeDefinition),
-            FlowControlNodeType::SubWorkflow->value => $this->subWorkflowCoordinator->start($run, $nodeRun, $nodeDefinition),
+            // The child run stores its input and every output built from it,
+            // so a secret is never passed down: the sub-workflow references
+            // `{{ secrets.X }}` itself, as the same workspace's store is its.
+            FlowControlNodeType::SubWorkflow->value => $this->subWorkflowCoordinator->start(
+                $run,
+                $nodeRun,
+                $this->secretRedactor->redact($nodeDefinition, $secrets->sensitiveValues()),
+            ),
             FlowControlNodeType::Loop->value => $this->loopCoordinator->start($run, $nodeRun, $nodeDefinition, $context),
             // GraphAdvancer::joinReadiness() only ever dispatches a
             // join_paths node once it's genuinely ready, by the time
@@ -170,6 +177,7 @@ class WorkflowRunner
         }
 
         try {
+            $secrets->assertComplete();
             $node = $this->registry->resolve($nodeRun->type);
             $config = $this->resolvedConfigCaster->cast(
                 $node->configSchema(),

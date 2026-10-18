@@ -2,10 +2,13 @@
 
 use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Enums\RunStatus;
+use App\Exceptions\WorkflowValidationException;
+use App\Models\Runs\Run;
 use App\Models\Secrets\Secret;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Services\Secrets\SecretRedactor;
 use App\Services\Workflows\DryRunner;
 use App\Services\Workspaces\WorkspaceService;
 
@@ -87,11 +90,52 @@ it('marks a resolved secret as used', function () {
 
 it('does not resolve a secret belonging to another workspace', function () {
     [$workspace, $owner] = ownerWorkspaceForSecretRuns();
-    Secret::factory()->variable()->create(['key' => 'FOREIGN_KEY', 'value' => 'not-yours']);
+    $foreign = Secret::factory()->variable()->create(['key' => 'FOREIGN_KEY', 'value' => 'not-yours']);
 
-    $run = runWorkflowEchoing($workspace, $owner, '{{ secrets.FOREIGN_KEY }}');
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph(['nodes' => [['key' => 'a', 'type' => 'run_code', 'config' => [
+        'operations' => [['op' => 'set', 'output' => 'echoed', 'value' => '{{ secrets.FOREIGN_KEY }}']],
+    ]]], 'edges' => []]);
 
-    expect($run->nodeRuns->firstWhere('key', 'a')->output)->toBe(['echoed' => null]);
+    // Publishing checks the workflow's own workspace, where the key doesn't exist.
+    expect(fn () => $workflow->publishVersion(publisher: $owner))->toThrow(WorkflowValidationException::class);
+    expect($foreign->fresh()->last_used_at)->toBeNull();
+});
+
+it('refuses to publish a workflow that references a secret the workspace lacks', function () {
+    [$workspace, $owner] = ownerWorkspaceForSecretRuns();
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph(['nodes' => [['key' => 'a', 'type' => 'run_code', 'config' => [
+        'operations' => [['op' => 'set', 'output' => 'echoed', 'value' => 'Bearer {{ secrets.NOPE_TOKEN }}']],
+    ]]], 'edges' => []]);
+
+    try {
+        $workflow->publishVersion(publisher: $owner);
+        $this->fail('Publishing should have been refused.');
+    } catch (WorkflowValidationException $e) {
+        expect($e->issues())->toContain([
+            'node_key' => 'a',
+            'field' => 'operations',
+            'message' => 'No secret named NOPE_TOKEN. Add it or pick another.',
+        ]);
+    }
+});
+
+it('fails a step whose secret was deleted after publishing, naming it', function () {
+    [$workspace, $owner] = ownerWorkspaceForSecretRuns();
+    $secret = Secret::factory()->forWorkspace($workspace)->create(['key' => 'API_TOKEN', 'value' => 'tok_live_abcdef123456']);
+
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph(['nodes' => [['key' => 'a', 'type' => 'run_code', 'config' => [
+        'operations' => [['op' => 'set', 'output' => 'echoed', 'value' => '{{ secrets.API_TOKEN }}']],
+    ]]], 'edges' => []]);
+    $workflow->publishVersion(publisher: $owner);
+    $secret->delete();
+
+    $run = app(StartWorkflowRunAction::class)->execute($workflow->fresh(), [])->fresh(['nodeRuns']);
+
+    expect($run->status)->toBe(RunStatus::Failed)
+        ->and($run->nodeRuns->firstWhere('key', 'a')->error)->toContain('No secret named API_TOKEN');
 });
 
 it('leaves secrets out of the context a node receives', function () {
@@ -140,4 +184,47 @@ it('does not warn about secret references during a dry run', function () {
 
     expect($result['warnings'])->toBe([]);
     expect($result['ok'])->toBeTrue();
+});
+
+it('redacts a secret that comes back in a different case or URL-encoded', function () {
+    $redactor = app(SecretRedactor::class);
+    $values = ['Tok_Live+Abc/123'];
+
+    expect($redactor->redactString('host tok_live+abc/123.invalid could not be resolved', $values))
+        ->toBe('host [redacted].invalid could not be resolved')
+        ->and($redactor->redactString('GET /x?key=Tok_Live%2BAbc%2F123', $values))
+        ->toBe('GET /x?key=[redacted]')
+        ->and($redactor->redact(['url' => 'https://api.test/?k=Tok_Live%2BAbc%2F123'], $values))
+        ->toBe(['url' => 'https://api.test/?k=[redacted]']);
+});
+
+it('never hands a secret to a sub-workflow run', function () {
+    [$workspace, $owner] = ownerWorkspaceForSecretRuns();
+    Secret::factory()->forWorkspace($workspace)->create(['key' => 'API_TOKEN', 'value' => 'tok_live_abcdef123456']);
+
+    $child = Workflow::factory()->forWorkspace($workspace)->create();
+    $child->replaceGraph([
+        'nodes' => [['key' => 'echo', 'type' => 'run_code', 'config' => [
+            'operations' => [['op' => 'copy', 'output' => 'got', 'path' => 'input.token']],
+        ]]],
+        'edges' => [],
+    ]);
+    $child->publishVersion(publisher: $owner);
+
+    $parent = Workflow::factory()->forWorkspace($workspace)->create();
+    $parent->replaceGraph([
+        'nodes' => [['key' => 'sub', 'type' => 'subflow', 'config' => [
+            'workflow_id' => $child->id,
+            'input' => ['token' => '{{ secrets.API_TOKEN }}'],
+        ]]],
+        'edges' => [],
+    ]);
+    $parent->publishVersion(publisher: $owner);
+
+    $run = app(StartWorkflowRunAction::class)->execute($parent->fresh(), [])->fresh(['nodeRuns']);
+    $childRun = Run::query()->where('workflow_id', $child->id)->firstOrFail();
+
+    expect(json_encode($childRun->input))->not->toContain('tok_live_abcdef123456')
+        ->and(json_encode($childRun->nodeRuns->toArray()))->not->toContain('tok_live_abcdef123456')
+        ->and(json_encode($run->nodeRuns->toArray()))->not->toContain('tok_live_abcdef123456');
 });

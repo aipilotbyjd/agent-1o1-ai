@@ -5,6 +5,7 @@ namespace App\Services\Workflows;
 use App\Enums\Triggers\TriggerNodeType;
 use App\Models\Workflows\WorkflowEdge;
 use App\Rules\SafeOutboundUrl;
+use App\Services\Secrets\SecretResolver;
 use App\Services\Timezones\Timezones;
 use App\Services\Triggers\TriggerNodes;
 use Cron\CronExpression;
@@ -26,6 +27,7 @@ class GraphValidator
     public function __construct(
         private readonly NodeRegistry $registry,
         private readonly ConfigSchemaValidator $configValidator,
+        private readonly SecretResolver $secrets,
     ) {}
 
     /**
@@ -33,9 +35,9 @@ class GraphValidator
      * @param  array<int, array{from: string, to: string, condition: string|null}>  $edges
      * @return array<int, string>
      */
-    public function validate(array $nodes, array $edges): array
+    public function validate(array $nodes, array $edges, ?string $workspaceId = null): array
     {
-        return self::texts($this->issues($nodes, $edges));
+        return self::texts($this->issues($nodes, $edges, $workspaceId));
     }
 
     /**
@@ -44,9 +46,10 @@ class GraphValidator
      *
      * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
      * @param  array<int, array{from: string, to: string, condition: string|null}>  $edges
+     * @param  string|null  $workspaceId  checks `{{ secrets.X }}` references against this workspace's store
      * @return array<int, ValidationIssue>
      */
-    public function issues(array $nodes, array $edges): array
+    public function issues(array $nodes, array $edges, ?string $workspaceId = null): array
     {
         if ($nodes === []) {
             return [new ValidationIssue('Add at least one step before publishing.', detail: 'The workflow has no nodes. Add at least one node before publishing.')];
@@ -77,7 +80,40 @@ class GraphValidator
             return $issues;
         }
 
-        return [...$this->unknownTypeErrors($nodes), ...$this->nodeConfigErrors($nodes), ...$this->triggerConfigErrors($nodes), ...WorkflowIo::issues($nodes)];
+        return [
+            ...$this->unknownTypeErrors($nodes),
+            ...$this->nodeConfigErrors($nodes),
+            ...$this->triggerConfigErrors($nodes),
+            ...WorkflowIo::issues($nodes),
+            ...($workspaceId === null ? [] : $this->unknownSecretErrors($nodes, $workspaceId)),
+        ];
+    }
+
+    /**
+     * A `{{ secrets.X }}` the workspace has no secret for would fail its step
+     * at run time (`ResolvedSecrets::assertComplete()`), so publishing names
+     * it first.
+     *
+     * @param  array<int, array{key: string, type: string, config: array<string, mixed>}>  $nodes
+     * @return array<int, ValidationIssue>
+     */
+    private function unknownSecretErrors(array $nodes, string $workspaceId): array
+    {
+        $errors = [];
+
+        foreach ($nodes as $node) {
+            foreach ($this->secrets->missingByField($workspaceId, EditorMetadata::strip($node['config'] ?? [])) as $field => $keys) {
+                $names = implode(', ', $keys);
+                $errors[] = new ValidationIssue(
+                    count($keys) === 1 ? "No secret named {$names}. Add it or pick another." : "No secrets named {$names}. Add them or pick others.",
+                    $node['key'],
+                    (string) $field,
+                    "Node '{$node['key']}': config.{$field} references unknown secret(s) {$names}.",
+                );
+            }
+        }
+
+        return $errors;
     }
 
     /**

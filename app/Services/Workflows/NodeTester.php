@@ -91,6 +91,7 @@ class NodeTester
         $resolvedConfig = $this->templateResolver->resolve($config, [...$context, ...$secrets->context()]);
 
         try {
+            $secrets->assertComplete();
             $output = $this->secretRedactor->redact(
                 $contract->execute($run, $this->resolvedConfigCaster->cast($contract->configSchema(), $config, $resolvedConfig), $context),
                 $secrets->sensitiveValues(),

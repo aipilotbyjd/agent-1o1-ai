@@ -16,8 +16,9 @@ use App\Services\Workflows\TemplatePaths;
  * `NodeContract::execute()`, so a node can't walk it looking for values it
  * wasn't given.
  *
- * A referenced key that doesn't exist resolves to `null`, exactly like any
- * other unknown template path: `DryRunner` is where a typo gets surfaced.
+ * A referenced key that doesn't exist is reported in `missing`: the runner
+ * fails the step on it, and publishing refuses the workflow (`GraphValidator`)
+ * so a typo surfaces before a run reaches it.
  */
 final class SecretResolver
 {
@@ -42,8 +43,10 @@ final class SecretResolver
             ->whereIn('key', $keys)
             ->get();
 
+        $missing = array_values(array_diff($keys, $secrets->pluck('key')->all()));
+
         if ($secrets->isEmpty()) {
-            return new ResolvedSecrets;
+            return new ResolvedSecrets(missing: $missing);
         }
 
         $secrets->toQuery()->toBase()->update(['last_used_at' => now()]);
@@ -51,7 +54,35 @@ final class SecretResolver
         return new ResolvedSecrets(
             values: $secrets->pluck('value', 'key')->all(),
             sensitiveKeys: $secrets->where('is_secret', true)->pluck('key')->all(),
+            missing: $missing,
         );
+    }
+
+    /**
+     * The keys each top-level config field references that the workspace
+     * doesn't have, for pointing a publish error at the right field.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, array<int, string>> field => missing keys
+     */
+    public function missingByField(string $workspaceId, array $config): array
+    {
+        $byField = array_filter(array_map(
+            fn (mixed $value): array => $this->referencedKeys(is_array($value) ? $value : [$value]),
+            $config,
+        ));
+
+        if ($byField === []) {
+            return [];
+        }
+
+        $existing = Secret::query()
+            ->where('workspace_id', $workspaceId)
+            ->whereIn('key', array_merge(...array_values($byField)))
+            ->pluck('key')
+            ->all();
+
+        return array_filter(array_map(fn (array $keys): array => array_values(array_diff($keys, $existing)), $byField));
     }
 
     /**

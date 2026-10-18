@@ -370,7 +370,7 @@ class Workflow extends Model
     {
         ['nodes' => $nodes, 'edges' => $edges] = $draft;
 
-        $errors = app(GraphValidator::class)->issues($nodes, $edges);
+        $errors = app(GraphValidator::class)->issues($nodes, $edges, $this->workspace_id);
 
         if ($errors !== []) {
             throw new WorkflowValidationException($errors);

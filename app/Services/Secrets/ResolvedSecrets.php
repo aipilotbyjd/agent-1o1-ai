@@ -2,6 +2,8 @@
 
 namespace App\Services\Secrets;
 
+use App\Exceptions\MissingSecretException;
+
 /**
  * The secrets/variables one node's config actually referenced, resolved for a
  * single step: see `SecretResolver`.
@@ -11,11 +13,23 @@ final readonly class ResolvedSecrets
     /**
      * @param  array<string, string>  $values  key => plaintext value
      * @param  array<int, string>  $sensitiveKeys  the subset stored with `is_secret`
+     * @param  array<int, string>  $missing  keys the config referenced that the workspace doesn't have
      */
     public function __construct(
         public array $values = [],
         public array $sensitiveKeys = [],
+        public array $missing = [],
     ) {}
+
+    /**
+     * @throws MissingSecretException when the config referenced a key the workspace doesn't have
+     */
+    public function assertComplete(): void
+    {
+        if ($this->missing !== []) {
+            throw MissingSecretException::for($this->missing);
+        }
+    }
 
     /**
      * The templating-context fragment merged in for this step. `secrets` and

@@ -50,7 +50,7 @@ class PublishRequests
         );
 
         $graph = $workflow->draftGraph();
-        $errors = $this->validator->issues($graph['nodes'], $graph['edges']);
+        $errors = $this->validator->issues($graph['nodes'], $graph['edges'], $workflow->workspace_id);
 
         if ($errors !== []) {
             throw new WorkflowValidationException($errors);
