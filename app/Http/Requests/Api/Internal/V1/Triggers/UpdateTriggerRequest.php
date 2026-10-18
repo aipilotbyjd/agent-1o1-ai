@@ -3,10 +3,12 @@
 namespace App\Http\Requests\Api\Internal\V1\Triggers;
 
 use App\Enums\Agents\AutonomyMode;
+use App\Enums\Connectors\ConnectorCredentialScope;
 use App\Enums\Triggers\WebhookAuthentication;
 use App\Models\Triggers\Trigger;
 use App\Rules\SafeOutboundUrl;
 use App\Rules\Timezone;
+use App\Rules\TriggerReader;
 use Closure;
 use Cron\CronExpression;
 use Illuminate\Foundation\Http\FormRequest;
@@ -38,6 +40,20 @@ class UpdateTriggerRequest extends FormRequest
                 }
             }],
             'config.url' => ['nullable', 'string', new SafeOutboundUrl],
+            // For an agent target: what it's told, templated against the payload.
+            // Every config key needs a rule here: validated() drops the rest.
+            'config.message' => ['nullable', 'string', 'max:10000'],
+            // A URL polling trigger: how the response is read into items.
+            'config.method' => ['nullable', 'string', Rule::in(['get', 'post', 'GET', 'POST'])],
+            'config.items_path' => ['nullable', 'string', 'max:255'],
+            'config.id_path' => ['nullable', 'string', 'max:255'],
+            'config.cursor_path' => ['nullable', 'string', 'max:255'],
+            'config.cursor_param' => ['nullable', 'string', 'max:255'],
+            'config.filters' => ['nullable', 'array'],
+            // A polling trigger that runs an app reader instead of fetching a URL.
+            'config.node_type' => ['nullable', 'string', new TriggerReader],
+            'config.node_config' => ['nullable', 'array'],
+            'config.poll_interval_minutes' => ['nullable', 'integer', 'between:'.max(1, (int) config('triggers.min_poll_interval_minutes')).',1440'],
             'config.timezone' => ['nullable', 'string', new Timezone],
             'config.authentication' => ['nullable', Rule::enum(WebhookAuthentication::class)],
             // An HTTP header name: letters, digits and dashes.
@@ -45,6 +61,16 @@ class UpdateTriggerRequest extends FormRequest
             'config.if_already_running' => ['nullable', 'string', Rule::in(['queue', 'skip'])],
             'config.max_failures' => ['nullable', 'integer', 'between:'.implode(',', config('triggers.max_failures_range'))],
             'is_active' => ['nullable', 'boolean'],
+            'credential_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('connector_credentials', 'id')
+                    ->where('workspace_id', $this->trigger()?->workspace_id)
+                    ->whereNull('deleted_at')
+                    ->where(fn ($credentials) => $credentials
+                        ->where('scope', ConnectorCredentialScope::Team->value)
+                        ->orWhere('created_by', $this->user()?->id)),
+            ],
             // Empty string clears it: the webhook then accepts unsigned requests again.
             'signing_secret' => ['nullable', 'string', 'max:255'],
         ];
@@ -60,12 +86,19 @@ class UpdateTriggerRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                $trigger = $this->route('trigger');
+                $trigger = $this->trigger();
 
-                if ($trigger instanceof Trigger && $trigger->trigger_node_key !== null && $this->has('config')) {
+                if ($trigger !== null && $trigger->trigger_node_key !== null && ($this->has('config') || $this->has('credential_id'))) {
                     $validator->errors()->add('config', 'This trigger is part of the workflow. Edit it on the canvas, then publish.');
                 }
             },
         ];
+    }
+
+    private function trigger(): ?Trigger
+    {
+        $trigger = $this->route('trigger');
+
+        return $trigger instanceof Trigger ? $trigger : null;
     }
 }

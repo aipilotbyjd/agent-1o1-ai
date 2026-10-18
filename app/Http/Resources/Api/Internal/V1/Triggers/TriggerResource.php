@@ -27,6 +27,8 @@ class TriggerResource extends JsonResource
             'config' => $this->config,
             'token' => $this->when($this->type->usesToken(), $this->token),
             'has_signing_secret' => filled($this->signing_secret),
+            // The connected account a polling trigger reads with; null otherwise.
+            'credential_id' => $this->credential_id,
             'is_active' => $this->is_active,
             'consecutive_failure_count' => $this->consecutive_failure_count,
             'last_run_at' => $this->last_run_at,
@@ -38,6 +40,7 @@ class TriggerResource extends JsonResource
                 'fired' => (int) $this->fired_24h_count,
                 'failed' => (int) $this->failed_24h_count,
                 'skipped' => (int) $this->skipped_24h_count,
+                'rejected' => (int) $this->rejected_24h_count,
             ]),
             'target_name' => $this->whenLoaded('target', fn (): ?string => $this->target?->name),
             'created_by' => $this->created_by,

@@ -7,6 +7,7 @@ use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Triggers\IndexTriggerEventsRequest;
 use App\Http\Requests\Api\Internal\V1\Triggers\IndexTriggersRequest;
 use App\Http\Requests\Api\Internal\V1\Triggers\StoreTriggerRequest;
 use App\Http\Requests\Api\Internal\V1\Triggers\UpdateTriggerRequest;
@@ -17,7 +18,6 @@ use App\Models\Triggers\Trigger;
 use App\Models\Workspaces\Workspace;
 use App\Services\Triggers\TriggerService;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 
 class TriggerController extends Controller
 {
@@ -36,7 +36,9 @@ class TriggerController extends Controller
             ->withCount([
                 'events as fired_24h_count' => fn (Builder $events) => $events->where('status', TriggerEventStatus::Fired)->where('created_at', '>=', $since),
                 'events as failed_24h_count' => fn (Builder $events) => $events->where('status', TriggerEventStatus::Failed)->where('created_at', '>=', $since),
-                'events as skipped_24h_count' => fn (Builder $events) => $events->whereIn('status', [TriggerEventStatus::Skipped, TriggerEventStatus::Ignored, TriggerEventStatus::Rejected])->where('created_at', '>=', $since),
+                'events as skipped_24h_count' => fn (Builder $events) => $events->whereIn('status', [TriggerEventStatus::Skipped, TriggerEventStatus::Ignored])->where('created_at', '>=', $since),
+                // Turned away at the door (bad token or signature): usually a misconfigured sender.
+                'events as rejected_24h_count' => fn (Builder $events) => $events->where('status', TriggerEventStatus::Rejected)->where('created_at', '>=', $since),
             ])
             ->when($request->validated('target_type'), fn (Builder $triggers, string $targetType) => $triggers->where('target_type', $targetType))
             ->when($request->validated('target_id'), fn (Builder $triggers, string $targetId) => $triggers->where('target_id', $targetId))
@@ -117,12 +119,15 @@ class TriggerController extends Controller
         return ApiResponse::success(['trigger' => TriggerResource::make($trigger)], 'Token rotated successfully.');
     }
 
-    public function events(Request $request, Workspace $workspace, Trigger $trigger)
+    public function events(IndexTriggerEventsRequest $request, Workspace $workspace, Trigger $trigger)
     {
         $this->requirePermission(Permission::TriggerView);
         $this->ensureBelongsToWorkspace($workspace, $trigger);
 
-        $events = $trigger->events()->latest()->paginate((int) $request->integer('per_page', 25));
+        $events = $trigger->events()
+            ->when($request->validated('status'), fn ($events, array $statuses) => $events->whereIn('status', $statuses))
+            ->latest()
+            ->paginate((int) ($request->validated('per_page') ?? 25));
 
         return ApiResponse::paginated(TriggerEventResource::collection($events));
     }

@@ -81,13 +81,13 @@ class TriggerService
     }
 
     /**
-     * Update a trigger's config, on/off state or signing secret.
+     * Update a trigger's config, on/off state, account or signing secret.
      *
      * Switching it back on clears both streaks, or a single failure after the
      * circuit breaker tripped would trip it again. An empty or null
      * `signing_secret` removes the secret.
      *
-     * @param  array{config?: array<string, mixed>, is_active?: bool, signing_secret?: string|null}  $data
+     * @param  array{config?: array<string, mixed>, is_active?: bool, credential_id?: string|null, signing_secret?: string|null}  $data
      *
      * @throws PlanLimitExceededException when switching it on would exceed the plan's active triggers
      */
@@ -106,6 +106,10 @@ class TriggerService
 
         if ($isReactivating) {
             $trigger->forceFill(['consecutive_failure_count' => 0, 'consecutive_skip_count' => 0])->save();
+        }
+
+        if (array_key_exists('credential_id', $data) && $trigger->type->usesCredential()) {
+            $trigger->forceFill(['credential_id' => $data['credential_id']])->save();
         }
 
         if (array_key_exists('signing_secret', $data)) {
