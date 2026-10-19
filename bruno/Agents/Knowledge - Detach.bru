@@ -1,11 +1,11 @@
 meta {
-  name: Knowledge Sources - Detach
+  name: Knowledge - Detach
   type: http
-  seq: 63
+  seq: 46
 }
 
 delete {
-  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/knowledge-sources/:collection
+  url: {{baseUrl}}/v1/workspaces/:workspace/agents/:agent/knowledge/:collection
   body: none
   auth: inherit
 }
@@ -20,7 +20,6 @@ docs {
   Detaches a collection from this agent. Requires `agent.manage`. Detaching
   one that isn't attached is a no-op. Returns 204.
 
-  This never deletes the collection or its chunks — only the agent's
-  ability to search it. Delete the data itself with `Knowledge Base -
-  Delete Collection`.
+  This never deletes the collection or its documents. Delete the data itself
+  with `Knowledge Base - Delete Collection`.
 }

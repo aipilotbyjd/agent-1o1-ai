@@ -26,7 +26,7 @@ use Laravel\Ai\Responses\Data\ToolResult;
  * Wraps an `AgentSession` as a `Laravel\Ai` agent: the standalone-chat path
  * from docs/AGENTS_PLAN.md's "Agent turn loop" section. `$instructions` is
  * pre-composed by `Services\Agents\SkillInjector` (base instructions +
- * attached Skills + active AgentKnowledge) and `$tools` by
+ * attached Skills + always-included knowledge) and `$tools` by
  * `Services\Agents\ToolRegistry`: both handed in by `AgentRunner`; this
  * class has no opinion on either, only exposes what it's given.
  */

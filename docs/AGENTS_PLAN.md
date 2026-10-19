@@ -38,10 +38,10 @@ unique(workspace_id, slug), index(workspace_id, is_shared), index(workspace_id, 
 ```
 `agent_skill` pivot (was `agent_agent_skill`): `agent_id, skill_id, timestamps`.
 
-### `agent_knowledge`, `document_embeddings`, `agent_memories`
+### `document_embeddings`, `agent_knowledge_collections`, `agent_memories`
 Ported as-is from old migrations (already read):
-- `agent_knowledge`: per-agent text/file/URL knowledge chunks (`title`, `content`, `source_type`, `source_url`, `file_path`, `tokens`, `is_active`, `sort_order`, `metadata`) — static context injected into the agent's instructions, not retrieved via similarity search.
 - `document_embeddings`: `workspace_id`, `collection` (default `'default'`), `source`, `chunk_text`, `embedding` (json — **stored as JSON, not a native vector column**, deliberately: old project's migration comment notes this is for sqlite/Postgres driver portability, with a documented follow-up path to a native Postgres `vector` column + `ivfflat` index once `pgvector` is approved as a dependency — carry that same deferral here rather than deciding now), `metadata`.
+- `agent_knowledge_collections`: which `document_embeddings.collection`s an agent uses (`agent_id`, `collection`, `mode`). `mode` is `search` (scopes its knowledge tools) or `always` (the collection's hand-added documents are also injected into its instructions). This replaced the old per-agent `agent_knowledge` table: all knowledge lives in the knowledge base.
 - `agent_memories`: per-agent, optionally per-user, key/value facts (`key`, `value`, `type` — default `'fact'`, `metadata`) the agent can read/write across sessions — durable memory distinct from `AgentSession`'s per-conversation history.
 
 ### `agent_node` pivot (tool binding — was `agent_node`)
@@ -74,18 +74,18 @@ Old project splits this two ways, both confirmed by files already read:
 
 ## Knowledge / RAG
 
-`Services/Agents/SearchKnowledgeTool` (auto-attached to every agent that has any `document_embeddings` rows, or explicitly attachable) — ported as-is from old `Ai/Tools/SearchKnowledgeTool.php` (already read in full): embeds the query via `Laravel\Ai\Embeddings::for([$query])->generate()`, pulls every `document_embeddings` row for the workspace (optionally filtered by `collection`), ranks by cosine similarity computed in PHP (see the schema note above on why this isn't a native vector query yet), returns the top N chunks as JSON. `AgentKnowledge` (static, no embeddings) is injected directly into the system prompt instead — the two are complementary: `AgentKnowledge` for "always know this," `document_embeddings`/`SearchKnowledgeTool` for "look this up when relevant."
+`Services/Agents/SearchKnowledgeTool` (auto-attached to every agent that has any `document_embeddings` rows, or explicitly attachable) — ported as-is from old `Ai/Tools/SearchKnowledgeTool.php` (already read in full): embeds the query via `Laravel\Ai\Embeddings::for([$query])->generate()`, pulls every `document_embeddings` row for the workspace (optionally filtered by `collection`), ranks by cosine similarity computed in PHP (see the schema note above on why this isn't a native vector query yet), returns the top N chunks as JSON. Each collection attached to an agent is either searched (`search`) or always in its prompt (`always`, injected by `SkillInjector` within `knowledge_base.max_injected_characters`): "always know this" versus "look this up when relevant," both from the same knowledge base. Only shared, hand-added documents are injected; synced sources (web pages, connected apps) bring outside content, so their collections can only be searched.
 
 **Built, with both halves reachable over the Internal API**:
 - `Services/Agents/KnowledgeBase` owns chunking (~1,000 characters, split on paragraph then sentence boundaries, short paragraphs packed together), embedding (batched, since providers cap inputs per call), and the cosine ranking. `SearchKnowledgeTool` is now a thin agent-facing wrapper over it, so what the API's search preview returns and what an agent retrieves are the same code path.
 - `workspaces/{workspace}/knowledge-base` — ingest text, list chunks (the vector itself is never serialized; its `dimensions` are, since a dimension mismatch is the usual reason a chunk never ranks), preview a search, list collections, delete a chunk or a whole collection. Ingestion is synchronous and input-capped; a queued ingestion path is the follow-up if corpora outgrow that.
-- `workspaces/{workspace}/agents/{agent}/knowledge` — CRUD for the always-injected entries, with a rough `tokens` estimate per entry so a workspace can see what its knowledge is costing the prompt. `SkillInjector` injects only the active ones.
+- `workspaces/{workspace}/agents/{agent}/knowledge` — attach, detach and set the `mode` of the agent's collections. The listing reports each collection's hand-added size and how much of the injection budget its `always` collections use, including any documents left out.
 
 ## Skills
 
 CRUD-only in scope for this doc: `Skill` is authored (name, description, `instructions` text, optional `category`/`tags`/`icon`/`color`), optionally marked `is_shared` (visible to attach across the whole workspace vs. private to its creator), versioned (`version` incremented on instruction edits — same "don't let the model behind an in-flight session change under it" reasoning as `Agent` versioning above), and attached to one or more `Agent`s via the pivot.
 
-Also CRUD-only: `SkillReference` (`skill_id`, `title`, `content`, `sort_order`) — reference docs for the skill, returned as-is via the API today; no relevance-based/embedding-driven injection into an agent's context yet, that's a follow-on once `AgentKnowledge`/`document_embeddings` (build order step 5) lands. `SkillScript` (`skill_id`, `name`, `description`, `language`, `code`, `is_enabled`) — storage only, `language` restricted to an allow-list (`python`/`javascript`/`typescript`/`bash`); no execution path exists yet, running `code` requires a sandboxed executor (subprocess/container with timeout + resource limits) as separate, security-reviewed work — do not wire `code` into any agent tool-call until that exists.
+Also CRUD-only: `SkillReference` (`skill_id`, `title`, `content`, `sort_order`) — reference docs for the skill, returned as-is via the API today; no relevance-based/embedding-driven injection into an agent's context yet, that's a follow-on to the knowledge base (build order step 5). `SkillScript` (`skill_id`, `name`, `description`, `language`, `code`, `is_enabled`) — storage only, `language` restricted to an allow-list (`python`/`javascript`/`typescript`/`bash`); no execution path exists yet, running `code` requires a sandboxed executor (subprocess/container with timeout + resource limits) as separate, security-reviewed work — do not wire `code` into any agent tool-call until that exists.
 
 ## Evals
 
@@ -106,7 +106,7 @@ Ported as-is from `Ai/Agents/WorkflowBuilderAgent.php` + its full tool set (all 
 2. `agent_node` pivot + `ToolRegistry` — attach `NodeContract` connectors as tools, respecting the bound-config/exposed-fields security boundary above. Requires at least the core node set from `docs/WORKFLOWS_PLAN.md` build order step 2 to exist.
 3. `AgentNode` (embedded-in-workflow) + `AgentStepHandler` port — requires `docs/WORKFLOWS_PLAN.md` build order step 4 (engine executing).
 4. `Skill` CRUD + attachment.
-5. `AgentKnowledge` + `document_embeddings`/`SearchKnowledgeTool` (RAG) + `AgentMemory`.
+5. `document_embeddings`/`SearchKnowledgeTool` (RAG), per-agent collections (`search`/`always`) + `AgentMemory`.
 6. `WorkflowBuilderSession`/`WorkflowBuilderAgent`/tool set — the chat-based builder. Requires `docs/WORKFLOWS_PLAN.md`'s `DryRunner`/`ContractGenerator`/`GraphValidator` to exist first.
 7. `AgentEvalSuite/Case/Run` with string-match assertions only.
 8. `EvalJudgeAgent` + `llm_rubric` assertions.

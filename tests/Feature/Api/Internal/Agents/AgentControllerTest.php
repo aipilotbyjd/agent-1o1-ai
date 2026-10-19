@@ -1,6 +1,7 @@
 <?php
 
 use App\Ai\Agents\WorkspaceAgent;
+use App\Enums\Agents\KnowledgeMode;
 use App\Enums\Workspaces\Role;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentMessage;
@@ -186,11 +187,13 @@ it('copies attached knowledge collections when duplicating an agent', function (
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $agent = Agent::factory()->forWorkspace($workspace)->create();
     $agent->knowledgeCollections()->create(['collection' => 'support']);
+    $agent->knowledgeCollections()->create(['collection' => 'policies', 'mode' => KnowledgeMode::Always]);
     Passport::actingAs($owner);
 
     $copy = Agent::find($this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/duplicate")->assertCreated()->json('data.agent.id'));
 
-    expect($copy->knowledgeCollections()->pluck('collection')->all())->toBe(['support']);
+    expect($copy->knowledgeCollections()->pluck('mode', 'collection')->map->value->all())
+        ->toEqual(['support' => 'search', 'policies' => 'always']);
 });
 
 it('lists agents with their tags, chat count and last use', function () {

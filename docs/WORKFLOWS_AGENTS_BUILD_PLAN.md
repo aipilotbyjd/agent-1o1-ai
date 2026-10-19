@@ -89,7 +89,7 @@ Rule for the whole build: **only create new files** (migrations, models, service
 ### Stage 10 — Skills, Knowledge/RAG, Memory
 *(`AGENTS_PLAN.md` steps 4-5)*
 
-- Migrations + models: `skills`, `agent_skill` pivot, `agent_knowledge`, `document_embeddings`, `agent_memories` → `Models/Agents/{Skill,AgentKnowledge,AgentMemory}.php`, `Models/Agents/DocumentEmbedding.php`.
+- Migrations + models: `skills`, `agent_skill` pivot, `document_embeddings`, `agent_memories` → `Models/Agents/{Skill,AgentMemory}.php`, `Models/Agents/DocumentEmbedding.php`.
 - `Services/Agents/{SkillInjector,SearchKnowledgeTool}.php` (embeds via `Laravel\Ai\Embeddings`, cosine-similarity ranks in PHP per the schema note in `AGENTS_PLAN.md`).
 - Internal API: `Http/Controllers/Api/Internal/V1/Skills/SkillController.php`, `routes/api/internal/skills.php`; Public mirrors read-only subset.
 - Feature test: seed `document_embeddings`, assert top-ranked result matches closest-by-construction vector.
@@ -136,7 +136,6 @@ database/migrations/
   # Stage 10
   ..._create_skills_table.php
   ..._create_agent_skill_table.php
-  ..._create_agent_knowledge_table.php
   ..._create_document_embeddings_table.php
   ..._create_agent_memories_table.php
 
@@ -181,7 +180,6 @@ app/Models/
     AgentSession.php                              # Stage 6
     AgentMessage.php                              # Stage 6
     Skill.php                                     # Stage 10
-    AgentKnowledge.php                            # Stage 10
     DocumentEmbedding.php                         # Stage 10
     AgentMemory.php                               # Stage 10
   Billing/

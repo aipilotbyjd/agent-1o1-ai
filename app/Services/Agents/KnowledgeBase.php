@@ -5,6 +5,7 @@ namespace App\Services\Agents;
 use App\Actions\Billing\DeductCreditsAction;
 use App\Enums\Billing\CreditTransactionType;
 use App\Models\Agents\DocumentEmbedding;
+use App\Models\Agents\KnowledgeSource;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Ai\ByokProviderRegistrar;
@@ -427,6 +428,70 @@ class KnowledgeBase
 
         return mb_substr($text, 0, self::MAX_DOCUMENT_CHARACTERS)
             ."\n\n[Document truncated after ".number_format(self::MAX_DOCUMENT_CHARACTERS).' characters.]';
+    }
+
+    /**
+     * The shared documents added by hand (typed or uploaded, not synced from
+     * a `KnowledgeSource`) in `$collections`, with their length as
+     * `manualDocumentText()` would return it, oldest first. Sized in the
+     * database so an agent's prompt can be budgeted without reading every
+     * chunk's text. Chunks stored without a `source` form one document per
+     * collection.
+     *
+     * @param  array<int, string>  $collections
+     * @return Collection<int, array{collection: string, source: string|null, characters: int}>
+     */
+    public function manualDocuments(Workspace $workspace, array $collections): Collection
+    {
+        if ($collections === []) {
+            return collect();
+        }
+
+        return $this->scopedTo($workspace, $collections)
+            ->shared()
+            ->whereNull('knowledge_source_id')
+            ->selectRaw('collection, source, SUM(LENGTH(chunk_text)) as text_length, COUNT(*) as chunks, MIN(created_at) as first_ingested_at')
+            ->groupBy('collection', 'source')
+            ->orderBy('first_ingested_at')
+            ->orderBy('source')
+            ->toBase()
+            ->get()
+            ->map(fn (object $row): array => [
+                'collection' => $row->collection,
+                'source' => $row->source,
+                'characters' => (int) $row->text_length + 2 * ((int) $row->chunks - 1),
+            ]);
+    }
+
+    /**
+     * One hand-added shared document's full text, chunks joined in reading
+     * order: the counterpart of `manualDocuments()`.
+     */
+    public function manualDocumentText(Workspace $workspace, string $collection, ?string $source): string
+    {
+        return $this->scopedTo($workspace, $collection)
+            ->shared()
+            ->whereNull('knowledge_source_id')
+            ->when($source === null, fn (Builder $builder) => $builder->whereNull('source'), fn (Builder $builder) => $builder->where('source', $source))
+            ->orderBy('created_at')
+            ->orderBy('chunk_index')
+            ->orderBy('id')
+            ->pluck('chunk_text')
+            ->implode("\n\n");
+    }
+
+    /**
+     * Whether a shared collection is fed by a synced source (a web page or a
+     * connected app). Its content comes from outside the workspace, so it is
+     * only ever searched, never put in an agent's prompt as-is.
+     */
+    public function isSynced(Workspace $workspace, string $collection): bool
+    {
+        return KnowledgeSource::query()
+            ->where('workspace_id', $workspace->id)
+            ->whereNull('owner_id')
+            ->where('collection', $collection)
+            ->exists();
     }
 
     /**

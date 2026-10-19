@@ -30,12 +30,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Always-injected knowledge budget
+    | Always-included knowledge budget
     |--------------------------------------------------------------------------
     |
-    | The most characters of an agent's `AgentKnowledge` entries that
-    | `SkillInjector` puts in its system prompt, summed across entries.
-    | Entries past the budget are left out (and logged), not truncated.
+    | The most characters of the documents in an agent's always-included
+    | collections that `SkillInjector` puts in its system prompt, summed
+    | across documents. Documents past the budget are left out (and logged),
+    | not truncated.
     */
 
     'max_injected_characters' => (int) env('KNOWLEDGE_BASE_MAX_INJECTED_CHARACTERS', 100000),

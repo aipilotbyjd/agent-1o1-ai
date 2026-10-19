@@ -156,19 +156,10 @@ class Agent extends Model
     }
 
     /**
-     * Static "always know this" context, distinct from
-     * `document_embeddings`/`SearchKnowledgeTool`'s "look this up when
-     * relevant": see docs/AGENTS_PLAN.md's "Knowledge / RAG" section.
-     */
-    public function knowledge(): HasMany
-    {
-        return $this->hasMany(AgentKnowledge::class);
-    }
-
-    /**
-     * `document_embeddings.collection`s explicitly attached to this agent:
+     * `document_embeddings.collection`s explicitly attached to this agent,
+     * each searched on demand or put in its prompt on every turn (`mode`):
      * the opt-in scoping `ToolRegistry` prefers over its workspace-wide
-     * fallback. See `AgentKnowledgeCollection`'s docblock.
+     * fallback, and what `SkillInjector` reads always-included knowledge from.
      */
     public function knowledgeCollections(): HasMany
     {

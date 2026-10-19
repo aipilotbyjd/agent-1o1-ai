@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Internal\V1\Agents;
 
+use App\Enums\Agents\KnowledgeMode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,22 +14,22 @@ class StoreAgentKnowledgeRequest extends FormRequest
     }
 
     /**
+     * The collection may not have any chunks yet, so its name is held to the
+     * same format `IngestKnowledgeRequest` creates collections with.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['collection' => $this->route('collection')]);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255'],
-            // Every entry is injected verbatim into the agent's system prompt
-            // (SkillInjector), so the cap is about prompt budget, not storage.
-            'content' => ['required', 'string', 'max:50000'],
-            // `sometimes` without `nullable`: these columns are NOT NULL, so an
-            // explicit null must be rejected rather than override the default.
-            'source_type' => ['sometimes', Rule::in(['text', 'url', 'file'])],
-            'source_url' => ['nullable', 'url', 'max:2048', 'required_if:source_type,url'],
-            'is_active' => ['sometimes', 'boolean'],
-            'sort_order' => ['sometimes', 'integer', 'min:0'],
-            'metadata' => ['nullable', 'array', 'max:50'],
+            'collection' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9][A-Za-z0-9._:-]*$/'],
+            'mode' => ['sometimes', Rule::enum(KnowledgeMode::class)],
         ];
     }
 }

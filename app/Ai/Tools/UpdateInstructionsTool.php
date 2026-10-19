@@ -67,7 +67,7 @@ class UpdateInstructionsTool implements Approvable, Tool
             .'for how you should work in all future conversations (e.g. "always answer in Spanish", "end every answer with a question"), not for one-off requests. '
             .'Do not use it for facts about the user or their work, such as their name or what to call them; save those with `'.RememberTool::NAME.'`. '
             .'Pass the COMPLETE revised base instructions: they replace the current ones, so keep everything that still applies. '
-            .'Do not include the "About you", "## Skills", "## Knowledge:" or memory sections; those are managed separately. '
+            .'Do not include the "About you", "## Skills", "# Knowledge" or memory sections; those are managed separately. '
             ."Your current base instructions are:\n\n".($this->liveAgent()->instructions ?? '(none yet)');
     }
 

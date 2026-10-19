@@ -16,12 +16,24 @@ params:path {
 }
 
 docs {
-  Lists the agent's knowledge entries in `sort_order`. Requires the
-  `agent.view` permission.
+  Lists the `Knowledge Base` collections this agent uses and how, plus every
+  shared collection in the workspace so a picker can offer what isn't
+  attached yet. Requires `agent.view`.
 
-  These are the "always know this" entries: every active one is injected
-  verbatim into the agent's system prompt on every turn. For "look this up
-  when relevant", use the workspace Knowledge Base collection instead.
+  Each attached collection has a `mode`:
+  - `search` — scopes the agent's `search_knowledge`/`read_knowledge_document`
+    tools to it.
+  - `always` — its hand-added documents are also put in the agent's prompt
+    on every turn.
 
-  Response is wrapped: `{ success, statusCode, message, data: { knowledge } }`.
+  `synced` collections (fed by a web page or connected app) can only be
+  searched. `documents`/`characters` count hand-added documents only: what
+  `always` would include. `always` reports how much of the
+  `knowledge_base.max_injected_characters` budget is used and which
+  documents don't fit and are left out.
+
+  An agent with nothing attached searches every shared collection in the
+  workspace.
+
+  Response is wrapped: `{ ..., data: { attached, available, always } }`.
 }

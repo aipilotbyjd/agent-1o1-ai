@@ -1,13 +1,14 @@
 <?php
 
+use App\Enums\Agents\KnowledgeMode;
 use App\Enums\Workspaces\Role;
 use App\Models\Agents\Agent;
-use App\Models\Agents\AgentKnowledge;
+use App\Models\Agents\DocumentEmbedding;
+use App\Models\Agents\KnowledgeSource;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Agents\SkillInjector;
 use App\Services\Workspaces\WorkspaceService;
-use Illuminate\Support\Facades\Log;
 use Laravel\Passport\Passport;
 
 /**
@@ -21,143 +22,166 @@ function agentWorkspaceForKnowledge(): array
     return [$workspace, $owner, Agent::factory()->forWorkspace($workspace)->create()];
 }
 
-it('creates a knowledge entry and estimates its token cost', function () {
+it('lists attached collections with their mode and size, and available ones', function () {
     [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
     Passport::actingAs($owner);
 
-    $response = $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge", [
-        'title' => 'Refund policy',
-        'content' => str_repeat('a', 400),
-        'sort_order' => 2,
-    ]);
-
-    $response->assertCreated();
-    expect($response->json('data.knowledge.title'))->toBe('Refund policy');
-    expect($response->json('data.knowledge.tokens'))->toBe(100);
-    expect($response->json('data.knowledge.is_active'))->toBeTrue();
-    expect($response->json('data.knowledge.source_type'))->toBe('text');
-});
-
-it('lists entries in sort order', function () {
-    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
-    Passport::actingAs($owner);
-
-    $agent->knowledge()->create(['title' => 'second', 'content' => 'b', 'sort_order' => 5]);
-    $agent->knowledge()->create(['title' => 'first', 'content' => 'a', 'sort_order' => 1]);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support', 'source' => 'FAQ', 'chunk_text' => 'abcd']);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'sales', 'chunk_text' => 'b']);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'mine', 'chunk_text' => 'c', 'owner_id' => $owner->id]);
+    $agent->knowledgeCollections()->create(['collection' => 'support', 'mode' => KnowledgeMode::Always]);
 
     $response = $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge");
 
-    $response->assertOk();
-    expect($response->json('data.knowledge.0.title'))->toBe('first');
-    expect($response->json('data.knowledge.1.title'))->toBe('second');
+    $response->assertOk()
+        ->assertJsonPath('data.attached', [[
+            'collection' => 'support',
+            'mode' => 'always',
+            'synced' => false,
+            'documents' => 1,
+            'characters' => 4,
+        ]])
+        ->assertJsonPath('data.always.budget', (int) config('knowledge_base.max_injected_characters'))
+        ->assertJsonPath('data.always.skipped', []);
+    expect($response->json('data.available'))->toBe(['sales', 'support']);
+    expect($response->json('data.always.used'))->toBeGreaterThan(4);
 });
 
-it('re-estimates tokens when content is updated', function () {
+it('attaches and detaches a collection', function () {
     [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'support']);
     Passport::actingAs($owner);
 
-    $entry = $agent->knowledge()->create(['title' => 'Policy', 'content' => 'short', 'tokens' => 2]);
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/support")
+        ->assertOk()
+        ->assertJsonPath('data.attached.0.collection', 'support')
+        ->assertJsonPath('data.attached.0.mode', 'search');
 
-    $response = $this->patchJson(
-        "/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/{$entry->id}",
-        ['content' => str_repeat('b', 200)],
-    );
+    expect($agent->knowledgeCollections()->pluck('collection')->all())->toBe(['support']);
 
-    $response->assertOk();
-    expect($response->json('data.knowledge.tokens'))->toBe(50);
-});
+    // Attaching the same collection twice is a no-op, not a duplicate row.
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/support")->assertOk();
+    expect($agent->knowledgeCollections()->count())->toBe(1);
 
-it('injects only active entries into the agent prompt', function () {
-    [, , $agent] = agentWorkspaceForKnowledge();
-
-    $agent->knowledge()->create(['title' => 'Live', 'content' => 'live content', 'is_active' => true]);
-    $agent->knowledge()->create(['title' => 'Retired', 'content' => 'retired content', 'is_active' => false]);
-
-    $instructions = app(SkillInjector::class)->instructionsFor($agent);
-
-    expect($instructions)->toContain('## Knowledge: Live');
-    expect($instructions)->not->toContain('retired content');
-});
-
-it('deletes an entry', function () {
-    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
-    Passport::actingAs($owner);
-
-    $entry = $agent->knowledge()->create(['title' => 'Policy', 'content' => 'a']);
-
-    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/{$entry->id}")
+    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/support")
         ->assertNoContent();
-
-    expect(AgentKnowledge::count())->toBe(0);
+    expect($agent->knowledgeCollections()->count())->toBe(0);
 });
 
-it('404s an entry belonging to a different agent', function () {
-    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
-    $otherAgent = Agent::factory()->forWorkspace($workspace)->create();
-    Passport::actingAs($owner);
-
-    $foreignEntry = $otherAgent->knowledge()->create(['title' => 'Theirs', 'content' => 'a']);
-
-    $this->deleteJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/{$foreignEntry->id}")
-        ->assertNotFound();
-});
-
-it('requires a url when the source type is url', function () {
-    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
-    Passport::actingAs($owner);
-
-    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge", [
-        'title' => 'Docs',
-        'content' => 'a',
-        'source_type' => 'url',
-    ])->assertJsonValidationErrors('source_url');
-});
-
-it('rejects explicit nulls for columns that cannot be null', function (string $field) {
-    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
-    Passport::actingAs($owner);
-
-    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge", [
-        'title' => 'Docs',
-        'content' => 'a',
-        $field => null,
-    ])->assertJsonValidationErrors($field);
-})->with(['source_type', 'is_active', 'sort_order']);
-
-it('keeps a url entry\'s url when updating something else', function () {
-    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
-    $entry = AgentKnowledge::factory()->forAgent($agent)->create(['source_type' => 'url', 'source_url' => 'https://example.com']);
-    $bare = AgentKnowledge::factory()->forAgent($agent)->create(['source_type' => 'text']);
-    Passport::actingAs($owner);
-
-    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/{$entry->id}", ['title' => 'Renamed'])->assertOk();
-    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/{$bare->id}", ['source_type' => 'url'])
-        ->assertJsonValidationErrors('source_url');
-});
-
-it('leaves entries out of the prompt once the injection budget is spent', function () {
-    config(['knowledge_base.max_injected_characters' => 100]);
-    Log::spy();
-    [, , $agent] = agentWorkspaceForKnowledge();
-    AgentKnowledge::factory()->forAgent($agent)->create(['title' => 'Fits', 'content' => 'short', 'sort_order' => 0]);
-    AgentKnowledge::factory()->forAgent($agent)->create(['title' => 'Too big', 'content' => str_repeat('x', 200), 'sort_order' => 1]);
-
-    $prompt = app(SkillInjector::class)->instructionsFor($agent);
-
-    expect($prompt)->toContain('## Knowledge: Fits')->not->toContain('Too big');
-    Log::shouldHaveReceived('warning')->once();
-});
-
-it('lets a viewer read knowledge but not write it', function () {
+it('does not let a viewer attach knowledge', function () {
     [$workspace, , $agent] = agentWorkspaceForKnowledge();
     $viewer = User::factory()->create();
     $workspace->members()->create(['user_id' => $viewer->id, 'role' => Role::Viewer, 'joined_at' => now()]);
     Passport::actingAs($viewer);
 
-    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge")->assertOk();
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/support")
+        ->assertForbidden();
+});
 
-    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge", [
-        'title' => 'Nope',
-        'content' => 'a',
-    ])->assertForbidden();
+it('attaches a collection that has no chunks yet, scoped to the agent\'s own workspace', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    $other = app(WorkspaceService::class)->create($owner, ['name' => 'Other']);
+    DocumentEmbedding::factory()->forWorkspace($other)->create(['collection' => 'elsewhere', 'chunk_text' => 'Other workspace.']);
+    Passport::actingAs($owner);
+
+    // A synced source or long upload is still being read when it's attached.
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/elsewhere", ['mode' => 'always'])
+        ->assertOk()
+        ->assertJsonPath('data.attached.0.documents', 0);
+
+    expect(app(SkillInjector::class)->instructionsFor($agent->fresh()))->not->toContain('Other workspace.');
+});
+
+it('does not offer or attach another agent\'s artifact collection', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    $collection = Agent::factory()->forWorkspace($workspace)->create()->artifactKnowledgeCollection();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => $collection]);
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge")
+        ->assertJsonPath('data.available', []);
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/".rawurlencode($collection))
+        ->assertNotFound();
+});
+
+it('404s for an agent from another workspace', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    // Same owner, a second workspace they're actually a member of, so the
+    // 404 comes from the workspace mismatch, not from lacking permission.
+    $otherWorkspace = app(WorkspaceService::class)->create($owner, ['name' => 'Other']);
+    Passport::actingAs($owner);
+
+    $this->getJson("/api/v1/workspaces/{$otherWorkspace->id}/agents/{$agent->id}/knowledge")
+        ->assertNotFound();
+});
+
+it('attaches a collection in always mode, and switches its mode', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'policies']);
+    Passport::actingAs($owner);
+    $url = "/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/policies";
+
+    $this->postJson($url, ['mode' => 'always'])->assertOk()->assertJsonPath('data.attached.0.mode', 'always');
+
+    // Attaching again without a mode keeps the one it has.
+    $this->postJson($url)->assertOk()->assertJsonPath('data.attached.0.mode', 'always');
+
+    $this->patchJson($url, ['mode' => 'search'])->assertOk()->assertJsonPath('data.attached.0.mode', 'search');
+    expect($agent->knowledgeCollections()->sole()->mode)->toBe(KnowledgeMode::Search);
+});
+
+it('validates the mode', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'policies']);
+    $agent->knowledgeCollections()->create(['collection' => 'policies']);
+    Passport::actingAs($owner);
+    $url = "/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/policies";
+
+    $this->patchJson($url, [])->assertUnprocessable()->assertJsonValidationErrors('mode');
+    $this->patchJson($url, ['mode' => 'sometimes'])->assertUnprocessable()->assertJsonValidationErrors('mode');
+});
+
+it('only lets a synced collection be searched', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    $source = KnowledgeSource::create(['workspace_id' => $workspace->id, 'collection' => 'site', 'type' => 'url', 'name' => 'Site', 'config' => ['url' => 'https://example.com']]);
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'site', 'knowledge_source_id' => $source->id]);
+    Passport::actingAs($owner);
+    $url = "/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/site";
+
+    $this->postJson($url, ['mode' => 'always'])->assertUnprocessable();
+    expect($agent->knowledgeCollections()->count())->toBe(0);
+
+    $this->postJson($url)->assertOk()->assertJsonPath('data.attached.0.synced', true);
+    $this->patchJson($url, ['mode' => 'always'])->assertUnprocessable();
+    expect($agent->knowledgeCollections()->sole()->mode)->toBe(KnowledgeMode::Search);
+});
+
+it('404s changing the mode of a collection that is not attached', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    DocumentEmbedding::factory()->forWorkspace($workspace)->create(['collection' => 'policies']);
+    Passport::actingAs($owner);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/policies", ['mode' => 'always'])
+        ->assertNotFound();
+});
+
+it('does not let a viewer change how knowledge is used', function () {
+    [$workspace, , $agent] = agentWorkspaceForKnowledge();
+    $agent->knowledgeCollections()->create(['collection' => 'policies']);
+    $viewer = User::factory()->create();
+    $workspace->members()->create(['user_id' => $viewer->id, 'role' => Role::Viewer, 'joined_at' => now()]);
+    Passport::actingAs($viewer);
+
+    $this->patchJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/policies", ['mode' => 'always'])
+        ->assertForbidden();
+});
+
+it('rejects attaching a collection name the knowledge base could never hold', function () {
+    [$workspace, $owner, $agent] = agentWorkspaceForKnowledge();
+    Passport::actingAs($owner);
+
+    $this->postJson("/api/v1/workspaces/{$workspace->id}/agents/{$agent->id}/knowledge/".rawurlencode('LinkedIn Outreach'))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('collection');
+    expect($agent->knowledgeCollections()->count())->toBe(0);
 });

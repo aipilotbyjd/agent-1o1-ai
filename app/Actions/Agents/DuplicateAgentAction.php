@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 /**
  * Copies an agent's *configuration*: instructions, model settings, attached
- * tools, skills, workflows and always-injected knowledge and attached knowledge-base collections. Deliberately not
+ * tools, skills, workflows and attached knowledge-base collections (with their mode). Deliberately not
  * copied: sessions (a conversation belongs to the agent that had it),
  * memories (facts learned about one agent's users are not facts about
  * another's), version history (the copy starts at version 1, written by
@@ -65,17 +65,10 @@ class DuplicateAgentAction
                 $workflow->id => ['approval_policy' => $workflow->pivot->approval_policy],
             ]));
 
-            foreach ($agent->knowledge as $entry) {
-                $copy->knowledge()->create($entry->only([
-                    'title', 'content', 'source_type', 'source_url', 'file_path',
-                    'tokens', 'is_active', 'sort_order', 'metadata',
-                ]));
-            }
-
-            // Which workspace collections the agent may search, without these
-            // the copy would fall back to searching every collection.
+            // Which workspace collections the agent uses and how: without
+            // these the copy would fall back to searching every collection.
             foreach ($agent->knowledgeCollections as $attached) {
-                $copy->knowledgeCollections()->create(['collection' => $attached->collection]);
+                $copy->knowledgeCollections()->create(['collection' => $attached->collection, 'mode' => $attached->mode]);
             }
 
             return $copy;

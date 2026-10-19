@@ -22,9 +22,9 @@ use Illuminate\Support\Facades\DB;
  * The workspace-wide knowledge base agents retrieve from: text ingested here
  * is chunked, embedded, and stored in `document_embeddings`, which
  * `ToolRegistry` turns into a `SearchKnowledgeTool` for every agent in the
- * workspace as soon as a single chunk exists. The per-agent, always-injected
- * counterpart is `AgentKnowledgeController`: see docs/AGENTS_PLAN.md's
- * "Knowledge / RAG" section for why both exist.
+ * workspace as soon as a single chunk exists. Which collections an agent
+ * uses, and whether it searches them or always has them in its prompt, is
+ * set per agent by `AgentKnowledgeController`.
  *
  * Every member can also keep private knowledge here (their Brain): chunks
  * with `owner_id` set are visible only to that member and their assistant,
