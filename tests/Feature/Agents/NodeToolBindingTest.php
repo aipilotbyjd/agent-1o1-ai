@@ -4,6 +4,7 @@ use App\Ai\Tools\NodeTool;
 use App\Models\Agents\AgentToolBinding;
 use App\Models\Runs\Run;
 use App\Nodes\DataTransform\CallApiNode;
+use App\Nodes\DataTransform\RunCodeNode;
 use App\Nodes\FlowLogic\RouterNode;
 use App\Services\Http\SsrfGuard;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
@@ -86,6 +87,19 @@ it('marks an exposed field required only when the underlying config schema requi
     $serialized = $jsonSchema->object(fn () => $tool->schema($jsonSchema))->toArray();
 
     expect($serialized['required'] ?? [])->toBe(['method']);
+});
+
+it('describes the properties of nested objects so the model knows their keys', function () {
+    $binding = new AgentToolBinding(['node_type' => 'run_code', 'config' => [], 'exposed_fields' => null]);
+
+    $tool = new NodeTool(new RunCodeNode, $binding, Run::factory()->create());
+
+    $jsonSchema = new JsonSchemaTypeFactory;
+    $item = $jsonSchema->object(fn () => $tool->schema($jsonSchema))->toArray()['properties']['operations']['items'];
+
+    expect(array_keys($item['properties']))->toBe(['op', 'output', 'path', 'value', 'paths'])
+        ->and($item['properties']['op']['enum'])->toBe(['set', 'copy', 'uppercase', 'lowercase', 'concat'])
+        ->and($item['required'])->toBe(['op', 'output']);
 });
 
 it('drops a tool-call argument for a field that is neither bound nor exposed', function () {

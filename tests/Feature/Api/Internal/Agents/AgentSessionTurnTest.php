@@ -217,3 +217,37 @@ it('404s sending a turn into a session that belongs to another agent', function 
     $this->postJson("/api/v1/workspaces/{$this->workspace->id}/agents/{$this->agent->id}/sessions/{$session->id}/turns", ['message' => 'Hi!'])
         ->assertNotFound();
 });
+
+it('replaces a retried message and everything after it', function () {
+    Queue::fake();
+
+    $first = $this->session->messages()->create(['role' => AgentMessageRole::User, 'content' => 'Keep me']);
+    $this->session->messages()->create(['role' => AgentMessageRole::Assistant, 'content' => 'Kept reply']);
+    $retried = $this->session->messages()->create(['role' => AgentMessageRole::User, 'content' => 'Summarise this']);
+    $this->session->messages()->create(['role' => AgentMessageRole::Assistant, 'content' => 'A reply being replaced']);
+
+    $this->postJson($this->turnsUrl, ['message' => 'Summarise this', 'replaces_message_id' => $retried->id])
+        ->assertAccepted();
+
+    $contents = $this->session->messages()->oldest('id')->pluck('content')->all();
+    expect($contents)->toBe(['Keep me', 'Kept reply', 'Summarise this'])
+        ->and($this->session->messages()->whereKey($retried->id)->exists())->toBeFalse()
+        ->and($this->session->messages()->whereKey($first->id)->exists())->toBeTrue();
+});
+
+it('refuses to replace a message from another conversation, or a reply', function () {
+    Queue::fake();
+
+    $other = $this->agent->sessions()->create(['workspace_id' => $this->workspace->id]);
+    $elsewhere = $other->messages()->create(['role' => AgentMessageRole::User, 'content' => 'Not yours']);
+    $reply = $this->session->messages()->create(['role' => AgentMessageRole::Assistant, 'content' => 'A reply']);
+
+    $this->postJson($this->turnsUrl, ['message' => 'Hi', 'replaces_message_id' => $elsewhere->id])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('replaces_message_id');
+    $this->postJson($this->turnsUrl, ['message' => 'Hi', 'replaces_message_id' => $reply->id])
+        ->assertUnprocessable();
+
+    expect($other->messages()->count())->toBe(1)
+        ->and($this->session->messages()->count())->toBe(1);
+});

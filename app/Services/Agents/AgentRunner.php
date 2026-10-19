@@ -83,11 +83,15 @@ class AgentRunner
      * `$skill` is one the person picked for this message; its instructions
      * are added to this turn's prompt: see `SkillInjector::chosenSkillSection()`.
      *
+     * `$replacing` is an earlier user message this one stands in for (a
+     * retry or an edit): it and everything after it are deleted before the
+     * new message is stored, so the abandoned turn never reaches the model.
+     *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      */
-    public function run(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): AgentMessage
+    public function run(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null, ?string $replacing = null): AgentMessage
     {
-        $turn = $this->openTurn($session, $message, $triggerType, $attachments, $skill);
+        $turn = $this->openTurn($session, $message, $triggerType, $attachments, $skill, $replacing);
 
         try {
             $response = $turn->agent->prompt($message, $turn->attachments, provider: $turn->provider, model: $turn->model);
@@ -152,10 +156,11 @@ class AgentRunner
      * it with `streamBegun()`.
      *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
+     * @param  string|null  $replacing  An earlier user message this one replaces: see `run()`.
      */
-    public function beginTurn(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): Run
+    public function beginTurn(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null, ?string $replacing = null): Run
     {
-        return $this->startTurn($session, $message, $triggerType, $attachments, $skill)[0];
+        return $this->startTurn($session, $message, $triggerType, $attachments, $skill, $replacing)[0];
     }
 
     /**
@@ -206,9 +211,9 @@ class AgentRunner
      *
      * @param  array<int, UploadedFile>  $attachments
      */
-    private function openTurn(AgentSession $session, string $message, string $triggerType, array $attachments, ?Skill $skill = null): AgentTurn
+    private function openTurn(AgentSession $session, string $message, string $triggerType, array $attachments, ?Skill $skill = null, ?string $replacing = null): AgentTurn
     {
-        [$run, $userMessage, $stored] = $this->startTurn($session, $message, $triggerType, $attachments, $skill);
+        [$run, $userMessage, $stored] = $this->startTurn($session, $message, $triggerType, $attachments, $skill, $replacing);
 
         try {
             return $this->buildTurn($session, $run, $userMessage, $stored, $skill);
@@ -228,13 +233,20 @@ class AgentRunner
      * @param  array<int, UploadedFile>  $attachments
      * @return array{0: Run, 1: AgentMessage, 2: array<int, Artifact>}
      */
-    private function startTurn(AgentSession $session, string $message, string $triggerType, array $attachments, ?Skill $skill): array
+    private function startTurn(AgentSession $session, string $message, string $triggerType, array $attachments, ?Skill $skill, ?string $replacing = null): array
     {
         $this->creditGate->assertCanStartRun($session->workspace);
 
         $run = $this->claimTurn($session, $message, $triggerType);
 
         try {
+            // After the claim, so a turn still writing to these messages has
+            // finished and a paused one has been closed out. Ids are
+            // time-ordered, the same order the history is read in.
+            if ($replacing !== null) {
+                $session->messages()->where('id', '>=', $replacing)->delete();
+            }
+
             $userMessage = $session->messages()->create([
                 'role' => AgentMessageRole::User,
                 'content' => $message,

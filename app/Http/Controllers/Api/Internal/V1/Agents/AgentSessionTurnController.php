@@ -37,7 +37,7 @@ class AgentSessionTurnController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
-        $run = $this->runner->beginTurn($session, $request->validated('message'), attachments: $request->attachmentFiles(), skill: $request->chosenSkill($agent));
+        $run = $this->runner->beginTurn($session, $request->validated('message'), attachments: $request->attachmentFiles(), skill: $request->chosenSkill($agent), replacing: $request->validated('replaces_message_id'));
 
         RunAgentTurnJob::dispatch($run->id);
 

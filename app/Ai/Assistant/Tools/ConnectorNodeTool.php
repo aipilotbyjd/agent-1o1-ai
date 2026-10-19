@@ -135,7 +135,13 @@ class ConnectorNodeTool extends AssistantTool
     private function toType(array $property, JsonSchema $schema): Type
     {
         $type = match ($property['type'] ?? null) {
-            'object' => $schema->object(fn () => []),
+            'object' => $schema->object(collect($property['properties'] ?? [])
+                ->map(function (array $nested, string $key) use ($property, $schema) {
+                    $type = $this->toType($nested, $schema);
+
+                    return in_array($key, $property['required'] ?? [], true) ? $type->required() : $type;
+                })
+                ->all()),
             'array' => $schema->array()->items(isset($property['items']) ? $this->toType($property['items'], $schema) : $schema->string()),
             'integer' => $schema->integer(),
             'number' => $schema->number(),

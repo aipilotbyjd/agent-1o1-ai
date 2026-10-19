@@ -117,7 +117,7 @@ class AgentSessionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $agent);
         abort_if($session->agent_id !== $agent->id, 404);
 
-        $reply = $this->sendMessage->execute($session, $request->validated('message'), attachments: $request->attachmentFiles(), skill: $request->chosenSkill($agent));
+        $reply = $this->sendMessage->execute($session, $request->validated('message'), attachments: $request->attachmentFiles(), skill: $request->chosenSkill($agent), replacing: $request->validated('replaces_message_id'));
 
         return ApiResponse::success(['message' => AgentMessageResource::make($reply)]);
     }

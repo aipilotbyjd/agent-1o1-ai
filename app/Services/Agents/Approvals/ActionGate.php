@@ -26,8 +26,9 @@ use Illuminate\Support\Str;
  *    let a write run more freely than the workspace's `max_autonomy_mode`
  *    would (`ceilingVerdict()`).
  * 3. Otherwise the mode decides: see `modeVerdict()`.
- * 4. The tool's `rate_limit`, then the workspace's guardrails. These only
- *    ever make the verdict stricter: no agent setting can get past them.
+ * 4. The tool's `rate_limit`, a tool that keeps failing in this turn, then
+ *    the workspace's guardrails. These only ever make the verdict stricter:
+ *    no agent setting can get past them.
  * 5. Test run turns anything that would run or ask into a simulation, and so
  *    does a context that can't pause for a person (`ActionContext::$canPause`).
  *
@@ -38,6 +39,9 @@ use Illuminate\Support\Str;
  */
 class ActionGate
 {
+    /** Failed runs of one tool in a turn before further calls are refused. */
+    private const int MAX_FAILURES_PER_TURN = 3;
+
     public function __construct(
         private readonly ConditionEvaluator $conditions,
         private readonly ActionReviewer $reviewer,
@@ -71,6 +75,7 @@ class ActionGate
         $decision = $rule === null ? $this->modeVerdict($context, $call) : $this->tighten($rule, $this->ceilingVerdict($context, $call, $rule));
 
         $decision = $this->tighten($decision, $this->rateLimitVerdict($context, $call));
+        $decision = $this->tighten($decision, $this->repeatedFailureVerdict($context, $call));
 
         foreach ($this->guardrailVerdicts($context, $call) as $guardrail) {
             $decision = $this->tighten($decision, $guardrail);
@@ -297,6 +302,29 @@ class ActionGate
         $then = ActionVerdict::tryFrom((string) ($limit['then'] ?? 'ask')) ?? ActionVerdict::Ask;
 
         return $this->verdict($then, 'rate_limit', "This tool already ran {$count} times in the last ".($limit['per'] ?? 'hour').', the most allowed without a check.');
+    }
+
+    /**
+     * A model that can't get a tool's arguments right tends to retry it
+     * forever, and in Ask mode every retry is another approval for a
+     * person. After a few failures in one turn the tool is refused, so the
+     * model stops and explains instead.
+     *
+     * @return array{verdict: ActionVerdict, reason: array<string, mixed>}|null
+     */
+    private function repeatedFailureVerdict(ActionContext $context, ToolCall $call): ?array
+    {
+        $failures = AgentAction::query()
+            ->where('run_id', $context->run->id)
+            ->where('tool_name', $call->toolName)
+            ->where('status', AgentActionStatus::Failed)
+            ->count();
+
+        if ($failures < self::MAX_FAILURES_PER_TURN) {
+            return null;
+        }
+
+        return $this->verdict(ActionVerdict::Deny, 'repeated_failures', "This tool already failed {$failures} times in this turn. Stop calling it and tell the user what went wrong.");
     }
 
     /**

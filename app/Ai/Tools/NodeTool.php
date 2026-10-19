@@ -186,11 +186,18 @@ class NodeTool implements Approvable, Tool
     private function propertyToType(array $propertySchema, JsonSchema $schema): Type
     {
         $type = match ($propertySchema['type'] ?? null) {
-            'object' => $schema->object(fn () => []),
+            'object' => $schema->object(collect($propertySchema['properties'] ?? [])
+                ->map(function (array $nested, string $key) use ($propertySchema, $schema) {
+                    $type = $this->propertyToType($nested, $schema);
+
+                    return in_array($key, $propertySchema['required'] ?? [], true) ? $type->required() : $type;
+                })
+                ->all()),
             'array' => $schema->array()->items(
                 isset($propertySchema['items']) ? $this->propertyToType($propertySchema['items'], $schema) : $schema->string(),
             ),
             'integer' => $schema->integer(),
+            'number' => $schema->number(),
             'boolean' => $schema->boolean(),
             default => $schema->string(),
         };

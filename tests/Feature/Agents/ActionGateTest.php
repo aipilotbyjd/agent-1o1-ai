@@ -143,6 +143,27 @@ it('asks once a tool hits its rate limit', function () {
     expect($decision->reason['source'])->toBe('rate_limit');
 });
 
+it('refuses a tool that keeps failing in the same turn instead of asking again', function () {
+    AgentAction::factory()->forSession($this->session)->count(2)->withStatus(AgentActionStatus::Failed)->create(['tool_name' => 'gmail_send_email', 'run_id' => $this->run->id]);
+
+    expect(($this->weigh)(($this->call)(id: 'call-a'))->verdict)->toBe(ActionVerdict::Ask);
+
+    AgentAction::factory()->forSession($this->session)->withStatus(AgentActionStatus::Failed)->create(['tool_name' => 'gmail_send_email', 'run_id' => $this->run->id]);
+
+    $decision = ($this->weigh)(($this->call)(id: 'call-b'));
+
+    expect($decision->verdict)->toBe(ActionVerdict::Deny)
+        ->and($decision->reason['source'])->toBe('repeated_failures')
+        ->and($decision->action->status)->toBe(AgentActionStatus::Denied);
+});
+
+it('counts only failures from the current turn', function () {
+    $earlier = $this->session->runs()->create(['workspace_id' => $this->workspace->id, 'trigger_type' => 'manual']);
+    AgentAction::factory()->forSession($this->session)->count(3)->withStatus(AgentActionStatus::Failed)->create(['tool_name' => 'gmail_send_email', 'run_id' => $earlier->id]);
+
+    expect(($this->weigh)(($this->call)())->verdict)->toBe(ActionVerdict::Ask);
+});
+
 it('returns the recorded decision when the same call is weighed again', function () {
     $first = ($this->weigh)(($this->call)());
     $this->agent->update(['autonomy_mode' => AutonomyMode::Autopilot]);

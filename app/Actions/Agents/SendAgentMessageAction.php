@@ -19,9 +19,10 @@ class SendAgentMessageAction
      * (`App\Services\Triggers\TargetRunStarter`).
      *
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
+     * @param  string|null  $replacing  An earlier user message this one replaces: see `AgentRunner::run()`.
      */
-    public function execute(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null): AgentMessage
+    public function execute(AgentSession $session, string $message, string $triggerType = 'manual', array $attachments = [], ?Skill $skill = null, ?string $replacing = null): AgentMessage
     {
-        return $this->runner->run($session, $message, $triggerType, $attachments, $skill);
+        return $this->runner->run($session, $message, $triggerType, $attachments, $skill, $replacing);
     }
 }
