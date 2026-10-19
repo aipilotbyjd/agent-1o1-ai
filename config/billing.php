@@ -241,6 +241,8 @@ return [
         'openai:text-embedding-3-small' => ['input' => 0.02, 'output' => 0.00],
         'openai:text-embedding-3-large' => ['input' => 0.13, 'output' => 0.00],
 
+        'gemini:gemini-embedding-2' => ['input' => 0.15, 'output' => 0.00],
+
         // Anthropic: unverified, confirm against Anthropic's current
         // pricing. Keyed to Claude Haiku 4.5's primary route
         // (`ModelCatalogSeeder`'s enabled anthropic route).

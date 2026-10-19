@@ -17,7 +17,7 @@ return [
     'default_for_images' => 'gemini',
     'default_for_audio' => 'openai',
     'default_for_transcription' => 'openai',
-    'default_for_embeddings' => 'openai',
+    'default_for_embeddings' => env('AI_EMBEDDINGS_PROVIDER', 'openai'),
     'default_for_reranking' => 'cohere',
 
     /*
@@ -126,6 +126,11 @@ return [
             'driver' => 'gemini',
             'key' => env('GEMINI_API_KEY'),
             'url' => env('GEMINI_URL', 'https://generativelanguage.googleapis.com/v1beta/'),
+            'models' => [
+                // Gemini's embeddings default to 3,072 dimensions; 768 keeps a
+                // stored chunk a quarter of the size and in-PHP search faster.
+                'embeddings' => ['dimensions' => (int) env('GEMINI_EMBEDDINGS_DIMENSIONS', 768)],
+            ],
         ],
 
         'groq' => [
