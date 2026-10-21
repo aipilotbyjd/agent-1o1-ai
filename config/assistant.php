@@ -50,6 +50,11 @@ return [
         'message_max_chars' => 20000,
         'style_max_chars' => 2000,
         'feedback_comment_max_chars' => 1000,
+
+        // Every saved fact is sent on every turn, so they are kept few and short.
+        'memory_key_max_chars' => 64,
+        'memory_value_max_chars' => 500,
+        'memories_max' => 100,
     ],
 
     'runtime' => [
@@ -62,6 +67,10 @@ return [
 
         // Model calls per turn (each tool round trip is one step).
         'max_steps' => (int) env('ASSISTANT_MAX_STEPS', 100),
+
+        // A tool that failed this many times in one turn is refused, so a
+        // model that can't get its arguments right stops and explains.
+        'max_tool_failures_per_turn' => 3,
 
         // Most recent messages replayed to the model.
         'history_limit' => 60,

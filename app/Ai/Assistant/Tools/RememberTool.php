@@ -6,6 +6,7 @@ use App\Enums\Assistant\AssistantToolEffect;
 use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantSession;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Str;
 use Laravel\Ai\Tools\Request;
 use Stringable;
 
@@ -41,11 +42,22 @@ class RememberTool extends AssistantTool
 
     protected function execute(Request $request): string
     {
-        $key = (string) $request['key'];
+        $key = Str::limit(Str::snake(Str::squish((string) $request['key'])), (int) config('assistant.limits.memory_key_max_chars'), '');
+        $value = Str::limit(Str::squish((string) $request['value']), (int) config('assistant.limits.memory_value_max_chars'), '…');
+
+        if ($key === '' || $value === '') {
+            return 'Nothing was saved: both a key and a value are needed.';
+        }
+
+        $memories = $this->assistant->memories();
+
+        if (! $memories->where('key', $key)->exists() && $memories->count() >= (int) config('assistant.limits.memories_max')) {
+            return 'Nothing was saved: too many facts are already remembered. Update an existing key, or ask the person to remove some.';
+        }
 
         $this->assistant->memories()->updateOrCreate(
             ['key' => $key],
-            ['value' => (string) $request['value'], 'source_session_id' => $this->session?->id],
+            ['value' => $value, 'source_session_id' => $this->session?->id],
         );
 
         return "Remembered {$key}.";
