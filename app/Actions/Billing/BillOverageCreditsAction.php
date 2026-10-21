@@ -10,6 +10,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditOverage;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -131,20 +132,97 @@ class BillOverageCreditsAction
      */
     protected function invoice(Workspace $workspace, string $description, int $amountCents, array $metadata): ?string
     {
-        return $workspace->invoiceFor($description, $amountCents, ['metadata' => $metadata], ['metadata' => $metadata])->id ?? null;
+        $attemptId = (string) ($metadata['overage_attempt_id'] ?? '');
+
+        try {
+            $created = $this->createAndPayInvoice($workspace, $description, $amountCents, $metadata);
+        } catch (Throwable $e) {
+            // The call can fail after Stripe has already collected the money
+            // (a dropped response), in which case the charge stands and
+            // billing the credits again would take it twice.
+            $paidInvoiceId = $this->findInvoiceForAttempt($workspace, $attemptId);
+
+            if ($paidInvoiceId !== null) {
+                return $paidInvoiceId;
+            }
+
+            $this->releaseUnpaidInvoices($workspace, $attemptId);
+
+            throw $e;
+        }
+
+        if (($created['status'] ?? null) === 'paid' && isset($created['id'])) {
+            return $created['id'];
+        }
+
+        // Cashier returns `false` rather than throwing for some refusals, and
+        // a declined charge can leave an open invoice behind. Neither is
+        // billed, and an open invoice left to Stripe's own retries would
+        // collect the same credits a second time once the next run
+        // re-invoices them.
+        $this->releaseUnpaidInvoices($workspace, $attemptId);
+
+        throw new RuntimeException('The overage invoice was not paid.');
     }
 
     /**
-     * The id of the Stripe invoice created for an attempt, if there is one.
+     * Creates the invoice and asks Stripe to collect it now.
+     *
+     * @param  array<string, string>  $metadata
+     * @return array{id: string|null, status: string|null}|null null when Cashier reports no invoice
+     */
+    protected function createAndPayInvoice(Workspace $workspace, string $description, int $amountCents, array $metadata): ?array
+    {
+        $invoice = $workspace->invoiceFor($description, $amountCents, ['metadata' => $metadata], ['metadata' => $metadata]);
+
+        return $invoice ? ['id' => $invoice->id ?? null, 'status' => $invoice->status ?? null] : null;
+    }
+
+    /**
+     * The id of the *paid* Stripe invoice created for an attempt, if there is
+     * one. Listed rather than searched: Stripe's search index lags a fresh
+     * invoice by up to a minute, which would read as "none".
      */
     protected function findInvoiceForAttempt(Workspace $workspace, string $attemptId): ?string
     {
-        $found = $workspace->stripe()->invoices->search([
-            'query' => "metadata['overage_attempt_id']:'{$attemptId}'",
-            'limit' => 1,
-        ]);
+        foreach ($this->invoicesForAttempt($workspace, $attemptId) as $invoice) {
+            if ($invoice->status === 'paid') {
+                return $invoice->id;
+            }
+        }
 
-        return $found->data[0]->id ?? null;
+        return null;
+    }
+
+    /**
+     * Voids (or deletes, for a draft) every invoice an attempt left unpaid.
+     */
+    protected function releaseUnpaidInvoices(Workspace $workspace, string $attemptId): void
+    {
+        foreach ($this->invoicesForAttempt($workspace, $attemptId) as $invoice) {
+            if ($invoice->status === 'open') {
+                $workspace->stripe()->invoices->voidInvoice($invoice->id);
+            } elseif ($invoice->status === 'draft') {
+                $workspace->stripe()->invoices->delete($invoice->id);
+            }
+        }
+    }
+
+    /**
+     * @return list<\Stripe\Invoice>
+     */
+    protected function invoicesForAttempt(Workspace $workspace, string $attemptId): array
+    {
+        if ($attemptId === '') {
+            return [];
+        }
+
+        $invoices = $workspace->stripe()->invoices->all(['customer' => $workspace->stripe_id, 'limit' => 100]);
+
+        return array_values(array_filter(
+            $invoices->data,
+            fn ($invoice): bool => ($invoice->metadata['overage_attempt_id'] ?? null) === $attemptId,
+        ));
     }
 
     /**
@@ -184,6 +262,7 @@ class BillOverageCreditsAction
                     return;
                 }
 
+                $this->releaseUnpaidInvoices($workspace, $attempt->id);
                 $this->discardOrphanedInvoiceItems($workspace, $attempt->id);
                 $this->abandon($attempt);
             });

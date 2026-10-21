@@ -53,6 +53,48 @@ class RecordingOverageBiller extends BillOverageCreditsAction
     }
 
     protected function discardOrphanedInvoiceItems(Workspace $workspace, string $attemptId): void {}
+
+    protected function releaseUnpaidInvoices(Workspace $workspace, string $attemptId): void {}
+}
+
+/**
+ * Keeps the real `invoice()` settlement logic and fakes only the Stripe calls
+ * beneath it.
+ */
+class StripeFakedOverageBiller extends BillOverageCreditsAction
+{
+    /** @var array{id: string|null, status: string|null}|null */
+    public ?array $created = ['id' => 'in_paid', 'status' => 'paid'];
+
+    public ?Throwable $failWith = null;
+
+    public ?string $paidInvoiceOnStripe = null;
+
+    public int $releases = 0;
+
+    protected function createAndPayInvoice(Workspace $workspace, string $description, int $amountCents, array $metadata): ?array
+    {
+        if ($this->failWith !== null) {
+            throw $this->failWith;
+        }
+
+        return $this->created;
+    }
+
+    protected function findInvoiceForAttempt(Workspace $workspace, string $attemptId): ?string
+    {
+        return $this->paidInvoiceOnStripe;
+    }
+
+    protected function releaseUnpaidInvoices(Workspace $workspace, string $attemptId): void
+    {
+        $this->releases++;
+    }
+}
+
+function stripeFakedBiller(): StripeFakedOverageBiller
+{
+    return new StripeFakedOverageBiller(app(CreditOverage::class));
 }
 
 function recordingBiller(?Throwable $failWith = null): RecordingOverageBiller
@@ -277,3 +319,55 @@ it('puts an interrupted attempt\'s credits back and re-bills them when Stripe ne
         ->and($biller->invoiced)->toHaveCount(1)
         ->and(currentOveragePeriod()->overage_credits_billed)->toBe(1_000);
 });
+
+it('records the paid invoice when Stripe collects the overage', function () {
+    $workspace = workspaceWithUnbilledOverage(1_000);
+    $biller = stripeFakedBiller();
+
+    $result = $biller->execute($workspace, currentOveragePeriod());
+
+    expect($result['invoice_id'])->toBe('in_paid')
+        ->and($biller->releases)->toBe(0)
+        ->and(currentOveragePeriod()->overage_credits_billed)->toBe(1_000);
+});
+
+it('voids the open invoice and returns the credits when the charge is declined', function () {
+    $workspace = workspaceWithUnbilledOverage(1_000);
+    $biller = stripeFakedBiller();
+    $biller->failWith = new RuntimeException('card_declined');
+
+    expect(fn () => $biller->execute($workspace, currentOveragePeriod()))
+        ->toThrow(RuntimeException::class, 'card_declined');
+
+    expect($biller->releases)->toBe(1)
+        ->and(currentOveragePeriod()->overage_credits_billed)->toBe(0)
+        ->and(OverageInvoiceAttempt::query()->sole()->status)->toBe(OverageInvoiceAttemptStatus::Failed);
+});
+
+it('keeps the credits billed when the call failed after Stripe collected the money', function () {
+    $workspace = workspaceWithUnbilledOverage(1_000);
+    $biller = stripeFakedBiller();
+    $biller->failWith = new RuntimeException('connection reset');
+    $biller->paidInvoiceOnStripe = 'in_paid_late';
+
+    $result = $biller->execute($workspace, currentOveragePeriod());
+
+    expect($result['invoice_id'])->toBe('in_paid_late')
+        ->and($biller->releases)->toBe(0)
+        ->and(currentOveragePeriod()->overage_credits_billed)->toBe(1_000);
+});
+
+it('treats a missing or unpaid invoice as not billed', function (?array $created) {
+    $workspace = workspaceWithUnbilledOverage(1_000);
+    $biller = stripeFakedBiller();
+    $biller->created = $created;
+
+    expect(fn () => $biller->execute($workspace, currentOveragePeriod()))
+        ->toThrow(RuntimeException::class, 'The overage invoice was not paid.');
+
+    expect($biller->releases)->toBe(1)
+        ->and(currentOveragePeriod()->overage_credits_billed)->toBe(0);
+})->with([
+    'Cashier returned false' => [null],
+    'invoice left open' => [['id' => 'in_open', 'status' => 'open']],
+]);
