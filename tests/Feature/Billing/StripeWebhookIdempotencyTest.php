@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Billing\OpenUsagePeriodForSubscriptionAction;
 use App\Models\Billing\Plan;
 use App\Models\Billing\ProcessedWebhookEvent;
 use App\Models\Billing\Subscription;
@@ -86,4 +87,31 @@ it('opens the usage period sized to the plan when a subscription is created', fu
     expect($fresh->credits_limit)->toBe(2500)
         ->and($fresh->credits_used)->toBe(10)
         ->and($fresh->plan_id)->toBe($plan->id);
+});
+
+it('lets Stripe retry an event whose handler failed instead of reporting it already processed', function () {
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workspace->forceFill(['stripe_id' => 'cus_test_retry'])->save();
+
+    $payload = subscriptionCreatedPayload('evt_test_retry', 'cus_test_retry', 'sub_test_retry', 'price_test_retry');
+
+    $this->mock(OpenUsagePeriodForSubscriptionAction::class)
+        ->shouldReceive('execute')
+        ->once()
+        ->andThrow(new RuntimeException('database unavailable'));
+
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->postJson('/api/stripe/webhook', $payload))->toThrow(RuntimeException::class);
+
+    expect(ProcessedWebhookEvent::query()->where('stripe_event_id', 'evt_test_retry')->exists())->toBeFalse();
+
+    $this->mock(OpenUsagePeriodForSubscriptionAction::class)
+        ->shouldReceive('execute')
+        ->once();
+
+    $this->postJson('/api/stripe/webhook', $payload)->assertOk();
+
+    expect(ProcessedWebhookEvent::query()->where('stripe_event_id', 'evt_test_retry')->exists())->toBeTrue();
 });

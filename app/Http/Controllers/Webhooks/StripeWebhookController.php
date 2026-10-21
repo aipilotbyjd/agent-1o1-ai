@@ -64,25 +64,39 @@ class StripeWebhookController extends CashierWebhookController
             return $this->missingMethod($payload ?? []);
         }
 
-        $isNewEvent = DB::transaction(function () use ($eventId, $payload) {
+        $processedEvent = DB::transaction(function () use ($eventId, $payload): ?ProcessedWebhookEvent {
             if (ProcessedWebhookEvent::query()->where('stripe_event_id', $eventId)->lockForUpdate()->exists()) {
-                return false;
+                return null;
             }
 
-            ProcessedWebhookEvent::create([
+            return ProcessedWebhookEvent::create([
                 'stripe_event_id' => $eventId,
                 'type' => $payload['type'] ?? 'unknown',
                 'processed_at' => now(),
             ]);
-
-            return true;
         });
 
-        if (! $isNewEvent) {
+        if ($processedEvent === null) {
             return new Response('Webhook already processed', 200);
         }
 
-        return parent::handleWebhook($request);
+        // The event is claimed before it is handled so a concurrent redelivery
+        // is skipped, but a claim whose handler failed must not outlive the
+        // failure: Stripe's retry would otherwise be answered "already
+        // processed" and the event (a paid credit pack, say) lost for good.
+        try {
+            $response = parent::handleWebhook($request);
+        } catch (Throwable $e) {
+            $processedEvent->delete();
+
+            throw $e;
+        }
+
+        if ($response->getStatusCode() >= 500) {
+            $processedEvent->delete();
+        }
+
+        return $response;
     }
 
     protected function handleCustomerSubscriptionCreated(array $payload)
@@ -113,6 +127,30 @@ class StripeWebhookController extends CashierWebhookController
     protected function handleCheckoutSessionCompleted(array $payload): Response
     {
         $session = $payload['data']['object'] ?? [];
+
+        // A delayed payment method (a bank debit) completes the session
+        // before the money has moved: fulfilment waits for
+        // `checkout.session.async_payment_succeeded` instead.
+        if (($session['payment_status'] ?? null) === 'unpaid') {
+            return new Response('Webhook Handled');
+        }
+
+        return $this->fulfilCheckoutSession($session);
+    }
+
+    /**
+     * The delayed payment behind a completed session has now settled.
+     */
+    protected function handleCheckoutSessionAsyncPaymentSucceeded(array $payload): Response
+    {
+        return $this->fulfilCheckoutSession($payload['data']['object'] ?? []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     */
+    private function fulfilCheckoutSession(array $session): Response
+    {
         $metadata = $session['metadata'] ?? [];
         $paymentIntentId = $session['payment_intent'] ?? null;
 

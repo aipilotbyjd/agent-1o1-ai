@@ -191,3 +191,35 @@ it('ignores checkout.session.completed sessions without credit_pack metadata', f
 
     $this->postJson('/api/stripe/webhook', $payload)->assertOk();
 });
+
+it('waits for the async payment before crediting a pack paid by a delayed method', function () {
+    [$workspace] = ownerWorkspaceForCreditPack();
+    $workspace->forceFill(['stripe_id' => 'cus_test_async'])->save();
+
+    $pack = CreditPack::factory()->forWorkspace($workspace)->create(['credits_amount' => 250]);
+
+    $session = [
+        'id' => 'cs_test_async',
+        'customer' => 'cus_test_async',
+        'payment_intent' => 'pi_test_async',
+        'metadata' => ['type' => 'credit_pack', 'credit_pack_id' => (string) $pack->id],
+    ];
+
+    $this->postJson('/api/stripe/webhook', [
+        'id' => 'evt_test_async_1',
+        'type' => 'checkout.session.completed',
+        'data' => ['object' => $session + ['payment_status' => 'unpaid']],
+    ])->assertOk();
+
+    expect($pack->fresh()->status)->not->toBe(CreditPackStatus::Active)
+        ->and($workspace->fresh()->topup_credits)->toBe(0);
+
+    $this->postJson('/api/stripe/webhook', [
+        'id' => 'evt_test_async_2',
+        'type' => 'checkout.session.async_payment_succeeded',
+        'data' => ['object' => $session + ['payment_status' => 'paid']],
+    ])->assertOk();
+
+    expect($pack->fresh()->status)->toBe(CreditPackStatus::Active)
+        ->and($workspace->fresh()->topup_credits)->toBe(250);
+});
