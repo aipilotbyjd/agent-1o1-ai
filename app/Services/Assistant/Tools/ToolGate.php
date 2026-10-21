@@ -25,6 +25,11 @@ use Throwable;
 class ToolGate
 {
     /**
+     * @var array<string, int> tool name => failed calls so far in this run of the turn
+     */
+    private array $failures = [];
+
+    /**
      * @param  Collection<string, AssistantToolRule>  $rules  tool name => the owner's rule
      */
     public function __construct(
@@ -53,7 +58,9 @@ class ToolGate
 
     public function approvalFor(AssistantTool $tool, Request $request): Approval|false
     {
-        if ($this->ruleFor($tool) !== AssistantToolRule::Ask) {
+        // A tool being refused for failing too often must not ask again:
+        // `run()` answers the call with the refusal instead.
+        if ($this->ruleFor($tool) !== AssistantToolRule::Ask || $this->failedTooOften($tool)) {
             return false;
         }
 
@@ -102,6 +109,10 @@ class ToolGate
             return $this->rejectionText($action);
         }
 
+        if ($this->failedTooOften($tool)) {
+            return $this->repeatedFailureText($tool);
+        }
+
         try {
             $result = $execute();
             $action?->forceFill(['status' => AssistantActionStatus::Executed, 'result' => $result])->save();
@@ -111,6 +122,8 @@ class ToolGate
             throw $e;
         } catch (Throwable $e) {
             report($e);
+
+            $this->failures[$tool->name()] = ($this->failures[$tool->name()] ?? 0) + 1;
 
             $result = json_encode([
                 'error' => $e instanceof QueryException ? 'An internal error occurred.' : $e->getMessage(),
@@ -130,6 +143,30 @@ class ToolGate
             : 'The person declined this action, so it was not run.';
 
         return filled($action->decision_note) ? "{$base} Their note: {$action->decision_note}" : $base;
+    }
+
+    /**
+     * A model that can't get a tool's arguments right tends to retry it
+     * forever, and in Ask mode every retry is another approval. Counts the
+     * failures of this run plus those stored before the turn paused.
+     */
+    private function failedTooOften(AssistantTool $tool): bool
+    {
+        $stored = AssistantAction::query()
+            ->where('assistant_turn_id', $this->turn->id)
+            ->where('tool', $tool->name())
+            ->where('status', AssistantActionStatus::Failed)
+            ->count();
+
+        return max($stored, $this->failures[$tool->name()] ?? 0) >= (int) config('assistant.runtime.max_tool_failures_per_turn');
+    }
+
+    private function repeatedFailureText(AssistantTool $tool): string
+    {
+        return json_encode([
+            'error' => "{$tool->name()} already failed several times in this turn, so it was not run again.",
+            'note' => 'Stop calling this tool and tell the person what went wrong.',
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
     private function actionFor(Request $request): ?AssistantAction
