@@ -4,6 +4,7 @@ use App\Ai\Assistant\Tools\CancelFollowUpTool;
 use App\Ai\Assistant\Tools\ListFollowUpsTool;
 use App\Ai\Assistant\Tools\TrackFollowUpTool;
 use App\Enums\Assistant\AssistantFollowUpStatus;
+use App\Enums\Assistant\AssistantSessionOrigin;
 use App\Jobs\Assistant\CheckFollowUpJob;
 use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantFollowUp;
@@ -12,6 +13,7 @@ use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
 use App\Models\User;
 use App\Notifications\Assistant\FollowUpReminderNotification;
+use App\Services\Assistant\Channels\ChannelReplies;
 use App\Services\Assistant\Inbox\FollowUpChecker;
 use App\Services\Assistant\Inbox\Mailbox;
 use App\Services\Assistant\Inbox\MailboxFactory;
@@ -143,3 +145,26 @@ it('queues a check only for follow-ups that are due', function () {
     Bus::assertDispatchedTimes(CheckFollowUpJob::class, 1);
     Bus::assertDispatched(CheckFollowUpJob::class, fn (CheckFollowUpJob $job): bool => $job->followUp->is($due));
 });
+
+it('also sends the in-app notification', function () {
+    expect((new FollowUpReminderNotification(AssistantFollowUp::factory()->create(['assistant_id' => $this->assistant->id])))->via($this->owner))
+        ->toBe(['mail', 'database']);
+});
+
+it('reminds in the Slack or text conversation the follow-up was asked for in', function (AssistantSessionOrigin $origin, int $expectedMessages) {
+    Notification::fake();
+    $session = $this->assistant->sessions()->create(['origin' => $origin, 'external_thread_ref' => 'ref', 'last_activity_at' => now()]);
+    $followUp = AssistantFollowUp::factory()->due()->create(['assistant_id' => $this->assistant->id, 'assistant_session_id' => $session->id, 'subject' => 'Renewal']);
+    $this->mailbox->shouldReceive('threadHasReplyAfter')->andReturnFalse();
+
+    $channels = Mockery::mock(ChannelReplies::class);
+    $channels->shouldReceive('say')->times($expectedMessages)->with(Mockery::on(fn ($given) => $given->is($session)), Mockery::pattern('/Renewal/'));
+    app()->instance(ChannelReplies::class, $channels);
+
+    app(FollowUpChecker::class)->check($followUp);
+})->with([
+    'slack' => [AssistantSessionOrigin::Slack, 1],
+    'sms' => [AssistantSessionOrigin::Sms, 1],
+    'email (the reminder email is enough)' => [AssistantSessionOrigin::Email, 0],
+    'web' => [AssistantSessionOrigin::Web, 0],
+]);

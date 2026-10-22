@@ -3,8 +3,10 @@
 namespace App\Services\Assistant\Inbox;
 
 use App\Enums\Assistant\AssistantFollowUpStatus;
+use App\Enums\Assistant\AssistantSessionOrigin;
 use App\Models\Assistant\AssistantFollowUp;
 use App\Notifications\Assistant\FollowUpReminderNotification;
+use App\Services\Assistant\Channels\ChannelReplies;
 use Throwable;
 
 /**
@@ -17,6 +19,7 @@ class FollowUpChecker
     public function __construct(
         private readonly MailboxFactory $mailboxes,
         private readonly InboxAccess $access,
+        private readonly ChannelReplies $channels,
     ) {}
 
     public function check(AssistantFollowUp $followUp): AssistantFollowUpStatus
@@ -49,8 +52,26 @@ class FollowUpChecker
 
         $this->settle($followUp, AssistantFollowUpStatus::Reminded);
         $assistant->user->notify(new FollowUpReminderNotification($followUp));
+        $this->remindInConversation($followUp);
 
         return AssistantFollowUpStatus::Reminded;
+    }
+
+    /**
+     * A follow-up asked for over Slack or text is also answered there. Email
+     * conversations already get the reminder email, so they are left alone.
+     */
+    private function remindInConversation(AssistantFollowUp $followUp): void
+    {
+        $session = $followUp->session;
+
+        if (! in_array($session?->origin, [AssistantSessionOrigin::Slack, AssistantSessionOrigin::Sms], true)) {
+            return;
+        }
+
+        $subject = filled($followUp->subject) ? "\"{$followUp->subject}\"" : 'that email thread';
+
+        $this->channels->say($session, "Reminder: nobody has replied to {$subject} yet.".(filled($followUp->note) ? " Your note: {$followUp->note}" : ''));
     }
 
     private function settle(AssistantFollowUp $followUp, AssistantFollowUpStatus $status): AssistantFollowUpStatus

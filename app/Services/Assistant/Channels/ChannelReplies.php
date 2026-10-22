@@ -4,6 +4,7 @@ namespace App\Services\Assistant\Channels;
 
 use App\Enums\Assistant\AssistantSessionOrigin;
 use App\Enums\Assistant\AssistantTurnStatus;
+use App\Models\Assistant\AssistantSession;
 use App\Models\Assistant\AssistantTurn;
 use Throwable;
 
@@ -33,11 +34,21 @@ class ChannelReplies
             return;
         }
 
+        $this->say($session, $text);
+    }
+
+    /**
+     * Posts a message into a conversation on the channel it started on.
+     * Never throws: a channel that is down only means the message is lost.
+     */
+    public function say(AssistantSession $session, string $text): void
+    {
         try {
             match ($session->origin) {
                 AssistantSessionOrigin::Email => $this->email->reply($session, $text),
                 AssistantSessionOrigin::Slack => $this->slack->reply($session, $text),
                 AssistantSessionOrigin::Sms => $this->sms->reply($session, $text),
+                default => null,
             };
         } catch (Throwable $e) {
             report($e);

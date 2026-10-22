@@ -37,6 +37,11 @@ class AssistantFollowUp extends Model
         return $this->belongsTo(Assistant::class);
     }
 
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(AssistantSession::class, 'assistant_session_id');
+    }
+
     public function isPending(): bool
     {
         return $this->status === AssistantFollowUpStatus::Pending;

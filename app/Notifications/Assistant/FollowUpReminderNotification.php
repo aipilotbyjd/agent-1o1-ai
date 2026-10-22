@@ -27,7 +27,23 @@ class FollowUpReminderNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
+    }
+
+    /**
+     * The in-app notification.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'type' => 'assistant_follow_up',
+            'follow_up_id' => $this->followUp->id,
+            'workspace_id' => $this->followUp->assistant->workspace_id,
+            'subject' => $this->followUp->subject,
+            'message' => 'Nobody has replied to "'.($this->followUp->subject ?: 'an email thread').'" yet.',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

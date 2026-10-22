@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantBriefingController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantChannelController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantFeedbackController;
+use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantFollowUpController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantInboxController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMeetingController;
 use App\Http\Controllers\Api\Internal\V1\Assistant\AssistantMemoryController;
@@ -106,6 +107,9 @@ Route::middleware(['auth:api', 'workspace.context'])
         Route::put('tool-rules', [AssistantToolRuleController::class, 'update'])->name('tool-rules.update');
 
         Route::get('apps', [AssistantAppController::class, 'index'])->name('apps.index');
+
+        Route::get('follow-ups', [AssistantFollowUpController::class, 'index'])->name('follow-ups.index');
+        Route::delete('follow-ups/{followUp}', [AssistantFollowUpController::class, 'destroy'])->name('follow-ups.destroy');
 
         Route::get('memories', [AssistantMemoryController::class, 'index'])->name('memories.index');
         Route::delete('memories/{memory}', [AssistantMemoryController::class, 'destroy'])->name('memories.destroy');

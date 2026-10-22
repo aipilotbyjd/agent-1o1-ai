@@ -3,11 +3,13 @@
 use App\Ai\Assistant\AssistantAgent;
 use App\Broadcasting\WorkspaceChannelGate;
 use App\Enums\Assistant\AssistantActionStatus;
+use App\Enums\Assistant\AssistantFollowUpStatus;
 use App\Enums\Assistant\AssistantToolRule;
 use App\Enums\Assistant\AssistantTurnStatus;
 use App\Enums\Workspaces\Role;
 use App\Models\Assistant\Assistant;
 use App\Models\Assistant\AssistantAction;
+use App\Models\Assistant\AssistantFollowUp;
 use App\Models\Assistant\AssistantSession;
 use App\Models\Assistant\AssistantTurn;
 use App\Models\User;
@@ -155,4 +157,34 @@ it('lists and deletes memories', function () {
     $this->deleteJson("{$this->base}/memories/{$memory->id}")->assertNoContent();
 
     expect($this->assistant->memories()->count())->toBe(0);
+});
+
+it('lists follow-ups with the waiting ones first and cancels a waiting one', function () {
+    $settled = AssistantFollowUp::factory()->create([
+        'assistant_id' => $this->assistant->id,
+        'status' => AssistantFollowUpStatus::Replied,
+        'resolved_at' => now(),
+    ]);
+    $later = AssistantFollowUp::factory()->create(['assistant_id' => $this->assistant->id, 'remind_at' => now()->addDays(5)]);
+    $sooner = AssistantFollowUp::factory()->create(['assistant_id' => $this->assistant->id, 'remind_at' => now()->addDay()]);
+
+    $this->getJson("{$this->base}/follow-ups")
+        ->assertSuccessful()
+        ->assertJsonPath('data.follow_ups.0.id', $sooner->id)
+        ->assertJsonPath('data.follow_ups.1.id', $later->id)
+        ->assertJsonPath('data.follow_ups.2.id', $settled->id)
+        ->assertJsonPath('data.follow_ups.2.status', 'replied');
+
+    $this->deleteJson("{$this->base}/follow-ups/{$sooner->id}")->assertNoContent();
+
+    expect($sooner->refresh()->status)->toBe(AssistantFollowUpStatus::Cancelled);
+});
+
+it('does not show or cancel another assistant\'s follow-ups', function () {
+    $theirs = AssistantFollowUp::factory()->create();
+
+    $this->getJson("{$this->base}/follow-ups")->assertJsonCount(0, 'data.follow_ups');
+    $this->deleteJson("{$this->base}/follow-ups/{$theirs->id}")->assertNotFound();
+
+    expect($theirs->refresh()->isPending())->toBeTrue();
 });
