@@ -61,6 +61,11 @@ class Assistant extends Model
         return $this->hasMany(AssistantMemory::class);
     }
 
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(AssistantFollowUp::class);
+    }
+
     public function styleProfiles(): HasMany
     {
         return $this->hasMany(AssistantStyleProfile::class);

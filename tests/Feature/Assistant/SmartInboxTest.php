@@ -95,6 +95,14 @@ class FakeMailbox implements Mailbox
         $this->modified[] = [$messageId, $add, $remove];
     }
 
+    /** @var array<string, bool> thread id => whether someone else replied */
+    public array $threadReplies = [];
+
+    public function threadHasReplyAfter(string $threadId, CarbonInterface $after): bool
+    {
+        return $this->threadReplies[$threadId] ?? false;
+    }
+
     public function hasSentTo(string $address): bool
     {
         return in_array($address, $this->sentTo, true);

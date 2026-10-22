@@ -44,6 +44,11 @@ interface Mailbox
      */
     public function modify(string $messageId, array $add, array $remove): void;
 
+    /**
+     * Whether anyone but the owner wrote in the thread after `$after`.
+     */
+    public function threadHasReplyAfter(string $threadId, CarbonInterface $after): bool;
+
     public function hasSentTo(string $address): bool;
 
     /**

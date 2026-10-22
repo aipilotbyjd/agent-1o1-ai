@@ -153,6 +153,12 @@ return [
         'drafting_instructions_max_chars' => 2000,
     ],
 
+    'follow_ups' => [
+        // Email threads watched for a reply at once, and the longest wait.
+        'max_pending' => 50,
+        'max_days' => 60,
+    ],
+
     'triggers' => [
         'max_per_assistant' => 50,
 

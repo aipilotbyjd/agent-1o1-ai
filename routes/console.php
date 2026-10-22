@@ -29,6 +29,7 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
     Schedule::command('assistant:run-due-briefings')->everyMinute();
     Schedule::command('assistant:run-due-triggers')->everyMinute();
     Schedule::command('assistant:check-inboxes')->everyTwoMinutes();
+    Schedule::command('assistant:check-follow-ups')->everyFifteenMinutes();
     Schedule::command('assistant:sync-meetings')->everyTenMinutes();
 
     // Connectors, knowledge & skills

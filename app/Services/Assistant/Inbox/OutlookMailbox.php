@@ -160,6 +160,23 @@ class OutlookMailbox implements Mailbox
         }
     }
 
+    public function threadHasReplyAfter(string $threadId, CarbonInterface $after): bool
+    {
+        $own = $this->ownAddress();
+
+        $messages = $this->get('/messages', [
+            '$filter' => "conversationId eq '".str_replace("'", "''", $threadId)."'",
+            '$select' => 'from,receivedDateTime',
+            '$top' => 50,
+        ]);
+
+        return collect($messages['value'] ?? [])->contains(function (array $message) use ($after, $own): bool {
+            $receivedAt = isset($message['receivedDateTime']) ? now()->parse($message['receivedDateTime']) : null;
+
+            return $receivedAt?->gt($after) === true && MailAddress::bare($this->address($message['from'] ?? null)) !== $own;
+        });
+    }
+
     public function hasSentTo(string $address): bool
     {
         return $this->sentTo($address, 1) !== [];
