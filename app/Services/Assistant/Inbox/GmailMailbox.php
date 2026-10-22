@@ -110,6 +110,19 @@ class GmailMailbox implements Mailbox
         $this->send('post', "/messages/{$messageId}/modify", ['addLabelIds' => array_values($add), 'removeLabelIds' => array_values($remove)]);
     }
 
+    public function threadHasReplyAfter(string $threadId, CarbonInterface $after): bool
+    {
+        $thread = $this->get('/threads/'.rawurlencode($threadId), ['format' => 'metadata', 'metadataHeaders' => 'From']);
+        $own = $this->ownAddress();
+
+        return collect($thread['messages'] ?? [])->contains(function (array $message) use ($after, $own): bool {
+            $sentAt = (int) ($message['internalDate'] ?? 0) / 1000;
+            $from = MailAddress::bare($this->headers($message['payload']['headers'] ?? [])['from'] ?? '');
+
+            return $sentAt > $after->getTimestamp() && Str::lower($from) !== $own;
+        });
+    }
+
     public function hasSentTo(string $address): bool
     {
         return ($this->get('/messages', ['q' => 'in:sent to:'.MailAddress::bare($address), 'maxResults' => 1])['messages'] ?? []) !== [];

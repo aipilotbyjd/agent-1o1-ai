@@ -22,6 +22,7 @@ use App\Services\Assistant\Inbox\InboxProcessor;
 use App\Services\Assistant\Inbox\Mailbox;
 use App\Services\Assistant\Inbox\MailboxFactory;
 use App\Services\Assistant\Inbox\MailMessage;
+use App\Services\Assistant\Inbox\OutlookMailbox;
 use App\Services\Workspaces\WorkspaceService;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\Request as HttpRequest;
@@ -93,6 +94,14 @@ class FakeMailbox implements Mailbox
     public function modify(string $messageId, array $add, array $remove): void
     {
         $this->modified[] = [$messageId, $add, $remove];
+    }
+
+    /** @var array<string, bool> thread id => whether someone else replied */
+    public array $threadReplies = [];
+
+    public function threadHasReplyAfter(string $threadId, CarbonInterface $after): bool
+    {
+        return $this->threadReplies[$threadId] ?? false;
     }
 
     public function hasSentTo(string $address): bool
@@ -434,4 +443,46 @@ it('reads Gmail messages and threads drafts into the conversation', function () 
             && str_contains($raw, 'In-Reply-To: <abc@globex.test>')
             && str_contains($raw, 'Subject: Re: Renewal');
     });
+});
+
+it('sees a reply in a Gmail thread only from someone else and only after the given time', function () {
+    $credential = ($this->connectGmail)();
+    Http::fake([
+        'gmail.googleapis.com/gmail/v1/users/me/profile' => Http::response(['emailAddress' => 'Priya@acme.test']),
+        'gmail.googleapis.com/gmail/v1/users/me/threads/t1*' => Http::response(['messages' => [
+            ['internalDate' => '1790000000000', 'payload' => ['headers' => [['name' => 'From', 'value' => 'Priya <priya@acme.test>']]]],
+            ['internalDate' => '1790000100000', 'payload' => ['headers' => [['name' => 'From', 'value' => 'Sam <sam@globex.test>']]]],
+        ]]),
+    ]);
+    $mailbox = new GmailMailbox($credential);
+
+    expect($mailbox->threadHasReplyAfter('t1', now()->setTimestamp(1790000050)))->toBeTrue()
+        ->and($mailbox->threadHasReplyAfter('t1', now()->setTimestamp(1790000200)))->toBeFalse();
+});
+
+it('does not count the owner\'s own message as a Gmail reply', function () {
+    $credential = ($this->connectGmail)();
+    Http::fake([
+        'gmail.googleapis.com/gmail/v1/users/me/profile' => Http::response(['emailAddress' => 'priya@acme.test']),
+        'gmail.googleapis.com/gmail/v1/users/me/threads/t1*' => Http::response(['messages' => [
+            ['internalDate' => '1790000100000', 'payload' => ['headers' => [['name' => 'From', 'value' => 'Priya <priya@acme.test>']]]],
+        ]]),
+    ]);
+
+    expect((new GmailMailbox($credential))->threadHasReplyAfter('t1', now()->setTimestamp(1790000000)))->toBeFalse();
+});
+
+it('sees a reply in an Outlook conversation only from someone else', function () {
+    $credential = ($this->connectGmail)();
+    Http::fake([
+        'graph.microsoft.com/v1.0/me?*' => Http::response(['mail' => 'priya@acme.test']),
+        'graph.microsoft.com/v1.0/me/messages*' => Http::response(['value' => [
+            ['from' => ['emailAddress' => ['address' => 'priya@acme.test', 'name' => 'Priya']], 'receivedDateTime' => '2026-10-20T10:00:00Z'],
+            ['from' => ['emailAddress' => ['address' => 'sam@globex.test', 'name' => 'Sam']], 'receivedDateTime' => '2026-10-21T10:00:00Z'],
+        ]]),
+    ]);
+    $mailbox = new OutlookMailbox($credential);
+
+    expect($mailbox->threadHasReplyAfter('conv1', now()->parse('2026-10-20T12:00:00Z')))->toBeTrue()
+        ->and($mailbox->threadHasReplyAfter('conv1', now()->parse('2026-10-22T00:00:00Z')))->toBeFalse();
 });
