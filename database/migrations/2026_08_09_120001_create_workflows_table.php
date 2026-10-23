@@ -26,6 +26,8 @@ return new class extends Migration
 
             $table->boolean('has_unpublished_changes')->default(false);
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->json('input_schema')->nullable();
+            $table->boolean('is_internal')->default(false);
             $table->timestamps();
             $table->softDeletes();
 

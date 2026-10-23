@@ -35,6 +35,7 @@ return new class extends Migration
             $table->string('stripe_payment_intent_id')->nullable();
             $table->timestamp('granted_at')->nullable();
             $table->timestamp('expires_at')->nullable();
+            $table->timestamp('expiry_notified_at')->nullable();
             $table->timestamps();
 
             $table->index(['workspace_id', 'status']);

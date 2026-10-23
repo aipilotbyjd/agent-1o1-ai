@@ -31,6 +31,7 @@ return new class extends Migration
             $table->longText('instructions');
             $table->boolean('is_shared')->default(false);
             $table->unsignedInteger('version')->default(1);
+            $table->text('origin_url')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

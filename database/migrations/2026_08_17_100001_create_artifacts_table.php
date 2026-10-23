@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('artifacts', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('agent_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignUuid('agent_session_id')->nullable()->constrained('agent_sessions')->nullOnDelete();
             $table->foreignUuid('run_id')->nullable()->constrained('runs')->nullOnDelete();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
@@ -28,11 +28,15 @@ return new class extends Migration
             $table->string('disk')->default('local');
             $table->string('path');
             $table->json('metadata')->nullable();
+            $table->foreignUuid('agent_message_id')->nullable()->constrained('agent_messages')->nullOnDelete();
+            $table->foreignUuid('workflow_builder_message_id')->nullable()->constrained('workflow_builder_messages')->nullOnDelete();
+            $table->softDeletes();
+            $table->string('general_access')->default('restricted');
             $table->timestamps();
 
             $table->index(['workspace_id', 'created_at']);
             $table->index(['agent_session_id', 'filename']);
-            $table->index(['group_id', 'version']);
+            $table->unique(['group_id', 'version']);
         });
     }
 

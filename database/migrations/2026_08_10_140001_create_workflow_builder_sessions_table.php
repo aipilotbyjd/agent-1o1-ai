@@ -25,12 +25,12 @@ return new class extends Migration
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('workflow_id')->nullable()->constrained('workflows')->nullOnDelete();
-            $table->string('conversation_id')->nullable()->index();
             $table->string('title')->default('Untitled workflow');
             $table->json('draft_graph')->nullable();
             $table->unsignedInteger('draft_lock_version')->default(0);
             $table->string('status', 20)->default('active');
             $table->timestamp('last_activity_at')->nullable();
+            $table->string('workflow_graph_hash', 64)->nullable();
             $table->timestamps();
 
             $table->index(['workspace_id', 'user_id', 'status']);

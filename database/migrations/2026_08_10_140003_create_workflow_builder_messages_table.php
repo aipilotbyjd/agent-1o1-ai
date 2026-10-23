@@ -26,6 +26,8 @@ return new class extends Migration
             $table->json('actions')->nullable();
             $table->string('processing_status', 20)->default('completed');
             $table->text('error_message')->nullable();
+            $table->foreignUuid('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->json('context')->nullable();
             $table->timestamps();
 
             $table->index(['session_id', 'created_at']);

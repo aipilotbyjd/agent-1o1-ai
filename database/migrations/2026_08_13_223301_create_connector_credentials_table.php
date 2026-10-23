@@ -20,6 +20,12 @@ return new class extends Migration
             $table->text('data');
             $table->timestamp('last_used_at')->nullable();
             $table->timestamp('expires_at')->nullable();
+            $table->string('scope')->default('team');
+            $table->boolean('is_default')->default(false);
+            $table->string('account_label')->nullable();
+            $table->timestamp('last_tested_at')->nullable();
+            $table->boolean('last_test_ok')->nullable();
+            $table->string('last_test_message', 500)->nullable();
             $table->timestamps();
             $table->softDeletes();
 

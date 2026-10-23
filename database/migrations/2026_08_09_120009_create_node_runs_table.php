@@ -28,6 +28,8 @@ return new class extends Migration
             $table->timestamp('finished_at')->nullable();
             $table->string('callback_token')->nullable()->unique();
             $table->timestamp('callback_expires_at')->nullable();
+            $table->json('state')->nullable();
+            $table->boolean('pending_advance')->default(false);
             $table->timestamps();
 
             $table->unique(['run_id', 'key']);

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->string('status')->default('active');
             $table->timestamp('last_activity_at')->nullable();
+            $table->foreignUuid('agent_version_id')->nullable()->constrained('agent_versions')->nullOnDelete();
             $table->timestamps();
         });
     }
