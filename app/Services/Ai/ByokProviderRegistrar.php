@@ -6,6 +6,7 @@ use App\Enums\Ai\AiProviderCredentialStatus;
 use App\Enums\Ai\PlatformKeyUsage;
 use App\Enums\Connectors\ConnectorCredentialScope;
 use App\Exceptions\OwnAiKeyRequiredException;
+use App\Exceptions\ProviderPausedException;
 use App\Models\Ai\AiProviderCredential;
 use App\Models\Ai\WorkspaceAiKeyPolicy;
 use Illuminate\Http\Client\RequestException;
@@ -80,6 +81,7 @@ class ByokProviderRegistrar
             PlatformKeyUsage::WhenNoKey => $credentials->isEmpty(),
             PlatformKeyUsage::Never => false,
         };
+        $pauses = app(ProviderPauses::class);
 
         // A bare provider with no model leaves the model to the driver's
         // default, which only a single-provider call can express.
@@ -87,6 +89,7 @@ class ByokProviderRegistrar
             return match (true) {
                 $credentials->has($provider) => [$this->register($credentials[$provider], $provider), null],
                 ! $platformAllowed => throw $this->ownKeyRequired($chain),
+                $pauses->isPaused($provider) => throw ProviderPausedException::forProviders(),
                 default => [$provider, $model],
             };
         }
@@ -106,7 +109,13 @@ class ByokProviderRegistrar
         if ($result === []) {
             // Nothing here has a key at all: hand the chain over untouched, so
             // the call fails the way it always has rather than with no provider.
+            // Unless the reason is that the operator paused them: then the call
+            // must not run on the paused key by way of this fallback.
             if ($platformAllowed) {
+                if (array_filter(array_keys($chain), fn (string $hop): bool => $pauses->isPaused($hop)) !== []) {
+                    throw ProviderPausedException::forProviders();
+                }
+
                 return [$provider, $model];
             }
 

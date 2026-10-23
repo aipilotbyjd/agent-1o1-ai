@@ -40,4 +40,5 @@ Route::group($attributes, function () {
     require __DIR__.'/runs.php';
     require __DIR__.'/catalog.php';
     require __DIR__.'/stats.php';
+    require __DIR__.'/models.php';
 });

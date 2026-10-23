@@ -35,7 +35,7 @@ class SuperAdminCatalogController extends Controller
             ->when($request->filled('q'), fn ($query) => $query->where(function ($inner) use ($request) {
                 $term = '%'.$request->string('q').'%';
 
-                $inner->where('name', 'like', $term)->orWhere('key', 'like', $term);
+                $inner->whereLike('name', $term)->orWhereLike('key', $term);
             }))
             ->when($request->has('active'), fn ($query) => $query->where('is_active', $request->boolean('active')))
             ->orderBy('sort_order')

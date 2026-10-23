@@ -25,7 +25,7 @@ class SuperAdminAccountController extends Controller
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = '%'.$request->string('q').'%';
 
-                $query->where(fn ($inner) => $inner->where('email', 'like', $term)->orWhere('name', 'like', $term));
+                $query->where(fn ($inner) => $inner->whereLike('email', $term)->orWhereLike('name', $term));
             })
             ->when($request->filled('role'), fn ($query) => $query->where('role', $request->string('role')))
             ->when($request->boolean('disabled'), fn ($query) => $query->whereNotNull('disabled_at'))

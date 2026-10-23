@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'super_admin_id', 'actor_label', 'action', 'subject_type', 'subject_id',
     'before', 'after', 'reason', 'ip_address', 'user_agent', 'request_id',
+    'sequence', 'previous_hash', 'hash',
 ])]
 class SuperAdminAuditLog extends Model
 {

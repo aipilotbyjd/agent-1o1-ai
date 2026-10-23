@@ -96,6 +96,12 @@ it('applies a credit grant once however often the same Idempotency-Key is replay
         ->and($this->workspace->fresh()->topup_credits)->toBe(100)
         ->and(SuperAdminAuditLog::query()->where('action', 'billing.credits.granted')->count())->toBe(1);
 
+    // The same request with its fields in another order is still the same request.
+    $this->withHeaders([...$this->headers, 'Idempotency-Key' => 'grant-1'])
+        ->postJson($url, ['totp_code' => 'x', 'reason' => 'Verified request from the account owner', 'credits' => 100])
+        ->assertOk()
+        ->assertHeader('Idempotent-Replayed', 'true');
+
     $this->withHeaders([...$this->headers, 'Idempotency-Key' => 'grant-1'])
         ->postJson($url, stepUp($this->finance, ['credits' => 999]))
         ->assertUnprocessable();

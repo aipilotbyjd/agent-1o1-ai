@@ -49,6 +49,11 @@ return [
         'account_created' => true,
         'account_disabled' => true,
         'role_changed' => true,
+        'spend_budget' => true,
+        'spend_spike' => true,
+        'provider_paused' => true,
+        'audit_tampering' => true,
+        'lockdown' => true,
     ],
 
 ];

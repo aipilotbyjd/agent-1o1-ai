@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('runs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            // The primary key is declared before the self-referencing foreign key below: PostgreSQL
+            // needs the key to exist when the constraint is added, and `->primary()` on the column
+            // would be added after it.
+            $table->uuid('id');
+            $table->primary('id');
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->uuidMorphs('runnable');
             $table->foreignUuid('workflow_id')->nullable()->constrained('workflows')->cascadeOnDelete();

@@ -6,6 +6,7 @@ use App\Http\Responses\ApiResponse;
 use App\Services\SuperAdmin\Audit\SuperAdminAuditLogger;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -15,8 +16,9 @@ use Symfony\Component\HttpFoundation\Response;
  * for the same key instead of running the action again; the same key with a
  * different request body is refused. Without the header nothing changes.
  *
- * The authenticator code is left out of the comparison: a retry a minute
- * later legitimately carries a different one.
+ * The authenticator code is left out of the comparison (a retry a minute
+ * later legitimately carries a different one), and so is the order the fields
+ * were sent in.
  */
 class IdempotentSuperAdminRequest
 {
@@ -33,7 +35,7 @@ class IdempotentSuperAdminRequest
         }
 
         $cacheKey = 'super-admin-idempotency:'.$admin->id.':'.hash('sha256', $key);
-        $fingerprint = hash('sha256', $request->method().'|'.$request->path().'|'.json_encode($request->except('totp_code')));
+        $fingerprint = hash('sha256', $request->method().'|'.$request->path().'|'.json_encode(Arr::sortRecursive($request->except('totp_code'))));
 
         $stored = Cache::get($cacheKey);
 

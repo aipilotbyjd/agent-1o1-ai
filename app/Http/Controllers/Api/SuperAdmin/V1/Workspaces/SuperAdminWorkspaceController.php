@@ -31,7 +31,7 @@ class SuperAdminWorkspaceController extends Controller
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = '%'.$request->string('q').'%';
 
-                $query->where(fn ($inner) => $inner->where('name', 'like', $term)->orWhere('slug', 'like', $term));
+                $query->where(fn ($inner) => $inner->whereLike('name', $term)->orWhereLike('slug', $term));
             })
             ->when($request->string('status')->toString() === 'suspended', fn ($query) => $query->whereNotNull('suspended_at'))
             ->when($request->string('status')->toString() === 'active', fn ($query) => $query->whereNull('suspended_at'))

@@ -8,6 +8,7 @@ use App\Models\Agents\AgentSessionEvaluation;
 use App\Models\Agents\ReflectionRun;
 use App\Models\Runs\NodeRun;
 use App\Services\Ai\ByokProviderRegistrar;
+use App\Services\Ai\ModelPrices;
 
 /**
  * The per-node/per-agent-step cost table docs/PLAN.md's "Architecture
@@ -70,6 +71,18 @@ class CreditMeter
     private const int TYPICAL_PROMPT_TOKENS = 2000;
 
     private const int TYPICAL_COMPLETION_TOKENS = 500;
+
+    public function __construct(private readonly ModelPrices $prices) {}
+
+    /**
+     * The size of the message `estimateChatMessage()` prices.
+     *
+     * @return array{prompt: int, completion: int}
+     */
+    public function typicalMessageTokens(): array
+    {
+        return ['prompt' => self::TYPICAL_PROMPT_TOKENS, 'completion' => self::TYPICAL_COMPLETION_TOKENS];
+    }
 
     public function costForNodeRun(NodeRun $nodeRun): int
     {
@@ -276,20 +289,20 @@ class CreditMeter
     }
 
     /**
-     * Real dollar cost of this call, from `config('billing.model_prices')`
-     * keyed by the `provider`/`model` the SDK reports back on `usage` (see
+     * Real dollar cost of this call, from `ModelPrices` keyed by the
+     * `provider`/`model` the SDK reports back on `usage` (see
      * `AgentRunner::usageFor()`/`AskAiNode::execute()`). Null when the model
      * isn't priced: `tokenCost()` falls back to the flat ratio instead.
      *
      * @param  array<string, mixed>  $usage
      */
-    private function dollarCost(array $usage): ?float
+    public function dollarCost(array $usage): ?float
     {
         if (! isset($usage['provider'], $usage['model'])) {
             return null;
         }
 
-        $price = config("billing.model_prices.{$usage['provider']}:{$usage['model']}");
+        $price = $this->prices->for($usage['provider'], $usage['model']);
 
         if ($price === null) {
             return null;

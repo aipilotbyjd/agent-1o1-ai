@@ -232,5 +232,5 @@ function superAdminTotp(SuperAdmin $admin): string
  */
 function stepUp(SuperAdmin $admin, array $payload = []): array
 {
-    return [...$payload, 'reason' => 'Verified request from the account owner', 'totp_code' => superAdminTotp($admin)];
+    return ['reason' => 'Verified request from the account owner', 'totp_code' => superAdminTotp($admin), ...$payload];
 }

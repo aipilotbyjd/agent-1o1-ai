@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Ai\Operations\ModelRouteDescriber;
 use App\Services\SuperAdmin\Auth\SuperAdminGuard;
 use App\Services\SuperAdmin\Auth\SuperAdminTokenService;
 use App\Services\SuperAdmin\Dashboards\DashboardAccess;
@@ -19,6 +20,15 @@ use Illuminate\Support\ServiceProvider;
  */
 class SuperAdminServiceProvider extends ServiceProvider
 {
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        // Describing a whole catalog reads the endpoints and prices once per request.
+        $this->app->scoped(ModelRouteDescriber::class);
+    }
+
     /**
      * Bootstrap any application services.
      */

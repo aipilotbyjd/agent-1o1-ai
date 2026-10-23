@@ -35,19 +35,25 @@ class StepUpRequest extends FormRequest
      */
     public function after(): array
     {
-        return [
-            function (Validator $validator): void {
-                if ($validator->errors()->isNotEmpty()) {
-                    return;
-                }
+        return [fn (Validator $validator) => $this->requireFreshAuthenticatorCode($validator)];
+    }
 
-                $admin = $this->user('super-admin');
+    /**
+     * Adds an error unless the request carries a valid authenticator code for
+     * the signed-in super admin. Skipped while other fields are invalid, so a
+     * typo elsewhere does not use up a code.
+     */
+    protected function requireFreshAuthenticatorCode(Validator $validator): void
+    {
+        if ($validator->errors()->isNotEmpty()) {
+            return;
+        }
 
-                if (! $admin instanceof SuperAdmin
-                    || ! app(SuperAdminTwoFactorService::class)->verifyTotp($admin, (string) $this->input('totp_code'))) {
-                    $validator->errors()->add('totp_code', 'The two-factor code is invalid.');
-                }
-            },
-        ];
+        $admin = $this->user('super-admin');
+
+        if (! $admin instanceof SuperAdmin
+            || ! app(SuperAdminTwoFactorService::class)->verifyTotp($admin, (string) $this->input('totp_code'))) {
+            $validator->errors()->add('totp_code', 'The two-factor code is invalid.');
+        }
     }
 }

@@ -8,5 +8,6 @@ Route::middleware([
     'super-admin.two-factor', 'super-admin.audit', 'super-admin.can:audit.view',
 ])->prefix('audit-log')->as('audit-log.')->group(function () {
     Route::get('/', [SuperAdminAuditLogController::class, 'index'])->name('index');
+    Route::get('integrity', [SuperAdminAuditLogController::class, 'integrity'])->name('integrity');
     Route::get('{log}', [SuperAdminAuditLogController::class, 'show'])->whereUuid('log')->name('show');
 });

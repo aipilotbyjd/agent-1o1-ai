@@ -38,6 +38,7 @@ use App\Observers\AuditObserver;
 use App\Observers\NodeRunObserver;
 use App\Observers\RunObserver;
 use App\Observers\WorkspaceMemberObserver;
+use App\Services\Ai\OperatorEndpoints;
 use App\Services\Assistant\Branding\BrandRepository;
 use App\Services\Assistant\Branding\ConfigBrandRepository;
 use App\Services\Assistant\Computer\ComputerToolProvider;
@@ -71,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(RunStarter::class, TargetRunStarter::class);
+        $this->app->singleton(OperatorEndpoints::class);
         $this->app->bind(BrandRepository::class, ConfigBrandRepository::class);
         $this->app->bind(SandboxDriver::class, E2BSandboxDriver::class);
         $this->app->tag([ConnectorToolProvider::class, KnowledgeToolProvider::class, ComputerToolProvider::class], ToolCatalog::TAG);

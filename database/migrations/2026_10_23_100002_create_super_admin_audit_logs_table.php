@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Schema;
  * the command line. `subject_type` is a plain label (e.g. `super_admin`)
  * rather than a morph type, so recording a change never depends on the
  * enforced morph map knowing the model.
+ *
+ * Each entry is chained to the one before it: `sequence` counts up without
+ * gaps and `hash` covers the entry's content and `previous_hash`, so an entry
+ * that is edited, removed or slipped in afterwards breaks the chain (see
+ * `AuditChain`). The columns are nullable only so that a row written outside
+ * the logger shows up as unchained rather than being impossible to store.
  */
 return new class extends Migration
 {
@@ -30,6 +36,9 @@ return new class extends Migration
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent', 500)->nullable();
             $table->string('request_id', 64)->nullable();
+            $table->unsignedBigInteger('sequence')->nullable()->unique();
+            $table->char('previous_hash', 64)->nullable();
+            $table->char('hash', 64)->nullable();
             $table->timestamp('created_at')->nullable();
 
             $table->index(['subject_type', 'subject_id']);

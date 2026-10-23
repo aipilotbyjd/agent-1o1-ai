@@ -18,6 +18,8 @@ class SuperAdminAuditLogResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'sequence' => $this->sequence,
+            'hash' => $this->hash,
             'action' => $this->action,
             'actor' => $this->whenLoaded('admin', fn () => $this->admin === null ? null : [
                 'id' => $this->admin->id,

@@ -36,6 +36,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | AI endpoints
+    |--------------------------------------------------------------------------
+    |
+    | Hosts (comma-separated, exact names or IPs) an operator endpoint may point
+    | at even though they are private or plain http, such as a model server on
+    | the internal network. Everything else must be https and public. See
+    | `EndpointUrlGuard`.
+    |
+    */
+
+    'endpoints' => [
+        'private_hosts' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('SUPER_ADMIN_ENDPOINT_PRIVATE_HOSTS', '')),
+        ))),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | CORS
     |--------------------------------------------------------------------------
     |

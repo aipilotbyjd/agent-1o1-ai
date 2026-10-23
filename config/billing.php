@@ -205,6 +205,12 @@ return [
     | Model Prices
     |--------------------------------------------------------------------------
     |
+    | These prices are now maintained in the `model_prices` table (see
+    | `ModelPrices`, and the Super Admin API under /models/prices); a price
+    | there wins over the same key here. This map is the fallback for any
+    | model not in the table yet: `php artisan model-prices:import-config`
+    | copies it across, after which it can be emptied.
+    |
     | Real $ per 1M tokens, keyed by "{provider}:{model}": the same
     | provider/model strings `laravel/ai` reports back on a response's
     | `Meta` (and that match `model_routes.execution_provider`/

@@ -184,6 +184,15 @@ class SuperAdminTokenService
     }
 
     /**
+     * Ends every live session of every super admin. For an emergency (see
+     * `super-admin:lockdown`); returns how many sessions it ended.
+     */
+    public function revokeEverything(): int
+    {
+        return SuperAdminToken::query()->whereNull('revoked_at')->update(['revoked_at' => now()]);
+    }
+
+    /**
      * Strips the ability to refresh from every session, so the admin has to
      * sign in again within one access-token lifetime (used on demotion).
      */

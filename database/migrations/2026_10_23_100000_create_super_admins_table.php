@@ -17,7 +17,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('super_admins', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            // Declared before `created_by` references this table: PostgreSQL needs the key to exist first.
+            $table->uuid('id');
+            $table->primary('id');
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');

@@ -150,6 +150,9 @@ Write the answer to each in one line at the top of your launch notes. They chang
 - [ ] Super Admin (`docs/SUPER_ADMIN_PLAN.md`): `SUPER_ADMIN_ENABLED` is **false** on every deploy that should not expose it; on the admin deploy set `SUPER_ADMIN_ALLOWED_IPS` / `SUPER_ADMIN_HOST` / `SUPER_ADMIN_ALLOWED_ORIGINS`, create the first owner with `php artisan super-admin:create you@example.com --role=owner`, finish password change + two-factor enrolment, and check `super-admin:audit-log` records what you did.
 
 ### 3.3 Admin and operational dashboards
+- [ ] Spend guard: set `MODEL_DAILY_BUDGET_USD` and `MODEL_WORKSPACE_DAILY_USD`, set `SUPER_ADMIN_ALERT_EMAILS` to a mailbox someone reads, and confirm the scheduler runs `model-usage:rollup` and `model-spend:check` hourly.
+- [ ] Audit log: run `php artisan super-admin:audit-verify` and write down the `head` it prints somewhere outside the database; re-check with `--expect-hash=<head>` now and then. Know the incident commands: `super-admin:lockdown` (every session out) and the `POST /models/providers/{provider}/pause` kill switch for a leaked AI key.
+- [ ] Models: run `php artisan db:seed --class=ModelPriceSeeder` (or `model-prices:import-config`), then `php artisan model-catalog:doctor` and clear every error; price every model you pay for (`Super Admin → Models → Margins` shows which are unpriced or losing money).
 - [ ] Horizon gate (`viewHorizon`) restricted to `SUPER_ADMIN_DASHBOARD_IPS`: test an allowed and a disallowed address in production.
 - [ ] Pulse dashboard gate (`viewPulse`) restricted to `SUPER_ADMIN_DASHBOARD_IPS`: test an allowed address gets in while an unauthenticated and a non-listed request return 403.
 - [ ] Any other admin UI/route (artifacts, debug, telescope-like tools, `/docs`, OpenAPI, Boost/MCP endpoints) is disabled or gated in production. `laravel/boost` is a dev dependency: confirm it is **not installed** in the production image and its MCP routes are not exposed.

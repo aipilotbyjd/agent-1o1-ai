@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Routes run on the platform's own keys; a workspace's own key is put in
  * front per call by `ByokProviderRegistrar`.
  */
-#[Fillable(['model_catalog_id', 'execution_provider', 'execution_model_id', 'priority', 'is_enabled', 'options', 'failure_count', 'last_failed_at'])]
+#[Fillable(['model_catalog_id', 'execution_provider', 'execution_model_id', 'priority', 'is_enabled', 'options', 'failure_count', 'last_failed_at', 'last_checked_at', 'last_check_ok', 'last_check_latency_ms', 'last_check_message'])]
 class ModelRoute extends Model
 {
     /** @use HasFactory<ModelRouteFactory> */
@@ -45,6 +45,9 @@ class ModelRoute extends Model
             'options' => 'array',
             'failure_count' => 'integer',
             'last_failed_at' => 'datetime',
+            'last_checked_at' => 'datetime',
+            'last_check_ok' => 'boolean',
+            'last_check_latency_ms' => 'integer',
         ];
     }
 

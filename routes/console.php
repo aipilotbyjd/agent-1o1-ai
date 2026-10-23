@@ -39,6 +39,14 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
     Schedule::command('knowledge:sync-sources')->everyFifteenMinutes();
     Schedule::command('skills:sync-sources')->everyFifteenMinutes();
 
+    // Super Admin
+    Schedule::command('super-admin:audit-verify')->dailyAt('05:00')->when(fn (): bool => (bool) config('super_admin.enabled'));
+
+    // Models
+    Schedule::command('model-catalog:retire-due')->dailyAt('04:00');
+    Schedule::command('model-usage:rollup')->hourlyAt(5);
+    Schedule::command('model-spend:check')->hourlyAt(15);
+
     // Workflow builder
     Schedule::command('workflow-builder:archive-idle')->dailyAt('03:00');
 
