@@ -38,10 +38,15 @@ return new class extends Migration
             // and a tick missed while the scheduler was down is still caught.
             $table->timestamp('next_run_at')->nullable();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            // The canvas node that owns this row (`TriggerNodeSync`). Null for a
+            // trigger authored directly through the API: agent targets and
+            // standalone workflow triggers.
+            $table->string('trigger_node_key')->nullable();
             $table->timestamps();
 
             $table->index(['type', 'is_active']);
             $table->index(['type', 'is_active', 'next_run_at']);
+            $table->unique(['target_type', 'target_id', 'trigger_node_key']);
         });
     }
 

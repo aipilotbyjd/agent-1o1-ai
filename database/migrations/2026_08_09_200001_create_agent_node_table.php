@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('node_type');
             $table->json('config')->nullable();
             $table->json('exposed_fields')->nullable();
+            $table->json('approval_policy')->nullable();
             $table->timestamps();
 
             $table->unique(['agent_id', 'node_type']);

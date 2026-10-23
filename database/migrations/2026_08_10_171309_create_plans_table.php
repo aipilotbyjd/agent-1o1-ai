@@ -31,6 +31,7 @@ return new class extends Migration
             $table->unsignedInteger('price_lifetime')->default(0);
             $table->string('stripe_price_id_quarterly')->nullable();
             $table->string('stripe_price_id_lifetime')->nullable();
+            $table->json('enabled_intervals')->nullable();
             $table->timestamps();
         });
     }

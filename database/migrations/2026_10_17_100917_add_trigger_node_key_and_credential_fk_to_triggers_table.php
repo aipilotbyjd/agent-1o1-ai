@@ -12,14 +12,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('triggers', function (Blueprint $table) {
-            // The canvas node that owns this row (`TriggerNodeSync`). Null for a
-            // trigger authored directly through the API: agent targets and
-            // standalone workflow triggers.
-            $table->string('trigger_node_key')->nullable()->after('target_id');
-            $table->unique(['target_type', 'target_id', 'trigger_node_key']);
-        });
-
         // The FK the original migration deferred until connector_credentials
         // existed. Any id left pointing at nothing is cleared first, or the
         // constraint can't be added.
@@ -40,8 +32,6 @@ return new class extends Migration
     {
         Schema::table('triggers', function (Blueprint $table) {
             $table->dropForeign(['credential_id']);
-            $table->dropUnique(['target_type', 'target_id', 'trigger_node_key']);
-            $table->dropColumn('trigger_node_key');
         });
     }
 };

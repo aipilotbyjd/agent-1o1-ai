@@ -27,6 +27,9 @@ return new class extends Migration
             $table->string('color', 20)->nullable();
             $table->boolean('allow_self_updates')->default(false);
             $table->boolean('allow_skill_editing')->default(false);
+            $table->string('autonomy_mode')->default('ask');
+            $table->boolean('test_mode')->default(false);
+            $table->boolean('allow_web_fetch')->default(true);
             $table->timestamps();
             $table->softDeletes();
 

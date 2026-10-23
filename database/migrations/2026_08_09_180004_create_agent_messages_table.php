@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('tool_call_id')->nullable();
             $table->json('usage')->nullable();
             $table->json('tool_results')->nullable();
+            $table->json('paused_state')->nullable();
             $table->timestamps();
 
             $table->index(['agent_session_id', 'created_at']);
