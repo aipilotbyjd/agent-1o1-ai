@@ -22,6 +22,7 @@ enum SuperAdminAbility: string
     case BillingGrantCredits = 'billing.grant-credits';
     case BillingExtendPlan = 'billing.extend-plan';
     case BillingRefund = 'billing.refund';
+    case BillingReplayWebhooks = 'billing.replay-webhooks';
     case CatalogManage = 'catalog.manage';
     case ReferralsManage = 'referrals.manage';
     case AccountsManage = 'accounts.manage';

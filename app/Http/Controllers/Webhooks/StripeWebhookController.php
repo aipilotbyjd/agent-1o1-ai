@@ -14,6 +14,7 @@ use App\Models\Billing\CreditPack;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
 use App\Models\Billing\ProcessedWebhookEvent;
+use App\Models\Billing\StripeWebhookFailure;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Billing\PaymentFailedNotification;
 use App\Notifications\Billing\PaymentRecoveredNotification;
@@ -88,15 +89,44 @@ class StripeWebhookController extends CashierWebhookController
             $response = parent::handleWebhook($request);
         } catch (Throwable $e) {
             $processedEvent->delete();
+            $this->recordFailure($eventId, $payload, $e->getMessage());
 
             throw $e;
         }
 
         if ($response->getStatusCode() >= 500) {
             $processedEvent->delete();
+            $this->recordFailure($eventId, $payload, 'The handler answered HTTP '.$response->getStatusCode().'.');
+        } else {
+            $this->resolveFailure($eventId);
         }
 
         return $response;
+    }
+
+    /**
+     * Keeps a trace of an event we failed on, so it can be seen and replayed if
+     * Stripe gives up retrying. Bookkeeping must never change the outcome of
+     * the delivery itself.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function recordFailure(string $eventId, array $payload, string $error): void
+    {
+        try {
+            StripeWebhookFailure::record($eventId, $payload['type'] ?? 'unknown', $error);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    private function resolveFailure(string $eventId): void
+    {
+        try {
+            StripeWebhookFailure::resolve($eventId);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     protected function handleCustomerSubscriptionCreated(array $payload)

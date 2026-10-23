@@ -47,6 +47,7 @@ return [
             Ability::BillingGrantCredits->value,
             Ability::BillingExtendPlan->value,
             Ability::BillingRefund->value,
+            Ability::BillingReplayWebhooks->value,
         ],
 
         Role::Support->value => [

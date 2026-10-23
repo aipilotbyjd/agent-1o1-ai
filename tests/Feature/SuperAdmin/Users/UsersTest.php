@@ -4,6 +4,8 @@ use App\Enums\SuperAdmin\SuperAdminRole;
 use App\Models\SuperAdmin\SuperAdminAuditLog;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 beforeEach(function () {
@@ -149,3 +151,47 @@ it('does not let a user token reach the user admin routes', function () {
 
     $this->flushHeaders()->getJson(saUrl('users'))->assertUnauthorized();
 });
+
+it('resends the verification email to an unverified user, and says why', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create();
+
+    $this->withHeaders($this->headers)
+        ->postJson(saUrl("users/{$user->id}/resend-verification"), ['reason' => 'User says the email never came'])
+        ->assertOk();
+
+    Notification::assertSentTo($user, VerifyEmail::class);
+
+    $log = SuperAdminAuditLog::query()->where('action', 'users.verification_resent')->firstOrFail();
+
+    expect($log->reason)->toBe('User says the email never came')->and($log->subject_id)->toBe($user->id);
+});
+
+it('will not resend verification to a verified address, or without a reason', function () {
+    Notification::fake();
+    $verified = User::factory()->create();
+    $unverified = User::factory()->unverified()->create();
+
+    $this->withHeaders($this->headers)
+        ->postJson(saUrl("users/{$verified->id}/resend-verification"), ['reason' => 'Checking the address'])
+        ->assertStatus(409);
+
+    $this->withHeaders($this->headers)
+        ->postJson(saUrl("users/{$unverified->id}/resend-verification"))
+        ->assertUnprocessable()->assertJsonValidationErrors('reason');
+
+    Notification::assertNothingSent();
+});
+
+it('keeps resending verification to the roles that can act on users', function (SuperAdminRole $role, int $status) {
+    $user = User::factory()->unverified()->create();
+
+    $this->withHeaders(superAdminHeaders(superAdmin($role)))
+        ->postJson(saUrl("users/{$user->id}/resend-verification"), ['reason' => 'User says the email never came'])
+        ->assertStatus($status);
+})->with([
+    'support' => [SuperAdminRole::Support, 200],
+    'operator' => [SuperAdminRole::Operator, 200],
+    'finance' => [SuperAdminRole::Finance, 403],
+    'viewer' => [SuperAdminRole::Viewer, 403],
+]);

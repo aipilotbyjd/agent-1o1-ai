@@ -68,6 +68,13 @@ class SuperAdminUserController extends Controller
         return ApiResponse::success((new SuperAdminUserResource($user))->resolve($request), 'User restored.');
     }
 
+    public function resendVerification(ReasonRequest $request, User $user)
+    {
+        $this->users->resendVerification($request->user('super-admin'), $user, $request->validated('reason'));
+
+        return ApiResponse::success(null, 'Verification email sent.');
+    }
+
     public function forceLogout(ReasonRequest $request, User $user)
     {
         $this->users->forceLogout($request->user('super-admin'), $user, $request->validated('reason'));

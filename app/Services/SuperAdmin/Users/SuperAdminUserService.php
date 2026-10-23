@@ -63,6 +63,19 @@ class SuperAdminUserService
     }
 
     /**
+     * Sends the verification email again. Refused for an address that is
+     * already verified, so it can't be used to mail an inbox for no reason.
+     */
+    public function resendVerification(SuperAdmin $actor, User $user, string $reason): void
+    {
+        abort_if($user->hasVerifiedEmail(), 409, 'This user has already verified their email.');
+
+        $user->sendEmailVerificationNotification();
+
+        $this->audit->record($actor, 'users.verification_resent', $user, reason: $reason);
+    }
+
+    /**
      * Revokes every access token and refresh token: the access tokens alone
      * are not enough, a live refresh token would mint new ones.
      */
