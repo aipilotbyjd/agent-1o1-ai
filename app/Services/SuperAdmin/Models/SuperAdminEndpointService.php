@@ -29,7 +29,7 @@ class SuperAdminEndpointService
     ) {}
 
     /**
-     * @param  array{slug: string, name: string, base_url: string, api_key?: ?string, notes?: ?string, is_enabled?: bool}  $data
+     * @param  array{slug: string, name: string, base_url: string, api_key?: ?string, notes?: ?string, is_enabled?: bool, workspace_requests_per_minute?: ?int, total_requests_per_minute?: ?int}  $data
      */
     public function create(SuperAdmin $actor, array $data, string $reason): AiEndpoint
     {
@@ -44,7 +44,7 @@ class SuperAdminEndpointService
     }
 
     /**
-     * @param  array{name?: string, base_url?: string, api_key?: ?string, clear_api_key?: bool, notes?: ?string, is_enabled?: bool}  $data
+     * @param  array{name?: string, base_url?: string, api_key?: ?string, clear_api_key?: bool, notes?: ?string, is_enabled?: bool, workspace_requests_per_minute?: ?int, total_requests_per_minute?: ?int}  $data
      */
     public function update(SuperAdmin $actor, AiEndpoint $endpoint, array $data, string $reason): AiEndpoint
     {
@@ -152,6 +152,8 @@ class SuperAdminEndpointService
             'name' => $endpoint->name,
             'base_url' => $endpoint->base_url,
             'is_enabled' => $endpoint->is_enabled,
+            'workspace_requests_per_minute' => $endpoint->workspace_requests_per_minute,
+            'total_requests_per_minute' => $endpoint->total_requests_per_minute,
             'has_key' => filled($endpoint->api_key),
         ];
     }

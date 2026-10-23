@@ -32,6 +32,8 @@ class StoreEndpointRequest extends StepUpRequest
             'api_key' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:500'],
             'is_enabled' => ['sometimes', 'boolean'],
+            'workspace_requests_per_minute' => ['nullable', 'integer', 'between:1,1000000'],
+            'total_requests_per_minute' => ['nullable', 'integer', 'between:1,1000000'],
         ];
     }
 

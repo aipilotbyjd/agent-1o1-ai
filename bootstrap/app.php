@@ -4,6 +4,7 @@ use App\Exceptions\BillingAccountNotFoundException;
 use App\Exceptions\ConnectorException;
 use App\Exceptions\FeatureNotAvailableException;
 use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\ModelBusyException;
 use App\Exceptions\ModelSubmissionException;
 use App\Exceptions\OwnAiKeyRequiredException;
 use App\Exceptions\PlanLimitExceededException;
@@ -154,6 +155,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (PlanLimitExceededException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 402);
+            }
+        });
+
+        $exceptions->render(function (ModelBusyException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::tooManyRequests($e->getMessage())->header('Retry-After', (string) $e->retryAfter);
             }
         });
 

@@ -23,7 +23,7 @@ class OperatorEndpoints
     private const int RECHECK_SECONDS = 30;
 
     /**
-     * @var array<string, array{dynamic: bool, at: int}>
+     * @var array<string, array{dynamic: bool, at: int, limits?: array{workspace: ?int, total: ?int}|null}>
      */
     private array $seen = [];
 
@@ -50,7 +50,21 @@ class OperatorEndpoints
         // The SDK keeps the provider it built, so a changed key or URL has to drop it.
         $this->ai->purge($provider);
 
-        $this->seen[$provider] = ['dynamic' => true, 'at' => now()->getTimestamp()];
+        $this->seen[$provider] = ['dynamic' => true, 'at' => now()->getTimestamp(), 'limits' => $endpoint?->rateLimits()];
+    }
+
+    /**
+     * The per-minute request limits of an operator endpoint, or null for a
+     * provider that has none (every provider `config/ai.php` defines, and an
+     * endpoint with no limits set).
+     *
+     * @return array{workspace: ?int, total: ?int}|null
+     */
+    public function limitsFor(string $provider): ?array
+    {
+        $this->ensureRegistered($provider);
+
+        return $this->seen[$provider]['limits'] ?? null;
     }
 
     /**

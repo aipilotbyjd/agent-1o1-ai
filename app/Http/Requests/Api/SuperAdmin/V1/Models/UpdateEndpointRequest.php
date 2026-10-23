@@ -9,7 +9,7 @@ use Illuminate\Validation\Validator;
 /**
  * Edits an endpoint. The slug never changes (routes refer to it). Sending
  * `api_key` replaces the key; sending `clear_api_key` removes it; sending
- * neither leaves it alone.
+ * neither leaves it alone. The two request limits are cleared by sending null.
  */
 class UpdateEndpointRequest extends StepUpRequest
 {
@@ -26,6 +26,8 @@ class UpdateEndpointRequest extends StepUpRequest
             'clear_api_key' => ['sometimes', 'boolean'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
             'is_enabled' => ['sometimes', 'boolean'],
+            'workspace_requests_per_minute' => ['sometimes', 'nullable', 'integer', 'between:1,1000000'],
+            'total_requests_per_minute' => ['sometimes', 'nullable', 'integer', 'between:1,1000000'],
         ];
     }
 

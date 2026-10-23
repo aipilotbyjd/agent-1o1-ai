@@ -5,7 +5,10 @@ use App\Models\Ai\AiEndpoint;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Ai\ModelRoute;
 use App\Models\SuperAdmin\SuperAdminAuditLog;
+use App\Models\User;
+use App\Services\Ai\EndpointRateLimiter;
 use App\Services\Ai\ModelCatalogResolver;
+use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -198,4 +201,52 @@ it('does not call an address the guard has since refused', function () {
         ->assertOk()->assertJsonPath('data.ok', false);
 
     Http::assertNothingSent();
+});
+
+it('sets request limits on an endpoint, changes them, and clears them', function () {
+    $created = $this->withHeaders($this->headers)
+        ->postJson(saUrl('models/endpoints'), stepUp($this->operator, endpointPayload(['workspace_requests_per_minute' => 30, 'total_requests_per_minute' => 300])))
+        ->assertCreated()
+        ->assertJsonPath('data.workspace_requests_per_minute', 30)
+        ->assertJsonPath('data.total_requests_per_minute', 300)
+        ->assertJsonPath('data.rejected_today', 0);
+
+    $url = saUrl('models/endpoints/'.$created->json('data.id'));
+
+    $this->withHeaders($this->headers)->patchJson($url, stepUp($this->operator, ['workspace_requests_per_minute' => 10]))
+        ->assertOk()->assertJsonPath('data.workspace_requests_per_minute', 10)->assertJsonPath('data.total_requests_per_minute', 300);
+
+    $this->withHeaders($this->headers)->patchJson($url, stepUp($this->operator, ['workspace_requests_per_minute' => null, 'total_requests_per_minute' => null]))
+        ->assertOk()->assertJsonPath('data.workspace_requests_per_minute', null)->assertJsonPath('data.total_requests_per_minute', null);
+
+    $logs = SuperAdminAuditLog::query()->whereIn('action', ['models.endpoint.created', 'models.endpoint.updated'])->orderBy('sequence')->get();
+
+    expect($logs[0]->after)->toMatchArray(['workspace_requests_per_minute' => 30, 'total_requests_per_minute' => 300])
+        ->and($logs[1]->before['workspace_requests_per_minute'])->toBe(30)
+        ->and($logs[1]->after['workspace_requests_per_minute'])->toBe(10);
+});
+
+it('validates request limits', function (array $input) {
+    $this->withHeaders($this->headers)->postJson(saUrl('models/endpoints'), stepUp($this->operator, endpointPayload($input)))
+        ->assertUnprocessable()->assertJsonValidationErrors(array_key_first($input));
+})->with([
+    'zero per workspace' => [['workspace_requests_per_minute' => 0]],
+    'a negative total' => [['total_requests_per_minute' => -5]],
+    'not a number' => [['workspace_requests_per_minute' => 'lots']],
+    'absurdly many' => [['total_requests_per_minute' => 99_000_000]],
+]);
+
+it('applies a new limit to the very next call, in the same process', function () {
+    $endpoint = AiEndpoint::factory()->create(['slug' => 'my-vllm']);
+    $workspace = app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Acme']);
+    $limiter = app(EndpointRateLimiter::class);
+
+    // No limit yet: nothing is counted.
+    expect($limiter->attempt('my-vllm', $workspace->id))->toBeNull()
+        ->and($limiter->attempt('my-vllm', $workspace->id))->toBeNull();
+
+    $this->withHeaders($this->headers)->patchJson(saUrl("models/endpoints/{$endpoint->id}"), stepUp($this->operator, ['workspace_requests_per_minute' => 1]))->assertOk();
+
+    expect($limiter->attempt('my-vllm', $workspace->id))->toBeNull()
+        ->and($limiter->attempt('my-vllm', $workspace->id))->not->toBeNull();
 });

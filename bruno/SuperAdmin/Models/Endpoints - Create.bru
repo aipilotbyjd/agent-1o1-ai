@@ -22,7 +22,9 @@ body:json {
     "name": "Our vLLM box",
     "base_url": "https://llm.example.com/v1",
     "api_key": "sk-...",
-    "notes": ""
+    "notes": "",
+    "workspace_requests_per_minute": 30,
+    "total_requests_per_minute": 300
   }
 }
 
@@ -34,5 +36,5 @@ script:post-response {
 }
 
 docs {
-  Adds a provider the platform can send calls to, with no deploy: use its slug as a route's provider. Needs a reason and a fresh code. The URL must be https and public; a private host has to be named in `SUPER_ADMIN_ENDPOINT_PRIVATE_HOSTS`.
+  Adds a provider the platform can send calls to, with no deploy: use its slug as a route's provider. Needs a reason and a fresh code. `workspace_requests_per_minute` and `total_requests_per_minute` (null for none) protect a server of your own: a call over either limit skips this endpoint, so it fails over to the next provider, or answers 429 with `Retry-After` when there is none. The URL must be https and public; a private host has to be named in `SUPER_ADMIN_ENDPOINT_PRIVATE_HOSTS`.
 }

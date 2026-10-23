@@ -5,6 +5,7 @@ namespace App\Services\Ai;
 use App\Enums\Ai\AiProviderCredentialStatus;
 use App\Enums\Ai\PlatformKeyUsage;
 use App\Enums\Connectors\ConnectorCredentialScope;
+use App\Exceptions\ModelBusyException;
 use App\Exceptions\OwnAiKeyRequiredException;
 use App\Exceptions\ProviderPausedException;
 use App\Models\Ai\AiProviderCredential;
@@ -82,6 +83,7 @@ class ByokProviderRegistrar
             PlatformKeyUsage::Never => false,
         };
         $pauses = app(ProviderPauses::class);
+        $limiter = app(EndpointRateLimiter::class);
 
         // A bare provider with no model leaves the model to the driver's
         // default, which only a single-provider call can express.
@@ -90,11 +92,14 @@ class ByokProviderRegistrar
                 $credentials->has($provider) => [$this->register($credentials[$provider], $provider), null],
                 ! $platformAllowed => throw $this->ownKeyRequired($chain),
                 $pauses->isPaused($provider) => throw ProviderPausedException::forProviders(),
+                $platformAllowed && ModelCatalogResolver::providerIsConfigured($provider)
+                    && ($wait = $limiter->attempt($provider, $workspaceId)) !== null => throw ModelBusyException::retryIn($wait),
                 default => [$provider, $model],
             };
         }
 
         $result = [];
+        $busyFor = 0;
 
         foreach ($chain as $hop => $hopModel) {
             if ($credentials->has($hop)) {
@@ -102,7 +107,14 @@ class ByokProviderRegistrar
             }
 
             if ($platformAllowed && ModelCatalogResolver::providerIsConfigured($hop)) {
-                $result[$hop] = $hopModel;
+                // A hop at its request limit is skipped, so the call fails over to the next one.
+                $wait = $limiter->attempt($hop, $workspaceId);
+
+                if ($wait === null) {
+                    $result[$hop] = $hopModel;
+                } else {
+                    $busyFor = max($busyFor, $wait);
+                }
             }
         }
 
@@ -112,6 +124,10 @@ class ByokProviderRegistrar
             // Unless the reason is that the operator paused them: then the call
             // must not run on the paused key by way of this fallback.
             if ($platformAllowed) {
+                if ($busyFor > 0) {
+                    throw ModelBusyException::retryIn($busyFor);
+                }
+
                 if (array_filter(array_keys($chain), fn (string $hop): bool => $pauses->isPaused($hop)) !== []) {
                     throw ProviderPausedException::forProviders();
                 }

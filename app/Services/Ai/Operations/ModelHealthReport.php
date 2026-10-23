@@ -9,6 +9,7 @@ use App\Models\Ai\AiProviderCredential;
 use App\Models\Ai\ModelCatalog;
 use App\Models\Ai\ModelPrice;
 use App\Models\Ai\ModelRoute;
+use App\Services\Ai\EndpointRateLimiter;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Ai\ModelPrices;
 use App\Services\Ai\ProviderPauses;
@@ -42,6 +43,7 @@ class ModelHealthReport
         private readonly ModelPrices $prices,
         private readonly SpendGuard $spend,
         private readonly ProviderPauses $pauses,
+        private readonly EndpointRateLimiter $limits,
     ) {}
 
     /**
@@ -258,6 +260,12 @@ class ModelHealthReport
 
             if (! $endpoint->is_enabled && $routed->isNotEmpty()) {
                 $findings->push($this->finding(self::ERROR, 'endpoint_disabled_but_routed', "The endpoint [{$endpoint->slug}] is switched off but [".$routed->pluck('slug')->implode(', ').'] still route to it.', 'endpoint', endpoint: $endpoint));
+            }
+
+            $turnedAway = $endpoint->rateLimits() === null ? 0 : $this->limits->rejectedToday($endpoint->slug);
+
+            if ($turnedAway > 0) {
+                $findings->push($this->finding(self::INFO, 'endpoint_rate_limited', "The request limits on the endpoint [{$endpoint->slug}] turned away {$turnedAway} call(s) today. Raise a limit if that is more than you want, or add capacity.", 'endpoint', endpoint: $endpoint));
             }
 
             if ($endpoint->is_enabled && $endpoint->last_check_ok === false) {
