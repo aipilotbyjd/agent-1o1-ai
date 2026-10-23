@@ -1,15 +1,20 @@
 <?php
 
 use App\Actions\Referrals\AttributeReferralAction;
+use App\Enums\SuperAdmin\SuperAdminRole;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralProgram;
+use App\Models\SuperAdmin\SuperAdmin;
+use App\Models\SuperAdmin\SuperAdminToken;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\StripeCustomerBalance;
 use App\Services\Referrals\ReferralCodes;
+use App\Services\SuperAdmin\Auth\SuperAdminTokenService;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\Client;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 /*
@@ -180,4 +185,60 @@ function referralInvoicePaidPayload(string $eventId, string $customerId, int $am
 function unwrapUntrusted(string $wrapped): string
 {
     return preg_replace('#^<untrusted_content[^>]*>\n|\n</untrusted_content>$#', '', $wrapped);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Super Admin helpers
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * A URL under the Super Admin API.
+ */
+function saUrl(string $path): string
+{
+    return '/api/'.config('super_admin.prefix').'/'.ltrim($path, '/');
+}
+
+/**
+ * A fully provisioned super admin: password already changed, two-factor
+ * authentication confirmed (an owner unless a role is given).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function superAdmin(SuperAdminRole $role = SuperAdminRole::Owner, array $attributes = []): SuperAdmin
+{
+    return SuperAdmin::factory()->role($role)->withTwoFactor()->create($attributes);
+}
+
+/**
+ * An `Authorization` header carrying a fresh token for `$admin`.
+ *
+ * @return array<string, string>
+ */
+function superAdminHeaders(SuperAdmin $admin, string $scope = SuperAdminToken::SCOPE_FULL): array
+{
+    $issued = app(SuperAdminTokenService::class)->issue($admin, $scope);
+
+    return ['Authorization' => 'Bearer '.$issued['access_token']];
+}
+
+/**
+ * The code an authenticator app would show right now.
+ */
+function superAdminTotp(SuperAdmin $admin): string
+{
+    return app(Google2FA::class)->getCurrentOtp($admin->two_factor_secret);
+}
+
+/**
+ * The reason and fresh authenticator code every sensitive write requires.
+ *
+ * @param  array<string, mixed>  $payload
+ * @return array<string, mixed>
+ */
+function stepUp(SuperAdmin $admin, array $payload = []): array
+{
+    return [...$payload, 'reason' => 'Verified request from the account owner', 'totp_code' => superAdminTotp($admin)];
 }

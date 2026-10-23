@@ -4,7 +4,10 @@ The Super Admin API is the back-office surface for operating the platform: looki
 
 This plan replaces the current stop-gap, where admin routes live inside Internal and "admin" is a boolean on `users` (`users.is_platform_admin`, `routes/api/internal/admin.php`, `EnsurePlatformAdmin`, `Admin` controller folder, `admin:grant` command).
 
-> Status: **plan only**. Nothing here is built yet except the referral admin endpoints and the audit log, which move into this surface (§ 13).
+> Status (branch `dev-admin`):
+> - **Built, not yet run:** phases 0, 1 and 6 of § 15, plus the audit log read API and the artisan commands: master flag and the five configs, `super_admins` / tokens / audit / login-event tables, models and factory, own-token guard, sign-in with mandatory two-factor, sessions, password change and rotation, lockout, IP allowlists, roles and abilities, step-up confirmation, audit-by-default middleware, account management API, `super-admin:*` commands, and Pest suites under `tests/Feature/SuperAdmin`. This code was written without access to a shell, so **nothing has been executed**: run `php artisan migrate`, `vendor/bin/pint --dirty --format agent` and `php artisan test --compact --filter=SuperAdmin` first and fix whatever they find.
+> - **Not started:** moving the existing referral admin API and `AdminAuditLog` into this surface and removing `users.is_platform_admin` (§ 13), the read/write endpoints for users, workspaces, billing, runs, catalog and stats (§ 11.3-11.9), the Horizon/Pulse gate, Bruno requests, impersonation.
+> - The old `/api/v1/admin/*` API is untouched and still works beside this one.
 
 ---
 
@@ -165,9 +168,9 @@ Factories: `SuperAdminFactory` with states `owner()`, `operator()`, `finance()`,
 
 ### 5.1 Guard and tokens
 
-- `config/auth.php`: provider `super_admins` (Eloquent → `SuperAdmin`), guard `super-admin` (driver `passport`).
-- A dedicated Passport client bound to the `super_admins` provider, so a user token cannot validate against this guard and a super admin token cannot validate against `auth:api`. **Verify against the Passport 13 docs how a second provider and its client are configured** (the app enables the password grant by hand in `AppServiceProvider`), and whether the cleanest route is a password grant client for this provider or issuing tokens directly in `SuperAdminAuthService`. Decide before implementation; add a test proving cross-guard rejection either way.
-- Tokens carry the `super-admin` scope; `EnsureSuperAdminAccount` rejects a token without it.
+- `config/auth.php`: provider `super_admins` (Eloquent → `SuperAdmin`), guard `super-admin` (driver `super-admin-token`, registered in `SuperAdminServiceProvider`). Routes use `auth:super-admin`.
+- **Decision: Super Admin tokens are not Passport.** They are opaque random strings issued by `SuperAdminTokenService` and stored (SHA-256 hashed) in `super_admin_tokens`. Reasons: a second Passport provider needs its own OAuth client row (created with `passport:client`, a manual step per environment), the user API's password grant is wired through one shared client, and a table of our own makes isolation absolute: a user JWT can never validate here, and a Super Admin token is just an unparseable string to Passport. The guard (`SuperAdminGuard`) caches its result on the request, not on itself.
+- Token scope is a column, not an OAuth scope: `full` (only after a two-factor code) or `setup` (password change and two-factor enrolment only, no refresh token). `EnsureSuperAdminTwoFactor` rejects anything but a full token.
 - **Access token TTL 15 min, refresh token 7 days, sliding but with an absolute cap of 30 days.** A refresh rotates the refresh token; reuse of an old refresh token revokes the whole session family.
 - No personal access tokens, no API keys, no long-lived tokens for super admins.
 
@@ -486,7 +489,7 @@ Run with `php artisan test --compact --filter=SuperAdmin`; run Pint on dirty fil
 
 1. **Data in any environment?** If none, edit the original create migrations; otherwise add drop/rename migrations.
 2. **Horizon/Pulse access.** They use the `web` guard and know nothing about token-auth super admins. Options: (a) IP allowlist / Cloudflare Access only, (b) a tiny session login for super admins on the admin host, (c) allowlist of emails in config. Recommendation: (a).
-3. **Passport second-provider approach** (§ 5.1): password-grant client for `super_admins` vs issuing tokens inside `SuperAdminAuthService`. Settle after reading the Passport 13 docs.
+3. ~~**Passport second-provider approach**~~ **Resolved:** own opaque tokens, no Passport (§ 5.1).
 4. **Per-account IP allowlist**: build in v1 or leave the column for later?
 5. **Account onboarding**: one-time setup link by email vs. temp password printed by the CLI.
 6. **Amount caps** for credit grants and refunds without a second approver; is a two-person approval needed later?

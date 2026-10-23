@@ -16,6 +16,11 @@ use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SuperAdmin\AuditSuperAdminRequest;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminAbility;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminIpAllowed;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminIsActive;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminTwoFactor;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -39,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             __DIR__.'/../routes/api/public/index.php',
             __DIR__.'/../routes/webhooks.php',
             __DIR__.'/../routes/api/pages.php',
+            __DIR__.'/../routes/api/super_admin/index.php',
         ],
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
@@ -57,6 +63,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'api-key' => EnsureApiKeyIsValid::class,
             'long-agent-turn' => AllowLongAgentTurn::class,
             'platform.admin' => EnsurePlatformAdmin::class,
+            'super-admin.ip' => EnsureSuperAdminIpAllowed::class,
+            'super-admin.active' => EnsureSuperAdminIsActive::class,
+            'super-admin.two-factor' => EnsureSuperAdminTwoFactor::class,
+            'super-admin.can' => EnsureSuperAdminAbility::class,
+            'super-admin.audit' => AuditSuperAdminRequest::class,
         ]);
 
         $middleware->append(SecurityHeaders::class);

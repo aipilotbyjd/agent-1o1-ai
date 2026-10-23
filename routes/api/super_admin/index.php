@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Super Admin API
+|--------------------------------------------------------------------------
+|
+| Behind the one master flag, `SUPER_ADMIN_ENABLED`: with it off this file
+| registers nothing, so the URLs do not exist at all.
+|
+| `super-admin.ip` runs first, before any authentication, so a global IP
+| allowlist also protects the sign-in endpoints.
+|
+*/
+
+if (! config('super_admin.enabled')) {
+    return;
+}
+
+$attributes = [
+    'prefix' => config('super_admin.prefix'),
+    'as' => 'super-admin.',
+    'middleware' => ['super-admin.ip'],
+];
+
+if (filled(config('super_admin.host'))) {
+    $attributes['domain'] = config('super_admin.host');
+}
+
+Route::group($attributes, function () {
+    require __DIR__.'/auth.php';
+    require __DIR__.'/accounts.php';
+    require __DIR__.'/audit_log.php';
+});
