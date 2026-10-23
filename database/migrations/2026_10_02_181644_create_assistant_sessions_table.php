@@ -21,6 +21,7 @@ return new class extends Migration
             $table->boolean('incognito')->default(false);
             $table->timestamp('expires_at')->nullable();
             $table->timestamp('last_activity_at')->nullable();
+            $table->json('channel_context')->nullable();
             $table->timestamps();
 
             $table->index(['assistant_id', 'last_activity_at']);

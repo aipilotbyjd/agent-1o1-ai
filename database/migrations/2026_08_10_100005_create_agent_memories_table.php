@@ -25,6 +25,7 @@ return new class extends Migration
             $table->text('value');
             $table->string('type')->default('fact');
             $table->json('metadata')->nullable();
+            $table->foreignUuid('agent_session_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['agent_id', 'user_id', 'key']);

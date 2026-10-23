@@ -19,6 +19,13 @@ return new class extends Migration
             $table->json('capabilities')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedInteger('sort_order')->default(0);
+            $table->boolean('is_internal')->default(false);
+            $table->string('description', 500)->nullable();
+            $table->json('strengths')->nullable();
+            $table->string('speed')->nullable();
+            $table->unsignedTinyInteger('cost_tier')->nullable();
+            $table->timestamp('retires_at')->nullable();
+            $table->string('replacement_slug')->nullable();
             $table->timestamps();
         });
     }

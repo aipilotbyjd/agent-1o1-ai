@@ -25,6 +25,8 @@ return new class extends Migration
             $table->timestamp('ends_at');
             $table->unsignedInteger('credits_used')->default(0);
             $table->unsignedInteger('credits_limit')->nullable();
+            $table->unsignedInteger('overage_credits_used')->default(0);
+            $table->unsignedInteger('overage_credits_billed')->default(0);
             $table->timestamps();
 
             $table->unique(['workspace_id', 'starts_at']);

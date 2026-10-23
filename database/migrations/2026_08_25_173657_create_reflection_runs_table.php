@@ -23,6 +23,7 @@ return new class extends Migration
             $table->text('skip_reason')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+            $table->json('usage')->nullable();
             $table->timestamps();
 
             $table->index(['agent_id', 'created_at']);

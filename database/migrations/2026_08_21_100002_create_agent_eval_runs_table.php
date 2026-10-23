@@ -28,6 +28,8 @@ return new class extends Migration
             $table->foreignUuid('triggered_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+            $table->string('trigger')->default('manual');
+            $table->boolean('regressed')->default(false);
             $table->timestamps();
 
             $table->index(['agent_eval_suite_id', 'created_at']);

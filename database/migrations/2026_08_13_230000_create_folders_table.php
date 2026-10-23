@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('color', 7)->nullable();
             $table->unsignedInteger('position')->default(0);
+            $table->string('type')->default('workflow');
+            $table->index(['workspace_id', 'type', 'parent_id']);
             $table->timestamps();
 
             $table->index(['workspace_id', 'parent_id']);

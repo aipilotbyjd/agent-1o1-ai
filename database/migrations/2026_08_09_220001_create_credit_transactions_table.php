@@ -25,6 +25,7 @@ return new class extends Migration
             $table->uuid('source_id');
             $table->unsignedInteger('credits');
             $table->string('reason')->nullable();
+            $table->unsignedInteger('overage_credits')->default(0);
             $table->timestamps();
 
             $table->index(['workspace_id', 'created_at']);

@@ -17,12 +17,19 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug');
             $table->text('description')->nullable();
-            $table->text('instructions');
+            $table->text('instructions')->nullable();
             $table->string('provider')->default('anthropic');
             $table->string('model')->nullable();
             $table->decimal('temperature', 3, 2)->nullable();
             $table->json('settings')->nullable();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('icon', 50)->nullable();
+            $table->string('color', 20)->nullable();
+            $table->boolean('allow_self_updates')->default(false);
+            $table->boolean('allow_skill_editing')->default(false);
+            $table->string('autonomy_mode')->default('ask');
+            $table->boolean('test_mode')->default(false);
+            $table->boolean('allow_web_fetch')->default(true);
             $table->timestamps();
             $table->softDeletes();
 

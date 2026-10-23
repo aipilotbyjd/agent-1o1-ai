@@ -20,6 +20,7 @@ return new class extends Migration
             $table->id();
             $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('workflow_id')->constrained()->cascadeOnDelete();
+            $table->json('approval_policy')->nullable();
             $table->timestamps();
 
             $table->unique(['agent_id', 'workflow_id']);

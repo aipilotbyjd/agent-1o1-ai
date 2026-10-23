@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('redirect_uri');
             $table->timestamp('expires_at');
+            $table->string('scope')->default('team');
+            $table->uuid('connector_credential_id')->nullable();
             $table->timestamps();
         });
     }

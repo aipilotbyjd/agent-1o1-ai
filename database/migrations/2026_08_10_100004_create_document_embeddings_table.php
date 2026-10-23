@@ -28,6 +28,10 @@ return new class extends Migration
             $table->longText('chunk_text');
             $table->json('embedding');
             $table->json('metadata')->nullable();
+            $table->unsignedInteger('chunk_index')->default(0);
+
+            $table->index(['workspace_id', 'source']);
+            $table->unsignedBigInteger('ingest_revision')->nullable();
             $table->timestamps();
 
             $table->index(['workspace_id', 'collection']);

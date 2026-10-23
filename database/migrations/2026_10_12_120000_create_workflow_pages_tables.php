@@ -41,6 +41,14 @@ return new class extends Migration
             $table->string('public_token', 48)->unique();
             $table->boolean('is_enabled')->default(true);
             $table->unsignedInteger('max_runs_per_day')->nullable();
+            // What a link to the page shows when it's pasted into a chat or
+            // a post. Null = worked out from the page; see PageSharePreview.
+            $table->string('share_title', 120)->nullable();
+            $table->string('share_description', 300)->nullable();
+            $table->string('share_image_url', 2048)->nullable();
+            // Bumped whenever either draft changes, so a builder saving over
+            // a draft someone else changed since it loaded is refused.
+            $table->unsignedInteger('draft_revision')->default(0);
             $table->timestamps();
 
             $table->index(['workspace_id', 'updated_at']);

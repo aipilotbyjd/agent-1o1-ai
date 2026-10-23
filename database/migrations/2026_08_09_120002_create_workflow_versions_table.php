@@ -18,6 +18,7 @@ return new class extends Migration
             $table->json('graph');
             $table->string('notes', 500)->nullable();
             $table->foreignUuid('published_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->json('editor_graph')->nullable();
             $table->timestamps();
 
             $table->unique(['workflow_id', 'version']);

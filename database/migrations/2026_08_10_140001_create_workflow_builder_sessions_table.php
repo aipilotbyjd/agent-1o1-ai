@@ -8,10 +8,8 @@ use Illuminate\Support\Facades\Schema;
  * A chat session that edits a `draft_graph` (`{nodes: [...], edges: [...]}`;
  * byte-for-byte what `Workflow::replaceGraph()` expects, so promoting the
  * draft to a real workflow is a direct pass-through, not a transform) via
- * `WorkflowBuilderAgent`. `conversation_id` links the `Laravel\Ai`
- * `RemembersConversations` trail; `draft_lock_version` is optimistic
- * concurrency so two collaborators editing the same draft don't silently
- * clobber each other.
+ * `WorkflowBuilderAgent`. `draft_lock_version` is optimistic concurrency so
+ * two collaborators editing the same draft don't silently clobber each other.
  */
 return new class extends Migration
 {
@@ -25,12 +23,12 @@ return new class extends Migration
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('workflow_id')->nullable()->constrained('workflows')->nullOnDelete();
-            $table->string('conversation_id')->nullable()->index();
             $table->string('title')->default('Untitled workflow');
             $table->json('draft_graph')->nullable();
             $table->unsignedInteger('draft_lock_version')->default(0);
             $table->string('status', 20)->default('active');
             $table->timestamp('last_activity_at')->nullable();
+            $table->string('workflow_graph_hash', 64)->nullable();
             $table->timestamps();
 
             $table->index(['workspace_id', 'user_id', 'status']);

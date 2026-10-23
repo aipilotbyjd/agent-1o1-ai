@@ -27,6 +27,11 @@ return new class extends Migration
             $table->unsignedSmallInteger('trial_days')->default(0);
             $table->boolean('is_active')->default(true);
             $table->unsignedSmallInteger('sort_order')->default(0);
+            $table->unsignedInteger('price_quarterly')->default(0);
+            $table->unsignedInteger('price_lifetime')->default(0);
+            $table->string('stripe_price_id_quarterly')->nullable();
+            $table->string('stripe_price_id_lifetime')->nullable();
+            $table->json('enabled_intervals')->nullable();
             $table->timestamps();
         });
     }

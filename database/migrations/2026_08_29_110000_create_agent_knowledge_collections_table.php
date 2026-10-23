@@ -19,6 +19,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('agent_id')->constrained()->cascadeOnDelete();
             $table->string('collection');
+            $table->string('mode')->default('search');
             $table->timestamps();
 
             $table->unique(['agent_id', 'collection']);

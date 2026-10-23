@@ -21,6 +21,8 @@ return new class extends Migration
             $table->json('attachments')->nullable();
             $table->json('usage')->nullable();
             $table->uuid('compacted_into_id')->nullable();
+            $table->json('tool_results')->nullable();
+            $table->json('paused_state')->nullable();
             $table->timestamps();
 
             $table->index(['assistant_session_id', 'created_at']);

@@ -35,6 +35,11 @@ return new class extends Migration
             $table->foreignUuid('triggered_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+            $table->foreignUuid('retried_from_run_id')->nullable()->constrained('runs')->nullOnDelete();
+            $table->json('agent_context')->nullable();
+            // The trigger node a trigger-fired run starts from. Null runs
+            // start at every entry node, as they always have.
+            $table->string('entry_node_key')->nullable();
             $table->timestamps();
 
             $table->index(['workspace_id', 'status']);

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->boolean('run_on_change')->default(true);
             $table->timestamps();
 
             $table->index(['agent_id', 'created_at']);

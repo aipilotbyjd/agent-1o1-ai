@@ -29,6 +29,14 @@ return new class extends Migration
             $table->string('last_commit_sha', 64)->nullable();
             $table->timestamp('last_synced_at')->nullable();
             $table->unsignedInteger('skills_count')->default(0);
+            $table->boolean('two_way')->default(false);
+            $table->json('sync_baseline')->nullable();
+            $table->json('sync_conflicts')->nullable();
+            $table->boolean('publish_once')->default(false);
+            $table->boolean('repository_private')->nullable();
+            $table->string('upstream_repo')->nullable();
+            $table->string('upstream_branch')->nullable();
+            $table->json('fork_request')->nullable();
             $table->timestamps();
 
             $table->index('workspace_id');

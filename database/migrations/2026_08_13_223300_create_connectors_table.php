@@ -23,6 +23,8 @@ return new class extends Migration
             $table->json('oauth')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedInteger('sort_order')->default(0);
+            $table->string('category')->default('other');
+            $table->boolean('is_featured')->default(false);
             $table->timestamps();
         });
     }

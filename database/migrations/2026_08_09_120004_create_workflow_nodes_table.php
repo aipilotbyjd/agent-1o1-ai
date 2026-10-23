@@ -18,6 +18,9 @@ return new class extends Migration
             $table->string('type');
             $table->json('config')->nullable();
             $table->json('position')->nullable();
+            $table->json('pinned_data')->nullable();
+            $table->timestamp('pinned_at')->nullable();
+            $table->foreignUuid('pinned_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['workflow_id', 'key']);
