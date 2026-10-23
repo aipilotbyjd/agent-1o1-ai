@@ -11,9 +11,9 @@ use App\Exceptions\PublishApprovalRequiredException;
 use App\Exceptions\RunStateException;
 use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
+use App\Exceptions\WorkspaceSuspendedException;
 use App\Http\Middleware\AllowLongAgentTurn;
 use App\Http\Middleware\EnsureApiKeyIsValid;
-use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SuperAdmin\AuditSuperAdminRequest;
@@ -21,6 +21,7 @@ use App\Http\Middleware\SuperAdmin\EnsureSuperAdminAbility;
 use App\Http\Middleware\SuperAdmin\EnsureSuperAdminIpAllowed;
 use App\Http\Middleware\SuperAdmin\EnsureSuperAdminIsActive;
 use App\Http\Middleware\SuperAdmin\EnsureSuperAdminTwoFactor;
+use App\Http\Middleware\SuperAdmin\IdempotentSuperAdminRequest;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -62,12 +63,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.context' => EnsureWorkspaceScope::class,
             'api-key' => EnsureApiKeyIsValid::class,
             'long-agent-turn' => AllowLongAgentTurn::class,
-            'platform.admin' => EnsurePlatformAdmin::class,
             'super-admin.ip' => EnsureSuperAdminIpAllowed::class,
             'super-admin.active' => EnsureSuperAdminIsActive::class,
             'super-admin.two-factor' => EnsureSuperAdminTwoFactor::class,
             'super-admin.can' => EnsureSuperAdminAbility::class,
             'super-admin.audit' => AuditSuperAdminRequest::class,
+            'super-admin.idempotent' => IdempotentSuperAdminRequest::class,
         ]);
 
         $middleware->append(SecurityHeaders::class);
@@ -134,6 +135,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (InsufficientCreditsException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 402);
+            }
+        });
+
+        $exceptions->render(function (WorkspaceSuspendedException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::forbidden($e->getMessage());
             }
         });
 

@@ -5,6 +5,7 @@ namespace App\Services\SuperAdmin\Audit;
 use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\SuperAdmin\SuperAdminAuditLog;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 /**
@@ -42,7 +43,7 @@ class SuperAdminAuditLogger
 
         return SuperAdminAuditLog::query()->create([
             'super_admin_id' => $actor?->id,
-            'actor_label' => $actorLabel ?? ($actor === null ? 'system' : null),
+            'actor_label' => $actorLabel ?? ($actor === null ? $this->defaultActorLabel() : null),
             'action' => $action,
             'subject_type' => $subject !== null ? Str::snake(class_basename($subject)) : null,
             'subject_id' => $subject?->getKey(),
@@ -81,7 +82,16 @@ class SuperAdminAuditLogger
         );
     }
 
-    private function requestId(\Illuminate\Http\Request $request): ?string
+    /**
+     * Who to name when no super admin is acting: the command line when run from
+     * it (the referral `referrals:*` commands, say), otherwise the system itself.
+     */
+    private function defaultActorLabel(): string
+    {
+        return app()->runningInConsole() ? 'cli:'.get_current_user() : 'system';
+    }
+
+    private function requestId(Request $request): ?string
     {
         $id = $request->headers->get('X-Request-Id') ?? $request->attributes->get(self::REQUEST_ID_ATTRIBUTE);
 

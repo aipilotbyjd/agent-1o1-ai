@@ -6,7 +6,7 @@ Legend: `[ ]` to do · **BLOCKER** = must be done before any external user · **
 
 Findings from reading the repo when this was written (re-check, they may be stale):
 - No `.github/workflows` directory exists, so there is **no CI** yet (§12).
-- Horizon's `viewHorizon` gate is restricted to platform admins. No `viewPulse` gate was found in `app/Providers`. Pulse's default only allows the `local` environment, so production access is denied until you define one: **VERIFY** admins can reach it and nobody else can (§3.3).
+- Horizon's `viewHorizon` and Pulse's `viewPulse` gates are closed in production unless the request comes from an address in `SUPER_ADMIN_DASHBOARD_IPS` (and `SUPER_ADMIN_ENABLED=true`): **VERIFY** your own address gets in and nobody else does, and put both behind a VPN or Cloudflare Access as well (§3.3).
 - Production services are four images: `Dockerfile.web` (nginx + php-fpm, `/up` health check), `Dockerfile.horizon` (`artisan horizon`), `Dockerfile.scheduler` (`schedule:work`), `Dockerfile.reverb` (`reverb:start` on :8000).
 - `.env.example` defaults are all development values (sqlite, database queue/cache, `BROADCAST_CONNECTION=log`, `MAIL_MAILER=log`, local disk, `LOG_LEVEL=debug`).
 
@@ -147,11 +147,11 @@ Write the answer to each in one line at the top of your launch notes. They chang
 - [ ] Invitation flow cannot be abused to join other workspaces or escalate role.
 - [ ] API keys: hashed at rest, shown once, scoped, revocable, last-used tracked, rate-limited.
 - [ ] Public pages (`PageTemplate`, page submissions, unlock): confirm no private data leaks through public page endpoints; unlock codes rate-limited (`page-unlock`).
-- [ ] Platform admin: `GrantPlatformAdminCommand` used for at least one real admin; admin endpoints require platform admin; admin actions audited (`AdminAuditLogCommand` exists: confirm it records everything important).
+- [ ] Super Admin (`docs/SUPER_ADMIN_PLAN.md`): `SUPER_ADMIN_ENABLED` is **false** on every deploy that should not expose it; on the admin deploy set `SUPER_ADMIN_ALLOWED_IPS` / `SUPER_ADMIN_HOST` / `SUPER_ADMIN_ALLOWED_ORIGINS`, create the first owner with `php artisan super-admin:create you@example.com --role=owner`, finish password change + two-factor enrolment, and check `super-admin:audit-log` records what you did.
 
 ### 3.3 Admin and operational dashboards
-- [ ] Horizon gate (`viewHorizon`) restricted to platform admins: **already in place, VERIFY** in production.
-- [ ] Pulse dashboard gate defined and restricted. **No gate was found in the code**: Pulse denies everyone outside `local` by default, so define `viewPulse` for platform admins and test that an admin gets in while an unauthenticated and a normal-user request return 403.
+- [ ] Horizon gate (`viewHorizon`) restricted to `SUPER_ADMIN_DASHBOARD_IPS`: test an allowed and a disallowed address in production.
+- [ ] Pulse dashboard gate (`viewPulse`) restricted to `SUPER_ADMIN_DASHBOARD_IPS`: test an allowed address gets in while an unauthenticated and a non-listed request return 403.
 - [ ] Any other admin UI/route (artifacts, debug, telescope-like tools, `/docs`, OpenAPI, Boost/MCP endpoints) is disabled or gated in production. `laravel/boost` is a dev dependency: confirm it is **not installed** in the production image and its MCP routes are not exposed.
 - [ ] No debug routes, no test/seed users, no default credentials.
 
@@ -422,7 +422,7 @@ Write the answer to each in one line at the top of your launch notes. They chang
 ### T-1 day
 - [ ] Verify provider spend limits (§1.7), Stripe live mode (§4), alert routing (§5), backups ran last night and restore point exists (§6.1).
 - [ ] Run seeders in production (idempotent set, §6.2) and verify plan/template/node/connector data visually.
-- [ ] Create the first platform admin (`GrantPlatformAdminCommand`) and test admin access (Horizon, Pulse, admin endpoints) and non-admin denial.
+- [ ] Create the first super admin (`super-admin:create --role=owner`) and test Super Admin access (admin API, Horizon, Pulse from an allowed address) and denial for a normal user token, a disabled admin and a disallowed address.
 - [ ] Smoke test checklist scripted: sign-up, verify email, login, create workflow from template, run, webhook trigger, agent turn, billing page, logout.
 - [ ] Remove any test data/accounts created during rehearsal.
 

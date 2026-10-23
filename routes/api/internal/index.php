@@ -29,5 +29,4 @@ Route::prefix('v1')->group(function () {
     require __DIR__.'/artifacts.php';
     require __DIR__.'/library.php';
     require __DIR__.'/referrals.php';
-    require __DIR__.'/admin.php';
 });

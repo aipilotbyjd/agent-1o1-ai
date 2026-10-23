@@ -5,12 +5,12 @@ use App\Enums\Referrals\ReferralRecipient;
 use App\Enums\Referrals\ReferralRewardStatus;
 use App\Enums\Referrals\ReferralStatus;
 use App\Enums\Referrals\ReferralTrigger;
-use App\Models\Admin\AdminAuditLog;
 use App\Models\Billing\Plan;
 use App\Models\Referrals\ReferralBlockedDomain;
 use App\Models\Referrals\ReferralProgram;
 use App\Models\Referrals\ReferralReward;
 use App\Models\Referrals\ReferralRewardRule;
+use App\Models\SuperAdmin\SuperAdminAuditLog;
 use App\Services\Referrals\ReferralCodes;
 use Illuminate\Support\Str;
 
@@ -33,8 +33,8 @@ it('creates a program and edits its settings, merging fraud checks', function ()
         ->and($program->is_active)->toBeFalse()
         ->and($program->fraudCheck('ip_velocity')['max'])->toBe(3)
         ->and($program->fraudCheckEnabled('card_fingerprint'))->toBeFalse()
-        ->and(AdminAuditLog::query()->pluck('action')->all())->toBe(['referral_program.created', 'referral_program.updated'])
-        ->and(AdminAuditLog::query()->whereNotNull('admin_user_id')->count())->toBe(0);
+        ->and(SuperAdminAuditLog::query()->pluck('action')->all())->toBe(['referral_program.created', 'referral_program.updated'])
+        ->and(SuperAdminAuditLog::query()->whereNotNull('super_admin_id')->count())->toBe(0);
 });
 
 it('rejects invalid settings with the same rules as the admin API', function () {
@@ -202,7 +202,7 @@ it('reports stats and the audit log', function () {
 
     $this->artisan('referrals:domain', ['action' => 'add', 'domain' => 'spam.example'])->assertSuccessful();
 
-    $this->artisan('admin:audit-log', ['--action' => 'referral_blocked_domain'])
-        ->expectsOutputToContain('command line')
+    $this->artisan('super-admin:audit-log', ['--action' => 'referral_blocked_domain'])
+        ->expectsOutputToContain('cli:')
         ->assertSuccessful();
 });

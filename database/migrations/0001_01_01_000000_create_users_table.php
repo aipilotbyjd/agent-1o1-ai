@@ -32,8 +32,10 @@ return new class extends Migration
             $table->string('avatar')->nullable();
             $table->string('pending_email')->nullable();
             $table->timestamp('pending_email_requested_at')->nullable();
-            $table->boolean('is_platform_admin')->default(false);
             $table->string('timezone', 64)->nullable();
+            // Set by a super admin: blocks sign-in and ends every session.
+            $table->timestamp('suspended_at')->nullable();
+            $table->string('suspended_reason')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

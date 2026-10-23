@@ -15,7 +15,8 @@ use Symfony\Component\HttpFoundation\Response;
  * a generic `request.<route name>` row with the outcome.
  *
  * Because the middleware sits ahead of the ability check, a *denied* attempt
- * is recorded too.
+ * (403) is recorded too. Requests that merely failed validation or hit a
+ * missing record changed nothing and are left out.
  */
 class AuditSuperAdminRequest
 {
@@ -35,15 +36,18 @@ class AuditSuperAdminRequest
 
         $response = $next($request);
 
+        $status = $response->getStatusCode();
+
         if (in_array($request->method(), self::READ_ONLY_METHODS, true)
-            || $request->attributes->get(SuperAdminAuditLogger::AUDITED_ATTRIBUTE)) {
+            || $request->attributes->get(SuperAdminAuditLogger::AUDITED_ATTRIBUTE)
+            || ($status >= 400 && $status !== Response::HTTP_FORBIDDEN)) {
             return $response;
         }
 
         $this->audit->record(
             $request->user('super-admin'),
             'request.'.($request->route()?->getName() ?? $request->path()),
-            after: ['method' => $request->method(), 'status' => $response->getStatusCode()],
+            after: ['method' => $request->method(), 'status' => $status],
         );
 
         return $response;

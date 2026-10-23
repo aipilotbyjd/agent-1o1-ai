@@ -3,7 +3,7 @@
 namespace App\Console\Commands\Referrals;
 
 use App\Console\Commands\Referrals\Concerns\ManagesReferralsFromConsole;
-use App\Http\Requests\Api\Internal\V1\Admin\Referrals\UpdateAdminReferralCodeRequest;
+use App\Http\Requests\Api\SuperAdmin\V1\Referrals\UpdateAdminReferralCodeRequest;
 use App\Models\Referrals\ReferralCode;
 use App\Models\Referrals\ReferralProgram;
 use App\Models\User;

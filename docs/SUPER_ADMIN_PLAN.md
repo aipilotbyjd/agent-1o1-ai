@@ -4,11 +4,11 @@ The Super Admin API is the back-office surface for operating the platform: looki
 
 This plan replaces the current stop-gap, where admin routes live inside Internal and "admin" is a boolean on `users` (`users.is_platform_admin`, `routes/api/internal/admin.php`, `EnsurePlatformAdmin`, `Admin` controller folder, `admin:grant` command).
 
-> Status (branch `dev-admin`):
-> - **Built, not yet run:** phases 0, 1 and 6 of § 15, plus the audit log read API and the artisan commands: master flag and the five configs, `super_admins` / tokens / audit / login-event tables, models and factory, own-token guard, sign-in with mandatory two-factor, sessions, password change and rotation, lockout, IP allowlists, roles and abilities, step-up confirmation, audit-by-default middleware, account management API, `super-admin:*` commands, and Pest suites under `tests/Feature/SuperAdmin`. This code was written without access to a shell, so **nothing has been executed**: run `php artisan migrate`, `vendor/bin/pint --dirty --format agent` and `php artisan test --compact --filter=SuperAdmin` first and fix whatever they find.
-> - **Not started:** moving the existing referral admin API and `AdminAuditLog` into this surface and removing `users.is_platform_admin` (§ 13), the read/write endpoints for users, workspaces, billing, runs, catalog and stats (§ 11.3-11.9), the Horizon/Pulse gate, Bruno requests, impersonation.
-> - The old `/api/v1/admin/*` API is untouched and still works beside this one.
-
+> Status (branch `dev-admin`): **built and tested** (`php artisan test --compact --filter=SuperAdmin`: 191 tests passing).
+> - Phases 0-6 of § 15 plus the Horizon/Pulse gate and the Bruno `SuperAdmin` folder: master flag and the five configs, own accounts/tokens/guard, two-factor sign-in, roles and abilities, step-up confirmation, audit-by-default, idempotency, account management, users, workspaces (suspend, members), billing (credits, comped plan time, refunds), runs (list, retry, cancel, failure summary), catalog (connectors, custom nodes, templates), stats, referrals and the audit log API.
+> - The old flag-based admin is gone: `users.is_platform_admin`, `EnsurePlatformAdmin`, `config/platform_admin.php`, the `admin:*` commands, `AdminAuditLog` and the `/api/v1/admin/*` routes. The create migrations were edited in place (pre-launch), so an existing local database needs `php artisan migrate:fresh`.
+> - Still open: impersonation (§ 11.12), the system endpoints (§ 11.11), a frontend, and the choices in § 14 that were settled by default.
+> - Decisions taken while building: own opaque tokens instead of Passport (§ 5.1); suspending a user revokes their Passport tokens and `AuthService` refuses new sessions; a suspended workspace is refused by `EnsureWorkspaceScope` and `CreditGate`; Horizon/Pulse are gated by `SUPER_ADMIN_DASHBOARD_IPS` (empty = nobody outside `local`); `referral_rewards.granted_by` is a plain uuid (no foreign key: the table predates `super_admins`); a super admin acting on a workspace appears in its audit trail as `super_admin:<email>`; the generic audit fallback records successful changes and denied (403) attempts, not validation failures.
 ---
 
 ## 1. Goals and principles

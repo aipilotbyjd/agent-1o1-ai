@@ -101,7 +101,11 @@ it('applies an account\'s own IP allowlist to sign-in and to its tokens', functi
 
     $fullAdmin = superAdmin(SuperAdminRole::Owner, ['allowed_ips' => ['203.0.113.5']]);
 
-    $this->withHeaders(superAdminHeaders($fullAdmin))->getJson(saUrl('audit-log'))->assertForbidden();
+    // Server variables persist across requests in a test, so set the address explicitly each time.
+    $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.1'])
+        ->withHeaders(superAdminHeaders($fullAdmin))
+        ->getJson(saUrl('audit-log'))
+        ->assertForbidden();
 
     $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.5'])
         ->withHeaders(superAdminHeaders($fullAdmin))

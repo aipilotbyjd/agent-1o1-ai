@@ -109,14 +109,6 @@ function referUser(User $referrer, ?User $referred = null, ?ReferralProgram $pro
     return app(AttributeReferralAction::class)->execute($referred ?? referralUser(['email_verified_at' => null]), $code->code);
 }
 
-function platformAdmin(): User
-{
-    $admin = User::factory()->create();
-    $admin->forceFill(['is_platform_admin' => true, 'two_factor_confirmed_at' => now()])->save();
-
-    return $admin;
-}
-
 /**
  * Swaps Stripe customer-balance calls for an in-memory record.
  */

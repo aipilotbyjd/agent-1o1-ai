@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Services\SuperAdmin\Auth\SuperAdminGuard;
 use App\Services\SuperAdmin\Auth\SuperAdminTokenService;
+use App\Services\SuperAdmin\Dashboards\DashboardAccess;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +25,7 @@ class SuperAdminServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerGuard();
+        $this->registerDashboardGate();
         $this->configureRateLimiting();
     }
 
@@ -43,6 +46,14 @@ class SuperAdminServiceProvider extends ServiceProvider
 
             return $guard;
         });
+    }
+
+    /**
+     * Pulse's own gate: the same network allowlist as Horizon's (`DashboardAccess`).
+     */
+    private function registerDashboardGate(): void
+    {
+        Gate::define('viewPulse', fn ($user = null): bool => $this->app->make(DashboardAccess::class)->allows(request()));
     }
 
     private function configureRateLimiting(): void

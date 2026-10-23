@@ -59,7 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'onboarding_dismissed_at' => 'datetime',
             'job_role' => JobRole::class,
             'discovery_source' => DiscoverySource::class,
-            'is_platform_admin' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -69,12 +69,11 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     }
 
     /**
-     * One of the people running the platform, allowed through the
-     * `/v1/admin/*` routes. Set only by `php artisan admin:grant`.
+     * Locked out by a super admin (see `SuperAdminUserService`).
      */
-    public function isPlatformAdmin(): bool
+    public function isSuspended(): bool
     {
-        return $this->is_platform_admin === true;
+        return $this->suspended_at !== null;
     }
 
     /**

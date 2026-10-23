@@ -27,6 +27,9 @@ return new class extends Migration
             $table->json('credit_usage_notification_thresholds')->nullable();
             $table->boolean('out_of_credits_notification_enabled')->default(true);
             $table->string('timezone', 64)->default('UTC');
+            // Set by a super admin: members are locked out and no run starts.
+            $table->timestamp('suspended_at')->nullable();
+            $table->string('suspended_reason')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

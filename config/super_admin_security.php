@@ -21,6 +21,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Operations dashboards
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated IPs or CIDR ranges allowed to open Horizon and Pulse
+    | outside `local`. Empty means nobody. See `DashboardAccess`.
+    |
+    */
+
+    'dashboard_ips' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('SUPER_ADMIN_DASHBOARD_IPS', '')),
+    ))),
+
+    /*
+    |--------------------------------------------------------------------------
     | CORS
     |--------------------------------------------------------------------------
     |
@@ -63,5 +78,22 @@ return [
     'step_up' => [
         'reason_min_length' => 10,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Limits
+    |--------------------------------------------------------------------------
+    |
+    | "credit_grant_max" caps what one request may add to (or take from) a
+    | workspace's top-up credits. "idempotency_ttl_hours" is how long a repeated
+    | `Idempotency-Key` on a money-moving request replays the first answer.
+    |
+    */
+
+    'limits' => [
+        'credit_grant_max' => (int) env('SUPER_ADMIN_CREDIT_GRANT_MAX', 100000),
+    ],
+
+    'idempotency_ttl_hours' => 24,
 
 ];
