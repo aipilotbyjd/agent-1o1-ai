@@ -48,6 +48,7 @@ use App\Services\Assistant\Tools\ConnectorToolProvider;
 use App\Services\Assistant\Tools\KnowledgeToolProvider;
 use App\Services\Assistant\Tools\ToolCatalog;
 use App\Services\Auth\Grants\SocialExchangeGrant;
+use App\Services\SuperAdmin\System\ScheduledCommandRecorder;
 use App\Services\Triggers\TargetRunStarter;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -96,6 +97,18 @@ class AppServiceProvider extends ServiceProvider
         $this->configureObservers();
         $this->configureMorphMap();
         $this->configureCashier();
+        $this->configureSchedulerRecording();
+    }
+
+    /**
+     * Records every scheduled command's runs for System Health. A singleton,
+     * because it matches each run's start to its finish by task object.
+     */
+    private function configureSchedulerRecording(): void
+    {
+        $this->app->singleton(ScheduledCommandRecorder::class);
+
+        $this->app->make(ScheduledCommandRecorder::class)->subscribe($this->app->make('events'));
     }
 
     private function configurePassport(): void
