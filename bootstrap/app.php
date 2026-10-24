@@ -15,6 +15,7 @@ use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
 use App\Exceptions\WorkspaceSuspendedException;
 use App\Http\Middleware\AllowLongAgentTurn;
+use App\Http\Middleware\BlockWritesDuringMaintenance;
 use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\SecurityHeaders;
@@ -75,7 +76,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->append(SecurityHeaders::class);
 
-        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
+        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class, BlockWritesDuringMaintenance::class]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
     })

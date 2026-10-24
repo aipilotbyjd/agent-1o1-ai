@@ -22,6 +22,7 @@ $view = [
     Ability::RunsView->value,
     Ability::BillingView->value,
     Ability::ModelsView->value,
+    Ability::BroadcastsView->value,
 ];
 
 return [
@@ -41,6 +42,7 @@ return [
             Ability::ReferralsManage->value,
             Ability::SystemManage->value,
             Ability::ModelsManage->value,
+            Ability::BroadcastsManage->value,
         ],
 
         Role::Finance->value => [

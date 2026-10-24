@@ -42,6 +42,13 @@ final class Channels
     public const string PAGE_PATTERN = 'workspaces.{workspaceId}.pages.{pageId}';
 
     /**
+     * The one platform-wide channel: every signed-in member may listen. It
+     * only ever carries a nudge to refetch announcements (never their text),
+     * so a banner aimed at one segment is not leaked to another.
+     */
+    public const string ANNOUNCEMENTS = 'announcements';
+
+    /**
      * Workspace-wide firehose of run state transitions: what a "Runs" list
      * subscribes to. Individual node steps do *not* land here; they would
      * flood a list view that only renders one row per run.

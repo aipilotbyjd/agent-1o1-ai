@@ -60,6 +60,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'job_role' => JobRole::class,
             'discovery_source' => DiscoverySource::class,
             'suspended_at' => 'datetime',
+            'marketing_opted_out_at' => 'datetime',
         ];
     }
 
@@ -74,6 +75,15 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function isSuspended(): bool
     {
         return $this->suspended_at !== null;
+    }
+
+    /**
+     * Unsubscribed from marketing email. Service messages (an incident, a
+     * policy change) are sent regardless: see `BroadcastCategory`.
+     */
+    public function hasOptedOutOfMarketing(): bool
+    {
+        return $this->marketing_opted_out_at !== null;
     }
 
     /**

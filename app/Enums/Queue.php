@@ -22,4 +22,5 @@ enum Queue: string
     case Billing = 'billing-webhook';
     case Maintenance = 'system-maintenance';
     case Notification = 'system-notification';
+    case Broadcast = 'system-broadcast';
 }

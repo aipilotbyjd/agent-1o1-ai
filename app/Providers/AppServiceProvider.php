@@ -202,6 +202,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('workflow-builder-assist', fn (Request $request): Limit => Limit::perMinute(20)
             ->by($request->user()?->id ?? $request->ip()));
 
+        // Super Admin email campaigns: one platform-wide budget for the mail provider.
+        RateLimiter::for('broadcast-emails', fn (): Limit => Limit::perSecond(max(1, (int) config('broadcasts.rate_per_second'))));
+
         // Unauthenticated, so keyed by IP: a landing page may legitimately
         // record a few visits, but nothing should be spraying them.
         RateLimiter::for('referral-visits', fn (Request $request): Limit => Limit::perMinute(30)->by($request->ip()));
