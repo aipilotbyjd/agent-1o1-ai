@@ -379,6 +379,21 @@ return [
             'timeout' => 60,
             'nice' => (int) env('HORIZON_BILLING_NICE', 0),
         ],
+        // Super Admin email campaigns: bulk and rate-limited, so they get their
+        // own supervisor and can never queue ahead of notifications or billing.
+        'supervisor-broadcasts' => [
+            'connection' => 'redis',
+            'queue' => ['system-broadcast'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 120,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -431,6 +446,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-broadcasts' => [
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
@@ -462,6 +482,9 @@ return [
                 'maxProcesses' => 1,
             ],
             'supervisor-billing' => [
+                'maxProcesses' => 1,
+            ],
+            'supervisor-broadcasts' => [
                 'maxProcesses' => 1,
             ],
         ],

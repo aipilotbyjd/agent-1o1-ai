@@ -40,3 +40,15 @@ Broadcast::channel(Channels::WORKFLOW_BUILDER_SESSION_PATTERN, $gate->workflowBu
 Broadcast::channel(Channels::ASSISTANT_SESSION_PATTERN, $gate->assistantSession(...));
 Broadcast::channel(Channels::ASSISTANT_PATTERN, $gate->assistant(...));
 Broadcast::channel(Channels::PAGE_PATTERN, $gate->page(...));
+
+/*
+|--------------------------------------------------------------------------
+| Announcements Channel
+|--------------------------------------------------------------------------
+|
+| Any signed-in member. The events on it carry no content: see
+| `Channels::ANNOUNCEMENTS`.
+|
+*/
+
+Broadcast::channel(Channels::ANNOUNCEMENTS, fn (User $user): bool => true);

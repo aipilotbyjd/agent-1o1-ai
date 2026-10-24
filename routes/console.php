@@ -42,6 +42,9 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
     // Super Admin
     Schedule::command('super-admin:audit-verify')->dailyAt('05:00')->when(fn (): bool => (bool) config('super_admin.enabled'));
 
+    // Broadcasts
+    Schedule::command('broadcasts:dispatch-due')->everyMinute();
+
     // Models
     Schedule::command('model-catalog:retire-due')->dailyAt('04:00');
     Schedule::command('model-usage:rollup')->hourlyAt(5);

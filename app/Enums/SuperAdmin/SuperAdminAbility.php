@@ -30,4 +30,6 @@ enum SuperAdminAbility: string
     case ModelsView = 'models.view';
     case ModelsManage = 'models.manage';
     case ModelsPrices = 'models.prices';
+    case BroadcastsView = 'broadcasts.view';
+    case BroadcastsManage = 'broadcasts.manage';
 }
