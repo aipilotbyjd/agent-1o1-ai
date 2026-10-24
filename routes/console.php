@@ -42,6 +42,14 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
     // Super Admin
     Schedule::command('super-admin:audit-verify')->dailyAt('05:00')->when(fn (): bool => (bool) config('super_admin.enabled'));
 
+    // System health, alerts & revenue
+    Schedule::command('system:heartbeat')->everyMinute();
+    Schedule::command('system:health-snapshot')->everyFiveMinutes()->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('alerts:evaluate')->everyMinute()->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('alerts:digest')->dailyAt('07:30')->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('alerts:prune')->dailyAt('05:30')->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('revenue:snapshot')->dailyAt('00:10')->when(fn (): bool => (bool) config('super_admin.enabled'));
+
     // Broadcasts
     Schedule::command('broadcasts:dispatch-due')->everyMinute();
 
