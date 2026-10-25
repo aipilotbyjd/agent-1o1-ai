@@ -13,6 +13,7 @@ enum SuperAdminAbility: string
     case UsersView = 'users.view';
     case UsersSuspend = 'users.suspend';
     case UsersForceLogout = 'users.force-logout';
+    case CustomersAnnotate = 'customers.annotate';
     case WorkspacesView = 'workspaces.view';
     case WorkspacesSuspend = 'workspaces.suspend';
     case RunsView = 'runs.view';

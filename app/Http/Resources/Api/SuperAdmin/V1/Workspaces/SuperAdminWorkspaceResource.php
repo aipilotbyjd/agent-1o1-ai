@@ -33,6 +33,7 @@ class SuperAdminWorkspaceResource extends JsonResource
             'stripe_customer' => $this->stripe_id !== null,
             'suspended_at' => $this->suspended_at,
             'suspended_reason' => $this->suspended_reason,
+            'tags' => $this->when($this->resource->offsetExists('account_tags'), fn () => $this->account_tags),
             'created_at' => $this->created_at,
         ];
     }

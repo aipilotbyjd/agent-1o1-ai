@@ -35,6 +35,7 @@ Route::group($attributes, function () {
     require __DIR__.'/audit_log.php';
     require __DIR__.'/referrals.php';
     require __DIR__.'/users.php';
+    require __DIR__.'/customers.php';
     require __DIR__.'/workspaces.php';
     require __DIR__.'/billing.php';
     require __DIR__.'/runs.php';

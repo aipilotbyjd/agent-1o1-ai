@@ -27,6 +27,7 @@ class SuperAdminRunController extends Controller
         $request->validate([
             'status' => ['nullable', Rule::enum(RunStatus::class)],
             'workspace_id' => ['nullable', 'uuid'],
+            'user_id' => ['nullable', 'uuid'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
         ]);
@@ -35,6 +36,7 @@ class SuperAdminRunController extends Controller
             ->with(['workspace:id,name', 'workflow:id,name'])
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')))
             ->when($request->filled('workspace_id'), fn ($query) => $query->where('workspace_id', $request->string('workspace_id')))
+            ->when($request->filled('user_id'), fn ($query) => $query->where('triggered_by', $request->string('user_id')))
             ->when($request->filled('from'), fn ($query) => $query->where('created_at', '>=', $request->date('from')))
             ->when($request->filled('to'), fn ($query) => $query->where('created_at', '<=', $request->date('to')))
             ->when($request->boolean('with_error'), fn ($query) => $query->whereNotNull('error'))

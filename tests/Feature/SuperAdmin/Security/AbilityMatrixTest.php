@@ -9,9 +9,9 @@ it('grants each role exactly the abilities in the matrix', function (SuperAdminR
     expect($role->abilities())->toEqualCanonicalizing($expected);
 })->with([
     'owner holds everything' => [SuperAdminRole::Owner, array_map(fn (SuperAdminAbility $ability) => $ability->value, SuperAdminAbility::cases())],
-    'operator' => [SuperAdminRole::Operator, [...$view, 'users.suspend', 'users.force-logout', 'workspaces.suspend', 'runs.retry', 'runs.cancel', 'catalog.manage', 'referrals.manage', 'system.manage', 'models.manage', 'broadcasts.manage', 'alerts.manage']],
-    'finance' => [SuperAdminRole::Finance, [...$view, 'referrals.manage', 'billing.grant-credits', 'billing.extend-plan', 'billing.refund', 'billing.replay-webhooks', 'models.prices', 'revenue.view']],
-    'support' => [SuperAdminRole::Support, [...$view, 'users.suspend', 'users.force-logout', 'workspaces.suspend', 'runs.retry', 'runs.cancel']],
+    'operator' => [SuperAdminRole::Operator, [...$view, 'users.suspend', 'users.force-logout', 'workspaces.suspend', 'customers.annotate', 'runs.retry', 'runs.cancel', 'catalog.manage', 'referrals.manage', 'system.manage', 'models.manage', 'broadcasts.manage', 'alerts.manage']],
+    'finance' => [SuperAdminRole::Finance, [...$view, 'referrals.manage', 'customers.annotate', 'billing.grant-credits', 'billing.extend-plan', 'billing.refund', 'billing.replay-webhooks', 'models.prices', 'revenue.view']],
+    'support' => [SuperAdminRole::Support, [...$view, 'users.suspend', 'users.force-logout', 'workspaces.suspend', 'customers.annotate', 'runs.retry', 'runs.cancel']],
     'viewer' => [SuperAdminRole::Viewer, $view],
 ]);
 
