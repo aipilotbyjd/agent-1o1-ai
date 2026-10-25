@@ -27,39 +27,15 @@ class SuperAdminBillingController extends Controller
     ) {}
 
     /**
-     * A read-only picture of the workspace's billing state. Deliberately does
-     * not call `Workspace::currentUsagePeriod()`, which creates a period when
-     * none exists: looking must not write.
+     * A read-only picture of the workspace's billing state (see `SuperAdminBillingService::summary`).
      */
     public function show(Request $request, Workspace $workspace)
     {
-        $plan = $workspace->currentPlan();
-        $subscription = $workspace->activeSubscription();
-        $period = $workspace->usagePeriods()
-            ->where('starts_at', '<=', now())
-            ->where('ends_at', '>', now())
-            ->first();
+        $summary = $this->billing->summary($workspace);
 
         $this->audit->record($request->user('super-admin'), 'billing.viewed', $workspace);
 
-        return ApiResponse::success([
-            'workspace_id' => $workspace->id,
-            'plan' => $plan === null ? null : ['id' => $plan->id, 'name' => $plan->name, 'slug' => $plan->slug],
-            'subscription' => $subscription === null ? null : [
-                'stripe_status' => $subscription->stripe_status,
-                'ends_at' => $subscription->ends_at,
-                'trial_ends_at' => $subscription->trial_ends_at,
-            ],
-            'topup_credits' => (int) $workspace->topup_credits,
-            'usage_period' => $period === null ? null : [
-                'starts_at' => $period->starts_at,
-                'ends_at' => $period->ends_at,
-                'credits_used' => $period->credits_used,
-                'credits_limit' => $period->credits_limit,
-                'overage_credits_used' => $period->overage_credits_used,
-            ],
-            'stripe_customer' => $workspace->stripe_id !== null,
-        ]);
+        return ApiResponse::success($summary);
     }
 
     public function creditTransactions(Request $request, Workspace $workspace)

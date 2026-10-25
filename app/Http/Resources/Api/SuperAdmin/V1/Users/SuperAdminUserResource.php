@@ -36,6 +36,7 @@ class SuperAdminUserResource extends JsonResource
                 'role' => $workspace->pivot->role,
                 'suspended_at' => $workspace->suspended_at,
             ])->all()),
+            'tags' => $this->when($this->resource->offsetExists('account_tags'), fn () => $this->account_tags),
             'created_at' => $this->created_at,
         ];
     }

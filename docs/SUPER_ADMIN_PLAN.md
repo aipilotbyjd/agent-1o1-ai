@@ -451,6 +451,22 @@ Moved verbatim from `routes/api/internal/admin.php`: programs, rules (reorder/to
 ### 11.10 Audit log: `audit_log.php` [`audit.view`]
 `GET /audit-log` (cursor; filter actor, action, subject, date range) · `GET /audit-log/{id}`. Read-only.
 
+### 11.10a Customer pages: `customers.php`
+
+Built for the admin panel's customer profile (one page per user or workspace). Reads need that record's own view ability; the search answers only for the kinds the admin may view; writing a note or tag needs `customers.annotate` (operator, finance, support, owner).
+
+| Method and path | What it gives |
+|---|---|
+| `GET search?q=` | users, workspaces and runs (by id or its first 8+ characters) matching the text, with tags; `skipped` names the kinds the role may not view. At least 2 characters. |
+| `GET users/{id}/overview`, `GET workspaces/{id}/overview` | one read for the page header: tags, notes count, last admin action (views excluded), and for a workspace the billing summary, run counts (per day, 7 days vs the 7 before, last 24 hours, counted by the database), and refunds in 90 days. One audit row (`*.overview_viewed`). |
+| `GET users/{id}/timeline`, `GET workspaces/{id}/timeline` | runs, credit transactions, plan grants and admin actions merged newest first. `before` (time), `types[]` (`run`, `credits`, `plan`, `admin`), `limit` (max 100); `next` is the `before` for the following page; `skipped` names sources the role may not read. A user's runs are the ones they started. "Viewed" audit rows are left out. One audit row (`*.timeline_viewed`). |
+| `GET {users,workspaces}/{id}/annotations` | tags and notes, newest first. |
+| `POST {users,workspaces}/{id}/notes` | add a note (2 to 2000 characters). The audit row holds the note id, not its text. |
+| `DELETE {users,workspaces}/{id}/notes/{note}` | the author, or an owner. |
+| `PUT {users,workspaces}/{id}/tags` | the complete list (max 8, 2 to 24 characters, lower-cased); audited only when it changes. |
+
+Also: `users` and `workspaces` lists and details carry `tags` and take `?tag=`; `runs` takes `?user_id=` (the user who started it).
+
 ### 11.11 System: `system.php` [`system.manage`] (later)
 `GET /system/health` (queues/Horizon summary, failed jobs count, Reverb), `POST /system/failed-jobs/{id}/retry`, feature flags if introduced.
 

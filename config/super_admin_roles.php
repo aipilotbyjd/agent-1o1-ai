@@ -38,6 +38,7 @@ return [
             Ability::UsersSuspend->value,
             Ability::UsersForceLogout->value,
             Ability::WorkspacesSuspend->value,
+            Ability::CustomersAnnotate->value,
             Ability::RunsRetry->value,
             Ability::RunsCancel->value,
             Ability::CatalogManage->value,
@@ -51,6 +52,7 @@ return [
         Role::Finance->value => [
             ...$view,
             Ability::ReferralsManage->value,
+            Ability::CustomersAnnotate->value,
             Ability::BillingGrantCredits->value,
             Ability::BillingExtendPlan->value,
             Ability::BillingRefund->value,
@@ -64,6 +66,7 @@ return [
             Ability::UsersSuspend->value,
             Ability::UsersForceLogout->value,
             Ability::WorkspacesSuspend->value,
+            Ability::CustomersAnnotate->value,
             Ability::RunsRetry->value,
             Ability::RunsCancel->value,
         ],
