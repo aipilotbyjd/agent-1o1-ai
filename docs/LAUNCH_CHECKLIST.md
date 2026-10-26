@@ -61,7 +61,9 @@ Write the answer to each in one line at the top of your launch notes. They chang
 - [ ] `REVERB_APP_ID/KEY/SECRET` generated (strong, unique), `REVERB_HOST`, `REVERB_SCHEME=https`, public port 443 behind your proxy with websocket upgrade headers and long read timeouts.
 - [ ] `REVERB_ALLOWED_ORIGINS` and `CORS_ALLOWED_ORIGINS` list **only** your real frontend origin(s). No wildcards.
 - [ ] `VITE_REVERB_*` values in the **frontend build** match production.
-- [ ] Reverb scaling decision: single instance is fine for beta; if you scale horizontally, enable Reverb's Redis scaling and sticky/health-checked routing.
+- [ ] Reverb scaling decision: single instance is fine for beta; if you scale horizontally, set `REVERB_SCALING_ENABLED=true` (Reverb's Redis scaling) and use sticky/health-checked routing.
+- [ ] The `broadcasts` queue is consumed (first queue of `supervisor-1` in `config/horizon.php`) and `redis:broadcasts` in `waits` alerts a human. Queued broadcasts retry 3 times, so check `failed_jobs` for `BroadcastEvent` after any Reverb outage.
+- [ ] Presence works through the proxy: open the same workflow as two members and confirm each sees the other's avatar.
 - [ ] Load-check: how many concurrent websocket connections one container handles; raise the file descriptor limit accordingly.
 
 ### 1.6 Auth and OAuth clients

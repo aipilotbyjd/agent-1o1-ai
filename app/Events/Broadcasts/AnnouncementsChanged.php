@@ -2,6 +2,7 @@
 
 namespace App\Events\Broadcasts;
 
+use App\Broadcasting\BroadcastsReliably;
 use App\Broadcasting\Channels;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -17,7 +18,7 @@ use Illuminate\Foundation\Events\Dispatchable;
  */
 class AnnouncementsChanged implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets;
+    use BroadcastsReliably, Dispatchable, InteractsWithSockets;
 
     public function __construct(public readonly string $reason = 'changed') {}
 

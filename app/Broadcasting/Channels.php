@@ -17,7 +17,9 @@ use App\Models\Workflows\WorkflowPage;
  * published to but never authorized (or vice versa).
  *
  * Everything is workspace-scoped and private: run output and agent replies
- * routinely carry customer data, so there is no presence or public tier.
+ * routinely carry customer data, so there is no public tier. The one presence
+ * channel (`WORKFLOW_PRESENCE_PATTERN`) shares only who has a workflow open:
+ * a member's id, name and avatar, never content.
  */
 final class Channels
 {
@@ -40,6 +42,8 @@ final class Channels
     public const string ASSISTANT_PATTERN = 'workspaces.{workspaceId}.assistants.{assistantId}';
 
     public const string PAGE_PATTERN = 'workspaces.{workspaceId}.pages.{pageId}';
+
+    public const string WORKFLOW_PRESENCE_PATTERN = 'workspaces.{workspaceId}.workflows.{workflowId}';
 
     /**
      * The one platform-wide channel: every signed-in member may listen. It

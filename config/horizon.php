@@ -97,6 +97,8 @@ return [
     */
 
     'waits' => [
+        // A live screen is waiting on these: a backlog is noticed within seconds.
+        'redis:broadcasts' => 5,
         'redis:default' => 60,
         // Webhook-fired, latency-sensitive: alert fast if it backs up.
         'redis:triggers-event' => 10,
@@ -205,6 +207,8 @@ return [
     */
 
     'defaults' => [
+        // Drains `broadcasts` first: the Reverb deliveries of `BroadcastsReliably`
+        // events, so a live screen never waits behind mail or housekeeping.
         // Also drains `system-notification` and `system-maintenance`: every
         // notification in the app (`WorkspaceEventNotification` for tenants,
         // `AdminAlertNotification` for operators) and the housekeeping jobs
@@ -213,7 +217,7 @@ return [
         // unprocessed forever.
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['default', 'system-notification', 'system-maintenance'],
+            'queue' => ['broadcasts', 'default', 'system-notification', 'system-maintenance'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,

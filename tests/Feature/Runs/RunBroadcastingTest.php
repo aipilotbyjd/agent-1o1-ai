@@ -62,6 +62,10 @@ it('puts run events on the workspace and per-run private channels', function () 
     $payload = (new RunStateChanged($run))->broadcastWith();
     expect($payload['id'])->toBe($run->id);
     expect($payload['status'])->toBe('completed');
+
+    $later = (new RunStateChanged($run))->broadcastWith();
+    expect($payload['emitted_at'])->toBeInt()
+        ->and($later['emitted_at'])->toBeGreaterThanOrEqual($payload['emitted_at']);
 });
 
 it('keeps node-run payloads off the workspace-wide channel and free of output', function () {
@@ -82,7 +86,8 @@ it('keeps node-run payloads off the workspace-wide channel and free of output', 
 
     expect(array_map(fn ($channel) => (string) $channel, $event->broadcastOn()))
         ->toBe(['private-'.Channels::run($run)]);
-    expect($event->broadcastWith())->not->toHaveKey('output');
+    expect($event->broadcastWith())->not->toHaveKey('output')
+        ->and($event->broadcastWith()['emitted_at'])->toBeInt();
     expect($event->broadcastAs())->toBe('node-run.state-changed');
 });
 
