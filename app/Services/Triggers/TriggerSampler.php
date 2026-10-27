@@ -23,12 +23,20 @@ class TriggerSampler
      *
      * @return list<array{id: string, payload: array<string, mixed>}>
      *
-     * @throws InvalidArgumentException when the trigger has nothing to read
+     * @throws InvalidArgumentException when the trigger starts by hand
      */
     public function sample(Trigger $trigger, int $limit = 5): array
     {
+        if ($trigger->type === TriggerType::Webhook) {
+            return $this->lastReceived($trigger, $limit);
+        }
+
+        if ($trigger->type === TriggerType::Schedule) {
+            return [['id' => 'schedule', 'payload' => ['scheduled_at' => ($trigger->next_run_at ?? now())->toIso8601String()]]];
+        }
+
         if ($trigger->type !== TriggerType::Polling) {
-            throw new InvalidArgumentException('Only a trigger that reads from an app or URL has a sample.');
+            throw new InvalidArgumentException('This trigger starts by hand, so it has no sample.');
         }
 
         [$items, $idOf, $expand] = $this->reader->read($trigger);
@@ -37,5 +45,22 @@ class TriggerSampler
             fn (array $item): array => ['id' => $idOf($item), 'payload' => $expand($item)],
             array_slice(array_reverse($items), 0, max(1, min($limit, 10))),
         );
+    }
+
+    /**
+     * A webhook has nothing to read: its sample is what it last received.
+     *
+     * @return list<array{id: string, payload: array<string, mixed>}>
+     */
+    private function lastReceived(Trigger $trigger, int $limit): array
+    {
+        return $trigger->events()
+            ->whereNotNull('payload')
+            ->latest()
+            ->limit(max(1, min($limit, 10)))
+            ->get()
+            ->map(fn ($event): array => ['id' => $event->delivery_id ?? $event->id, 'payload' => (array) $event->payload])
+            ->values()
+            ->all();
     }
 }

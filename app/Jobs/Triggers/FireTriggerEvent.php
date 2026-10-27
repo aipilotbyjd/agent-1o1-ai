@@ -14,6 +14,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
 /**
@@ -109,11 +110,25 @@ class FireTriggerEvent implements ShouldQueue
             return;
         }
 
+        // Over the trigger's own runs-per-minute limit: wait for the next slot.
+        $perMinute = (int) ($this->trigger->config['max_runs_per_minute'] ?? 0);
+        $rateKey = "trigger-rate:{$this->trigger->getKey()}";
+
+        if ($perMinute > 0 && $this->event->status === TriggerEventStatus::Queued && RateLimiter::tooManyAttempts($rateKey, $perMinute)) {
+            $this->release(max(1, RateLimiter::availableIn($rateKey)));
+
+            return;
+        }
+
         // An event that already settled, or that another worker holds, can't
         // be claimed: this copy does nothing, so a re-dispatch never starts a
         // second run.
         if (! $this->event->claim()) {
             return;
+        }
+
+        if ($perMinute > 0) {
+            RateLimiter::hit($rateKey, 60);
         }
 
         $this->event->increment('attempts');

@@ -72,6 +72,12 @@ class TriggerNodes
                 'skip' => 'Skip this item',
             ], null, 'queue')),
             'max_failures' => Field::advanced(Field::integer('Trigger: switch off after failures in a row', null, null, (int) $minFailures, (int) $maxFailures)),
+            'start_from' => Field::advanced(Field::select('Trigger: start from', [
+                'now' => 'Only items that arrive from now on',
+                'beginning' => 'Also the items already there',
+            ], 'Decides what the first check does with what is already in the app.', 'now')),
+            'max_runs_per_minute' => Field::advanced(Field::integer('Trigger: most runs per minute', 'Extra items wait for the next minute instead of starting together. Leave empty for no limit.', null, 1, 600)),
+            'batch_seconds' => Field::advanced(Field::integer('Trigger: group events for (seconds)', 'Collect events for this long, then run once with all of them as a list. Leave empty to run for each.', null, 5, 3600)),
             'max_concurrent_runs' => Field::advanced(Field::integer('Trigger: most runs at once', 'More items wait their turn instead of starting together. Leave empty for no limit.', null, 1, 100)),
         ];
     }

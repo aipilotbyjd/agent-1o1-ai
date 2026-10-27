@@ -13,8 +13,9 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
     use ActsAsTrigger;
 
     /**
-     * Message subtypes Slack posts about the channel itself (someone joined,
-     * the topic changed...). They are never a message a person wrote, so a
+     * Message subtypes Slack posts about the channel itself or about a
+     * change to an earlier message (someone joined, the topic changed, a message
+     * was edited or deleted). They are never a message a person wrote, so a
      * trigger never starts on them.
      *
      * @var list<string>
@@ -23,6 +24,7 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
         'channel_join', 'channel_leave', 'channel_topic', 'channel_purpose', 'channel_name',
         'channel_archive', 'channel_unarchive', 'group_join', 'group_leave', 'group_topic',
         'group_purpose', 'group_name', 'group_archive', 'group_unarchive', 'pinned_item', 'unpinned_item',
+        'message_changed', 'message_deleted', 'message_replied',
     ];
 
     public function type(): string

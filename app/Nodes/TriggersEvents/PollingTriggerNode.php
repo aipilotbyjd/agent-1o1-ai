@@ -58,6 +58,10 @@ class PollingTriggerNode extends TriggerNode
                 'method' => Field::select('Method', ['get' => 'GET', 'post' => 'POST'], default: 'get'),
                 'items_path' => Field::text('Items path', 'Where the list is in the response. Leave empty if the response is the list.', 'data.items'),
                 'id_path' => Field::text('Item id path', 'The field that uniquely identifies an item.', 'id'),
+                'start_from' => Field::advanced(Field::select('Start from', [
+                    'now' => 'Only items that arrive from now on',
+                    'beginning' => 'Also the items already there',
+                ], 'Decides what the first check does with what the endpoint already returns.', 'now')),
                 'newest_first' => Field::boolean('Newest item first', 'Turn on if the endpoint lists the newest item first. Runs then start oldest first.'),
                 'poll_interval_minutes' => Field::integer('Check every (minutes)', null, 15, 1, 1440),
                 'credential_id' => Field::dynamic('Account', 'workspace.connector_credentials', 'A connected account to authenticate the request with (sent as a Bearer token).', 'No authentication', allowCustom: false),

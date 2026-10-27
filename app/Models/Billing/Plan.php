@@ -82,6 +82,16 @@ class Plan extends Model
         return $value < 0 ? null : (int) $value;
     }
 
+    /**
+     * The fewest minutes between two checks of an app or URL trigger on this
+     * plan (`min_poll_interval_minutes`; 1 when the plan sets none). Instant
+     * delivery is not held to it.
+     */
+    public function minPollIntervalMinutes(): int
+    {
+        return max(1, (int) ($this->limits['min_poll_interval_minutes'] ?? 1));
+    }
+
     public function stripePriceId(BillingInterval $interval): ?string
     {
         return $this->{$interval->stripePriceColumn()};

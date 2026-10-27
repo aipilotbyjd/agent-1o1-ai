@@ -102,7 +102,7 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => 'https://slack.com/oauth/v2/authorize',
                     'token_url' => 'https://slack.com/api/oauth.v2.access',
-                    'scopes' => ['chat:write', 'channels:read', 'channels:history', 'groups:history', 'users:read'],
+                    'scopes' => ['chat:write', 'channels:read', 'channels:history', 'groups:history', 'reactions:read', 'users:read'],
                 ],
                 'sort_order' => 2,
             ],

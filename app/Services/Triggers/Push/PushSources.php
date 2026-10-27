@@ -22,13 +22,27 @@ class PushSources
      */
     private array $ingresses = [];
 
-    public function __construct(SlackMessageSource $slackSource, SlackIngress $slackIngress)
-    {
-        foreach ([$slackSource] as $source) {
+    public function __construct(
+        SlackMessageSource $slackSource,
+        SlackIngress $slackIngress,
+        GmailMessageSource $gmailSource,
+        OutlookMessageSource $outlookSource,
+        GoogleDriveSource $driveSource,
+        GoogleCalendarSource $calendarSource,
+        GitHubSource $githubSource,
+    ) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
-        foreach ([$slackIngress] as $ingress) {
+        foreach ([
+            $slackIngress,
+            new GmailIngress,
+            new OutlookIngress,
+            new GoogleChannelIngress('google_drive'),
+            new GoogleChannelIngress('google_calendar'),
+            new GitHubIngress,
+        ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }
     }

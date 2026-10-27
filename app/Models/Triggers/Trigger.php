@@ -2,6 +2,7 @@
 
 namespace App\Models\Triggers;
 
+use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerDisabledReason;
 use App\Enums\Triggers\TriggerType;
 use App\Jobs\Triggers\SyncTriggerSubscription;
@@ -206,9 +207,10 @@ class Trigger extends Model
         $interval = max(
             (int) config('triggers.min_poll_interval_minutes'),
             (int) ($this->config['poll_interval_minutes'] ?? config('triggers.poll_every_minutes')),
+            $this->workspace?->currentPlan()?->minPollIntervalMinutes() ?? 1,
         );
 
-        if ($this->subscription?->status->receivesEvents()) {
+        if ($this->subscription?->status === SubscriptionStatus::Active) {
             return max($interval, (int) config('triggers.push_reconcile_poll_minutes'));
         }
 

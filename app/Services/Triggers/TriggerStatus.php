@@ -94,9 +94,9 @@ class TriggerStatus
         }
 
         return match ($subscription->status) {
-            SubscriptionStatus::Active => [$delivery, 'listening', 'Listening', null, null],
+            SubscriptionStatus::Active => [$delivery, 'listening', 'Listening', $subscription->last_error, null],
             SubscriptionStatus::Pending => [$delivery, 'connecting', 'Connecting', 'Instant delivery is being set up. It keeps checking meanwhile.', null],
-            SubscriptionStatus::Degraded => [$delivery, 'degraded', 'Using fallback checks', 'Instant delivery is not working right now, so it checks on a timer instead.', 'retry'],
+            SubscriptionStatus::Degraded => [$delivery, 'degraded', 'Using fallback checks', $subscription->last_error ?? 'Instant delivery is not working right now, so it checks on a timer instead.', null],
             SubscriptionStatus::ReconnectNeeded => [$delivery, 'reconnect_needed', 'Reconnect account', $subscription->last_error ?? 'Reconnect the account to get instant delivery.', 'reconnect'],
             SubscriptionStatus::Failed => [$delivery, 'checking', 'Checking for new items', $subscription->last_error ?? 'Instant delivery is not available for this trigger.', null],
         };

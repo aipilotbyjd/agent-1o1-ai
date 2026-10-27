@@ -2,6 +2,8 @@
 
 namespace App\Jobs\Triggers;
 
+use App\Enums\Triggers\SubscriptionStatus;
+use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Models\Triggers\Trigger;
 use App\Services\Triggers\PollReader;
@@ -14,6 +16,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -52,6 +55,14 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
     }
 
     /**
+     * The cache key that says a provider push asked this trigger to poll.
+     */
+    public static function pokeKey(Trigger $trigger): string
+    {
+        return "triggers:poke:{$trigger->getKey()}";
+    }
+
+    /**
      * One poll per trigger at a time.
      *
      * `last_run_at` only moves when a poll finishes, so without this a slow
@@ -75,11 +86,14 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        // Prompted by a push (and so not a reconciliation check)?
+        $wasPoked = Cache::pull(self::pokeKey($this->trigger)) === true;
+
         try {
             [$items, $idOf, $expand, $cursorValue] = $reader->read($this->trigger);
         } catch (Throwable $exception) {
             $this->recordReadError($triggers, $exception);
-            $this->trigger->forceFill(['last_run_at' => now(), 'next_poll_at' => $this->trigger->nextPollTime()])->save();
+            $this->trigger->forceFill(['last_run_at' => now(), 'next_poll_at' => $this->nextPollAt()])->save();
 
             return;
         }
@@ -90,7 +104,11 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
 
         // `poll_cursor` is set after every poll, even an empty one, so only
         // the very first successful poll takes the baseline.
-        $isBaseline = $this->trigger->poll_cursor === null && ! $this->trigger->events()->exists();
+        // "Start from the beginning" runs what is already there instead.
+        $isBaseline = $this->trigger->poll_cursor === null
+            && ! $this->trigger->events()->exists()
+            && ($this->trigger->config['start_from'] ?? 'now') !== 'beginning';
+        $newItems = 0;
 
         foreach ($items as $item) {
             $deliveryId = $idOf($item);
@@ -115,7 +133,17 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            $triggers->receive($this->trigger, TriggerType::Polling, $payload, $deliveryId);
+            $event = $triggers->receive($this->trigger, TriggerType::Polling, $payload, $deliveryId);
+
+            if ($event->wasRecentlyCreated && $event->status === TriggerEventStatus::Queued) {
+                $newItems++;
+            }
+        }
+
+        // A check nobody asked for found something new while push was supposed
+        // to be delivering: push missed it, so go back to checking on a timer.
+        if (! $wasPoked && $newItems > 0) {
+            $this->markPushMissed();
         }
 
         // forceFill: both are system bookkeeping, deliberately not fillable,
@@ -123,7 +151,35 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
         $this->trigger->forceFill([
             'poll_cursor' => ['value' => $items === [] ? ($this->trigger->poll_cursor['value'] ?? null) : $cursorValue(end($items))],
             'last_run_at' => now(),
-            'next_poll_at' => $this->trigger->nextPollTime(),
+            'next_poll_at' => $this->nextPollAt(),
+        ])->save();
+    }
+
+    /**
+     * When to poll next: at once if a push asked for a poll while this one was
+     * running (the scheduler claims it within a minute), otherwise one interval
+     * from now.
+     */
+    private function nextPollAt(): Carbon
+    {
+        return Cache::has(self::pokeKey($this->trigger)) ? now() : $this->trigger->nextPollTime();
+    }
+
+    /**
+     * Mark the trigger's subscription degraded, so it polls at its own
+     * interval until push delivers again.
+     */
+    private function markPushMissed(): void
+    {
+        $subscription = $this->trigger->subscription;
+
+        if ($subscription?->status !== SubscriptionStatus::Active) {
+            return;
+        }
+
+        $subscription->forceFill([
+            'status' => SubscriptionStatus::Degraded,
+            'last_error' => 'Instant delivery missed an event, so this trigger is checking on a timer until it recovers.',
         ])->save();
     }
 

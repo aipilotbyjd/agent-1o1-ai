@@ -87,6 +87,8 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
      *   the last run is still going.
      * - `max_failures`: failures in a row before the trigger switches itself
      *   off.
+     * - `max_runs_per_minute`: a cap on how fast events start runs.
+     * - `batch_seconds`: collect events for this long and run them as one.
      * - `max_concurrent_runs`: how many of its runs may execute at once; the
      *   rest of a burst waits in the queue.
      * - `activate`: the "Activate as flow trigger" switch. The editor draws
@@ -106,6 +108,8 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
                 'skip' => 'Skip this event',
             ], 'Skipping suits frequent schedules whose runs can overlap.', 'queue')),
             'max_failures' => Field::advanced(Field::integer('Switch off after failures in a row', 'Defaults to '.config('triggers.failures_before_disable').'.', null, (int) $minFailures, (int) $maxFailures)),
+            'max_runs_per_minute' => Field::advanced(Field::integer('Most runs per minute', 'Extra events wait for the next minute instead of starting together. Leave empty for no limit.', null, 1, 600)),
+            'batch_seconds' => Field::advanced(Field::integer('Group events for (seconds)', 'Collect events for this long, then run once with all of them as a list. Leave empty to run for each.', null, 5, 3600)),
             'max_concurrent_runs' => Field::advanced(Field::integer('Most runs at once', 'More events wait their turn instead of starting together. Leave empty for no limit.', null, 1, 100)),
             'activate' => Field::hidden('Whether publishing switches this trigger on. Defaults to on.', 'boolean'),
         ];

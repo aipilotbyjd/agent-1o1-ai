@@ -19,6 +19,8 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\PlanLimitGate;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Creates and manages triggers, and runs the two halves of every firing.
@@ -193,11 +195,15 @@ class TriggerService
             return $this->skip($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, 'The previous run was still going.');
         }
 
+        // A trigger set to group events keeps them until its window is over
+        // (triggers:flush-batches runs them as one). "Run now" is never held.
+        $isHeld = (int) ($trigger->config['batch_seconds'] ?? 0) > 0 && $source !== TriggerType::Manual;
+
         try {
             $event = TriggerEvent::query()->create([
                 'trigger_id' => $trigger->id,
                 'source' => $source,
-                'status' => TriggerEventStatus::Queued,
+                'status' => $isHeld ? TriggerEventStatus::Held : TriggerEventStatus::Queued,
                 'payload' => $payload,
                 'payload_snippet' => $payloadSnippet,
                 'headers' => $this->allowedHeaders($headers),
@@ -212,9 +218,59 @@ class TriggerService
         // The insert above commits on its own, so the row exists before the
         // job can run. If a caller ever wraps receive() in a transaction, add
         // ->afterCommit() here to keep that guarantee.
-        FireTriggerEvent::dispatch($trigger, $event);
+        if (! $isHeld) {
+            FireTriggerEvent::dispatch($trigger, $event);
+        }
 
         return $event;
+    }
+
+    /**
+     * Run a trigger's held events as one: a single event carrying all of their
+     * payloads, which the held ones then point to as batched.
+     *
+     * At most 500 are taken at a time; the rest go in the next flush.
+     */
+    public function flushHeld(Trigger $trigger): ?TriggerEvent
+    {
+        $combined = DB::transaction(function () use ($trigger): ?TriggerEvent {
+            $held = $trigger->events()
+                ->where('status', TriggerEventStatus::Held->value)
+                ->oldest()
+                ->orderBy('id')
+                ->limit(500)
+                ->lockForUpdate()
+                ->get();
+
+            if ($held->isEmpty()) {
+                return null;
+            }
+
+            $combined = TriggerEvent::query()->create([
+                'trigger_id' => $trigger->id,
+                'source' => $held->first()->source,
+                'status' => TriggerEventStatus::Queued,
+                'payload' => [
+                    'count' => $held->count(),
+                    'first_at' => $held->first()->created_at?->toIso8601String(),
+                    'last_at' => $held->last()->created_at?->toIso8601String(),
+                    'items' => $held->pluck('payload')->all(),
+                ],
+                'delivery_id' => 'batch:'.Str::uuid(),
+            ]);
+
+            TriggerEvent::query()
+                ->whereIn('id', $held->modelKeys())
+                ->update(['status' => TriggerEventStatus::Batched->value, 'processed_at' => now()]);
+
+            return $combined;
+        });
+
+        if ($combined !== null) {
+            FireTriggerEvent::dispatch($trigger, $combined);
+        }
+
+        return $combined;
     }
 
     /**

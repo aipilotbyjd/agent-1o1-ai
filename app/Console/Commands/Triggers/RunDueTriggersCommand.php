@@ -127,7 +127,7 @@ class RunDueTriggersCommand extends Command
             ->where('is_active', true)
             ->whereHas('workspace', fn ($workspaces) => $workspaces->whereNull('suspended_at'))
             ->where(fn ($due) => $due->whereNull('next_poll_at')->orWhere('next_poll_at', '<=', now()))
-            ->with('subscription')
+            ->with(['subscription', 'workspace'])
             ->eachById(function (Trigger $trigger) use (&$queued): void {
                 // Claimed before the job runs, so a slow poll isn't queued again
                 // on the next tick. The poll sets the real time when it ends.

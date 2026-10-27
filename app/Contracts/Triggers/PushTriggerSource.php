@@ -2,16 +2,22 @@
 
 namespace App\Contracts\Triggers;
 
+use App\Models\Triggers\ProviderWatch;
 use App\Models\Triggers\Trigger;
 
 /**
- * A provider whose events can start a trigger the moment they happen, instead
+ * A provider whose changes can start a trigger the moment they happen, instead
  * of waiting for the next poll.
  *
  * The poll path of the same trigger stays in place: it is the fallback while
- * push is down and the reconciliation that catches anything push missed. Both
- * paths must give an item the same id (itemId()), so the trigger's delivery id
- * stops one item running twice.
+ * push is down and the reconciliation that catches anything push missed.
+ *
+ * Two kinds, by what the provider sends:
+ * - ItemPushSource: the event carries the item itself (Slack messages).
+ * - WatchedTriggerSource: the provider only says "something changed" through a
+ *   watch we registered, and the trigger's own poll fetches what (Gmail,
+ *   Outlook, Drive, Calendar, GitHub). That reuses the poll's filters, ordering
+ *   and dedupe, so push and poll can never disagree.
  *
  * @see docs/APP_TRIGGERS_PLAN.md "Delivery mechanisms"
  */
@@ -33,36 +39,20 @@ interface PushTriggerSource
     public function supports(Trigger $trigger): bool;
 
     /**
-     * What provider events are matched on for this trigger (a Slack team id),
-     * or null when it can't be known.
+     * What provider events are matched on for this trigger (a Slack team id, a
+     * mailbox address, a channel id), or null when it can't be known.
      *
-     * May call the provider, so it only runs from a queued job.
+     * A watched source reads it from the trigger's watch. Anything else may
+     * call the provider, so this only runs from a queued job.
      *
      * @throws \App\Exceptions\ConnectorException when the account needs reconnecting
      */
-    public function routingKeyFor(Trigger $trigger): ?string;
+    public function routingKeyFor(Trigger $trigger, ?ProviderWatch $watch = null): ?string;
 
     /**
-     * Whether an item should start this trigger: its channel or resource and
-     * its filters.
-     *
-     * @param  array<string, mixed>  $item
+     * Something that will stop events arriving even though the subscription
+     * exists (the app is not in the channel), in words for the trigger's owner.
+     * Null when nothing is wrong or it can't be told.
      */
-    public function accepts(Trigger $trigger, array $item): bool;
-
-    /**
-     * The item a provider event carries, shaped like the item the poll path
-     * produces for the same thing.
-     *
-     * @param  array<string, mixed>  $event
-     * @return array<string, mixed>
-     */
-    public function itemFor(array $event): array;
-
-    /**
-     * The item's stable id: the same as the poll path gives it.
-     *
-     * @param  array<string, mixed>  $item
-     */
-    public function itemId(array $item): string;
+    public function accessWarning(Trigger $trigger): ?string;
 }

@@ -3,6 +3,7 @@
 namespace App\Contracts\Triggers;
 
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * The public door a provider delivers events to: checks they are genuine,
@@ -24,12 +25,13 @@ interface ProviderIngress
     public function verify(Request $request): bool;
 
     /**
-     * The reply to a one-off handshake request, or null when the request is an
-     * ordinary event delivery.
+     * The reply to a request that is not an event delivery (a URL check, a
+     * ping, a "sync" message), or null when it is an ordinary delivery. An
+     * array is answered as JSON; a response is sent as it is.
      *
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>|Response|null
      */
-    public function handshake(Request $request): ?array;
+    public function handshake(Request $request): array|Response|null;
 
     /**
      * The events in a delivery.

@@ -20,6 +20,33 @@ The plan:
 
 ---
 
+## Implementation status
+
+Built (code written; tests written but run by the team, not yet verified in CI):
+
+- **Foundation:** indexed poll claim (`triggers.next_poll_at`), `provider_events` inbox, `trigger_subscriptions`, shared `provider_watches`, `PollReader` shared by polls and samples, computed trigger status, sample and replay API.
+- **Instant delivery:** Slack (messages and reactions, items in the event), and Gmail, Outlook, Google Drive, Google Calendar and GitHub (the provider says "something changed" and the trigger's own poll fetches it, so filters, order and dedupe are the poll's).
+- **Control plane:** `WatchManager` (share, renew, grace-period release), `triggers:renew-watches` every 10 min, `triggers:collect-watches` hourly, `triggers:subscriptions` to inspect or nudge, missed-push detection (a reconciliation poll that finds something marks the subscription degraded; the next push event recovers it).
+- **Delivery controls:** start from now or the beginning, runs per minute, group events (digest), per-trigger and per-workspace concurrency caps, plan-based polling floor (`min_poll_interval_minutes` in a plan's limits).
+- **Frontend:** status chip, health hints with one action, fetch sample for every trigger type, "Listen for event", replay, event history with held and grouped events.
+
+Not built:
+
+- Google Sheets push (its connector lacks a Drive scope for file watches; it keeps polling), Teams, Linear, Jira, Stripe, Typeform, Shopify, Monday, HubSpot, Notion, Airtable, Salesforce, Zendesk (no connector or reader node yet).
+- "Updated" and "deleted" modes (needs an item version per reader), the "N minutes before event" trigger, debounce, storm detector, event quotas, the admin console, canaries, provider simulators and load tests.
+
+Setup outside the app, per provider (each is off until its `TRIGGERS_PUSH_*_ENABLED` switch is on, and needs `APP_URL` to be a public HTTPS address):
+
+| Provider | What to set up |
+|---|---|
+| Slack | In the connector's Slack app: Events API request URL `/api/hooks/apps/slack`, bot events `message.channels`, `message.groups`, `reaction_added`; scopes `channels:history`, `groups:history`, `reactions:read`. Set `TRIGGERS_SLACK_SIGNING_SECRET`. Existing accounts must reconnect. |
+| Gmail | A Pub/Sub topic that `gmail-api-push@system.gserviceaccount.com` may publish to, and a push subscription to `/api/hooks/apps/gmail?token=...`. Set `TRIGGERS_GMAIL_PUBSUB_TOPIC` and `TRIGGERS_GMAIL_PUSH_TOKEN`. Gmail's restricted scope needs Google's OAuth verification before real customers can use it. |
+| Outlook | Nothing beyond the connector: the app creates a Graph subscription with the account (`Mail.ReadWrite` is enough). |
+| Drive, Calendar | Nothing beyond the connector. |
+| GitHub | The connected account needs admin rights on the repository; otherwise the trigger keeps polling and shows why. |
+
+---
+
 ## 1. Goals, non-goals, service levels
 
 ### Goals

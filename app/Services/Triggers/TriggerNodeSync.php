@@ -51,13 +51,13 @@ class TriggerNodeSync
      * A reader node's trigger-mode settings, kept out of the config its own
      * execute() is polled with.
      */
-    private const array APP_TRIGGER_KEYS = ['activate', 'poll_interval_minutes', 'if_already_running', 'max_failures', 'max_concurrent_runs'];
+    private const array APP_TRIGGER_KEYS = ['activate', 'poll_interval_minutes', 'if_already_running', 'max_failures', 'max_concurrent_runs', 'max_runs_per_minute', 'batch_seconds', 'start_from'];
 
     /**
      * The polling node settings PollTrigger reads.
      */
     private const array POLLING_KEYS = [
-        'url', 'method', 'items_path', 'id_path', 'newest_first', 'poll_interval_minutes', 'cursor_param', 'cursor_path', 'filters',
+        'url', 'method', 'items_path', 'id_path', 'newest_first', 'start_from', 'poll_interval_minutes', 'cursor_param', 'cursor_path', 'filters',
     ];
 
     /**
@@ -156,6 +156,9 @@ class TriggerNodeSync
                 'if_already_running' => $config['if_already_running'] ?? null,
                 'max_failures' => $config['max_failures'] ?? null,
                 'max_concurrent_runs' => $config['max_concurrent_runs'] ?? null,
+                'max_runs_per_minute' => $config['max_runs_per_minute'] ?? null,
+                'batch_seconds' => $config['batch_seconds'] ?? null,
+                'start_from' => $config['start_from'] ?? null,
             ], fn (mixed $value): bool => $value !== null && $value !== ''),
             'preset_id' => null,
             'credential_id' => $this->credentialId($workflow, $key, $config, $existing, $actor),
@@ -237,7 +240,7 @@ class TriggerNodeSync
      */
     private function configFor(TriggerNodeType $nodeType, array $config): array
     {
-        $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures', 'max_concurrent_runs']));
+        $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures', 'max_concurrent_runs', 'max_runs_per_minute', 'batch_seconds']));
 
         $owned = $runControl + match ($nodeType) {
             TriggerNodeType::Schedule => ['cron' => $config['cron'] ?? null, 'run_once_at' => $config['run_once_at'] ?? null, 'timezone' => Timezones::canonical($config['timezone'] ?? null)],

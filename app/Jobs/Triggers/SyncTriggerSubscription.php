@@ -2,15 +2,19 @@
 
 namespace App\Jobs\Triggers;
 
+use App\Contracts\Triggers\PushTriggerSource;
+use App\Contracts\Triggers\WatchedTriggerSource;
 use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Exceptions\ConnectorException;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerSubscription;
 use App\Services\Triggers\Push\PushSources;
+use App\Services\Triggers\Push\WatchManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
@@ -57,7 +61,7 @@ class SyncTriggerSubscription implements ShouldQueue
     /**
      * Make the subscription match the trigger.
      */
-    public function handle(PushSources $sources): void
+    public function handle(PushSources $sources, WatchManager $watches): void
     {
         $trigger = Trigger::query()->find($this->triggerId);
 
@@ -65,22 +69,41 @@ class SyncTriggerSubscription implements ShouldQueue
             return;
         }
 
+        $existing = TriggerSubscription::query()->where('trigger_id', $this->triggerId)->first();
+
         $source = $trigger->type === TriggerType::Polling && $trigger->is_active
             ? $sources->forTrigger($trigger)
             : null;
 
         if ($source === null) {
-            TriggerSubscription::query()->where('trigger_id', $trigger->id)->delete();
+            if ($existing !== null) {
+                $existing->delete();
+                $watches->release($existing);
+            }
 
             return;
         }
 
+        $watch = null;
+
         try {
-            $routingKey = $source->routingKeyFor($trigger);
+            if ($source instanceof WatchedTriggerSource) {
+                $watch = $watches->acquire($source, $trigger);
+            }
+
+            $routingKey = $source->routingKeyFor($trigger, $watch);
         } catch (ConnectorException $exception) {
             $this->record($trigger, $source->provider(), SubscriptionStatus::ReconnectNeeded, $exception->getMessage());
 
             return;
+        } catch (RequestException $exception) {
+            $this->recordRequestFailure($trigger, $source->provider(), $exception);
+
+            if ($this->isPermanent($exception)) {
+                return;
+            }
+
+            throw $exception;
         } catch (Throwable $exception) {
             // Out of reach for now (a network blip): the trigger keeps polling.
             $this->record($trigger, $source->provider(), SubscriptionStatus::Pending, $exception->getMessage());
@@ -94,18 +117,64 @@ class SyncTriggerSubscription implements ShouldQueue
             return;
         }
 
-        TriggerSubscription::query()->updateOrCreate(
+        $subscription = TriggerSubscription::query()->updateOrCreate(
             ['trigger_id' => $trigger->id],
             [
                 'workspace_id' => $trigger->workspace_id,
+                'watch_id' => $watch?->id,
                 'provider' => $source->provider(),
                 'mechanism' => 'push',
                 'routing_key' => $routingKey,
-                'status' => SubscriptionStatus::Active,
+                'status' => $watch?->status ?? SubscriptionStatus::Active,
                 'last_ok_at' => now(),
-                'last_error' => null,
+                'last_error' => $this->warningFor($source, $trigger),
             ],
         );
+
+        // Moved to another watch (another folder, say): the old one may be unused now.
+        if ($existing !== null && $existing->watch_id !== null && $existing->watch_id !== $subscription->watch_id) {
+            $watches->release($existing);
+        }
+    }
+
+    /**
+     * What is wrong with an otherwise working subscription, if the source can
+     * tell (the app is not in the channel).
+     */
+    private function warningFor(PushTriggerSource $source, Trigger $trigger): ?string
+    {
+        try {
+            return $source->accessWarning($trigger);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * A provider refusing the request. Unauthorised means the account needs
+     * reconnecting; forbidden, missing or unprocessable will not get better by
+     * retrying (for example no admin rights on the repository), so the trigger
+     * just keeps polling and the reason is shown.
+     */
+    private function recordRequestFailure(Trigger $trigger, string $provider, RequestException $exception): void
+    {
+        $status = $exception->response->status();
+
+        $this->record(
+            $trigger,
+            $provider,
+            $status === 401 ? SubscriptionStatus::ReconnectNeeded : ($this->isPermanent($exception) ? SubscriptionStatus::Failed : SubscriptionStatus::Pending),
+            $status === 401
+                ? 'The connected account was refused. Reconnect it.'
+                : ($this->isPermanent($exception)
+                    ? "Instant delivery is not available here (the provider answered {$status}). It checks on a timer instead."
+                    : $exception->getMessage()),
+        );
+    }
+
+    private function isPermanent(RequestException $exception): bool
+    {
+        return in_array($exception->response->status(), [400, 401, 403, 404, 422], true);
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Services\Triggers\TriggerService;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Queue;
 
@@ -211,12 +212,12 @@ describe('concurrency caps', function () {
         $this->postJson("/api/hooks/{$trigger->token}", ['a' => 1])->assertOk();
         $event = $trigger->events()->firstOrFail();
 
-        dispatch_sync(new FireTriggerEvent($trigger, $event));
+        (new FireTriggerEvent($trigger, $event))->handle(app(TriggerService::class));
 
         expect($event->fresh()->status)->toBe(TriggerEventStatus::Queued);
 
         $busy->forceFill(['status' => RunStatus::Completed])->save();
-        dispatch_sync(new FireTriggerEvent($trigger, $event->fresh()));
+        (new FireTriggerEvent($trigger, $event->fresh()))->handle(app(TriggerService::class));
 
         expect($event->fresh()->status)->toBe(TriggerEventStatus::Fired);
     });

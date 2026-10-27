@@ -31,6 +31,8 @@ function pushSlackTrigger(array $nodeConfig = [], array $credentialData = ['acce
 {
     config(['triggers.push.slack.enabled' => true, 'triggers.push.slack.signing_secret' => 'sekret']);
     Queue::fake([FireTriggerEvent::class]);
+    // Slack is asked whether the app is in the channel when a trigger is published.
+    Http::fake(['https://slack.com/api/conversations.info' => Http::response(['ok' => true, 'channel' => ['name' => 'general', 'is_member' => true]])]);
 
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
@@ -212,6 +214,19 @@ describe('subscriptions', function () {
         TriggerSubscription::query()->where('trigger_id', $trigger->id)->update(['status' => SubscriptionStatus::ReconnectNeeded]);
 
         expect($trigger->fresh()->pollIntervalMinutes())->toBe(1);
+    });
+});
+
+describe('access warning', function () {
+    it('tells the owner to add the app to the channel', function () {
+        Http::fake(['https://slack.com/api/conversations.info' => Http::response(['ok' => true, 'channel' => ['name' => 'sales', 'is_member' => false]])]);
+
+        [, , $trigger] = pushSlackTrigger();
+
+        $status = app(TriggerStatus::class)->for($trigger->fresh());
+
+        expect($status['state'])->toBe('listening')
+            ->and($status['hint'])->toContain('Add the app to #sales');
     });
 });
 

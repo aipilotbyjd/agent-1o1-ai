@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `cursor` and `expires_at` for it.
  */
 #[Fillable([
-    'workspace_id', 'trigger_id', 'provider', 'mechanism', 'routing_key', 'status',
+    'workspace_id', 'trigger_id', 'watch_id', 'provider', 'mechanism', 'routing_key', 'status',
     'external_id', 'cursor', 'expires_at', 'last_event_at', 'last_ok_at', 'last_error',
 ])]
 class TriggerSubscription extends Model
@@ -58,6 +58,14 @@ class TriggerSubscription extends Model
     public function trigger(): BelongsTo
     {
         return $this->belongsTo(Trigger::class);
+    }
+
+    /**
+     * The shared provider watch behind this subscription, if it uses one.
+     */
+    public function watch(): BelongsTo
+    {
+        return $this->belongsTo(ProviderWatch::class, 'watch_id');
     }
 
     /**

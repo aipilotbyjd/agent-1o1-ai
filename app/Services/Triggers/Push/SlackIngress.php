@@ -4,6 +4,7 @@ namespace App\Services\Triggers\Push;
 
 use App\Contracts\Triggers\ProviderIngress;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Slack's Events API request URL: checks Slack's signature, answers the URL
@@ -45,7 +46,7 @@ class SlackIngress implements ProviderIngress
     /**
      * The `url_verification` challenge.
      */
-    public function handshake(Request $request): ?array
+    public function handshake(Request $request): array|Response|null
     {
         if ($request->json('type') !== 'url_verification') {
             return null;

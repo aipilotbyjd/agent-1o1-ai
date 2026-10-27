@@ -243,6 +243,10 @@ return [
     |
     | Per provider switch. Off, a trigger just polls as before.
     |
+    | Every watched provider (Gmail, Outlook, Drive, Calendar, GitHub) needs the
+    | callback URL /api/hooks/apps/{provider} to be reachable from the internet
+    | over HTTPS (APP_URL must be that address).
+    |
     | Slack: the signing secret is that of the Slack app people connect through
     | Apps (the one behind the `slack` connector), not the assistant's app. In
     | that app, set the Events API request URL to /api/hooks/apps/slack and
@@ -255,6 +259,21 @@ return [
             'signing_secret' => env('TRIGGERS_SLACK_SIGNING_SECRET', env('SLACK_SIGNING_SECRET')),
             'max_age_seconds' => 300,
         ],
+
+        // Gmail: a Pub/Sub topic Gmail may publish to, and a push subscription
+        // on it calling /api/hooks/apps/gmail?token={verification_token}.
+        'gmail' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_GMAIL_ENABLED', false),
+            'topic' => env('TRIGGERS_GMAIL_PUBSUB_TOPIC'),
+            'verification_token' => env('TRIGGERS_GMAIL_PUSH_TOKEN'),
+        ],
+
+        // Outlook (Microsoft Graph), Drive, Calendar and GitHub register their
+        // own watches through the connected account, so a switch is all they need.
+        'outlook' => ['enabled' => (bool) env('TRIGGERS_PUSH_OUTLOOK_ENABLED', false)],
+        'google_drive' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_DRIVE_ENABLED', false)],
+        'google_calendar' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_CALENDAR_ENABLED', false)],
+        'github' => ['enabled' => (bool) env('TRIGGERS_PUSH_GITHUB_ENABLED', false)],
     ],
 
 ];

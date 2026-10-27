@@ -7,8 +7,8 @@ use App\Jobs\Triggers\RouteProviderEvent;
 use App\Models\Triggers\ProviderEvent;
 use App\Services\Triggers\Push\PushSources;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * `POST /api/hooks/apps/{provider}`: where a provider delivers events for
@@ -21,7 +21,7 @@ use Illuminate\Http\Request;
  */
 class ProviderIngressController extends Controller
 {
-    public function __invoke(Request $request, string $provider, PushSources $sources): JsonResponse
+    public function __invoke(Request $request, string $provider, PushSources $sources): Response
     {
         $ingress = $sources->ingress($provider);
 
@@ -30,7 +30,11 @@ class ProviderIngressController extends Controller
 
         $handshake = $ingress->handshake($request);
 
-        if ($handshake !== null) {
+        if ($handshake instanceof Response) {
+            return $handshake;
+        }
+
+        if (is_array($handshake)) {
             return response()->json($handshake);
         }
 
