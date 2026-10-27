@@ -77,7 +77,11 @@ class RunDueTriggersCommand extends Command
 
                 // Move on first, so if intake throws, the next tick doesn't retry
                 // the same slot forever.
-                $trigger->forceFill(['next_run_at' => $trigger->nextRun($now)])->save();
+                // A one-time schedule has no next slot: it switches itself off
+                // here, whether the slot fires below or was missed.
+                $trigger->forceFill(['next_run_at' => $trigger->nextRun($now)])
+                    ->forceFill($trigger->isOneTimeSchedule() ? ['is_active' => false] : [])
+                    ->save();
 
                 if ($slot->lt($catchUpCutoff)) {
                     Log::info('Schedule trigger slot missed beyond the catch-up window.', ['trigger_id' => $trigger->id, 'slot' => $slot->toIso8601String()]);

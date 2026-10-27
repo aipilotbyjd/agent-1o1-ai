@@ -3,6 +3,7 @@
 namespace App\Services\Workflows;
 
 use App\Enums\Triggers\TriggerNodeType;
+use App\Models\Triggers\Trigger;
 use App\Models\Workflows\WorkflowEdge;
 use App\Rules\SafeOutboundUrl;
 use App\Services\Secrets\SecretResolver;
@@ -136,6 +137,18 @@ class GraphValidator
                 case TriggerNodeType::Schedule:
                     if (filled($config['cron'] ?? null) && ! CronExpression::isValidExpression((string) $config['cron'])) {
                         $errors[] = new ValidationIssue('This schedule is not a valid cron expression.', $node['key'], 'cron');
+                    }
+
+                    if (! filled($config['cron'] ?? null) && ! filled($config['run_once_at'] ?? null)) {
+                        $errors[] = new ValidationIssue('Set a repeating schedule or a one-time run.', $node['key'], 'cron');
+                    }
+
+                    if (filled($config['cron'] ?? null) && filled($config['run_once_at'] ?? null)) {
+                        $errors[] = new ValidationIssue('Use either a repeating schedule or a one-time run, not both.', $node['key'], 'run_once_at');
+                    }
+
+                    if (filled($config['run_once_at'] ?? null) && Trigger::nextRunFor($config, now(), true) === null) {
+                        $errors[] = new ValidationIssue('The one-time run must be a valid date and time in the future.', $node['key'], 'run_once_at');
                     }
 
                     if (filled($config['timezone'] ?? null) && Timezones::canonical($config['timezone']) === null) {

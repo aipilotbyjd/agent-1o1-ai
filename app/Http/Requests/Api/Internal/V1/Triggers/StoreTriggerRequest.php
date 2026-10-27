@@ -56,6 +56,8 @@ class StoreTriggerRequest extends FormRequest
                     $fail('The cron expression is not valid.');
                 }
             }],
+            // A one-time schedule's date and time.
+            'config.run_once_at' => ['nullable', 'date'],
             // A polling trigger's endpoint: fetched by the server, so it must be a public URL.
             'config.url' => ['nullable', 'string', new SafeOutboundUrl],
             // For an agent target: what it's told, templated against the payload.

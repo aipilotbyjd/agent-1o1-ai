@@ -239,7 +239,7 @@ class TriggerNodeSync
         $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures']));
 
         $owned = $runControl + match ($nodeType) {
-            TriggerNodeType::Schedule => ['cron' => $config['cron'] ?? null, 'timezone' => Timezones::canonical($config['timezone'] ?? null)],
+            TriggerNodeType::Schedule => ['cron' => $config['cron'] ?? null, 'run_once_at' => $config['run_once_at'] ?? null, 'timezone' => Timezones::canonical($config['timezone'] ?? null)],
             TriggerNodeType::Webhook => [
                 'authentication' => $config['authentication'] ?? WebhookAuthentication::None->value,
                 'header_name' => $config['header_name'] ?? null,

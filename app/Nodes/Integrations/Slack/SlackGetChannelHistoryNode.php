@@ -43,6 +43,8 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
                 'limit' => Field::integer('Limit', 'Maximum messages to return.', 100, 1, 1000),
                 'oldest' => Field::advanced(Field::text('Oldest', 'Only messages after this Unix timestamp.', '1700000000')),
                 'latest' => Field::advanced(Field::text('Latest', 'Only messages before this Unix timestamp.', '1700000000')),
+                'ignore_bot_messages' => Field::boolean('Ignore bot messages', 'When used as a trigger, skip messages from bots and integrations. Turn this on if the workflow posts back to the same channel, or it can trigger itself.', true),
+                'ignore_replies' => Field::boolean('Ignore replies', 'When used as a trigger, skip replies inside threads and only start on new top-level messages.'),
             ],
         ];
     }
@@ -63,6 +65,23 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
     protected function triggerItemsPath(): ?string
     {
         return 'messages';
+    }
+
+    /**
+     * The messages a trigger poll may start runs for, minus bot messages and
+     * thread replies when those are switched off.
+     */
+    public function triggerItems(array $output, array $config): array
+    {
+        $ignoreBots = ($config['ignore_bot_messages'] ?? true) !== false;
+        $ignoreReplies = ($config['ignore_replies'] ?? false) === true;
+
+        return array_values(array_filter(
+            (array) data_get($output, 'messages', []),
+            fn (mixed $message): bool => is_array($message)
+                && ! ($ignoreBots && (isset($message['bot_id']) || ($message['subtype'] ?? null) === 'bot_message'))
+                && ! ($ignoreReplies && isset($message['thread_ts']) && $message['thread_ts'] !== ($message['ts'] ?? null)),
+        ));
     }
 
     /**

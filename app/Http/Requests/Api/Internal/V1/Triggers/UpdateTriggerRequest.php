@@ -39,6 +39,8 @@ class UpdateTriggerRequest extends FormRequest
                     $fail('The cron expression is not valid.');
                 }
             }],
+            // A one-time schedule's date and time.
+            'config.run_once_at' => ['nullable', 'date'],
             'config.url' => ['nullable', 'string', new SafeOutboundUrl],
             // For an agent target: what it's told, templated against the payload.
             // Every config key needs a rule here: validated() drops the rest.

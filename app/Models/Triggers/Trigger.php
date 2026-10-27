@@ -102,17 +102,48 @@ class Trigger extends Model
      */
     public static function nextRunFor(array $config, CarbonInterface $from, bool $allowCurrentMinute = false, string $defaultTimezone = Timezones::DEFAULT): ?Carbon
     {
+        $timezone = Timezones::resolve($config['timezone'] ?? null, $defaultTimezone);
+
+        if (filled($config['run_once_at'] ?? null)) {
+            return self::onceRunFor((string) $config['run_once_at'], $from, $allowCurrentMinute, $timezone);
+        }
+
         $cron = $config['cron'] ?? null;
 
         if (! is_string($cron) || ! CronExpression::isValidExpression($cron)) {
             return null;
         }
 
-        $timezone = Timezones::resolve($config['timezone'] ?? null, $defaultTimezone);
-
         $next = (new CronExpression($cron))->getNextRunDate($from->toDateTimeImmutable(), 0, $allowCurrentMinute, $timezone);
 
         return Carbon::instance($next)->utc()->startOfMinute();
+    }
+
+    /**
+     * The one slot of a one-time schedule, in UTC, or null once it has passed
+     * (or when the date can't be read).
+     *
+     * A date with no offset is read in `$timezone`.
+     */
+    private static function onceRunFor(string $runOnceAt, CarbonInterface $from, bool $allowCurrentMinute, string $timezone): ?Carbon
+    {
+        try {
+            $slot = Carbon::parse($runOnceAt, $timezone)->utc()->startOfMinute();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $floor = Carbon::instance($from->toDateTimeImmutable())->utc()->startOfMinute();
+
+        return ($allowCurrentMinute ? $slot->gte($floor) : $slot->gt($floor)) ? $slot : null;
+    }
+
+    /**
+     * Whether this is a schedule that runs once and then switches itself off.
+     */
+    public function isOneTimeSchedule(): bool
+    {
+        return $this->type === TriggerType::Schedule && filled($this->config['run_once_at'] ?? null);
     }
 
     /**
