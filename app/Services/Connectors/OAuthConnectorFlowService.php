@@ -253,6 +253,9 @@ class OAuthConnectorFlowService
             'refresh_token' => $body['refresh_token'] ?? null,
             'token_type' => $body['token_type'] ?? null,
             'scope' => $body['scope'] ?? null,
+            // Slack names the workspace it was installed in, which is what its
+            // Events API deliveries are matched on (instant triggers).
+            'team_id' => data_get($body, 'team.id'),
         ], fn ($value) => $value !== null);
     }
 

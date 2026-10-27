@@ -3,6 +3,7 @@
 namespace App\Console\Commands\Triggers;
 
 use App\Enums\Triggers\TriggerType;
+use App\Models\Triggers\ProviderEvent;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use Illuminate\Console\Command;
@@ -58,7 +59,15 @@ class PruneTriggerEventsCommand extends Command
             $deleted += TriggerEvent::query()->whereIn('id', $ids)->delete();
         } while ($ids->count() === $chunk);
 
-        $this->info("Deleted {$deleted} and compacted {$compacted} trigger event(s).");
+        $inboxCutoff = now()->subDays(max(1, (int) config('triggers.provider_events_retention_days')));
+        $inboxDeleted = 0;
+
+        do {
+            $ids = ProviderEvent::query()->where('received_at', '<', $inboxCutoff)->limit($chunk)->pluck('id');
+            $inboxDeleted += ProviderEvent::query()->whereIn('id', $ids)->delete();
+        } while ($ids->count() === $chunk);
+
+        $this->info("Deleted {$deleted} and compacted {$compacted} trigger event(s), and deleted {$inboxDeleted} provider event(s).");
 
         return self::SUCCESS;
     }

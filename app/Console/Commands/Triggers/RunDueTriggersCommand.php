@@ -57,7 +57,7 @@ class RunDueTriggersCommand extends Command
             ->where('is_active', true)
             ->whereNull('next_run_at')
             ->with('workspace')
-            ->each(function (Trigger $trigger): void {
+            ->eachById(function (Trigger $trigger): void {
                 if ($trigger->nextRun(now(), allowCurrentMinute: true) === null) {
                     Log::warning('Schedule trigger skipped: invalid cron expression.', ['trigger_id' => $trigger->id]);
 
@@ -72,9 +72,8 @@ class RunDueTriggersCommand extends Command
             ->where('is_active', true)
             ->where('next_run_at', '<=', $now)
             ->whereHas('workspace', fn ($workspaces) => $workspaces->whereNull('suspended_at'))
-            ->orderBy('next_run_at')
             ->with('workspace')
-            ->each(function (Trigger $trigger) use ($triggers, $now, $catchUpCutoff, &$queued): void {
+            ->eachById(function (Trigger $trigger) use ($triggers, $now, $catchUpCutoff, &$queued): void {
                 $slot = $trigger->next_run_at;
 
                 // Move on first, so if intake throws, the next tick doesn't retry
@@ -127,15 +126,12 @@ class RunDueTriggersCommand extends Command
             ->where('type', TriggerType::Polling)
             ->where('is_active', true)
             ->whereHas('workspace', fn ($workspaces) => $workspaces->whereNull('suspended_at'))
-            ->each(function (Trigger $trigger) use (&$queued): void {
-                $intervalMinutes = max(
-                    (int) config('triggers.min_poll_interval_minutes'),
-                    (int) ($trigger->config['poll_interval_minutes'] ?? config('triggers.poll_every_minutes')),
-                );
-
-                if ($trigger->last_run_at instanceof Carbon && $trigger->last_run_at->addMinutes($intervalMinutes)->isFuture()) {
-                    return;
-                }
+            ->where(fn ($due) => $due->whereNull('next_poll_at')->orWhere('next_poll_at', '<=', now()))
+            ->with('subscription')
+            ->eachById(function (Trigger $trigger) use (&$queued): void {
+                // Claimed before the job runs, so a slow poll isn't queued again
+                // on the next tick. The poll sets the real time when it ends.
+                $trigger->forceFill(['next_poll_at' => $trigger->nextPollTime()])->saveQuietly();
 
                 PollTrigger::dispatch($trigger);
                 $queued++;

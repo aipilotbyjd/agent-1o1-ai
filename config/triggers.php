@@ -130,6 +130,13 @@ return [
 
     'poll_max_items' => (int) env('TRIGGERS_POLL_MAX_ITEMS', 100),
 
+    /*
+    | A trigger whose push subscription is working only polls this often, to
+    | catch anything push missed. Without push it polls at its own interval.
+    */
+
+    'push_reconcile_poll_minutes' => (int) env('TRIGGERS_PUSH_RECONCILE_POLL_MINUTES', 15),
+
     'poll_lock_seconds' => (int) env('TRIGGERS_POLL_LOCK_SECONDS', 600),
 
     /*
@@ -220,10 +227,34 @@ return [
     | firing again.
     */
 
+    'provider_events_retention_days' => (int) env('TRIGGERS_PROVIDER_EVENTS_RETENTION_DAYS', 7),
+
     'events_retention_days' => (int) env('TRIGGERS_EVENTS_RETENTION_DAYS', 30),
 
     'prune_chunk' => (int) env('TRIGGERS_PRUNE_CHUNK', 1000),
 
     'prune_at' => env('TRIGGERS_PRUNE_AT', '03:30'),
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Instant (push) triggers
+    |--------------------------------------------------------------------------
+    |
+    | Per provider switch. Off, a trigger just polls as before.
+    |
+    | Slack: the signing secret is that of the Slack app people connect through
+    | Apps (the one behind the `slack` connector), not the assistant's app. In
+    | that app, set the Events API request URL to /api/hooks/apps/slack and
+    | subscribe to the bot events message.channels and message.groups.
+    */
+
+    'push' => [
+        'slack' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
+            'signing_secret' => env('TRIGGERS_SLACK_SIGNING_SECRET', env('SLACK_SIGNING_SECRET')),
+            'max_age_seconds' => 300,
+        ],
+    ],
 
 ];

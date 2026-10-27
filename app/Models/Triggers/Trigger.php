@@ -4,12 +4,14 @@ namespace App\Models\Triggers;
 
 use App\Enums\Triggers\TriggerDisabledReason;
 use App\Enums\Triggers\TriggerType;
+use App\Jobs\Triggers\SyncTriggerSubscription;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Models\Workspaces\WorkspaceMember;
 use App\Notifications\Triggers\TriggerDisabledNotification;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Timezones\Timezones;
+use App\Services\Triggers\Push\PushSources;
 use Carbon\CarbonInterface;
 use Cron\CronExpression;
 use Database\Factories\Triggers\TriggerFactory;
@@ -20,6 +22,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -78,6 +81,21 @@ class Trigger extends Model
 
             if ($trigger->next_run_at === null || $trigger->isDirty(['config', 'type']) || $isSwitchedOn) {
                 $trigger->next_run_at = $trigger->nextRun(now(), allowCurrentMinute: true);
+            }
+        });
+
+        // A polling trigger made, switched on or off, or pointed at another
+        // account or settings: bring its push subscription in line. Queued,
+        // and only once the surrounding publish has committed.
+        static::saved(function (Trigger $trigger): void {
+            if (! collect((array) config('triggers.push'))->contains(fn (array $provider): bool => (bool) ($provider['enabled'] ?? false))) {
+                return;
+            }
+
+            $changed = $trigger->wasRecentlyCreated || $trigger->wasChanged(['is_active', 'config', 'credential_id', 'type']);
+
+            if ($trigger->type === TriggerType::Polling && $changed && app(PushSources::class)->anyEnabled()) {
+                SyncTriggerSubscription::dispatch($trigger->id)->afterCommit();
             }
         });
     }
@@ -163,8 +181,49 @@ class Trigger extends Model
             'consecutive_failure_count' => 'integer',
             'last_run_at' => 'datetime',
             'next_run_at' => 'datetime',
+            'next_poll_at' => 'datetime',
             'consecutive_skip_count' => 'integer',
         ];
+    }
+
+    /**
+     * The trigger's push subscription, when it has one.
+     */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(TriggerSubscription::class);
+    }
+
+    /**
+     * Minutes between polls.
+     *
+     * The trigger's own interval, never below the platform minimum. A trigger
+     * whose push subscription is receiving events only polls to reconcile
+     * (`triggers.push_reconcile_poll_minutes`), in case an event was missed.
+     */
+    public function pollIntervalMinutes(): int
+    {
+        $interval = max(
+            (int) config('triggers.min_poll_interval_minutes'),
+            (int) ($this->config['poll_interval_minutes'] ?? config('triggers.poll_every_minutes')),
+        );
+
+        if ($this->subscription?->status->receivesEvents()) {
+            return max($interval, (int) config('triggers.push_reconcile_poll_minutes'));
+        }
+
+        return $interval;
+    }
+
+    /**
+     * When the next poll is due: one interval from now, spread by up to 10 %
+     * so polls set up together don't all land on the same minute.
+     */
+    public function nextPollTime(): Carbon
+    {
+        $seconds = $this->pollIntervalMinutes() * 60;
+
+        return now()->addSeconds($seconds + random_int(0, (int) ($seconds / 10)));
     }
 
     /**
