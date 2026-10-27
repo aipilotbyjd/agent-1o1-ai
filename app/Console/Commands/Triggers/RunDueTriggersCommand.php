@@ -9,6 +9,7 @@ use App\Services\Triggers\TriggerService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * The every-minute tick: queues an event for each due schedule and a poll for
@@ -70,6 +71,7 @@ class RunDueTriggersCommand extends Command
             ->where('type', TriggerType::Schedule)
             ->where('is_active', true)
             ->where('next_run_at', '<=', $now)
+            ->whereHas('workspace', fn ($workspaces) => $workspaces->whereNull('suspended_at'))
             ->orderBy('next_run_at')
             ->with('workspace')
             ->each(function (Trigger $trigger) use ($triggers, $now, $catchUpCutoff, &$queued): void {
@@ -92,12 +94,20 @@ class RunDueTriggersCommand extends Command
                 // The delivery id names the slot, so a second scheduler or a
                 // re-run of this tick hits the unique index instead of firing
                 // twice. Unlike a lock, that holds across servers.
-                $triggers->receive(
-                    $trigger,
-                    TriggerType::Schedule,
-                    ['scheduled_at' => $slot->toIso8601String()],
-                    deliveryId: 'schedule:'.$slot->format('Y-m-d H:i'),
-                );
+                try {
+                    $triggers->receive(
+                        $trigger,
+                        TriggerType::Schedule,
+                        ['scheduled_at' => $slot->toIso8601String()],
+                        deliveryId: 'schedule:'.$slot->format('Y-m-d H:i'),
+                    );
+                } catch (Throwable $exception) {
+                    // One trigger's failure must never stop the tick for every
+                    // other workspace's schedules.
+                    report($exception);
+
+                    return;
+                }
 
                 $queued++;
             });
@@ -116,6 +126,7 @@ class RunDueTriggersCommand extends Command
         Trigger::query()
             ->where('type', TriggerType::Polling)
             ->where('is_active', true)
+            ->whereHas('workspace', fn ($workspaces) => $workspaces->whereNull('suspended_at'))
             ->each(function (Trigger $trigger) use (&$queued): void {
                 $intervalMinutes = max(
                     (int) config('triggers.min_poll_interval_minutes'),

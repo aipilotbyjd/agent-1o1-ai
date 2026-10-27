@@ -37,6 +37,7 @@ use App\Observers\AgentObserver;
 use App\Observers\AuditObserver;
 use App\Observers\NodeRunObserver;
 use App\Observers\RunObserver;
+use App\Observers\WorkflowObserver;
 use App\Observers\WorkspaceMemberObserver;
 use App\Services\Ai\OperatorEndpoints;
 use App\Services\Assistant\Branding\BrandRepository;
@@ -296,6 +297,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Behavioral history for agents: see `AgentVersioner`.
         Agent::observe(AgentObserver::class);
+
+        // Triggers follow their workflow into and out of the trash.
+        Workflow::observe(WorkflowObserver::class);
 
         // Live run/chat streaming: see `App\Broadcasting\Channels`.
         Run::observe(RunObserver::class);

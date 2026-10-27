@@ -75,6 +75,14 @@ return [
 
     'payload_snippet_chars' => (int) env('TRIGGERS_PAYLOAD_SNIPPET_CHARS', 5000),
 
+    /*
+    | The longest a webhook set to "Respond with the result" holds the request
+    | open waiting for its run to finish. The wait ties up a web worker, so
+    | keep it well under the proxy's request timeout.
+    */
+
+    'max_sync_wait_seconds' => (int) env('TRIGGERS_MAX_SYNC_WAIT_SECONDS', 25),
+
     'allowed_headers' => [
         'X-GitHub-Delivery',
         'X-GitHub-Event',
@@ -125,6 +133,14 @@ return [
     'poll_lock_seconds' => (int) env('TRIGGERS_POLL_LOCK_SECONDS', 600),
 
     /*
+    | A poll that fails with a temporary error (a rate limit, a 5xx, a dropped
+    | connection) only counts toward the circuit breaker after this many in a
+    | row. Any other error counts at once.
+    */
+
+    'poll_transient_failures_before_count' => (int) env('TRIGGERS_POLL_TRANSIENT_FAILURES_BEFORE_COUNT', 30),
+
+    /*
     |--------------------------------------------------------------------------
     | Queues & the FireTriggerEvent job
     |--------------------------------------------------------------------------
@@ -157,6 +173,17 @@ return [
     'agent_fire_timeout_seconds' => (int) env('TRIGGERS_AGENT_FIRE_TIMEOUT_SECONDS', 320),
 
     'fire_max_exceptions' => (int) env('TRIGGERS_FIRE_MAX_EXCEPTIONS', 5),
+
+    /*
+    | Runs one workspace may have executing at once through its triggers (0 is
+    | no limit). Events over the cap wait in the queue, `concurrency_release_
+    | seconds` at a time, and are not dropped. A trigger can also set its own
+    | cap with `config.max_concurrent_runs`.
+    */
+
+    'max_concurrent_runs_per_workspace' => (int) env('TRIGGERS_MAX_CONCURRENT_RUNS_PER_WORKSPACE', 25),
+
+    'concurrency_release_seconds' => (int) env('TRIGGERS_CONCURRENCY_RELEASE_SECONDS', 15),
 
     'fire_backoff_seconds' => [10, 30, 90, 300, 900],
 

@@ -17,8 +17,12 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
@@ -75,7 +79,7 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
     {
         $this->trigger->refresh();
 
-        if (! $this->trigger->is_active) {
+        if (! $this->trigger->is_active || $this->trigger->workspace->isSuspended()) {
             return;
         }
 
@@ -85,12 +89,14 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
             [$items, $idOf, $expand, $cursorValue] = isset($config['node_type'])
                 ? $this->readerItems($registry, $config)
                 : $this->urlItems($http, $tokens, $config);
-        } catch (Throwable) {
-            $triggers->recordFailure($this->trigger);
+        } catch (Throwable $exception) {
+            $this->recordReadError($triggers, $exception);
             $this->trigger->forceFill(['last_run_at' => now()])->save();
 
             return;
         }
+
+        Cache::forget($this->transientStreakKey());
 
         $items = array_slice($items, 0, max(1, (int) config('triggers.poll_max_items')));
 
@@ -115,8 +121,8 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
 
             try {
                 $payload = $expand($item);
-            } catch (Throwable) {
-                $triggers->recordFailure($this->trigger);
+            } catch (Throwable $exception) {
+                $this->recordReadError($triggers, $exception);
 
                 continue;
             }
@@ -149,6 +155,13 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
         $response->throw();
 
         $items = array_values(array_filter((array) (data_get($response->json(), $config['items_path'] ?? null) ?? []), 'is_array'));
+
+        // Runs start oldest first, so an endpoint that lists the newest item
+        // first is turned around.
+        if (($config['newest_first'] ?? false) === true) {
+            $items = array_reverse($items);
+        }
+
         $idPath = $config['id_path'] ?? 'id';
 
         return [
@@ -185,9 +198,15 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
 
         // Never saved: it only tells the node which workspace and person it
         // acts for, which is all a real run gives ResolvesConnectorCredential.
-        $run = new Run(['workspace_id' => $this->trigger->workspace_id, 'triggered_by' => $this->trigger->created_by]);
+        $run = new Run(['workspace_id' => $this->trigger->workspace_id, 'triggered_by' => $this->trigger->actingUser()?->id]);
 
-        $items = $node->triggerItems($node->execute($run, $nodeConfig, []), $nodeConfig);
+        $items = $node->triggerItems($node->execute($run, $node->triggerReadConfig($nodeConfig), []), $nodeConfig);
+
+        // Runs start oldest first, so a burst is processed in the order it
+        // happened.
+        if ($node->triggerListsNewestFirst()) {
+            $items = array_reverse($items);
+        }
 
         return [
             $items,
@@ -195,6 +214,66 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
             fn (array $item): array => $node->expandTriggerItem($run, $nodeConfig, $item),
             fn (array $item): mixed => $node->triggerItemId($item),
         ];
+    }
+
+    /**
+     * Count a failed read or expand toward the circuit breaker, unless the
+     * source is only having a bad moment.
+     *
+     * A rate limit, a 5xx or a dropped connection says nothing about the
+     * trigger itself, and a one-minute poll would otherwise switch off for
+     * good after three minutes of someone else's outage. Those are logged and
+     * only count once they have gone on for `triggers.poll_transient_failures_
+     * before_count` polls in a row. Anything else (an expired account, a bad
+     * URL, a 4xx) counts at once.
+     */
+    private function recordReadError(TriggerService $triggers, Throwable $exception): void
+    {
+        if (! $this->isTransient($exception)) {
+            Cache::forget($this->transientStreakKey());
+            $triggers->recordFailure($this->trigger);
+
+            return;
+        }
+
+        Cache::add($this->transientStreakKey(), 0, now()->addDay());
+        $streak = (int) Cache::increment($this->transientStreakKey());
+
+        Log::info('Polling trigger hit a temporary error.', ['trigger_id' => $this->trigger->id, 'streak' => $streak, 'error' => $exception->getMessage()]);
+
+        if ($streak >= max(1, (int) config('triggers.poll_transient_failures_before_count'))) {
+            Cache::forget($this->transientStreakKey());
+            $triggers->recordFailure($this->trigger);
+        }
+    }
+
+    /**
+     * Whether an error is likely to pass by itself: a dropped connection, a
+     * timeout, a rate limit, or a server error. Apps that report errors in a
+     * 200 body (Slack) are recognised by their error code.
+     */
+    private function isTransient(Throwable $exception): bool
+    {
+        if ($exception instanceof ConnectionException) {
+            return true;
+        }
+
+        if ($exception instanceof RequestException) {
+            $status = $exception->response->status();
+
+            return $status >= 500 || in_array($status, [408, 425, 429], true);
+        }
+
+        return (bool) preg_match('/ratelimited|rate[_ ]limit|timeout|timed out|temporar|unavailable|internal_error|fatal_error/i', $exception->getMessage());
+    }
+
+    /**
+     * The cache key counting this trigger's polls in a row that hit a
+     * temporary error.
+     */
+    private function transientStreakKey(): string
+    {
+        return "triggers:poll-transient:{$this->trigger->id}";
     }
 
     /**
@@ -218,7 +297,7 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
             ->where('workspace_id', $this->trigger->workspace_id)
             ->find($this->trigger->credential_id);
 
-        $owner = $this->trigger->creator;
+        $owner = $this->trigger->actingUser();
 
         if ($credential === null || ($owner !== null && ! $credential->isVisibleTo($owner))) {
             throw new ConnectorException("Polling trigger {$this->trigger->id} has no usable account.");

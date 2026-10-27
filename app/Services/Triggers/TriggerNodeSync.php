@@ -51,13 +51,13 @@ class TriggerNodeSync
      * A reader node's trigger-mode settings, kept out of the config its own
      * execute() is polled with.
      */
-    private const array APP_TRIGGER_KEYS = ['activate', 'poll_interval_minutes', 'if_already_running', 'max_failures'];
+    private const array APP_TRIGGER_KEYS = ['activate', 'poll_interval_minutes', 'if_already_running', 'max_failures', 'max_concurrent_runs'];
 
     /**
      * The polling node settings PollTrigger reads.
      */
     private const array POLLING_KEYS = [
-        'url', 'method', 'items_path', 'id_path', 'poll_interval_minutes', 'cursor_param', 'cursor_path', 'filters',
+        'url', 'method', 'items_path', 'id_path', 'newest_first', 'poll_interval_minutes', 'cursor_param', 'cursor_path', 'filters',
     ];
 
     /**
@@ -155,6 +155,7 @@ class TriggerNodeSync
                 'poll_interval_minutes' => (int) ($config['poll_interval_minutes'] ?? $reader->triggerPollMinutes()),
                 'if_already_running' => $config['if_already_running'] ?? null,
                 'max_failures' => $config['max_failures'] ?? null,
+                'max_concurrent_runs' => $config['max_concurrent_runs'] ?? null,
             ], fn (mixed $value): bool => $value !== null && $value !== ''),
             'preset_id' => null,
             'credential_id' => $this->credentialId($workflow, $key, $config, $existing, $actor),
@@ -236,7 +237,7 @@ class TriggerNodeSync
      */
     private function configFor(TriggerNodeType $nodeType, array $config): array
     {
-        $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures']));
+        $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures', 'max_concurrent_runs']));
 
         $owned = $runControl + match ($nodeType) {
             TriggerNodeType::Schedule => ['cron' => $config['cron'] ?? null, 'run_once_at' => $config['run_once_at'] ?? null, 'timezone' => Timezones::canonical($config['timezone'] ?? null)],
@@ -244,6 +245,9 @@ class TriggerNodeSync
                 'authentication' => $config['authentication'] ?? WebhookAuthentication::None->value,
                 'header_name' => $config['header_name'] ?? null,
                 'filters' => $config['filters'] ?? null,
+                'response_mode' => $config['response_mode'] ?? null,
+                'response_timeout_seconds' => $config['response_timeout_seconds'] ?? null,
+                'pass_headers' => $config['pass_headers'] ?? null,
             ],
             TriggerNodeType::Polling => array_intersect_key($config, array_flip(self::POLLING_KEYS)),
             TriggerNodeType::Manual => [],

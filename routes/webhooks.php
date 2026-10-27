@@ -30,6 +30,12 @@ Route::prefix('hooks')->name('hooks.')->group(function (): void {
         ->middleware('throttle:trigger-hooks')
         ->name('trigger');
 
+    // A provider confirming it has the right URL with a GET (Meta's
+    // hub.challenge). Answered only for a webhook with a secret set.
+    Route::get('{token}', WebhookController::class)
+        ->middleware('throttle:trigger-hooks')
+        ->name('trigger.verify');
+
     // A Wait node's one-time callback token. Reuses the 'trigger-hooks'
     // limiter, which is keyed generically by the {token} route param.
     Route::post('wait/{token}', WaitCallbackController::class)

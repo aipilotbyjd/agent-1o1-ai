@@ -161,6 +161,14 @@ class GraphValidator
                         $errors[] = new ValidationIssue('A header name can only use letters, numbers and dashes.', $node['key'], 'header_name');
                     }
 
+                    foreach ((array) ($config['pass_headers'] ?? []) as $name) {
+                        if (! preg_match('/^[A-Za-z0-9-]{1,64}$/', trim((string) $name))) {
+                            $errors[] = new ValidationIssue('A header name can only use letters, numbers and dashes.', $node['key'], 'pass_headers');
+
+                            break;
+                        }
+                    }
+
                     break;
                 case TriggerNodeType::Polling:
                     if (filled($config['url'] ?? null) && Validator::make(['url' => $config['url']], ['url' => [new SafeOutboundUrl]])->fails()) {

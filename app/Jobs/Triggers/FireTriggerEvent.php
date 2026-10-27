@@ -7,6 +7,7 @@ use App\Enums\Triggers\TriggerTargetType;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use App\Services\Triggers\TriggerService;
+use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -85,11 +86,28 @@ class FireTriggerEvent implements ShouldQueue
     }
 
     /**
+     * Keep trying for an hour: an event waiting on a concurrency cap goes back
+     * on the queue, and each of those would otherwise use up one of the job's
+     * attempts. The exception limit still ends a job that keeps failing.
+     */
+    public function retryUntil(): DateTimeInterface
+    {
+        return now()->addHour();
+    }
+
+    /**
      * Claim the event and start its run.
      */
     public function handle(TriggerService $triggers): void
     {
         $this->event->refresh();
+
+        // Over a concurrency cap: leave the event queued and look again soon.
+        if ($this->event->status === TriggerEventStatus::Queued && $triggers->atConcurrencyLimit($this->trigger)) {
+            $this->release((int) config('triggers.concurrency_release_seconds'));
+
+            return;
+        }
 
         // An event that already settled, or that another worker holds, can't
         // be claimed: this copy does nothing, so a re-dispatch never starts a

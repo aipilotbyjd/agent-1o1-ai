@@ -72,6 +72,7 @@ class TriggerNodes
                 'skip' => 'Skip this item',
             ], null, 'queue')),
             'max_failures' => Field::advanced(Field::integer('Trigger: switch off after failures in a row', null, null, (int) $minFailures, (int) $maxFailures)),
+            'max_concurrent_runs' => Field::advanced(Field::integer('Trigger: most runs at once', 'More items wait their turn instead of starting together. Leave empty for no limit.', null, 1, 100)),
         ];
     }
 }

@@ -2,8 +2,10 @@
 
 namespace App\Observers;
 
+use App\Enums\Triggers\TriggerTargetType;
 use App\Jobs\Agents\RunEvalsOnAgentChangeJob;
 use App\Models\Agents\Agent;
+use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Services\Agents\AgentVersioner;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +41,21 @@ class AgentObserver
             // catch; the job itself skips agents with no suites to run.
             RunEvalsOnAgentChangeJob::dispatch($agent->id);
         }
+    }
+
+    /**
+     * Switch the agent's triggers off. They would otherwise keep counting
+     * toward the plan's active triggers and recording skipped events for a
+     * target that can't run. They are kept, not deleted, so restoring the
+     * agent leaves them there to switch back on.
+     */
+    public function deleted(Agent $agent): void
+    {
+        Trigger::query()
+            ->where('target_type', TriggerTargetType::Agent->value)
+            ->where('target_id', $agent->id)
+            ->where('is_active', true)
+            ->each(fn (Trigger $trigger) => $trigger->update(['is_active' => false]));
     }
 
     /**

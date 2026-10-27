@@ -87,6 +87,8 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
      *   the last run is still going.
      * - `max_failures`: failures in a row before the trigger switches itself
      *   off.
+     * - `max_concurrent_runs`: how many of its runs may execute at once; the
+     *   rest of a burst waits in the queue.
      * - `activate`: the "Activate as flow trigger" switch. The editor draws
      *   it on the node, so it's hidden here. Publishing creates the trigger
      *   on or off to match.
@@ -104,6 +106,7 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
                 'skip' => 'Skip this event',
             ], 'Skipping suits frequent schedules whose runs can overlap.', 'queue')),
             'max_failures' => Field::advanced(Field::integer('Switch off after failures in a row', 'Defaults to '.config('triggers.failures_before_disable').'.', null, (int) $minFailures, (int) $maxFailures)),
+            'max_concurrent_runs' => Field::advanced(Field::integer('Most runs at once', 'More events wait their turn instead of starting together. Leave empty for no limit.', null, 1, 100)),
             'activate' => Field::hidden('Whether publishing switches this trigger on. Defaults to on.', 'boolean'),
         ];
 

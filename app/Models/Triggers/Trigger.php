@@ -6,6 +6,7 @@ use App\Enums\Triggers\TriggerDisabledReason;
 use App\Enums\Triggers\TriggerType;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Models\Workspaces\WorkspaceMember;
 use App\Notifications\Triggers\TriggerDisabledNotification;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Timezones\Timezones;
@@ -164,6 +165,30 @@ class Trigger extends Model
             'next_run_at' => 'datetime',
             'consecutive_skip_count' => 'integer',
         ];
+    }
+
+    /**
+     * The person a run or poll acts as: whoever set the trigger up while they
+     * are still in the workspace, otherwise the workspace's owner, otherwise
+     * one of its admins.
+     *
+     * Without the fallback, a trigger whose creator left the team would run
+     * with nobody behind it, and its polls would fail until the circuit
+     * breaker switched it off.
+     */
+    public function actingUser(): ?User
+    {
+        $creator = $this->creator;
+
+        if ($creator !== null && $this->workspace->users()
+            ->whereKey($creator->getKey())
+            ->whereNull((new WorkspaceMember)->qualifyColumn('deleted_at'))
+            ->exists()) {
+            return $creator;
+        }
+
+        return $this->workspace->owner
+            ?? app(NotificationDispatcher::class)->ownersAndAdmins($this->workspace)->first();
     }
 
     /**

@@ -78,6 +78,15 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode implements Suppor
     }
 
     /**
+     * Read a wider page than the node's default, so a burst between two polls
+     * isn't cut off.
+     */
+    public function triggerReadConfig(array $config): array
+    {
+        return [...$config, 'page_size' => max((int) ($config['page_size'] ?? 0), 100)];
+    }
+
+    /**
      * The default minutes between polls when used as a trigger.
      */
     public function triggerPollMinutes(): int

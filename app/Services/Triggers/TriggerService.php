@@ -4,12 +4,14 @@ namespace App\Services\Triggers;
 
 use App\Contracts\Triggers\RunStarter;
 use App\Enums\Billing\PlanLimit;
+use App\Enums\RunStatus;
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Exceptions\InsufficientCreditsException;
 use App\Exceptions\PlanLimitExceededException;
 use App\Jobs\Triggers\FireTriggerEvent;
+use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use App\Models\User;
@@ -172,6 +174,13 @@ class TriggerService
             return $this->writeTerminal($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, TriggerEventStatus::Skipped, 'Target is not runnable.');
         }
 
+        // A suspended workspace can't run anything, and that isn't the
+        // trigger's fault either, so it is recorded without feeding the skip
+        // streak that would switch the trigger off for good.
+        if ($trigger->workspace->isSuspended()) {
+            return $this->writeTerminal($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, TriggerEventStatus::Skipped, 'The workspace is suspended.');
+        }
+
         // Dropped here, not left to fail in FireTriggerEvent: running out of
         // credits isn't the trigger's fault, so it counts toward the skip
         // streak rather than the failure breaker.
@@ -290,6 +299,32 @@ class TriggerService
     public function isAlreadyRunning(Trigger $trigger): bool
     {
         return $this->runStarter->isAlreadyRunning($trigger);
+    }
+
+    /**
+     * Whether starting another run now would go past a concurrency cap: the
+     * trigger's own (`config.max_concurrent_runs`) or the workspace's
+     * (`triggers.max_concurrent_runs_per_workspace`).
+     *
+     * An event over the cap isn't dropped: FireTriggerEvent puts it back on
+     * the queue and tries again shortly, so a burst is spread out instead of
+     * starting every run at once.
+     */
+    public function atConcurrencyLimit(Trigger $trigger): bool
+    {
+        $triggerCap = (int) ($trigger->config['max_concurrent_runs'] ?? 0);
+
+        if ($triggerCap > 0 && $this->runStarter->activeRuns($trigger) >= $triggerCap) {
+            return true;
+        }
+
+        $workspaceCap = (int) config('triggers.max_concurrent_runs_per_workspace');
+
+        return $workspaceCap > 0 && Run::query()
+            ->where('workspace_id', $trigger->workspace_id)
+            ->whereNull('parent_run_id')
+            ->whereIn('status', [RunStatus::Pending, RunStatus::Running])
+            ->count() >= $workspaceCap;
     }
 
     /**
