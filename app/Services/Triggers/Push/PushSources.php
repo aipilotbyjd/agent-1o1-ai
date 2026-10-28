@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Services\Triggers\Push;
+
+use App\Contracts\Triggers\ProviderIngress;
+use App\Contracts\Triggers\PushTriggerSource;
+use App\Models\Triggers\Trigger;
+
+/**
+ * The providers that can push events to triggers: one source and one ingress
+ * each. A new provider is added here and nowhere else in the pipeline.
+ */
+class PushSources
+{
+    /**
+     * @var array<string, PushTriggerSource>
+     */
+    private array $sources = [];
+
+    /**
+     * @var array<string, ProviderIngress>
+     */
+    private array $ingresses = [];
+
+    public function __construct(
+        SlackMessageSource $slackSource,
+        SlackIngress $slackIngress,
+        GmailMessageSource $gmailSource,
+        OutlookMessageSource $outlookSource,
+        GoogleDriveSource $driveSource,
+        GoogleCalendarSource $calendarSource,
+        GitHubSource $githubSource,
+    ) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource] as $source) {
+            $this->sources[$source->provider()] = $source;
+        }
+
+        foreach ([
+            $slackIngress,
+            new GmailIngress,
+            new OutlookIngress,
+            new GoogleChannelIngress('google_drive'),
+            new GoogleChannelIngress('google_calendar'),
+            new GitHubIngress,
+        ] as $ingress) {
+            $this->ingresses[$ingress->provider()] = $ingress;
+        }
+    }
+
+    /**
+     * The source that can push events to the trigger, if its provider is on.
+     */
+    public function forTrigger(Trigger $trigger): ?PushTriggerSource
+    {
+        foreach ($this->sources as $source) {
+            if ($source->isEnabled() && $source->supports($trigger)) {
+                return $source;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The source for a provider key.
+     */
+    public function source(string $provider): ?PushTriggerSource
+    {
+        return $this->sources[$provider] ?? null;
+    }
+
+    /**
+     * The ingress for a provider key, only while that provider's push is on.
+     */
+    public function ingress(string $provider): ?ProviderIngress
+    {
+        $source = $this->sources[$provider] ?? null;
+
+        return $source !== null && $source->isEnabled() ? ($this->ingresses[$provider] ?? null) : null;
+    }
+
+    /**
+     * Whether any provider's push is on.
+     */
+    public function anyEnabled(): bool
+    {
+        foreach ($this->sources as $source) {
+            if ($source->isEnabled()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}

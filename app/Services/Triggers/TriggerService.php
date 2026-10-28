@@ -4,12 +4,14 @@ namespace App\Services\Triggers;
 
 use App\Contracts\Triggers\RunStarter;
 use App\Enums\Billing\PlanLimit;
+use App\Enums\RunStatus;
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Exceptions\InsufficientCreditsException;
 use App\Exceptions\PlanLimitExceededException;
 use App\Jobs\Triggers\FireTriggerEvent;
+use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerEvent;
 use App\Models\User;
@@ -17,6 +19,8 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\PlanLimitGate;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Creates and manages triggers, and runs the two halves of every firing.
@@ -172,6 +176,13 @@ class TriggerService
             return $this->writeTerminal($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, TriggerEventStatus::Skipped, 'Target is not runnable.');
         }
 
+        // A suspended workspace can't run anything, and that isn't the
+        // trigger's fault either, so it is recorded without feeding the skip
+        // streak that would switch the trigger off for good.
+        if ($trigger->workspace->isSuspended()) {
+            return $this->writeTerminal($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, TriggerEventStatus::Skipped, 'The workspace is suspended.');
+        }
+
         // Dropped here, not left to fail in FireTriggerEvent: running out of
         // credits isn't the trigger's fault, so it counts toward the skip
         // streak rather than the failure breaker.
@@ -184,11 +195,15 @@ class TriggerService
             return $this->skip($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, 'The previous run was still going.');
         }
 
+        // A trigger set to group events keeps them until its window is over
+        // (triggers:flush-batches runs them as one). "Run now" is never held.
+        $isHeld = (int) ($trigger->config['batch_seconds'] ?? 0) > 0 && $source !== TriggerType::Manual;
+
         try {
             $event = TriggerEvent::query()->create([
                 'trigger_id' => $trigger->id,
                 'source' => $source,
-                'status' => TriggerEventStatus::Queued,
+                'status' => $isHeld ? TriggerEventStatus::Held : TriggerEventStatus::Queued,
                 'payload' => $payload,
                 'payload_snippet' => $payloadSnippet,
                 'headers' => $this->allowedHeaders($headers),
@@ -203,9 +218,59 @@ class TriggerService
         // The insert above commits on its own, so the row exists before the
         // job can run. If a caller ever wraps receive() in a transaction, add
         // ->afterCommit() here to keep that guarantee.
-        FireTriggerEvent::dispatch($trigger, $event);
+        if (! $isHeld) {
+            FireTriggerEvent::dispatch($trigger, $event);
+        }
 
         return $event;
+    }
+
+    /**
+     * Run a trigger's held events as one: a single event carrying all of their
+     * payloads, which the held ones then point to as batched.
+     *
+     * At most 500 are taken at a time; the rest go in the next flush.
+     */
+    public function flushHeld(Trigger $trigger): ?TriggerEvent
+    {
+        $combined = DB::transaction(function () use ($trigger): ?TriggerEvent {
+            $held = $trigger->events()
+                ->where('status', TriggerEventStatus::Held->value)
+                ->oldest()
+                ->orderBy('id')
+                ->limit(500)
+                ->lockForUpdate()
+                ->get();
+
+            if ($held->isEmpty()) {
+                return null;
+            }
+
+            $combined = TriggerEvent::query()->create([
+                'trigger_id' => $trigger->id,
+                'source' => $held->first()->source,
+                'status' => TriggerEventStatus::Queued,
+                'payload' => [
+                    'count' => $held->count(),
+                    'first_at' => $held->first()->created_at?->toIso8601String(),
+                    'last_at' => $held->last()->created_at?->toIso8601String(),
+                    'items' => $held->pluck('payload')->all(),
+                ],
+                'delivery_id' => 'batch:'.Str::uuid(),
+            ]);
+
+            TriggerEvent::query()
+                ->whereIn('id', $held->modelKeys())
+                ->update(['status' => TriggerEventStatus::Batched->value, 'processed_at' => now()]);
+
+            return $combined;
+        });
+
+        if ($combined !== null) {
+            FireTriggerEvent::dispatch($trigger, $combined);
+        }
+
+        return $combined;
     }
 
     /**
@@ -290,6 +355,32 @@ class TriggerService
     public function isAlreadyRunning(Trigger $trigger): bool
     {
         return $this->runStarter->isAlreadyRunning($trigger);
+    }
+
+    /**
+     * Whether starting another run now would go past a concurrency cap: the
+     * trigger's own (`config.max_concurrent_runs`) or the workspace's
+     * (`triggers.max_concurrent_runs_per_workspace`).
+     *
+     * An event over the cap isn't dropped: FireTriggerEvent puts it back on
+     * the queue and tries again shortly, so a burst is spread out instead of
+     * starting every run at once.
+     */
+    public function atConcurrencyLimit(Trigger $trigger): bool
+    {
+        $triggerCap = (int) ($trigger->config['max_concurrent_runs'] ?? 0);
+
+        if ($triggerCap > 0 && $this->runStarter->activeRuns($trigger) >= $triggerCap) {
+            return true;
+        }
+
+        $workspaceCap = (int) config('triggers.max_concurrent_runs_per_workspace');
+
+        return $workspaceCap > 0 && Run::query()
+            ->where('workspace_id', $trigger->workspace_id)
+            ->whereNull('parent_run_id')
+            ->whereIn('status', [RunStatus::Pending, RunStatus::Running])
+            ->count() >= $workspaceCap;
     }
 
     /**

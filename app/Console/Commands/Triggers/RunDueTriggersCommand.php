@@ -9,6 +9,7 @@ use App\Services\Triggers\TriggerService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * The every-minute tick: queues an event for each due schedule and a poll for
@@ -56,7 +57,7 @@ class RunDueTriggersCommand extends Command
             ->where('is_active', true)
             ->whereNull('next_run_at')
             ->with('workspace')
-            ->each(function (Trigger $trigger): void {
+            ->eachById(function (Trigger $trigger): void {
                 if ($trigger->nextRun(now(), allowCurrentMinute: true) === null) {
                     Log::warning('Schedule trigger skipped: invalid cron expression.', ['trigger_id' => $trigger->id]);
 
@@ -70,14 +71,18 @@ class RunDueTriggersCommand extends Command
             ->where('type', TriggerType::Schedule)
             ->where('is_active', true)
             ->where('next_run_at', '<=', $now)
-            ->orderBy('next_run_at')
+            ->whereHas('workspace', fn ($workspaces) => $workspaces->whereNull('suspended_at'))
             ->with('workspace')
-            ->each(function (Trigger $trigger) use ($triggers, $now, $catchUpCutoff, &$queued): void {
+            ->eachById(function (Trigger $trigger) use ($triggers, $now, $catchUpCutoff, &$queued): void {
                 $slot = $trigger->next_run_at;
 
                 // Move on first, so if intake throws, the next tick doesn't retry
                 // the same slot forever.
-                $trigger->forceFill(['next_run_at' => $trigger->nextRun($now)])->save();
+                // A one-time schedule has no next slot: it switches itself off
+                // here, whether the slot fires below or was missed.
+                $trigger->forceFill(['next_run_at' => $trigger->nextRun($now)])
+                    ->forceFill($trigger->isOneTimeSchedule() ? ['is_active' => false] : [])
+                    ->save();
 
                 if ($slot->lt($catchUpCutoff)) {
                     Log::info('Schedule trigger slot missed beyond the catch-up window.', ['trigger_id' => $trigger->id, 'slot' => $slot->toIso8601String()]);
@@ -88,12 +93,20 @@ class RunDueTriggersCommand extends Command
                 // The delivery id names the slot, so a second scheduler or a
                 // re-run of this tick hits the unique index instead of firing
                 // twice. Unlike a lock, that holds across servers.
-                $triggers->receive(
-                    $trigger,
-                    TriggerType::Schedule,
-                    ['scheduled_at' => $slot->toIso8601String()],
-                    deliveryId: 'schedule:'.$slot->format('Y-m-d H:i'),
-                );
+                try {
+                    $triggers->receive(
+                        $trigger,
+                        TriggerType::Schedule,
+                        ['scheduled_at' => $slot->toIso8601String()],
+                        deliveryId: 'schedule:'.$slot->format('Y-m-d H:i'),
+                    );
+                } catch (Throwable $exception) {
+                    // One trigger's failure must never stop the tick for every
+                    // other workspace's schedules.
+                    report($exception);
+
+                    return;
+                }
 
                 $queued++;
             });
@@ -112,15 +125,13 @@ class RunDueTriggersCommand extends Command
         Trigger::query()
             ->where('type', TriggerType::Polling)
             ->where('is_active', true)
-            ->each(function (Trigger $trigger) use (&$queued): void {
-                $intervalMinutes = max(
-                    (int) config('triggers.min_poll_interval_minutes'),
-                    (int) ($trigger->config['poll_interval_minutes'] ?? config('triggers.poll_every_minutes')),
-                );
-
-                if ($trigger->last_run_at instanceof Carbon && $trigger->last_run_at->addMinutes($intervalMinutes)->isFuture()) {
-                    return;
-                }
+            ->whereHas('workspace', fn ($workspaces) => $workspaces->whereNull('suspended_at'))
+            ->where(fn ($due) => $due->whereNull('next_poll_at')->orWhere('next_poll_at', '<=', now()))
+            ->with(['subscription', 'workspace'])
+            ->eachById(function (Trigger $trigger) use (&$queued): void {
+                // Claimed before the job runs, so a slow poll isn't queued again
+                // on the next tick. The poll sets the real time when it ends.
+                $trigger->forceFill(['next_poll_at' => $trigger->nextPollTime()])->saveQuietly();
 
                 PollTrigger::dispatch($trigger);
                 $queued++;

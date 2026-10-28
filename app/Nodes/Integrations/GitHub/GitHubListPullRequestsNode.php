@@ -55,6 +55,23 @@ class GitHubListPullRequestsNode extends AbstractGitHubNode implements SupportsT
     }
 
     /**
+     * Read a wider page than the node's default, so a burst between two polls
+     * isn't cut off.
+     */
+    public function triggerReadConfig(array $config): array
+    {
+        return [...$config, 'per_page' => 100];
+    }
+
+    /**
+     * Newest first.
+     */
+    public function triggerListsNewestFirst(): bool
+    {
+        return true;
+    }
+
+    /**
      * Where the item list sits in execute()'s output.
      */
     protected function triggerItemsPath(): ?string

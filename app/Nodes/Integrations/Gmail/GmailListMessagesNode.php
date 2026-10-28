@@ -78,6 +78,23 @@ class GmailListMessagesNode extends AbstractGmailNode implements SupportsTrigger
     }
 
     /**
+     * Read a wider page than the node's default, so a burst between two polls
+     * isn't cut off.
+     */
+    public function triggerReadConfig(array $config): array
+    {
+        return [...$config, 'max_results' => max((int) ($config['max_results'] ?? 0), 100)];
+    }
+
+    /**
+     * Newest first.
+     */
+    public function triggerListsNewestFirst(): bool
+    {
+        return true;
+    }
+
+    /**
      * The default minutes between polls when used as a trigger.
      */
     public function triggerPollMinutes(): int

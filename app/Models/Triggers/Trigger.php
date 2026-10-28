@@ -2,13 +2,17 @@
 
 namespace App\Models\Triggers;
 
+use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerDisabledReason;
 use App\Enums\Triggers\TriggerType;
+use App\Jobs\Triggers\SyncTriggerSubscription;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Models\Workspaces\WorkspaceMember;
 use App\Notifications\Triggers\TriggerDisabledNotification;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Timezones\Timezones;
+use App\Services\Triggers\Push\PushSources;
 use Carbon\CarbonInterface;
 use Cron\CronExpression;
 use Database\Factories\Triggers\TriggerFactory;
@@ -19,6 +23,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -79,6 +84,21 @@ class Trigger extends Model
                 $trigger->next_run_at = $trigger->nextRun(now(), allowCurrentMinute: true);
             }
         });
+
+        // A polling trigger made, switched on or off, or pointed at another
+        // account or settings: bring its push subscription in line. Queued,
+        // and only once the surrounding publish has committed.
+        static::saved(function (Trigger $trigger): void {
+            if (! collect((array) config('triggers.push'))->contains(fn (array $provider): bool => (bool) ($provider['enabled'] ?? false))) {
+                return;
+            }
+
+            $changed = $trigger->wasRecentlyCreated || $trigger->wasChanged(['is_active', 'config', 'credential_id', 'type']);
+
+            if ($trigger->type === TriggerType::Polling && $changed && app(PushSources::class)->anyEnabled()) {
+                SyncTriggerSubscription::dispatch($trigger->id)->afterCommit();
+            }
+        });
     }
 
     /**
@@ -102,17 +122,48 @@ class Trigger extends Model
      */
     public static function nextRunFor(array $config, CarbonInterface $from, bool $allowCurrentMinute = false, string $defaultTimezone = Timezones::DEFAULT): ?Carbon
     {
+        $timezone = Timezones::resolve($config['timezone'] ?? null, $defaultTimezone);
+
+        if (filled($config['run_once_at'] ?? null)) {
+            return self::onceRunFor((string) $config['run_once_at'], $from, $allowCurrentMinute, $timezone);
+        }
+
         $cron = $config['cron'] ?? null;
 
         if (! is_string($cron) || ! CronExpression::isValidExpression($cron)) {
             return null;
         }
 
-        $timezone = Timezones::resolve($config['timezone'] ?? null, $defaultTimezone);
-
         $next = (new CronExpression($cron))->getNextRunDate($from->toDateTimeImmutable(), 0, $allowCurrentMinute, $timezone);
 
         return Carbon::instance($next)->utc()->startOfMinute();
+    }
+
+    /**
+     * The one slot of a one-time schedule, in UTC, or null once it has passed
+     * (or when the date can't be read).
+     *
+     * A date with no offset is read in `$timezone`.
+     */
+    private static function onceRunFor(string $runOnceAt, CarbonInterface $from, bool $allowCurrentMinute, string $timezone): ?Carbon
+    {
+        try {
+            $slot = Carbon::parse($runOnceAt, $timezone)->utc()->startOfMinute();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $floor = Carbon::instance($from->toDateTimeImmutable())->utc()->startOfMinute();
+
+        return ($allowCurrentMinute ? $slot->gte($floor) : $slot->gt($floor)) ? $slot : null;
+    }
+
+    /**
+     * Whether this is a schedule that runs once and then switches itself off.
+     */
+    public function isOneTimeSchedule(): bool
+    {
+        return $this->type === TriggerType::Schedule && filled($this->config['run_once_at'] ?? null);
     }
 
     /**
@@ -131,8 +182,74 @@ class Trigger extends Model
             'consecutive_failure_count' => 'integer',
             'last_run_at' => 'datetime',
             'next_run_at' => 'datetime',
+            'next_poll_at' => 'datetime',
             'consecutive_skip_count' => 'integer',
         ];
+    }
+
+    /**
+     * The trigger's push subscription, when it has one.
+     */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(TriggerSubscription::class);
+    }
+
+    /**
+     * Minutes between polls.
+     *
+     * The trigger's own interval, never below the platform minimum. A trigger
+     * whose push subscription is receiving events only polls to reconcile
+     * (`triggers.push_reconcile_poll_minutes`), in case an event was missed.
+     */
+    public function pollIntervalMinutes(): int
+    {
+        $interval = max(
+            (int) config('triggers.min_poll_interval_minutes'),
+            (int) ($this->config['poll_interval_minutes'] ?? config('triggers.poll_every_minutes')),
+            $this->workspace?->currentPlan()?->minPollIntervalMinutes() ?? 1,
+        );
+
+        if ($this->subscription?->status === SubscriptionStatus::Active) {
+            return max($interval, (int) config('triggers.push_reconcile_poll_minutes'));
+        }
+
+        return $interval;
+    }
+
+    /**
+     * When the next poll is due: one interval from now, spread by up to 10 %
+     * so polls set up together don't all land on the same minute.
+     */
+    public function nextPollTime(): Carbon
+    {
+        $seconds = $this->pollIntervalMinutes() * 60;
+
+        return now()->addSeconds($seconds + random_int(0, (int) ($seconds / 10)));
+    }
+
+    /**
+     * The person a run or poll acts as: whoever set the trigger up while they
+     * are still in the workspace, otherwise the workspace's owner, otherwise
+     * one of its admins.
+     *
+     * Without the fallback, a trigger whose creator left the team would run
+     * with nobody behind it, and its polls would fail until the circuit
+     * breaker switched it off.
+     */
+    public function actingUser(): ?User
+    {
+        $creator = $this->creator;
+
+        if ($creator !== null && $this->workspace->users()
+            ->whereKey($creator->getKey())
+            ->whereNull((new WorkspaceMember)->qualifyColumn('deleted_at'))
+            ->exists()) {
+            return $creator;
+        }
+
+        return $this->workspace->owner
+            ?? app(NotificationDispatcher::class)->ownersAndAdmins($this->workspace)->first();
     }
 
     /**

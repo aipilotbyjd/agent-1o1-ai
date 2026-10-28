@@ -75,6 +75,14 @@ return [
 
     'payload_snippet_chars' => (int) env('TRIGGERS_PAYLOAD_SNIPPET_CHARS', 5000),
 
+    /*
+    | The longest a webhook set to "Respond with the result" holds the request
+    | open waiting for its run to finish. The wait ties up a web worker, so
+    | keep it well under the proxy's request timeout.
+    */
+
+    'max_sync_wait_seconds' => (int) env('TRIGGERS_MAX_SYNC_WAIT_SECONDS', 25),
+
     'allowed_headers' => [
         'X-GitHub-Delivery',
         'X-GitHub-Event',
@@ -122,7 +130,22 @@ return [
 
     'poll_max_items' => (int) env('TRIGGERS_POLL_MAX_ITEMS', 100),
 
+    /*
+    | A trigger whose push subscription is working only polls this often, to
+    | catch anything push missed. Without push it polls at its own interval.
+    */
+
+    'push_reconcile_poll_minutes' => (int) env('TRIGGERS_PUSH_RECONCILE_POLL_MINUTES', 15),
+
     'poll_lock_seconds' => (int) env('TRIGGERS_POLL_LOCK_SECONDS', 600),
+
+    /*
+    | A poll that fails with a temporary error (a rate limit, a 5xx, a dropped
+    | connection) only counts toward the circuit breaker after this many in a
+    | row. Any other error counts at once.
+    */
+
+    'poll_transient_failures_before_count' => (int) env('TRIGGERS_POLL_TRANSIENT_FAILURES_BEFORE_COUNT', 30),
 
     /*
     |--------------------------------------------------------------------------
@@ -157,6 +180,17 @@ return [
     'agent_fire_timeout_seconds' => (int) env('TRIGGERS_AGENT_FIRE_TIMEOUT_SECONDS', 320),
 
     'fire_max_exceptions' => (int) env('TRIGGERS_FIRE_MAX_EXCEPTIONS', 5),
+
+    /*
+    | Runs one workspace may have executing at once through its triggers (0 is
+    | no limit). Events over the cap wait in the queue, `concurrency_release_
+    | seconds` at a time, and are not dropped. A trigger can also set its own
+    | cap with `config.max_concurrent_runs`.
+    */
+
+    'max_concurrent_runs_per_workspace' => (int) env('TRIGGERS_MAX_CONCURRENT_RUNS_PER_WORKSPACE', 25),
+
+    'concurrency_release_seconds' => (int) env('TRIGGERS_CONCURRENCY_RELEASE_SECONDS', 15),
 
     'fire_backoff_seconds' => [10, 30, 90, 300, 900],
 
@@ -193,10 +227,53 @@ return [
     | firing again.
     */
 
+    'provider_events_retention_days' => (int) env('TRIGGERS_PROVIDER_EVENTS_RETENTION_DAYS', 7),
+
     'events_retention_days' => (int) env('TRIGGERS_EVENTS_RETENTION_DAYS', 30),
 
     'prune_chunk' => (int) env('TRIGGERS_PRUNE_CHUNK', 1000),
 
     'prune_at' => env('TRIGGERS_PRUNE_AT', '03:30'),
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Instant (push) triggers
+    |--------------------------------------------------------------------------
+    |
+    | Per provider switch. Off, a trigger just polls as before.
+    |
+    | Every watched provider (Gmail, Outlook, Drive, Calendar, GitHub) needs the
+    | callback URL /api/hooks/apps/{provider} to be reachable from the internet
+    | over HTTPS (APP_URL must be that address).
+    |
+    | Slack: the signing secret is that of the Slack app people connect through
+    | Apps (the one behind the `slack` connector), not the assistant's app. In
+    | that app, set the Events API request URL to /api/hooks/apps/slack and
+    | subscribe to the bot events message.channels and message.groups.
+    */
+
+    'push' => [
+        'slack' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
+            'signing_secret' => env('TRIGGERS_SLACK_SIGNING_SECRET', env('SLACK_SIGNING_SECRET')),
+            'max_age_seconds' => 300,
+        ],
+
+        // Gmail: a Pub/Sub topic Gmail may publish to, and a push subscription
+        // on it calling /api/hooks/apps/gmail?token={verification_token}.
+        'gmail' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_GMAIL_ENABLED', false),
+            'topic' => env('TRIGGERS_GMAIL_PUBSUB_TOPIC'),
+            'verification_token' => env('TRIGGERS_GMAIL_PUSH_TOKEN'),
+        ],
+
+        // Outlook (Microsoft Graph), Drive, Calendar and GitHub register their
+        // own watches through the connected account, so a switch is all they need.
+        'outlook' => ['enabled' => (bool) env('TRIGGERS_PUSH_OUTLOOK_ENABLED', false)],
+        'google_drive' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_DRIVE_ENABLED', false)],
+        'google_calendar' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_CALENDAR_ENABLED', false)],
+        'github' => ['enabled' => (bool) env('TRIGGERS_PUSH_GITHUB_ENABLED', false)],
+    ],
 
 ];

@@ -3,6 +3,7 @@
 namespace App\Services\Workflows;
 
 use App\Enums\Triggers\TriggerNodeType;
+use App\Models\Triggers\Trigger;
 use App\Models\Workflows\WorkflowEdge;
 use App\Rules\SafeOutboundUrl;
 use App\Services\Secrets\SecretResolver;
@@ -138,6 +139,18 @@ class GraphValidator
                         $errors[] = new ValidationIssue('This schedule is not a valid cron expression.', $node['key'], 'cron');
                     }
 
+                    if (! filled($config['cron'] ?? null) && ! filled($config['run_once_at'] ?? null)) {
+                        $errors[] = new ValidationIssue('Set a repeating schedule or a one-time run.', $node['key'], 'cron');
+                    }
+
+                    if (filled($config['cron'] ?? null) && filled($config['run_once_at'] ?? null)) {
+                        $errors[] = new ValidationIssue('Use either a repeating schedule or a one-time run, not both.', $node['key'], 'run_once_at');
+                    }
+
+                    if (filled($config['run_once_at'] ?? null) && Trigger::nextRunFor($config, now(), true) === null) {
+                        $errors[] = new ValidationIssue('The one-time run must be a valid date and time in the future.', $node['key'], 'run_once_at');
+                    }
+
                     if (filled($config['timezone'] ?? null) && Timezones::canonical($config['timezone']) === null) {
                         $errors[] = new ValidationIssue('Pick a timezone from the list.', $node['key'], 'timezone');
                     }
@@ -146,6 +159,14 @@ class GraphValidator
                 case TriggerNodeType::Webhook:
                     if (filled($config['header_name'] ?? null) && ! preg_match('/^[A-Za-z0-9-]{1,64}$/', (string) $config['header_name'])) {
                         $errors[] = new ValidationIssue('A header name can only use letters, numbers and dashes.', $node['key'], 'header_name');
+                    }
+
+                    foreach ((array) ($config['pass_headers'] ?? []) as $name) {
+                        if (! preg_match('/^[A-Za-z0-9-]{1,64}$/', trim((string) $name))) {
+                            $errors[] = new ValidationIssue('A header name can only use letters, numbers and dashes.', $node['key'], 'pass_headers');
+
+                            break;
+                        }
                     }
 
                     break;

@@ -56,6 +56,7 @@ use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
 use App\Nodes\Integrations\Slack\SlackGetChannelHistoryNode;
+use App\Nodes\Integrations\Slack\SlackReactionAddedNode;
 use App\Nodes\Integrations\Slack\SlackInviteToChannelNode;
 use App\Nodes\Integrations\Slack\SlackListChannelsNode;
 use App\Nodes\Integrations\Slack\SlackListUsersNode;
@@ -120,6 +121,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'slack_create_channel' => SlackCreateChannelNode::class,
             'slack_invite_to_channel' => SlackInviteToChannelNode::class,
             'slack_get_channel_history' => SlackGetChannelHistoryNode::class,
+            'slack_reaction_added' => SlackReactionAddedNode::class,
             'slack_upload_file' => SlackUploadFileNode::class,
             'slack_list_users' => SlackListUsersNode::class,
             'gmail_send_email' => GmailSendEmailNode::class,
