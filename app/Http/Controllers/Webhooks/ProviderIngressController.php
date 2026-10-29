@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Webhooks;
 
+use App\Contracts\Triggers\RepliesToDelivery;
 use App\Http\Controllers\Controller;
 use App\Jobs\Triggers\RouteProviderEvent;
 use App\Models\Triggers\ProviderEvent;
@@ -60,6 +61,12 @@ class ProviderIngressController extends Controller
             }
 
             RouteProviderEvent::dispatch($event);
+        }
+
+        if ($ingress instanceof RepliesToDelivery) {
+            $reply = $ingress->reply($request);
+
+            return $reply instanceof Response ? $reply : response()->json($reply);
         }
 
         return response()->json(['ok' => true]);

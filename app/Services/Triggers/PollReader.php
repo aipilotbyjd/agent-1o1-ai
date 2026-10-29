@@ -2,6 +2,7 @@
 
 namespace App\Services\Triggers;
 
+use App\Contracts\KeepsTriggerState;
 use App\Contracts\SchedulesTriggerPolls;
 use App\Contracts\SupportsTriggerMode;
 use App\Exceptions\ConnectorException;
@@ -43,15 +44,20 @@ class PollReader
      *
      * The fifth element says when the poll should next look when the source
      * knows better than a fixed interval (see SchedulesTriggerPolls), else null.
+     * The sixth is the state to keep for the next poll (see KeepsTriggerState),
+     * or null for a trigger that keeps none.
      *
-     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface}
+     * `$forSample` is for "Fetch sample": a trigger that keeps state returns
+     * example items instead of reading what has changed, and never moves its state.
+     *
+     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface, 5: Closure(): ?array<string, mixed>}
      */
-    public function read(Trigger $trigger): array
+    public function read(Trigger $trigger, bool $forSample = false): array
     {
         $config = array_merge((array) ($trigger->preset?->config ?? []), (array) $trigger->config);
 
         return isset($config['node_type'])
-            ? $this->readerItems($trigger, $config)
+            ? $this->readerItems($trigger, $config, $forSample)
             : $this->urlItems($trigger, $config);
     }
 
@@ -62,7 +68,7 @@ class PollReader
      * value.
      *
      * @param  array<string, mixed>  $config
-     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface}
+     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface, 5: Closure(): ?array<string, mixed>}
      */
     private function urlItems(Trigger $trigger, array $config): array
     {
@@ -87,6 +93,7 @@ class PollReader
             fn (array $item): array => $item,
             fn (array $item): mixed => data_get($item, $config['cursor_path'] ?? $idPath),
             fn (): ?CarbonInterface => null,
+            fn (): ?array => null,
         ];
     }
 
@@ -98,9 +105,9 @@ class PollReader
      * urlItems().
      *
      * @param  array<string, mixed>  $config
-     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface}
+     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface, 5: Closure(): ?array<string, mixed>}
      */
-    private function readerItems(Trigger $trigger, array $config): array
+    private function readerItems(Trigger $trigger, array $config, bool $forSample = false): array
     {
         $node = $this->registry->resolve((string) $config['node_type']);
 
@@ -118,6 +125,10 @@ class PollReader
         // acts for, which is all a real run gives ResolvesConnectorCredential.
         $run = new Run(['workspace_id' => $trigger->workspace_id, 'triggered_by' => $trigger->actingUser()?->id]);
 
+        if ($node instanceof KeepsTriggerState) {
+            return $this->statefulItems($trigger, $node, $run, $node->triggerReadConfig($nodeConfig), $nodeConfig, $forSample);
+        }
+
         $output = $node->execute($run, $node->triggerReadConfig($nodeConfig), []);
         $items = $node->triggerItems($output, $nodeConfig);
 
@@ -133,6 +144,45 @@ class PollReader
             fn (array $item): array => $node->expandTriggerItem($run, $nodeConfig, $item),
             fn (array $item): mixed => $node->triggerItemId($item),
             fn (): ?CarbonInterface => $node instanceof SchedulesTriggerPolls ? $node->nextTriggerPollAt($output, $nodeConfig) : null,
+            fn (): ?array => null,
+        ];
+    }
+
+    /**
+     * Read what changed since the last poll through a node that keeps state.
+     *
+     * The state it returns is handed back (sixth element) for PollTrigger to
+     * save once the poll has gone through; nothing is saved here, so a poll
+     * that fails is repeated from the same state.
+     *
+     * @param  array<string, mixed>  $readConfig
+     * @param  array<string, mixed>  $nodeConfig
+     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface, 5: Closure(): ?array<string, mixed>}
+     */
+    private function statefulItems(Trigger $trigger, SupportsTriggerMode&KeepsTriggerState $node, Run $run, array $readConfig, array $nodeConfig, bool $forSample): array
+    {
+        if ($forSample) {
+            $items = $node->triggerSampleItems($run, $readConfig);
+            $nextState = null;
+        } else {
+            // State taken under other settings (another sheet, another id
+            // column) says nothing about the new ones: reading it would report
+            // everything that differs as gone. Start from a fresh baseline.
+            $fingerprint = md5(json_encode($nodeConfig, JSON_THROW_ON_ERROR));
+            $previous = $trigger->poll_cursor['state'] ?? null;
+            $previous = is_array($previous) && ($previous['_config'] ?? null) === $fingerprint ? array_diff_key($previous, ['_config' => true]) : null;
+
+            ['items' => $items, 'state' => $nextState] = $node->pollSince($run, $readConfig, $previous);
+            $nextState['_config'] = $fingerprint;
+        }
+
+        return [
+            array_values($items),
+            fn (array $item): string => $node->triggerItemId($item),
+            fn (array $item): array => $node->expandTriggerItem($run, $nodeConfig, $item),
+            fn (array $item): mixed => $node->triggerItemId($item),
+            fn (): ?CarbonInterface => null,
+            fn (): ?array => $nextState,
         ];
     }
 

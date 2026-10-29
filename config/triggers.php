@@ -54,6 +54,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Storm detector
+    |--------------------------------------------------------------------------
+    |
+    | A trigger that takes in more than `max_events_per_minute` events in one
+    | minute is switched off and its owners told (Trigger::recordStorm()): a
+    | loop or bulk import upstream would otherwise start thousands of runs
+    | and spend the workspace's credits before anyone looks. A trigger can set
+    | its own limit with `config.storm_limit`. Triggers that group events or
+    | wait for quiet are exempt, since collapsing a burst is what they are for.
+    | "Run now" is never counted.
+    */
+
+    'storm' => [
+        'enabled' => (bool) env('TRIGGERS_STORM_ENABLED', true),
+        'max_events_per_minute' => (int) env('TRIGGERS_STORM_MAX_EVENTS_PER_MINUTE', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Waiting for quiet (debounce)
+    |--------------------------------------------------------------------------
+    |
+    | A trigger with `config.debounce_seconds` holds its events and runs once
+    | when none has arrived for that long, with all of them. A source that
+    | never goes quiet would hold forever, so the oldest held event also
+    | forces a run after `max_wait_seconds`. Checked by triggers:flush-batches,
+    | which runs every minute, so a wait is accurate to about a minute.
+    */
+
+    'debounce' => [
+        'max_wait_seconds' => (int) env('TRIGGERS_DEBOUNCE_MAX_WAIT_SECONDS', 3600),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Webhooks
     |--------------------------------------------------------------------------
     |
@@ -130,6 +165,18 @@ return [
     'min_poll_interval_minutes' => (int) env('TRIGGERS_MIN_POLL_INTERVAL_MINUTES', 1),
 
     'poll_max_items' => (int) env('TRIGGERS_POLL_MAX_ITEMS', 100),
+
+    /*
+    | "Deleted" triggers (a row removed, an item deleted) have no feed to read:
+    | they keep the ids that were there and report the ones that went missing
+    | (PresenceTracker). `max_tracked` is how many ids one trigger may keep; a
+    | longer list is refused with a message to narrow it, rather than watched
+    | halfway.
+    */
+
+    'removal' => [
+        'max_tracked' => (int) env('TRIGGERS_REMOVAL_MAX_TRACKED', 2000),
+    ],
 
     /*
     | A trigger whose push subscription is working only polls this often, to
@@ -271,6 +318,13 @@ return [
     */
 
     'push' => [
+        // Telegram, Discord and Twilio are connected with the member's own bot or
+        // account, so there is no platform app to set up: they are on unless switched off.
+        // Each registers its webhook through the connected account (a public https APP_URL is needed).
+        'telegram' => ['enabled' => (bool) env('TRIGGERS_PUSH_TELEGRAM_ENABLED', true)],
+        'discord' => ['enabled' => (bool) env('TRIGGERS_PUSH_DISCORD_ENABLED', true), 'max_age_seconds' => 300],
+        'twilio' => ['enabled' => (bool) env('TRIGGERS_PUSH_TWILIO_ENABLED', true)],
+
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
             'signing_secret' => env('TRIGGERS_SLACK_SIGNING_SECRET', env('SLACK_SIGNING_SECRET')),
@@ -323,6 +377,18 @@ return [
             'enabled' => (bool) env('TRIGGERS_PUSH_NOTION_ENABLED', false),
             'verification_token' => env('TRIGGERS_NOTION_VERIFICATION_TOKEN'),
         ],
+
+        // Linear and Jira register a webhook per trigger through the connected
+        // account, so a switch is all they need. Linear signs each webhook with its
+        // own secret; `max_age_seconds` is how old a delivery may be. Registering a
+        // webhook needs an account connected with Linear's `admin` scope and Jira's
+        // `manage:jira-webhook` scope, which the connectors ask for only while their
+        // switch is on (an account connected earlier must reconnect).
+        'linear' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_LINEAR_ENABLED', false),
+            'max_age_seconds' => 300,
+        ],
+        'jira' => ['enabled' => (bool) env('TRIGGERS_PUSH_JIRA_ENABLED', false)],
     ],
 
 ];

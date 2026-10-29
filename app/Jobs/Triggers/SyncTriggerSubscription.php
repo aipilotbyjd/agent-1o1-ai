@@ -7,6 +7,7 @@ use App\Contracts\Triggers\WatchedTriggerSource;
 use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Exceptions\ConnectorException;
+use App\Exceptions\WatchRefusedException;
 use App\Models\Triggers\Trigger;
 use App\Models\Triggers\TriggerSubscription;
 use App\Services\Triggers\Push\PushSources;
@@ -94,6 +95,11 @@ class SyncTriggerSubscription implements ShouldQueue
             $routingKey = $source->routingKeyFor($trigger, $watch);
         } catch (ConnectorException $exception) {
             $this->record($trigger, $source->provider(), SubscriptionStatus::ReconnectNeeded, $exception->getMessage());
+
+            return;
+        } catch (WatchRefusedException $exception) {
+            // Refused in words, and a repeat would be refused the same way.
+            $this->record($trigger, $source->provider(), SubscriptionStatus::Failed, "Instant delivery is not available here. {$exception->getMessage()} It checks on a timer instead.");
 
             return;
         } catch (RequestException $exception) {

@@ -65,6 +65,8 @@ class UpdateTriggerRequest extends FormRequest
             'config.start_from' => ['nullable', 'string', Rule::in(['now', 'beginning'])],
             'config.max_runs_per_minute' => ['nullable', 'integer', 'between:1,600'],
             'config.batch_seconds' => ['nullable', 'integer', 'between:5,3600'],
+            'config.debounce_seconds' => ['nullable', 'integer', 'between:5,3600'],
+            'config.storm_limit' => ['nullable', 'integer', 'between:10,10000'],
             'config.max_concurrent_runs' => ['nullable', 'integer', 'between:1,100'],
             'config.response_mode' => ['nullable', 'string', Rule::in(['immediate', 'wait'])],
             'config.response_timeout_seconds' => ['nullable', 'integer', 'between:1,'.config('triggers.max_sync_wait_seconds')],

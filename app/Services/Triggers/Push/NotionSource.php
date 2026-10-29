@@ -31,6 +31,7 @@ class NotionSource implements ItemPushSource, PollsOnEvent
     private const array POLLED_ON = [
         'notion_list_new_database_items' => ['page.created', 'page.moved', 'page.undeleted'],
         'notion_list_updated_database_items' => ['page.created', 'page.properties_updated', 'page.content_updated', 'page.moved', 'page.undeleted'],
+        'notion_list_deleted_database_items' => ['page.deleted', 'page.moved', 'page.properties_updated'],
         'notion_list_new_pages' => ['page.created', 'page.undeleted'],
         'notion_list_updated_pages' => ['page.created', 'page.properties_updated', 'page.content_updated', 'page.moved', 'page.undeleted'],
         'notion_list_new_databases' => ['database.created', 'data_source.created'],

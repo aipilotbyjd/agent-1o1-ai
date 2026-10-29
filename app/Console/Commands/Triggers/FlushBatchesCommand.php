@@ -6,14 +6,14 @@ use App\Enums\Triggers\TriggerEventStatus;
 use App\Models\Triggers\Trigger;
 use App\Services\Triggers\TriggerService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 
 /**
- * Runs the events a trigger has been holding as one, once its group window
- * (`config.batch_seconds`) has passed since the oldest of them arrived.
+ * Runs the events a trigger has been holding as one, once its window is over:
+ * its group window (`config.batch_seconds`) since the oldest arrived, or its
+ * quiet period (`config.debounce_seconds`) since the newest.
  *
- * A trigger that has stopped grouping flushes what it still holds straight
- * away, so nothing is left waiting.
+ * A trigger that has stopped holding flushes what it still holds straight
+ * away, so nothing is left waiting. See TriggerService::heldWindowIsOver().
  */
 class FlushBatchesCommand extends Command
 {
@@ -32,10 +32,7 @@ class FlushBatchesCommand extends Command
             ->where('is_active', true)
             ->whereHas('events', fn ($events) => $events->where('status', TriggerEventStatus::Held->value))
             ->eachById(function (Trigger $trigger) use ($triggers, &$flushed): void {
-                $oldest = $trigger->events()->where('status', TriggerEventStatus::Held->value)->min('created_at');
-                $window = max(0, (int) ($trigger->config['batch_seconds'] ?? 0));
-
-                if ($oldest === null || Carbon::parse($oldest)->gt(now()->subSeconds($window))) {
+                if (! $triggers->heldWindowIsOver($trigger)) {
                     return;
                 }
 

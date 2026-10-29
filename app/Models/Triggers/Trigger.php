@@ -38,7 +38,8 @@ use Illuminate\Support\Str;
  * trigger, or a legacy workflow trigger.
  *
  * It also carries its own circuit breaker: enough failed or dropped events in
- * a row switch it off and tell its owners (recordFailure(), recordSkip()).
+ * a row, or a storm of events in a minute, switch it off and tell its owners
+ * (recordFailure(), recordSkip(), recordStorm()).
  */
 #[Fillable([
     'workspace_id', 'target_type', 'target_id', 'type', 'preset_id', 'config',
@@ -360,6 +361,28 @@ class Trigger extends Model
     }
 
     /**
+     * Switch the trigger off because events arrived far faster than it can
+     * sensibly run (see TriggerService::tripsStormDetector()).
+     */
+    public function recordStorm(): void
+    {
+        $this->switchOff(TriggerDisabledReason::Storm);
+    }
+
+    /**
+     * Events in one minute above which the trigger switches itself off: its
+     * own `config.storm_limit` (clamped to 10 to 10,000), else the default.
+     */
+    public function stormLimit(): int
+    {
+        $configured = $this->config['storm_limit'] ?? null;
+
+        return is_numeric($configured)
+            ? max(10, min(10000, (int) $configured))
+            : (int) config('triggers.storm.max_events_per_minute');
+    }
+
+    /**
      * Failures in a row before the trigger switches itself off: its own
      * `config.max_failures` (clamped to the allowed range), else the default.
      */
@@ -385,7 +408,7 @@ class Trigger extends Model
             return;
         }
 
-        $this->forceFill(['is_active' => false])->save();
+        $this->forceFill(['is_active' => false, 'disabled_reason' => $reason->value])->save();
 
         $this->notifyDisabled($reason);
     }

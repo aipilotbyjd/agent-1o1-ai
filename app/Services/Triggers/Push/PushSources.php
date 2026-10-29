@@ -35,8 +35,13 @@ class PushSources
         GoogleFormsSource $formsSource,
         YouTubeUploadsSource $youtubeSource,
         NotionSource $notionSource,
+        LinearSource $linearSource,
+        JiraSource $jiraSource,
+        TelegramSource $telegramSource,
+        DiscordSource $discordSource,
+        TwilioSource $twilioSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -52,6 +57,11 @@ class PushSources
             new GoogleFormsIngress,
             new YouTubeUploadsIngress,
             new NotionIngress,
+            new LinearIngress,
+            new JiraIngress,
+            new TelegramIngress,
+            new DiscordIngress,
+            new TwilioIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

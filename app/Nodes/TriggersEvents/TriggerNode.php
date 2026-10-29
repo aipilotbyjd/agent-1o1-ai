@@ -11,6 +11,7 @@ use App\Enums\NodeCategory;
 use App\Enums\Triggers\TriggerNodeType;
 use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
+use App\Services\Workflows\ConditionEvaluator;
 
 /**
  * Base for the dedicated trigger nodes: where a workflow starts.
@@ -89,6 +90,10 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
      *   off.
      * - `max_runs_per_minute`: a cap on how fast events start runs.
      * - `batch_seconds`: collect events for this long and run them as one.
+     * - `debounce_seconds`: hold events until none has arrived for this long,
+     *   then run them as one.
+     * - `storm_limit`: events per minute above which the trigger switches
+     *   itself off.
      * - `max_concurrent_runs`: how many of its runs may execute at once; the
      *   rest of a burst waits in the queue.
      * - `activate`: the "Activate as flow trigger" switch. The editor draws
@@ -110,6 +115,8 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
             'max_failures' => Field::advanced(Field::integer('Switch off after failures in a row', 'Defaults to '.config('triggers.failures_before_disable').'.', null, (int) $minFailures, (int) $maxFailures)),
             'max_runs_per_minute' => Field::advanced(Field::integer('Most runs per minute', 'Extra events wait for the next minute instead of starting together. Leave empty for no limit.', null, 1, 600)),
             'batch_seconds' => Field::advanced(Field::integer('Group events for (seconds)', 'Collect events for this long, then run once with all of them as a list. Leave empty to run for each.', null, 5, 3600)),
+            'debounce_seconds' => Field::advanced(Field::integer('Wait for quiet (seconds)', 'Hold events until none has arrived for this long, then run once with all of them (the newest is also in "latest"). Use it for bursts, such as one edit saved many times. Not together with "Group events". Checked about once a minute.', null, 5, 3600)),
+            'storm_limit' => Field::advanced(Field::integer('Switch off above (events per minute)', 'If more events than this arrive in a minute the trigger switches itself off and tells you, so a loop or bulk import can\'t start thousands of runs. Defaults to '.config('triggers.storm.max_events_per_minute').'. Not applied when events are grouped or waiting for quiet.', null, 10, 10000)),
             'max_concurrent_runs' => Field::advanced(Field::integer('Most runs at once', 'More events wait their turn instead of starting together. Leave empty for no limit.', null, 1, 100)),
             'activate' => Field::hidden('Whether publishing switches this trigger on. Defaults to on.', 'boolean'),
         ];
@@ -128,7 +135,7 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
     {
         return Field::advanced(Field::json(
             'Only run when',
-            'A list of conditions that must all match, e.g. [{"path": "action", "operator": "equals", "value": "opened"}]. Operators: equals, not_equals, contains.',
+            'A list of conditions that must all match, e.g. [{"path": "action", "operator": "equals", "value": "opened"}]. Add "source": "header" to check a request header instead of the body. Operators: '.implode(', ', array_keys(ConditionEvaluator::OPERATORS)).'.',
             'array',
         ));
     }

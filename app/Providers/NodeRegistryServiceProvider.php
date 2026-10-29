@@ -5,14 +5,80 @@ namespace App\Providers;
 use App\Contracts\NodeContract;
 use App\Nodes\AiAutomation\AgentNode;
 use App\Nodes\AiAutomation\AskAiNode;
+use App\Nodes\DataTransform\ArrayNode;
 use App\Nodes\DataTransform\CallApiNode;
+use App\Nodes\DataTransform\DateTimeNode;
+use App\Nodes\DataTransform\JsonNode;
+use App\Nodes\DataTransform\MathNode;
 use App\Nodes\DataTransform\RunCodeNode;
+use App\Nodes\DataTransform\SetVariableNode;
+use App\Nodes\DataTransform\StringNode;
 use App\Nodes\DataTransform\TransformNode;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\InputsOutputs\WorkflowInputNode;
 use App\Nodes\InputsOutputs\WorkflowOutputNode;
+use App\Nodes\Integrations\Discord\DiscordAddReactionNode;
+use App\Nodes\Integrations\Discord\DiscordAddRoleNode;
+use App\Nodes\Integrations\Discord\DiscordAddThreadMemberNode;
+use App\Nodes\Integrations\Discord\DiscordArchiveThreadNode;
+use App\Nodes\Integrations\Discord\DiscordBanMemberNode;
+use App\Nodes\Integrations\Discord\DiscordBulkDeleteMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordClearReactionsNode;
+use App\Nodes\Integrations\Discord\DiscordCreateChannelNode;
+use App\Nodes\Integrations\Discord\DiscordCreateInviteNode;
+use App\Nodes\Integrations\Discord\DiscordCreateRoleNode;
+use App\Nodes\Integrations\Discord\DiscordCreateThreadNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteChannelNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteCommandNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteInviteNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteMessageNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteRoleNode;
+use App\Nodes\Integrations\Discord\DiscordEditChannelNode;
+use App\Nodes\Integrations\Discord\DiscordEditMessageNode;
+use App\Nodes\Integrations\Discord\DiscordGetChannelNode;
+use App\Nodes\Integrations\Discord\DiscordGetGuildNode;
+use App\Nodes\Integrations\Discord\DiscordGetMemberNode;
+use App\Nodes\Integrations\Discord\DiscordGetMeNode;
+use App\Nodes\Integrations\Discord\DiscordGetMessageNode;
+use App\Nodes\Integrations\Discord\DiscordGetUserNode;
+use App\Nodes\Integrations\Discord\DiscordKickMemberNode;
+use App\Nodes\Integrations\Discord\DiscordListActiveThreadsNode;
+use App\Nodes\Integrations\Discord\DiscordListBansNode;
+use App\Nodes\Integrations\Discord\DiscordListChannelsNode;
+use App\Nodes\Integrations\Discord\DiscordListCommandsNode;
+use App\Nodes\Integrations\Discord\DiscordListGuildsNode;
+use App\Nodes\Integrations\Discord\DiscordListInvitesNode;
+use App\Nodes\Integrations\Discord\DiscordListMembersNode;
+use App\Nodes\Integrations\Discord\DiscordListMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordListNewChannelsNode;
+use App\Nodes\Integrations\Discord\DiscordListNewMembersNode;
+use App\Nodes\Integrations\Discord\DiscordListNewMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordListNewThreadsNode;
+use App\Nodes\Integrations\Discord\DiscordListPinnedMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordListReactionsNode;
+use App\Nodes\Integrations\Discord\DiscordListRolesNode;
+use App\Nodes\Integrations\Discord\DiscordNewButtonClickNode;
+use App\Nodes\Integrations\Discord\DiscordNewSlashCommandNode;
+use App\Nodes\Integrations\Discord\DiscordPinMessageNode;
+use App\Nodes\Integrations\Discord\DiscordRegisterCommandNode;
+use App\Nodes\Integrations\Discord\DiscordRemoveReactionNode;
+use App\Nodes\Integrations\Discord\DiscordRemoveRoleNode;
+use App\Nodes\Integrations\Discord\DiscordRemoveThreadMemberNode;
+use App\Nodes\Integrations\Discord\DiscordRespondToInteractionNode;
+use App\Nodes\Integrations\Discord\DiscordSearchMembersNode;
+use App\Nodes\Integrations\Discord\DiscordSendDirectMessageNode;
+use App\Nodes\Integrations\Discord\DiscordSendMessageNode;
+use App\Nodes\Integrations\Discord\DiscordSendWebhookMessageNode;
+use App\Nodes\Integrations\Discord\DiscordSetNicknameNode;
+use App\Nodes\Integrations\Discord\DiscordTimeoutMemberNode;
+use App\Nodes\Integrations\Discord\DiscordUnbanMemberNode;
+use App\Nodes\Integrations\Discord\DiscordUnpinMessageNode;
+use App\Nodes\Integrations\Email\EmailParseInboundNode;
+use App\Nodes\Integrations\Email\EmailSendEmailNode;
+use App\Nodes\Integrations\Email\EmailSendToManyNode;
+use App\Nodes\Integrations\Email\EmailValidateAddressNode;
 use App\Nodes\Integrations\GitHub\GitHubAddAssigneesNode;
 use App\Nodes\Integrations\GitHub\GitHubAddLabelsNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateBranchNode;
@@ -108,6 +174,7 @@ use App\Nodes\Integrations\GoogleDrive\GoogleDriveDeleteFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveExportFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveGetFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveListFilesNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveListTrashedFilesNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveListUpdatedFilesNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveMoveFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveRenameFileNode;
@@ -128,6 +195,7 @@ use App\Nodes\Integrations\GoogleSheets\GoogleSheetsCreateSpreadsheetNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsDeleteRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetSpreadsheetInfoNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetValuesNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsListDeletedRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsListUpdatedRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsLookupRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsUpdateValuesNode;
@@ -139,9 +207,93 @@ use App\Nodes\Integrations\GoogleTasks\GoogleTasksCreateTaskListNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksCreateTaskNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksDeleteTaskNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListCompletedTasksNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksListDueSoonTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTaskListsNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksUpdateTaskNode;
+use App\Nodes\Integrations\Jira\JiraAddAttachmentNode;
+use App\Nodes\Integrations\Jira\JiraAddCommentNode;
+use App\Nodes\Integrations\Jira\JiraAddUserToGroupNode;
+use App\Nodes\Integrations\Jira\JiraAddUserToIssueNode;
+use App\Nodes\Integrations\Jira\JiraCreateCustomerRequestNode;
+use App\Nodes\Integrations\Jira\JiraCreateGroupNode;
+use App\Nodes\Integrations\Jira\JiraCreateIssueLinkNode;
+use App\Nodes\Integrations\Jira\JiraCreateIssueNode;
+use App\Nodes\Integrations\Jira\JiraCreateProjectNode;
+use App\Nodes\Integrations\Jira\JiraDeleteCommentNode;
+use App\Nodes\Integrations\Jira\JiraDeleteIssueLinkNode;
+use App\Nodes\Integrations\Jira\JiraDeleteIssueNode;
+use App\Nodes\Integrations\Jira\JiraDeleteProjectNode;
+use App\Nodes\Integrations\Jira\JiraDownloadAttachmentNode;
+use App\Nodes\Integrations\Jira\JiraGetCustomerRequestNode;
+use App\Nodes\Integrations\Jira\JiraGetEditMetadataNode;
+use App\Nodes\Integrations\Jira\JiraGetIssueLinksNode;
+use App\Nodes\Integrations\Jira\JiraGetIssueNode;
+use App\Nodes\Integrations\Jira\JiraGetMyIssuesNode;
+use App\Nodes\Integrations\Jira\JiraGetMyPermissionsNode;
+use App\Nodes\Integrations\Jira\JiraGetMyRecentActivityNode;
+use App\Nodes\Integrations\Jira\JiraGetMyselfNode;
+use App\Nodes\Integrations\Jira\JiraGetProjectNode;
+use App\Nodes\Integrations\Jira\JiraGetRequestTypeFieldsNode;
+use App\Nodes\Integrations\Jira\JiraGetRequestTypesNode;
+use App\Nodes\Integrations\Jira\JiraListCommentsNode;
+use App\Nodes\Integrations\Jira\JiraListCustomerRequestsNode;
+use App\Nodes\Integrations\Jira\JiraListFieldsNode;
+use App\Nodes\Integrations\Jira\JiraListFiltersNode;
+use App\Nodes\Integrations\Jira\JiraListGroupsNode;
+use App\Nodes\Integrations\Jira\JiraListIssueLinkTypesNode;
+use App\Nodes\Integrations\Jira\JiraListIssuesNode;
+use App\Nodes\Integrations\Jira\JiraListIssueTypesNode;
+use App\Nodes\Integrations\Jira\JiraListNewIssuesNode;
+use App\Nodes\Integrations\Jira\JiraListPrioritiesNode;
+use App\Nodes\Integrations\Jira\JiraListProjectsNode;
+use App\Nodes\Integrations\Jira\JiraListServiceDesksNode;
+use App\Nodes\Integrations\Jira\JiraListTransitionsNode;
+use App\Nodes\Integrations\Jira\JiraListUpdatedIssuesNode;
+use App\Nodes\Integrations\Jira\JiraListUsersNode;
+use App\Nodes\Integrations\Jira\JiraRemoveUserFromGroupNode;
+use App\Nodes\Integrations\Jira\JiraSearchIssuesNode;
+use App\Nodes\Integrations\Jira\JiraTransitionIssueNode;
+use App\Nodes\Integrations\Jira\JiraUpdateCommentNode;
+use App\Nodes\Integrations\Jira\JiraUpdateIssueNode;
+use App\Nodes\Integrations\Jira\JiraUpdateProjectNode;
+use App\Nodes\Integrations\Linear\LinearCreateCommentNode;
+use App\Nodes\Integrations\Linear\LinearCreateInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearCreateIssueNode;
+use App\Nodes\Integrations\Linear\LinearCreateIssueRelationNode;
+use App\Nodes\Integrations\Linear\LinearCreateProjectNode;
+use App\Nodes\Integrations\Linear\LinearCreateStatusUpdateNode;
+use App\Nodes\Integrations\Linear\LinearDeleteCommentNode;
+use App\Nodes\Integrations\Linear\LinearDeleteInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearDeleteIssueNode;
+use App\Nodes\Integrations\Linear\LinearDeleteIssueRelationNode;
+use App\Nodes\Integrations\Linear\LinearDeleteProjectNode;
+use App\Nodes\Integrations\Linear\LinearDeleteStatusUpdateNode;
+use App\Nodes\Integrations\Linear\LinearGetInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearGetIssueNode;
+use App\Nodes\Integrations\Linear\LinearGetMeNode;
+use App\Nodes\Integrations\Linear\LinearGetProjectNode;
+use App\Nodes\Integrations\Linear\LinearListCommentsNode;
+use App\Nodes\Integrations\Linear\LinearListCyclesNode;
+use App\Nodes\Integrations\Linear\LinearListInitiativesNode;
+use App\Nodes\Integrations\Linear\LinearListIssueRelationsNode;
+use App\Nodes\Integrations\Linear\LinearListIssuesNode;
+use App\Nodes\Integrations\Linear\LinearListLabelsNode;
+use App\Nodes\Integrations\Linear\LinearListNewCommentsNode;
+use App\Nodes\Integrations\Linear\LinearListNewIssuesNode;
+use App\Nodes\Integrations\Linear\LinearListProjectsNode;
+use App\Nodes\Integrations\Linear\LinearListStatusUpdatesNode;
+use App\Nodes\Integrations\Linear\LinearListTeamsNode;
+use App\Nodes\Integrations\Linear\LinearListUpdatedIssuesNode;
+use App\Nodes\Integrations\Linear\LinearListUsersNode;
+use App\Nodes\Integrations\Linear\LinearListWorkflowStatesNode;
+use App\Nodes\Integrations\Linear\LinearSearchIssuesNode;
+use App\Nodes\Integrations\Linear\LinearUpdateCommentNode;
+use App\Nodes\Integrations\Linear\LinearUpdateInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearUpdateIssueNode;
+use App\Nodes\Integrations\Linear\LinearUpdateIssueRelationNode;
+use App\Nodes\Integrations\Linear\LinearUpdateProjectNode;
+use App\Nodes\Integrations\Linear\LinearUpdateStatusUpdateNode;
 use App\Nodes\Integrations\Notion\NotionAppendBlocksNode;
 use App\Nodes\Integrations\Notion\NotionArchivePageNode;
 use App\Nodes\Integrations\Notion\NotionCreateCommentNode;
@@ -157,6 +309,7 @@ use App\Nodes\Integrations\Notion\NotionGetPageNode;
 use App\Nodes\Integrations\Notion\NotionGetUserNode;
 use App\Nodes\Integrations\Notion\NotionListBlockChildrenNode;
 use App\Nodes\Integrations\Notion\NotionListCommentsNode;
+use App\Nodes\Integrations\Notion\NotionListDeletedDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListNewCommentsNode;
 use App\Nodes\Integrations\Notion\NotionListNewDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListNewDatabasesNode;
@@ -221,6 +374,84 @@ use App\Nodes\Integrations\Slack\SlackSetChannelTopicNode;
 use App\Nodes\Integrations\Slack\SlackUnpinMessageNode;
 use App\Nodes\Integrations\Slack\SlackUpdateMessageNode;
 use App\Nodes\Integrations\Slack\SlackUploadFileNode;
+use App\Nodes\Integrations\Telegram\TelegramAnswerCallbackQueryNode;
+use App\Nodes\Integrations\Telegram\TelegramApproveChatJoinRequestNode;
+use App\Nodes\Integrations\Telegram\TelegramBanChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramBotChatStatusNode;
+use App\Nodes\Integrations\Telegram\TelegramCopyMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramCreateChatInviteLinkNode;
+use App\Nodes\Integrations\Telegram\TelegramDeclineChatJoinRequestNode;
+use App\Nodes\Integrations\Telegram\TelegramDeleteMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramDeleteMessagesNode;
+use App\Nodes\Integrations\Telegram\TelegramDeleteMyCommandsNode;
+use App\Nodes\Integrations\Telegram\TelegramEditedMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramEditMessageButtonsNode;
+use App\Nodes\Integrations\Telegram\TelegramEditMessageCaptionNode;
+use App\Nodes\Integrations\Telegram\TelegramEditMessageTextNode;
+use App\Nodes\Integrations\Telegram\TelegramForwardMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatAdministratorsNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatMemberCountNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatNode;
+use App\Nodes\Integrations\Telegram\TelegramGetFileNode;
+use App\Nodes\Integrations\Telegram\TelegramGetMeNode;
+use App\Nodes\Integrations\Telegram\TelegramGetMyCommandsNode;
+use App\Nodes\Integrations\Telegram\TelegramGetWebhookInfoNode;
+use App\Nodes\Integrations\Telegram\TelegramLeaveChatNode;
+use App\Nodes\Integrations\Telegram\TelegramMemberJoinedNode;
+use App\Nodes\Integrations\Telegram\TelegramMemberLeftNode;
+use App\Nodes\Integrations\Telegram\TelegramNewCallbackQueryNode;
+use App\Nodes\Integrations\Telegram\TelegramNewChannelPostNode;
+use App\Nodes\Integrations\Telegram\TelegramNewJoinRequestNode;
+use App\Nodes\Integrations\Telegram\TelegramNewMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramNewPollAnswerNode;
+use App\Nodes\Integrations\Telegram\TelegramPinChatMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramRestrictChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramSendAnimationNode;
+use App\Nodes\Integrations\Telegram\TelegramSendAudioNode;
+use App\Nodes\Integrations\Telegram\TelegramSendChatActionNode;
+use App\Nodes\Integrations\Telegram\TelegramSendContactNode;
+use App\Nodes\Integrations\Telegram\TelegramSendDiceNode;
+use App\Nodes\Integrations\Telegram\TelegramSendDocumentNode;
+use App\Nodes\Integrations\Telegram\TelegramSendLocationNode;
+use App\Nodes\Integrations\Telegram\TelegramSendMediaGroupNode;
+use App\Nodes\Integrations\Telegram\TelegramSendMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramSendPhotoNode;
+use App\Nodes\Integrations\Telegram\TelegramSendPollNode;
+use App\Nodes\Integrations\Telegram\TelegramSendStickerNode;
+use App\Nodes\Integrations\Telegram\TelegramSendVenueNode;
+use App\Nodes\Integrations\Telegram\TelegramSendVideoNode;
+use App\Nodes\Integrations\Telegram\TelegramSendVoiceNode;
+use App\Nodes\Integrations\Telegram\TelegramSetChatDescriptionNode;
+use App\Nodes\Integrations\Telegram\TelegramSetChatTitleNode;
+use App\Nodes\Integrations\Telegram\TelegramSetMyCommandsNode;
+use App\Nodes\Integrations\Telegram\TelegramStopPollNode;
+use App\Nodes\Integrations\Telegram\TelegramUnbanChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramUnpinAllChatMessagesNode;
+use App\Nodes\Integrations\Telegram\TelegramUnpinChatMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioCheckVerificationNode;
+use App\Nodes\Integrations\Twilio\TwilioDeleteMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioDeleteRecordingNode;
+use App\Nodes\Integrations\Twilio\TwilioGetAccountNode;
+use App\Nodes\Integrations\Twilio\TwilioGetBalanceNode;
+use App\Nodes\Integrations\Twilio\TwilioGetCallNode;
+use App\Nodes\Integrations\Twilio\TwilioGetMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioListCallsNode;
+use App\Nodes\Integrations\Twilio\TwilioListFailedMessagesNode;
+use App\Nodes\Integrations\Twilio\TwilioListMessagesNode;
+use App\Nodes\Integrations\Twilio\TwilioListNewCallsNode;
+use App\Nodes\Integrations\Twilio\TwilioListNewIncomingMessagesNode;
+use App\Nodes\Integrations\Twilio\TwilioListNewRecordingsNode;
+use App\Nodes\Integrations\Twilio\TwilioListPhoneNumbersNode;
+use App\Nodes\Integrations\Twilio\TwilioListRecordingsNode;
+use App\Nodes\Integrations\Twilio\TwilioListVerifyServicesNode;
+use App\Nodes\Integrations\Twilio\TwilioLookupPhoneNumberNode;
+use App\Nodes\Integrations\Twilio\TwilioMakeCallNode;
+use App\Nodes\Integrations\Twilio\TwilioRedactMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioSendSmsNode;
+use App\Nodes\Integrations\Twilio\TwilioSendWhatsAppNode;
+use App\Nodes\Integrations\Twilio\TwilioStartVerificationNode;
+use App\Nodes\Integrations\Twilio\TwilioUpdateCallNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
 use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
@@ -275,6 +506,12 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'transform' => TransformNode::class,
             'call_api' => CallApiNode::class,
             'run_code' => RunCodeNode::class,
+            'set_variable' => SetVariableNode::class,
+            'string' => StringNode::class,
+            'json' => JsonNode::class,
+            'array' => ArrayNode::class,
+            'math' => MathNode::class,
+            'date_time' => DateTimeNode::class,
             'router' => RouterNode::class,
             'filter' => FilterNode::class,
             'ask_ai' => AskAiNode::class,
@@ -301,6 +538,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'notion_list_new_pages' => NotionListNewPagesNode::class,
             'notion_list_new_users' => NotionListNewUsersNode::class,
             'notion_list_updated_database_items' => NotionListUpdatedDatabaseItemsNode::class,
+            'notion_list_deleted_database_items' => NotionListDeletedDatabaseItemsNode::class,
             'notion_list_updated_pages' => NotionListUpdatedPagesNode::class,
             'notion_list_users' => NotionListUsersNode::class,
             'notion_query_database' => NotionQueryDatabaseNode::class,
@@ -410,6 +648,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'github_update_pull_request' => GitHubUpdatePullRequestNode::class,
             'google_drive_list_files' => GoogleDriveListFilesNode::class,
             'google_drive_list_updated_files' => GoogleDriveListUpdatedFilesNode::class,
+            'google_drive_list_trashed_files' => GoogleDriveListTrashedFilesNode::class,
             'google_drive_get_file' => GoogleDriveGetFileNode::class,
             'google_drive_delete_file' => GoogleDriveDeleteFileNode::class,
             'google_drive_export_file' => GoogleDriveExportFileNode::class,
@@ -428,6 +667,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_sheets_delete_rows' => GoogleSheetsDeleteRowsNode::class,
             'google_sheets_get_spreadsheet_info' => GoogleSheetsGetSpreadsheetInfoNode::class,
             'google_sheets_list_updated_rows' => GoogleSheetsListUpdatedRowsNode::class,
+            'google_sheets_list_deleted_rows' => GoogleSheetsListDeletedRowsNode::class,
             'google_sheets_lookup_rows' => GoogleSheetsLookupRowsNode::class,
             'google_docs_create_document' => GoogleDocsCreateDocumentNode::class,
             'google_docs_get_document' => GoogleDocsGetDocumentNode::class,
@@ -449,6 +689,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_tasks_create_task_list' => GoogleTasksCreateTaskListNode::class,
             'google_tasks_list_tasks' => GoogleTasksListTasksNode::class,
             'google_tasks_list_completed_tasks' => GoogleTasksListCompletedTasksNode::class,
+            'google_tasks_list_due_soon_tasks' => GoogleTasksListDueSoonTasksNode::class,
             'google_tasks_create_task' => GoogleTasksCreateTaskNode::class,
             'google_tasks_update_task' => GoogleTasksUpdateTaskNode::class,
             'google_tasks_delete_task' => GoogleTasksDeleteTaskNode::class,
@@ -493,6 +734,227 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'outlook_list_upcoming_events' => OutlookListUpcomingEventsNode::class,
             'outlook_create_event' => OutlookCreateEventNode::class,
             'outlook_delete_event' => OutlookDeleteEventNode::class,
+            'jira_add_attachment' => JiraAddAttachmentNode::class,
+            'jira_add_comment' => JiraAddCommentNode::class,
+            'jira_add_user_to_group' => JiraAddUserToGroupNode::class,
+            'jira_add_user_to_issue' => JiraAddUserToIssueNode::class,
+            'jira_create_customer_request' => JiraCreateCustomerRequestNode::class,
+            'jira_create_group' => JiraCreateGroupNode::class,
+            'jira_create_issue' => JiraCreateIssueNode::class,
+            'jira_create_issue_link' => JiraCreateIssueLinkNode::class,
+            'jira_create_project' => JiraCreateProjectNode::class,
+            'jira_delete_comment' => JiraDeleteCommentNode::class,
+            'jira_delete_issue' => JiraDeleteIssueNode::class,
+            'jira_delete_issue_link' => JiraDeleteIssueLinkNode::class,
+            'jira_delete_project' => JiraDeleteProjectNode::class,
+            'jira_download_attachment' => JiraDownloadAttachmentNode::class,
+            'jira_get_customer_request' => JiraGetCustomerRequestNode::class,
+            'jira_get_edit_metadata' => JiraGetEditMetadataNode::class,
+            'jira_get_issue' => JiraGetIssueNode::class,
+            'jira_get_issue_links' => JiraGetIssueLinksNode::class,
+            'jira_get_my_issues' => JiraGetMyIssuesNode::class,
+            'jira_get_my_permissions' => JiraGetMyPermissionsNode::class,
+            'jira_get_my_recent_activity' => JiraGetMyRecentActivityNode::class,
+            'jira_get_myself' => JiraGetMyselfNode::class,
+            'jira_get_project' => JiraGetProjectNode::class,
+            'jira_get_request_type_fields' => JiraGetRequestTypeFieldsNode::class,
+            'jira_get_request_types' => JiraGetRequestTypesNode::class,
+            'jira_list_comments' => JiraListCommentsNode::class,
+            'jira_list_customer_requests' => JiraListCustomerRequestsNode::class,
+            'jira_list_fields' => JiraListFieldsNode::class,
+            'jira_list_filters' => JiraListFiltersNode::class,
+            'jira_list_groups' => JiraListGroupsNode::class,
+            'jira_list_issue_link_types' => JiraListIssueLinkTypesNode::class,
+            'jira_list_issue_types' => JiraListIssueTypesNode::class,
+            'jira_list_issues' => JiraListIssuesNode::class,
+            'jira_list_new_issues' => JiraListNewIssuesNode::class,
+            'jira_list_priorities' => JiraListPrioritiesNode::class,
+            'jira_list_projects' => JiraListProjectsNode::class,
+            'jira_list_service_desks' => JiraListServiceDesksNode::class,
+            'jira_list_transitions' => JiraListTransitionsNode::class,
+            'jira_list_updated_issues' => JiraListUpdatedIssuesNode::class,
+            'jira_list_users' => JiraListUsersNode::class,
+            'jira_remove_user_from_group' => JiraRemoveUserFromGroupNode::class,
+            'jira_search_issues' => JiraSearchIssuesNode::class,
+            'jira_transition_issue' => JiraTransitionIssueNode::class,
+            'jira_update_comment' => JiraUpdateCommentNode::class,
+            'jira_update_issue' => JiraUpdateIssueNode::class,
+            'jira_update_project' => JiraUpdateProjectNode::class,
+            'linear_create_comment' => LinearCreateCommentNode::class,
+            'linear_create_initiative' => LinearCreateInitiativeNode::class,
+            'linear_create_issue' => LinearCreateIssueNode::class,
+            'linear_create_issue_relation' => LinearCreateIssueRelationNode::class,
+            'linear_create_project' => LinearCreateProjectNode::class,
+            'linear_create_status_update' => LinearCreateStatusUpdateNode::class,
+            'linear_delete_comment' => LinearDeleteCommentNode::class,
+            'linear_delete_initiative' => LinearDeleteInitiativeNode::class,
+            'linear_delete_issue' => LinearDeleteIssueNode::class,
+            'linear_delete_issue_relation' => LinearDeleteIssueRelationNode::class,
+            'linear_delete_project' => LinearDeleteProjectNode::class,
+            'linear_delete_status_update' => LinearDeleteStatusUpdateNode::class,
+            'linear_get_initiative' => LinearGetInitiativeNode::class,
+            'linear_get_issue' => LinearGetIssueNode::class,
+            'linear_get_me' => LinearGetMeNode::class,
+            'linear_get_project' => LinearGetProjectNode::class,
+            'linear_list_comments' => LinearListCommentsNode::class,
+            'linear_list_cycles' => LinearListCyclesNode::class,
+            'linear_list_initiatives' => LinearListInitiativesNode::class,
+            'linear_list_issue_relations' => LinearListIssueRelationsNode::class,
+            'linear_list_issues' => LinearListIssuesNode::class,
+            'linear_list_labels' => LinearListLabelsNode::class,
+            'linear_list_new_comments' => LinearListNewCommentsNode::class,
+            'linear_list_new_issues' => LinearListNewIssuesNode::class,
+            'linear_list_projects' => LinearListProjectsNode::class,
+            'linear_list_status_updates' => LinearListStatusUpdatesNode::class,
+            'linear_list_teams' => LinearListTeamsNode::class,
+            'linear_list_updated_issues' => LinearListUpdatedIssuesNode::class,
+            'linear_list_users' => LinearListUsersNode::class,
+            'linear_list_workflow_states' => LinearListWorkflowStatesNode::class,
+            'linear_search_issues' => LinearSearchIssuesNode::class,
+            'linear_update_comment' => LinearUpdateCommentNode::class,
+            'linear_update_initiative' => LinearUpdateInitiativeNode::class,
+            'linear_update_issue' => LinearUpdateIssueNode::class,
+            'linear_update_issue_relation' => LinearUpdateIssueRelationNode::class,
+            'linear_update_project' => LinearUpdateProjectNode::class,
+            'linear_update_status_update' => LinearUpdateStatusUpdateNode::class,
+            'email_parse_inbound' => EmailParseInboundNode::class,
+            'email_send' => EmailSendEmailNode::class,
+            'email_send_to_many' => EmailSendToManyNode::class,
+            'email_validate_address' => EmailValidateAddressNode::class,
+            'telegram_answer_callback_query' => TelegramAnswerCallbackQueryNode::class,
+            'telegram_approve_chat_join_request' => TelegramApproveChatJoinRequestNode::class,
+            'telegram_ban_chat_member' => TelegramBanChatMemberNode::class,
+            'telegram_bot_chat_status' => TelegramBotChatStatusNode::class,
+            'telegram_copy_message' => TelegramCopyMessageNode::class,
+            'telegram_create_chat_invite_link' => TelegramCreateChatInviteLinkNode::class,
+            'telegram_decline_chat_join_request' => TelegramDeclineChatJoinRequestNode::class,
+            'telegram_delete_message' => TelegramDeleteMessageNode::class,
+            'telegram_delete_messages' => TelegramDeleteMessagesNode::class,
+            'telegram_delete_my_commands' => TelegramDeleteMyCommandsNode::class,
+            'telegram_edit_message_buttons' => TelegramEditMessageButtonsNode::class,
+            'telegram_edit_message_caption' => TelegramEditMessageCaptionNode::class,
+            'telegram_edit_message_text' => TelegramEditMessageTextNode::class,
+            'telegram_edited_message' => TelegramEditedMessageNode::class,
+            'telegram_forward_message' => TelegramForwardMessageNode::class,
+            'telegram_get_chat_administrators' => TelegramGetChatAdministratorsNode::class,
+            'telegram_get_chat_member_count' => TelegramGetChatMemberCountNode::class,
+            'telegram_get_chat_member' => TelegramGetChatMemberNode::class,
+            'telegram_get_chat' => TelegramGetChatNode::class,
+            'telegram_get_file' => TelegramGetFileNode::class,
+            'telegram_get_me' => TelegramGetMeNode::class,
+            'telegram_get_my_commands' => TelegramGetMyCommandsNode::class,
+            'telegram_get_webhook_info' => TelegramGetWebhookInfoNode::class,
+            'telegram_leave_chat' => TelegramLeaveChatNode::class,
+            'telegram_member_joined' => TelegramMemberJoinedNode::class,
+            'telegram_member_left' => TelegramMemberLeftNode::class,
+            'telegram_new_callback_query' => TelegramNewCallbackQueryNode::class,
+            'telegram_new_channel_post' => TelegramNewChannelPostNode::class,
+            'telegram_new_join_request' => TelegramNewJoinRequestNode::class,
+            'telegram_new_message' => TelegramNewMessageNode::class,
+            'telegram_new_poll_answer' => TelegramNewPollAnswerNode::class,
+            'telegram_pin_chat_message' => TelegramPinChatMessageNode::class,
+            'telegram_restrict_chat_member' => TelegramRestrictChatMemberNode::class,
+            'telegram_send_animation' => TelegramSendAnimationNode::class,
+            'telegram_send_audio' => TelegramSendAudioNode::class,
+            'telegram_send_chat_action' => TelegramSendChatActionNode::class,
+            'telegram_send_contact' => TelegramSendContactNode::class,
+            'telegram_send_dice' => TelegramSendDiceNode::class,
+            'telegram_send_document' => TelegramSendDocumentNode::class,
+            'telegram_send_location' => TelegramSendLocationNode::class,
+            'telegram_send_media_group' => TelegramSendMediaGroupNode::class,
+            'telegram_send_message' => TelegramSendMessageNode::class,
+            'telegram_send_photo' => TelegramSendPhotoNode::class,
+            'telegram_send_poll' => TelegramSendPollNode::class,
+            'telegram_send_sticker' => TelegramSendStickerNode::class,
+            'telegram_send_venue' => TelegramSendVenueNode::class,
+            'telegram_send_video' => TelegramSendVideoNode::class,
+            'telegram_send_voice' => TelegramSendVoiceNode::class,
+            'telegram_set_chat_description' => TelegramSetChatDescriptionNode::class,
+            'telegram_set_chat_title' => TelegramSetChatTitleNode::class,
+            'telegram_set_my_commands' => TelegramSetMyCommandsNode::class,
+            'telegram_stop_poll' => TelegramStopPollNode::class,
+            'telegram_unban_chat_member' => TelegramUnbanChatMemberNode::class,
+            'telegram_unpin_all_chat_messages' => TelegramUnpinAllChatMessagesNode::class,
+            'telegram_unpin_chat_message' => TelegramUnpinChatMessageNode::class,
+            'discord_add_reaction' => DiscordAddReactionNode::class,
+            'discord_add_role' => DiscordAddRoleNode::class,
+            'discord_add_thread_member' => DiscordAddThreadMemberNode::class,
+            'discord_archive_thread' => DiscordArchiveThreadNode::class,
+            'discord_ban_member' => DiscordBanMemberNode::class,
+            'discord_bulk_delete_messages' => DiscordBulkDeleteMessagesNode::class,
+            'discord_clear_reactions' => DiscordClearReactionsNode::class,
+            'discord_create_channel' => DiscordCreateChannelNode::class,
+            'discord_create_invite' => DiscordCreateInviteNode::class,
+            'discord_create_role' => DiscordCreateRoleNode::class,
+            'discord_create_thread' => DiscordCreateThreadNode::class,
+            'discord_delete_channel' => DiscordDeleteChannelNode::class,
+            'discord_delete_command' => DiscordDeleteCommandNode::class,
+            'discord_delete_invite' => DiscordDeleteInviteNode::class,
+            'discord_delete_message' => DiscordDeleteMessageNode::class,
+            'discord_delete_role' => DiscordDeleteRoleNode::class,
+            'discord_edit_channel' => DiscordEditChannelNode::class,
+            'discord_edit_message' => DiscordEditMessageNode::class,
+            'discord_get_channel' => DiscordGetChannelNode::class,
+            'discord_get_guild' => DiscordGetGuildNode::class,
+            'discord_get_me' => DiscordGetMeNode::class,
+            'discord_get_member' => DiscordGetMemberNode::class,
+            'discord_get_message' => DiscordGetMessageNode::class,
+            'discord_get_user' => DiscordGetUserNode::class,
+            'discord_kick_member' => DiscordKickMemberNode::class,
+            'discord_list_active_threads' => DiscordListActiveThreadsNode::class,
+            'discord_list_bans' => DiscordListBansNode::class,
+            'discord_list_channels' => DiscordListChannelsNode::class,
+            'discord_list_commands' => DiscordListCommandsNode::class,
+            'discord_list_guilds' => DiscordListGuildsNode::class,
+            'discord_list_invites' => DiscordListInvitesNode::class,
+            'discord_list_members' => DiscordListMembersNode::class,
+            'discord_list_messages' => DiscordListMessagesNode::class,
+            'discord_list_new_channels' => DiscordListNewChannelsNode::class,
+            'discord_list_new_members' => DiscordListNewMembersNode::class,
+            'discord_list_new_messages' => DiscordListNewMessagesNode::class,
+            'discord_list_new_threads' => DiscordListNewThreadsNode::class,
+            'discord_list_pinned_messages' => DiscordListPinnedMessagesNode::class,
+            'discord_list_reactions' => DiscordListReactionsNode::class,
+            'discord_list_roles' => DiscordListRolesNode::class,
+            'discord_new_button_click' => DiscordNewButtonClickNode::class,
+            'discord_new_slash_command' => DiscordNewSlashCommandNode::class,
+            'discord_pin_message' => DiscordPinMessageNode::class,
+            'discord_register_command' => DiscordRegisterCommandNode::class,
+            'discord_remove_reaction' => DiscordRemoveReactionNode::class,
+            'discord_remove_role' => DiscordRemoveRoleNode::class,
+            'discord_remove_thread_member' => DiscordRemoveThreadMemberNode::class,
+            'discord_respond_to_interaction' => DiscordRespondToInteractionNode::class,
+            'discord_search_members' => DiscordSearchMembersNode::class,
+            'discord_send_direct_message' => DiscordSendDirectMessageNode::class,
+            'discord_send_message' => DiscordSendMessageNode::class,
+            'discord_send_webhook_message' => DiscordSendWebhookMessageNode::class,
+            'discord_set_nickname' => DiscordSetNicknameNode::class,
+            'discord_timeout_member' => DiscordTimeoutMemberNode::class,
+            'discord_unban_member' => DiscordUnbanMemberNode::class,
+            'discord_unpin_message' => DiscordUnpinMessageNode::class,
+            'twilio_check_verification' => TwilioCheckVerificationNode::class,
+            'twilio_delete_message' => TwilioDeleteMessageNode::class,
+            'twilio_delete_recording' => TwilioDeleteRecordingNode::class,
+            'twilio_get_account' => TwilioGetAccountNode::class,
+            'twilio_get_balance' => TwilioGetBalanceNode::class,
+            'twilio_get_call' => TwilioGetCallNode::class,
+            'twilio_get_message' => TwilioGetMessageNode::class,
+            'twilio_list_calls' => TwilioListCallsNode::class,
+            'twilio_list_failed_messages' => TwilioListFailedMessagesNode::class,
+            'twilio_list_messages' => TwilioListMessagesNode::class,
+            'twilio_list_new_calls' => TwilioListNewCallsNode::class,
+            'twilio_list_new_incoming_messages' => TwilioListNewIncomingMessagesNode::class,
+            'twilio_list_new_recordings' => TwilioListNewRecordingsNode::class,
+            'twilio_list_phone_numbers' => TwilioListPhoneNumbersNode::class,
+            'twilio_list_recordings' => TwilioListRecordingsNode::class,
+            'twilio_list_verify_services' => TwilioListVerifyServicesNode::class,
+            'twilio_lookup_phone_number' => TwilioLookupPhoneNumberNode::class,
+            'twilio_make_call' => TwilioMakeCallNode::class,
+            'twilio_redact_message' => TwilioRedactMessageNode::class,
+            'twilio_send_sms' => TwilioSendSmsNode::class,
+            'twilio_send_whatsapp' => TwilioSendWhatsAppNode::class,
+            'twilio_start_verification' => TwilioStartVerificationNode::class,
+            'twilio_update_call' => TwilioUpdateCallNode::class,
         ];
     }
 }

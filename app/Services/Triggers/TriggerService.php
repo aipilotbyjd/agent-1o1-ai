@@ -18,9 +18,13 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\PlanLimitGate;
+use App\Services\Workflows\ConditionEvaluator;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 /**
  * Creates and manages triggers, and runs the two halves of every firing.
@@ -109,7 +113,7 @@ class TriggerService
         ]);
 
         if ($isReactivating) {
-            $trigger->forceFill(['consecutive_failure_count' => 0, 'consecutive_skip_count' => 0])->save();
+            $trigger->forceFill(['consecutive_failure_count' => 0, 'consecutive_skip_count' => 0, 'disabled_reason' => null])->save();
         }
 
         if (array_key_exists('credential_id', $data) && $trigger->type->usesCredential()) {
@@ -195,9 +199,16 @@ class TriggerService
             return $this->skip($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, 'The previous run was still going.');
         }
 
-        // A trigger set to group events keeps them until its window is over
-        // (triggers:flush-batches runs them as one). "Run now" is never held.
-        $isHeld = (int) ($trigger->config['batch_seconds'] ?? 0) > 0 && $source !== TriggerType::Manual;
+        // A trigger set to group events, or to wait for quiet, keeps them until
+        // its window is over (triggers:flush-batches runs them as one). "Run
+        // now" is never held.
+        $isHeld = $this->holdsEvents($trigger) && $source !== TriggerType::Manual;
+
+        if (! $isHeld && $source !== TriggerType::Manual && $this->tripsStormDetector($trigger)) {
+            $trigger->recordStorm();
+
+            return $this->writeTerminal($trigger, $source, $payload, $deliveryId, $payloadSnippet, $headers, TriggerEventStatus::Skipped, "Switched off: more than {$trigger->stormLimit()} events arrived in a minute.");
+        }
 
         try {
             $event = TriggerEvent::query()->create([
@@ -223,6 +234,70 @@ class TriggerService
         }
 
         return $event;
+    }
+
+    /**
+     * Whether the trigger keeps its events back to run them together: it
+     * groups them for a window (`batch_seconds`) or waits for quiet
+     * (`debounce_seconds`).
+     */
+    public function holdsEvents(Trigger $trigger): bool
+    {
+        return (int) ($trigger->config['batch_seconds'] ?? 0) > 0 || (int) ($trigger->config['debounce_seconds'] ?? 0) > 0;
+    }
+
+    /**
+     * Whether a trigger's held events are due to run.
+     *
+     * - Grouping: the oldest held event has waited its `batch_seconds`.
+     * - Waiting for quiet: the newest has waited `debounce_seconds` with
+     *   nothing newer, or the oldest has waited the longest a trigger may be
+     *   kept back (`triggers.debounce.max_wait_seconds`), so a source that
+     *   never goes quiet still runs.
+     * - Neither (the trigger stopped holding): anything held is due at once,
+     *   so nothing is left waiting.
+     */
+    public function heldWindowIsOver(Trigger $trigger): bool
+    {
+        $held = $trigger->events()
+            ->where('status', TriggerEventStatus::Held->value)
+            ->selectRaw('min(created_at) as oldest, max(created_at) as newest')
+            ->first();
+
+        if ($held?->oldest === null) {
+            return false;
+        }
+
+        $oldest = Carbon::parse($held->oldest);
+        $debounce = max(0, (int) ($trigger->config['debounce_seconds'] ?? 0));
+
+        if ($debounce > 0) {
+            return Carbon::parse($held->newest)->lte(now()->subSeconds($debounce))
+                || $oldest->lte(now()->subSeconds(max($debounce, (int) config('triggers.debounce.max_wait_seconds'))));
+        }
+
+        return $oldest->lte(now()->subSeconds(max(0, (int) ($trigger->config['batch_seconds'] ?? 0))));
+    }
+
+    /**
+     * Count one more event for the trigger in the current minute and say
+     * whether that is over its storm limit.
+     *
+     * A fixed one-minute counter in the cache: atomic, cheap, and shared by
+     * every worker. Events that were not going to run anyway (filtered out,
+     * duplicates) never reach it.
+     */
+    private function tripsStormDetector(Trigger $trigger): bool
+    {
+        if (! config('triggers.storm.enabled')) {
+            return false;
+        }
+
+        $key = "triggers:storm:{$trigger->id}:".intdiv(now()->getTimestamp(), 60);
+
+        Cache::add($key, 0, 120);
+
+        return Cache::increment($key) > $trigger->stormLimit();
     }
 
     /**
@@ -254,6 +329,7 @@ class TriggerService
                     'count' => $held->count(),
                     'first_at' => $held->first()->created_at?->toIso8601String(),
                     'last_at' => $held->last()->created_at?->toIso8601String(),
+                    'latest' => $held->last()->payload,
                     'items' => $held->pluck('payload')->all(),
                 ],
                 'delivery_id' => 'batch:'.Str::uuid(),
@@ -462,12 +538,13 @@ class TriggerService
             $subject = ($filter['source'] ?? 'payload') === 'header' ? $headers : $payload;
             $value = data_get($subject, $filter['path'] ?? '');
 
-            $matches = match ($filter['operator'] ?? 'equals') {
-                'equals' => $value == ($filter['value'] ?? null),
-                'not_equals' => $value != ($filter['value'] ?? null),
-                'contains' => is_string($value) && str_contains($value, (string) ($filter['value'] ?? '')),
-                default => true,
-            };
+            // A filter that can't be evaluated (an operator this version
+            // doesn't know) holds the event back rather than letting it through.
+            try {
+                $matches = ConditionEvaluator::matches($value, (string) ($filter['operator'] ?? 'equals'), $filter['value'] ?? null);
+            } catch (InvalidArgumentException) {
+                $matches = false;
+            }
 
             if (! $matches) {
                 return false;

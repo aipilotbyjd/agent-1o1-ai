@@ -15,7 +15,7 @@ class GoogleSheetsSource extends GoogleFileSource
 
     protected function nodeTypes(): array
     {
-        return ['google_sheets_get_values', 'google_sheets_list_updated_rows'];
+        return ['google_sheets_get_values', 'google_sheets_list_updated_rows', 'google_sheets_list_deleted_rows'];
     }
 
     protected function fileIdField(): string

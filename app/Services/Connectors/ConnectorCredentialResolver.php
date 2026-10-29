@@ -54,6 +54,30 @@ class ConnectorCredentialResolver
     }
 
     /**
+     * The stored fields of the credential a config resolves to, for the apps
+     * whose login is more than one token (a Twilio account and its token, a
+     * mail server): the same lookup as `accessToken`, minus the raw-token
+     * shortcut.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    public function credentialData(string $connectorKey, string $workspaceId, ?string $userId, array $config, bool $markUsed = true): array
+    {
+        $credentialId = $config['credential_id'] ?? null;
+
+        $credential = $credentialId !== null && $credentialId !== ''
+            ? $this->find($connectorKey, $workspaceId, $userId, (string) $credentialId)
+            : $this->default($connectorKey, $workspaceId, $userId);
+
+        if ($markUsed) {
+            $credential->forceFill(['last_used_at' => now()])->saveQuietly();
+        }
+
+        return (array) $credential->data;
+    }
+
+    /**
      * A pinned credential must still be one the caller may use: the
      * workspace's, for this connector, and (when personal) created by the
      * acting user. Anything else reads as "not found" rather than

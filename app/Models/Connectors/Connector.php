@@ -56,6 +56,24 @@ class Connector extends Model
     }
 
     /**
+     * The labels of the fields its form marks required that `$data` leaves
+     * empty, so a connection can't be saved half-filled (a Twilio account with
+     * no SID, a mail server with no host).
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<string>
+     */
+    public function missingFields(array $data): array
+    {
+        return collect((array) $this->fields)
+            ->filter(fn (mixed $field): bool => is_array($field) && ($field['required'] ?? false) === true && isset($field['name']))
+            ->filter(fn (array $field): bool => ! is_scalar($data[$field['name']] ?? null) || trim((string) $data[$field['name']]) === '')
+            ->map(fn (array $field): string => (string) ($field['label'] ?? $field['name']))
+            ->values()
+            ->all();
+    }
+
+    /**
      * Whether this server can connect it at all: an OAuth connector needs its
      * client id and secret in `config/services.php` under its own key; the
      * manual kinds need nothing server-side.

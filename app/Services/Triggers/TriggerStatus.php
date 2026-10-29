@@ -4,6 +4,7 @@ namespace App\Services\Triggers;
 
 use App\Contracts\Triggers\NeedsPushDelivery;
 use App\Enums\Triggers\SubscriptionStatus;
+use App\Enums\Triggers\TriggerDisabledReason;
 use App\Enums\Triggers\TriggerType;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Triggers\Trigger;
@@ -61,6 +62,10 @@ class TriggerStatus
         }
 
         if (! $trigger->is_active) {
+            if ($trigger->disabled_reason === TriggerDisabledReason::Storm->value) {
+                return [$delivery, 'off_storm', 'Off: too many events', "More than {$trigger->stormLimit()} events arrived in a minute. Check the source, then switch it back on.", 'resume'];
+            }
+
             if ($trigger->consecutive_failure_count >= $trigger->maxFailures()) {
                 return [$delivery, 'off_failures', 'Off after failures', 'It failed too many times in a row. Fix the cause, then switch it back on.', 'resume'];
             }
