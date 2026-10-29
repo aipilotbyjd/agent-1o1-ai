@@ -157,6 +157,8 @@ class GraphValidator
 
                     break;
                 case TriggerNodeType::Webhook:
+                    $errors = [...$errors, ...$this->triggerFilterErrors($node['key'], $config['filters'] ?? null)];
+
                     if (filled($config['header_name'] ?? null) && ! preg_match('/^[A-Za-z0-9-]{1,64}$/', (string) $config['header_name'])) {
                         $errors[] = new ValidationIssue('A header name can only use letters, numbers and dashes.', $node['key'], 'header_name');
                     }
@@ -171,6 +173,8 @@ class GraphValidator
 
                     break;
                 case TriggerNodeType::Polling:
+                    $errors = [...$errors, ...$this->triggerFilterErrors($node['key'], $config['filters'] ?? null)];
+
                     if (filled($config['url'] ?? null) && Validator::make(['url' => $config['url']], ['url' => [new SafeOutboundUrl]])->fails()) {
                         $errors[] = new ValidationIssue('The polling URL must be a public http(s) address.', $node['key'], 'url');
                     }
@@ -182,6 +186,46 @@ class GraphValidator
         }
 
         return $errors;
+    }
+
+    /**
+     * A trigger's "Only run when" conditions: each needs a path and an
+     * operator that exists, and a pattern that compiles. Checked at publish so
+     * a mistake shows up in the editor, not as events that never start a run.
+     *
+     * @return array<int, ValidationIssue>
+     */
+    private function triggerFilterErrors(string $nodeKey, mixed $filters): array
+    {
+        if ($filters === null || $filters === []) {
+            return [];
+        }
+
+        if (! is_array($filters) || ! array_is_list($filters)) {
+            return [new ValidationIssue('"Only run when" must be a list of conditions.', $nodeKey, 'filters')];
+        }
+
+        foreach ($filters as $filter) {
+            if (! is_array($filter) || ! filled($filter['path'] ?? null)) {
+                return [new ValidationIssue('Each "Only run when" condition needs a path.', $nodeKey, 'filters')];
+            }
+
+            $operator = (string) ($filter['operator'] ?? 'equals');
+
+            if (! ConditionEvaluator::isKnown($operator)) {
+                return [new ValidationIssue("\"{$operator}\" is not a condition this trigger understands.", $nodeKey, 'filters')];
+            }
+
+            if ($operator === 'matches_regex' && ! ConditionEvaluator::isValidPattern($filter['value'] ?? null)) {
+                return [new ValidationIssue('A "Matches pattern" condition needs a valid pattern of at most 200 characters.', $nodeKey, 'filters')];
+            }
+
+            if (! in_array($filter['source'] ?? 'payload', ['payload', 'header'], true)) {
+                return [new ValidationIssue('A condition checks either the "payload" or a "header".', $nodeKey, 'filters')];
+            }
+        }
+
+        return [];
     }
 
     /**

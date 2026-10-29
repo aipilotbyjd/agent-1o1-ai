@@ -37,6 +37,17 @@ Old project's equivalent is `Nodes/Core`, `Nodes/Flow`, `Nodes/Custom`, `Nodes/A
 | `ConditionNode` | `Nodes/FlowLogic/RouterNode.php` | implements `NodeContract` — evaluates a condition, outputs `result` for edges to match on |
 | `Apps/Data/FilterNode` | `Nodes/FlowLogic/FilterNode.php` | implements `NodeContract` |
 
+### Core node behaviour notes (as built)
+
+- **One condition engine.** Filter, Router and every trigger's "Only run when" list decide through `Services\Workflows\ConditionEvaluator`, so an operator means the same thing everywhere. Operators: equals, not_equals, contains, not_contains, starts_with, ends_with, greater_than, greater_or_equal, less_than, less_or_equal, in_list, matches_regex, is_empty, is_not_empty, is_true, is_false. Add a new operator there and nowhere else.
+- **Comparison rules.** Numbers and numeric strings compare by value (`"5"` equals `5`); everything else compares as exact text, so `"abc"` never equals `0` and `null` never equals `""`. `is_empty` is true only for null, blank text and an empty list: `0`, `"0"` and `false` are values. `contains` also searches a list. Ordering operators need two numbers, otherwise they are false.
+- **Unknown operator = error.** A Filter or Router step throws, and a trigger condition holds the event back (`ignored`). It never quietly passes. Publishing rejects a trigger condition with an unknown operator, a missing path, a bad `source`, or a `matches_regex` pattern that doesn't compile or is over 200 characters (`GraphValidator::triggerFilterErrors()`). Patterns are run with our own delimiter and the `u` flag, so users can't add modifiers.
+- **Router** needs no `value` for unary operators and falls back to the `default` branch when nothing matches.
+- **Delay** is capped at 7 days (`DelayNode::MAX_SECONDS`) and clamps negatives to 0. Anything longer belongs on the Wait node, which resumes on a callback instead of holding a delayed queue job.
+- **Call API** never sends a body on GET. Requests go through `GuardedHttp` (SSRF guard, pinned DNS, capped response, no header replay across origins).
+- **Run Code** stays a whitelist (set, copy, uppercase, lowercase, concat). Real code execution still needs its own security review before it is built.
+- **Triggers vs nodes.** Dedicated triggers (Schedule, Webhook, Polling) share the delivery controls from `TriggerNode::withActivateSwitch()`: skip-if-running, failure breaker, runs per minute, grouping, concurrency. Manual is retired and kept only so old workflows still load.
+
 ## Data nodes (`Nodes/DataTransform/`)
 
 `CacheNode`, `StringNode`, `DataNode`, `JsonNode`, `DateTimeNode`, `ArrayNode`, `VariableNode`, `MathNode` — ported from `Apps/Data/*`, one class each, same names.

@@ -18,9 +18,11 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditGate;
 use App\Services\Billing\PlanLimitGate;
+use App\Services\Workflows\ConditionEvaluator;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 /**
  * Creates and manages triggers, and runs the two halves of every firing.
@@ -462,12 +464,13 @@ class TriggerService
             $subject = ($filter['source'] ?? 'payload') === 'header' ? $headers : $payload;
             $value = data_get($subject, $filter['path'] ?? '');
 
-            $matches = match ($filter['operator'] ?? 'equals') {
-                'equals' => $value == ($filter['value'] ?? null),
-                'not_equals' => $value != ($filter['value'] ?? null),
-                'contains' => is_string($value) && str_contains($value, (string) ($filter['value'] ?? '')),
-                default => true,
-            };
+            // A filter that can't be evaluated (an operator this version
+            // doesn't know) holds the event back rather than letting it through.
+            try {
+                $matches = ConditionEvaluator::matches($value, (string) ($filter['operator'] ?? 'equals'), $filter['value'] ?? null);
+            } catch (InvalidArgumentException) {
+                $matches = false;
+            }
 
             if (! $matches) {
                 return false;

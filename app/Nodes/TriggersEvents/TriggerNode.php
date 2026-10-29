@@ -11,6 +11,7 @@ use App\Enums\NodeCategory;
 use App\Enums\Triggers\TriggerNodeType;
 use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
+use App\Services\Workflows\ConditionEvaluator;
 
 /**
  * Base for the dedicated trigger nodes: where a workflow starts.
@@ -128,7 +129,7 @@ abstract class TriggerNode implements DeclaresEffect, DeclaresOutputSchema, HasI
     {
         return Field::advanced(Field::json(
             'Only run when',
-            'A list of conditions that must all match, e.g. [{"path": "action", "operator": "equals", "value": "opened"}]. Operators: equals, not_equals, contains.',
+            'A list of conditions that must all match, e.g. [{"path": "action", "operator": "equals", "value": "opened"}]. Add "source": "header" to check a request header instead of the body. Operators: '.implode(', ', array_keys(ConditionEvaluator::OPERATORS)).'.',
             'array',
         ));
     }
