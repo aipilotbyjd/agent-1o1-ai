@@ -15,7 +15,6 @@ use App\Services\Workflows\NodeRegistry;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
-use stdClass;
 use Throwable;
 
 /**
@@ -250,7 +249,8 @@ class TelegramSource extends AbstractWatchedSource implements ItemPushSource
     private function api(string $token, string $method, array $params = []): array
     {
         try {
-            $response = Http::acceptJson()->asJson()->timeout(20)->post(self::API.'/bot'.$token.'/'.$method, $params === [] ? new stdClass : $params);
+            $request = Http::acceptJson()->asJson()->timeout(20);
+            $response = $params === [] ? $request->get(self::API.'/bot'.$token.'/'.$method) : $request->post(self::API.'/bot'.$token.'/'.$method, $params);
         } catch (ConnectionException $exception) {
             throw new RuntimeException('Telegram could not be reached: '.$exception->getMessage());
         }

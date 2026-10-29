@@ -15,6 +15,7 @@ use Database\Seeders\ConnectorSeeder;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Laravel\Passport\Passport;
 
 /**
  * An account of a seeded messaging connector, holding the fields a member typed.
@@ -80,6 +81,31 @@ describe('messaging connectors', function () {
 
         expect(fn () => $resolver->credentialData('twilio', $account->workspace_id, null, ['credential_id' => $other->id]))->toThrow(RuntimeException::class, 'not found in this workspace')
             ->and($resolver->credentialData('twilio', $account->workspace_id, null, ['credential_id' => $account->id], markUsed: false))->toHaveKey('account_sid');
+    });
+});
+
+describe('saving a messaging connection', function () {
+    it('refuses one that is missing a field its form requires, and says which', function () {
+        [$workspace, $owner] = ownerWorkspaceForConnectors();
+        $this->seed([ConnectorSeeder::class]);
+        $twilio = Connector::query()->where('key', 'twilio')->firstOrFail();
+        $smtp = Connector::query()->where('key', 'smtp')->firstOrFail();
+        Passport::actingAs($owner);
+
+        $missing = $this->postJson("/api/v1/workspaces/{$workspace->id}/connector-credentials", ['connector_id' => $twilio->id, 'name' => 'Twilio', 'data' => ['account_sid' => 'AC'.str_repeat('1', 32), 'api_key' => '  ']]);
+
+        $missing->assertStatus(422);
+        expect($missing->getContent())->toContain('Auth token')->not->toContain('Account SID');
+        expect(ConnectorCredential::query()->where('name', 'Twilio')->exists())->toBeFalse();
+
+        $this->postJson("/api/v1/workspaces/{$workspace->id}/connector-credentials", ['connector_id' => $twilio->id, 'name' => 'Twilio', 'data' => ['account_sid' => 'AC'.str_repeat('1', 32), 'api_key' => 'token']])->assertCreated();
+
+        // An optional field (the mail password, the bot's application id) may be left out.
+        $this->postJson("/api/v1/workspaces/{$workspace->id}/connector-credentials", ['connector_id' => $smtp->id, 'name' => 'Mail', 'data' => ['host' => 'smtp.example.test', 'port' => 587, 'from_address' => 'hello@acme.test']])->assertCreated();
+
+        $credential = ConnectorCredential::query()->where('name', 'Mail')->firstOrFail();
+        $this->patchJson("/api/v1/workspaces/{$workspace->id}/connector-credentials/{$credential->id}", ['data' => ['port' => 587]])->assertStatus(422);
+        $this->patchJson("/api/v1/workspaces/{$workspace->id}/connector-credentials/{$credential->id}", ['name' => 'Mail renamed'])->assertOk();
     });
 });
 

@@ -10,7 +10,6 @@ use App\Nodes\Support\Field;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 use RuntimeException;
-use stdClass;
 
 /**
  * Shared request, error handling and result shaping for the Telegram node
@@ -52,8 +51,11 @@ abstract class AbstractTelegramNode implements DeclaresEffect, NodeContract
     {
         $params = array_filter($params, fn (mixed $value): bool => $value !== null);
 
-        $response = Http::acceptJson()->asJson()->timeout(30)
-            ->post(self::API_URL.'/bot'.$this->resolveAccessToken($run, $config).'/'.$method, $params === [] ? new stdClass : $params);
+        $url = self::API_URL.'/bot'.$this->resolveAccessToken($run, $config).'/'.$method;
+        $request = Http::acceptJson()->asJson()->timeout(30);
+
+        // A method with nothing to say (getMe, getMyCommands) is asked for, not sent an empty body.
+        $response = $params === [] ? $request->get($url) : $request->post($url, $params);
 
         if ($response->json('ok') !== true) {
             $description = (string) ($response->json('description') ?? "HTTP {$response->status()}");
