@@ -51,7 +51,7 @@ class TriggerNodeSync
      * A reader node's trigger-mode settings, kept out of the config its own
      * execute() is polled with.
      */
-    private const array APP_TRIGGER_KEYS = ['activate', 'poll_interval_minutes', 'if_already_running', 'max_failures', 'max_concurrent_runs', 'max_runs_per_minute', 'batch_seconds', 'start_from'];
+    private const array APP_TRIGGER_KEYS = ['activate', 'poll_interval_minutes', 'if_already_running', 'max_failures', 'max_concurrent_runs', 'max_runs_per_minute', 'batch_seconds', 'debounce_seconds', 'storm_limit', 'start_from'];
 
     /**
      * The polling node settings PollTrigger reads.
@@ -158,6 +158,8 @@ class TriggerNodeSync
                 'max_concurrent_runs' => $config['max_concurrent_runs'] ?? null,
                 'max_runs_per_minute' => $config['max_runs_per_minute'] ?? null,
                 'batch_seconds' => $config['batch_seconds'] ?? null,
+                'debounce_seconds' => $config['debounce_seconds'] ?? null,
+                'storm_limit' => $config['storm_limit'] ?? null,
                 'start_from' => $config['start_from'] ?? null,
             ], fn (mixed $value): bool => $value !== null && $value !== ''),
             'preset_id' => null,
@@ -190,7 +192,7 @@ class TriggerNodeSync
             $trigger->forceFill(['is_active' => $row['active']]);
 
             if ($row['active']) {
-                $trigger->forceFill(['consecutive_failure_count' => 0, 'consecutive_skip_count' => 0]);
+                $trigger->forceFill(['consecutive_failure_count' => 0, 'consecutive_skip_count' => 0, 'disabled_reason' => null]);
             }
         }
 
@@ -240,7 +242,7 @@ class TriggerNodeSync
      */
     private function configFor(TriggerNodeType $nodeType, array $config): array
     {
-        $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures', 'max_concurrent_runs', 'max_runs_per_minute', 'batch_seconds']));
+        $runControl = array_intersect_key($config, array_flip(['if_already_running', 'max_failures', 'max_concurrent_runs', 'max_runs_per_minute', 'batch_seconds', 'debounce_seconds', 'storm_limit']));
 
         $owned = $runControl + match ($nodeType) {
             TriggerNodeType::Schedule => ['cron' => $config['cron'] ?? null, 'run_once_at' => $config['run_once_at'] ?? null, 'timezone' => Timezones::canonical($config['timezone'] ?? null)],

@@ -39,7 +39,7 @@ class TriggerSampler
             throw new InvalidArgumentException('This trigger starts by hand, so it has no sample.');
         }
 
-        [$items, $idOf, $expand] = $this->reader->read($trigger);
+        [$items, $idOf, $expand] = $this->reader->read($trigger, forSample: true);
 
         return array_map(
             fn (array $item): array => ['id' => $idOf($item), 'payload' => $expand($item)],

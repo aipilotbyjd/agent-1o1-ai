@@ -28,6 +28,7 @@ class TriggerDisabledNotification extends WorkspaceEventNotification
             title: "A {$trigger->type->value} trigger on \"{$targetName}\" was switched off",
             body: match ($reason) {
                 TriggerDisabledReason::Failures => "It failed {$trigger->consecutive_failure_count} times in a row, so it was switched off to stop the failures. Check its recent events, fix the cause (often an expired account or a changed URL), then switch it back on.",
+                TriggerDisabledReason::Storm => "More than {$trigger->stormLimit()} events arrived in a minute, so it was switched off before it filled the workspace with runs. Look for a loop or a bulk import at the source, then switch it back on. A trigger that expects bursts can group them with \"Group events\" or \"Wait for quiet\", or raise its storm limit.",
                 TriggerDisabledReason::Skips => "Its last {$trigger->consecutive_skip_count} events were dropped without running (out of credits, or the previous run was still going), so it was switched off. Top up credits or make it fire less often, then switch it back on.",
             },
             data: [

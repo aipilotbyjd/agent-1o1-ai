@@ -133,6 +133,10 @@ class GraphValidator
         foreach ($nodes as $node) {
             $config = $node['config'] ?? [];
 
+            if (filled($config['batch_seconds'] ?? null) && filled($config['debounce_seconds'] ?? null)) {
+                $errors[] = new ValidationIssue('Use either "Group events" or "Wait for quiet", not both.', $node['key'], 'debounce_seconds');
+            }
+
             switch (TriggerNodeType::tryFrom((string) $node['type'])) {
                 case TriggerNodeType::Schedule:
                     if (filled($config['cron'] ?? null) && ! CronExpression::isValidExpression((string) $config['cron'])) {

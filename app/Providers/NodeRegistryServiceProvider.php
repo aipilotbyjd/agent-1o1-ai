@@ -114,6 +114,7 @@ use App\Nodes\Integrations\GoogleDrive\GoogleDriveDeleteFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveExportFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveGetFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveListFilesNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveListTrashedFilesNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveListUpdatedFilesNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveMoveFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveRenameFileNode;
@@ -134,6 +135,7 @@ use App\Nodes\Integrations\GoogleSheets\GoogleSheetsCreateSpreadsheetNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsDeleteRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetSpreadsheetInfoNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetValuesNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsListDeletedRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsListUpdatedRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsLookupRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsUpdateValuesNode;
@@ -145,6 +147,7 @@ use App\Nodes\Integrations\GoogleTasks\GoogleTasksCreateTaskListNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksCreateTaskNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksDeleteTaskNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListCompletedTasksNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksListDueSoonTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTaskListsNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksUpdateTaskNode;
@@ -168,6 +171,7 @@ use App\Nodes\Integrations\Notion\NotionListNewDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListNewDatabasesNode;
 use App\Nodes\Integrations\Notion\NotionListNewPagesNode;
 use App\Nodes\Integrations\Notion\NotionListNewUsersNode;
+use App\Nodes\Integrations\Notion\NotionListDeletedDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListUpdatedDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListUpdatedPagesNode;
 use App\Nodes\Integrations\Notion\NotionListUsersNode;
@@ -313,6 +317,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'notion_list_new_pages' => NotionListNewPagesNode::class,
             'notion_list_new_users' => NotionListNewUsersNode::class,
             'notion_list_updated_database_items' => NotionListUpdatedDatabaseItemsNode::class,
+            'notion_list_deleted_database_items' => NotionListDeletedDatabaseItemsNode::class,
             'notion_list_updated_pages' => NotionListUpdatedPagesNode::class,
             'notion_list_users' => NotionListUsersNode::class,
             'notion_query_database' => NotionQueryDatabaseNode::class,
@@ -422,6 +427,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'github_update_pull_request' => GitHubUpdatePullRequestNode::class,
             'google_drive_list_files' => GoogleDriveListFilesNode::class,
             'google_drive_list_updated_files' => GoogleDriveListUpdatedFilesNode::class,
+            'google_drive_list_trashed_files' => GoogleDriveListTrashedFilesNode::class,
             'google_drive_get_file' => GoogleDriveGetFileNode::class,
             'google_drive_delete_file' => GoogleDriveDeleteFileNode::class,
             'google_drive_export_file' => GoogleDriveExportFileNode::class,
@@ -440,6 +446,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_sheets_delete_rows' => GoogleSheetsDeleteRowsNode::class,
             'google_sheets_get_spreadsheet_info' => GoogleSheetsGetSpreadsheetInfoNode::class,
             'google_sheets_list_updated_rows' => GoogleSheetsListUpdatedRowsNode::class,
+            'google_sheets_list_deleted_rows' => GoogleSheetsListDeletedRowsNode::class,
             'google_sheets_lookup_rows' => GoogleSheetsLookupRowsNode::class,
             'google_docs_create_document' => GoogleDocsCreateDocumentNode::class,
             'google_docs_get_document' => GoogleDocsGetDocumentNode::class,
@@ -461,6 +468,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_tasks_create_task_list' => GoogleTasksCreateTaskListNode::class,
             'google_tasks_list_tasks' => GoogleTasksListTasksNode::class,
             'google_tasks_list_completed_tasks' => GoogleTasksListCompletedTasksNode::class,
+            'google_tasks_list_due_soon_tasks' => GoogleTasksListDueSoonTasksNode::class,
             'google_tasks_create_task' => GoogleTasksCreateTaskNode::class,
             'google_tasks_update_task' => GoogleTasksUpdateTaskNode::class,
             'google_tasks_delete_task' => GoogleTasksDeleteTaskNode::class,

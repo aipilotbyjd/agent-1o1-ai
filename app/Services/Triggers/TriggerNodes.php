@@ -78,6 +78,8 @@ class TriggerNodes
             ], 'Decides what the first check does with what is already in the app.', 'now')),
             'max_runs_per_minute' => Field::advanced(Field::integer('Trigger: most runs per minute', 'Extra items wait for the next minute instead of starting together. Leave empty for no limit.', null, 1, 600)),
             'batch_seconds' => Field::advanced(Field::integer('Trigger: group events for (seconds)', 'Collect events for this long, then run once with all of them as a list. Leave empty to run for each.', null, 5, 3600)),
+            'debounce_seconds' => Field::advanced(Field::integer('Trigger: wait for quiet (seconds)', 'Hold events until none has arrived for this long, then run once with all of them as a list (the newest is also in "latest"). Not together with "group events". Checked about once a minute.', null, 5, 3600)),
+            'storm_limit' => Field::advanced(Field::integer('Trigger: switch off above (events per minute)', 'If more events than this arrive in a minute the trigger switches itself off and tells you. Defaults to '.config('triggers.storm.max_events_per_minute').'. Not applied when events are grouped or waiting for quiet.', null, 10, 10000)),
             'max_concurrent_runs' => Field::advanced(Field::integer('Trigger: most runs at once', 'More items wait their turn instead of starting together. Leave empty for no limit.', null, 1, 100)),
         ];
     }

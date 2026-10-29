@@ -104,7 +104,7 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
         $wasPoked = Cache::pull(self::pokeKey($this->trigger)) === true;
 
         try {
-            [$items, $idOf, $expand, $cursorValue, $scheduleNextLook] = $reader->read($this->trigger);
+            [$items, $idOf, $expand, $cursorValue, $scheduleNextLook, $nextState] = $reader->read($this->trigger);
 
             $this->scheduledAt = $scheduleNextLook();
         } catch (Throwable $exception) {
@@ -169,10 +169,13 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
         // forceFill: both are system bookkeeping, deliberately not fillable,
         // so update() would silently drop them.
         $this->trigger->forceFill([
-            'poll_cursor' => [
+            'poll_cursor' => array_filter([
                 'value' => $items === [] ? ($this->trigger->poll_cursor['value'] ?? null) : $cursorValue(end($items)),
                 'idle' => $this->idlePolls,
-            ],
+                // What a trigger that keeps state (KeepsTriggerState) carries to
+                // its next poll; a poll that failed never gets here.
+                'state' => $nextState(),
+            ], fn (mixed $value, string $key): bool => $key !== 'state' || $value !== null, ARRAY_FILTER_USE_BOTH),
             'last_run_at' => now(),
             'next_poll_at' => $this->nextPollAt(),
         ])->save();
