@@ -318,6 +318,13 @@ return [
     */
 
     'push' => [
+        // Telegram, Discord and Twilio are connected with the member's own bot or
+        // account, so there is no platform app to set up: they are on unless switched off.
+        // Each registers its webhook through the connected account (a public https APP_URL is needed).
+        'telegram' => ['enabled' => (bool) env('TRIGGERS_PUSH_TELEGRAM_ENABLED', true)],
+        'discord' => ['enabled' => (bool) env('TRIGGERS_PUSH_DISCORD_ENABLED', true), 'max_age_seconds' => 300],
+        'twilio' => ['enabled' => (bool) env('TRIGGERS_PUSH_TWILIO_ENABLED', true)],
+
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
             'signing_secret' => env('TRIGGERS_SLACK_SIGNING_SECRET', env('SLACK_SIGNING_SECRET')),

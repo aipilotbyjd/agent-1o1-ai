@@ -429,6 +429,80 @@ class ConnectorSeeder extends Seeder
                 ],
                 'sort_order' => 18,
             ],
+            [
+                // A bot made with @BotFather: its token is the whole login.
+                'key' => 'telegram',
+                'name' => 'Telegram',
+                'description' => 'Send and edit messages, photos, files, polls and locations, moderate chats, and start flows from messages and button presses with a Telegram bot.',
+                'icon' => 'telegram',
+                'color' => '#26A5E4',
+                'category' => ConnectorCategory::Communication,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::ApiKey,
+                'fields' => [
+                    ['name' => 'api_key', 'label' => 'Bot token', 'type' => 'string', 'secret' => true, 'required' => true, 'placeholder' => '123456789:AA...', 'description' => 'From @BotFather: send /newbot, then copy the token it gives you.'],
+                ],
+                'oauth' => null,
+                'sort_order' => 19,
+            ],
+            [
+                // A bot made in the Discord Developer Portal. The application id and public key
+                // are only for slash commands and buttons (the Interactions endpoint).
+                'key' => 'discord',
+                'name' => 'Discord',
+                'description' => 'Post, edit and react to messages, manage channels, threads, roles and members, and start flows from new messages, slash commands and buttons with a Discord bot.',
+                'icon' => 'discord',
+                'color' => '#5865F2',
+                'category' => ConnectorCategory::Communication,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::ApiKey,
+                'fields' => [
+                    ['name' => 'api_key', 'label' => 'Bot token', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'Developer Portal > your application > Bot > Reset Token.'],
+                    ['name' => 'application_id', 'label' => 'Application ID', 'type' => 'string', 'required' => false, 'description' => 'Developer Portal > General Information. Needed for slash command and button triggers.'],
+                    ['name' => 'public_key', 'label' => 'Public key', 'type' => 'string', 'required' => false, 'description' => 'Developer Portal > General Information. Needed for slash command and button triggers.'],
+                ],
+                'oauth' => null,
+                'sort_order' => 20,
+            ],
+            [
+                // Your own Twilio account: the account SID and its auth token.
+                'key' => 'twilio',
+                'name' => 'Twilio',
+                'description' => 'Send and read SMS, MMS and WhatsApp messages, place and manage calls, look up phone numbers, verify codes, and start flows from incoming messages and calls with Twilio.',
+                'icon' => 'twilio',
+                'color' => '#F22F46',
+                'category' => ConnectorCategory::Communication,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::BasicAuth,
+                'fields' => [
+                    ['name' => 'account_sid', 'label' => 'Account SID', 'type' => 'string', 'required' => true, 'placeholder' => 'AC...', 'description' => 'Twilio Console > Account info.'],
+                    ['name' => 'api_key', 'label' => 'Auth token', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'Twilio Console > Account info. It also signs the incoming message webhooks.'],
+                ],
+                'oauth' => null,
+                'sort_order' => 21,
+            ],
+            [
+                // Sending only: reading a mailbox needs IMAP, which this server does not speak.
+                'key' => 'smtp',
+                'name' => 'Email (SMTP)',
+                'description' => 'Send email through any SMTP server: your own domain, Google Workspace, Microsoft 365, Mailgun, SendGrid, Postmark and the like.',
+                'icon' => 'mail',
+                'color' => '#475569',
+                'category' => ConnectorCategory::Communication,
+                'is_featured' => false,
+                'auth_type' => ConnectorAuthType::ApiKey,
+                'fields' => [
+                    ['name' => 'host', 'label' => 'SMTP host', 'type' => 'string', 'required' => true, 'placeholder' => 'smtp.example.com'],
+                    ['name' => 'port', 'label' => 'Port', 'type' => 'number', 'required' => true, 'placeholder' => '587', 'description' => '587 (STARTTLS), 465 (SSL) or 25.'],
+                    ['name' => 'encryption', 'label' => 'Encryption', 'type' => 'string', 'required' => false, 'placeholder' => 'tls', 'description' => 'tls (STARTTLS, the default for 587), ssl (for 465) or none.'],
+                    ['name' => 'username', 'label' => 'Username', 'type' => 'string', 'required' => false],
+                    ['name' => 'api_key', 'label' => 'Password', 'type' => 'string', 'secret' => true, 'required' => false, 'description' => 'The password or app password. Leave empty for a server that does not ask for one.'],
+                    ['name' => 'from_address', 'label' => 'From address', 'type' => 'string', 'required' => true, 'placeholder' => 'hello@example.com'],
+                    ['name' => 'from_name', 'label' => 'From name', 'type' => 'string', 'required' => false, 'placeholder' => 'Acme'],
+                ],
+                'oauth' => null,
+                'sort_order' => 22,
+            ],
         ];
     }
 }

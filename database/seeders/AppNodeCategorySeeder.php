@@ -160,6 +160,38 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Create, search, update and transition issues, manage projects, comments, attachments, links, users and groups, and Service Management requests in Jira Cloud.',
                 'sort_order' => 18,
             ],
+            [
+                'slug' => 'telegram',
+                'name' => 'Telegram',
+                'icon' => 'telegram',
+                'color' => '#26A5E4',
+                'description' => 'Send and edit messages, photos, files, polls and locations, moderate chats, and start flows from messages and button presses with a Telegram bot.',
+                'sort_order' => 19,
+            ],
+            [
+                'slug' => 'discord',
+                'name' => 'Discord',
+                'icon' => 'discord',
+                'color' => '#5865F2',
+                'description' => 'Post, edit and react to messages, manage channels, threads, roles and members, and start flows from new messages, slash commands and buttons with a Discord bot.',
+                'sort_order' => 20,
+            ],
+            [
+                'slug' => 'twilio',
+                'name' => 'Twilio',
+                'icon' => 'twilio',
+                'color' => '#F22F46',
+                'description' => 'Send and read SMS, MMS and WhatsApp messages, place and manage calls, look up phone numbers, verify codes, and start flows from incoming messages and calls with Twilio.',
+                'sort_order' => 21,
+            ],
+            [
+                'slug' => 'smtp',
+                'name' => 'Email (SMTP)',
+                'icon' => 'mail',
+                'color' => '#475569',
+                'description' => 'Send email through any SMTP server: your own domain, Google Workspace, Microsoft 365, Mailgun, SendGrid, Postmark and the like.',
+                'sort_order' => 22,
+            ],
         ];
 
         foreach ($categories as $category) {

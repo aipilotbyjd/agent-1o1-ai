@@ -19,6 +19,10 @@ use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\InputsOutputs\WorkflowInputNode;
 use App\Nodes\InputsOutputs\WorkflowOutputNode;
+use App\Nodes\Integrations\Email\EmailParseInboundNode;
+use App\Nodes\Integrations\Email\EmailSendEmailNode;
+use App\Nodes\Integrations\Email\EmailSendToManyNode;
+use App\Nodes\Integrations\Email\EmailValidateAddressNode;
 use App\Nodes\Integrations\GitHub\GitHubAddAssigneesNode;
 use App\Nodes\Integrations\GitHub\GitHubAddLabelsNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateBranchNode;
@@ -679,6 +683,10 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'linear_update_issue_relation' => LinearUpdateIssueRelationNode::class,
             'linear_update_project' => LinearUpdateProjectNode::class,
             'linear_update_status_update' => LinearUpdateStatusUpdateNode::class,
+            'email_parse_inbound' => EmailParseInboundNode::class,
+            'email_send' => EmailSendEmailNode::class,
+            'email_send_to_many' => EmailSendToManyNode::class,
+            'email_validate_address' => EmailValidateAddressNode::class,
         ];
     }
 }

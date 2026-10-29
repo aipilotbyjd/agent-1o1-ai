@@ -112,13 +112,16 @@ class NodeOptionsService
         $source = $options['source'];
         $this->assertDependenciesUsable($properties, $options['depends_on'] ?? [], $config);
 
+        $token = $this->isInternal($source) ? null : $this->token($node['category'], $workspace, $user, $config);
+
         $query = new NodeOptionsQuery(
             workspace: $workspace,
             user: $user,
             config: $config,
-            token: $this->isInternal($source) ? null : $this->token($node['category'], $workspace, $user, $config),
+            token: $token,
             search: $search,
             cursor: $cursor,
+            credentialData: $token === null ? [] : $this->credentialData($node['category'], $workspace, $user, $config),
         );
 
         return app($this->classFor($source))->load($source, $query);
@@ -182,6 +185,28 @@ class NodeOptionsService
             $app = Connector::where('key', $connectorKey)->value('name') ?? Str::headline($connectorKey);
 
             throw new ConnectorException("Connect a {$app} account (or choose one in Account) to load this list.");
+        }
+    }
+
+    /**
+     * The account's stored fields (a Twilio account sid, a bot's application
+     * id), read only after `token()` has found the account.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    private function credentialData(string $connectorKey, Workspace $workspace, User $user, array $config): array
+    {
+        $credentialId = $config['credential_id'] ?? null;
+
+        if (! is_string($credentialId) || str_contains($credentialId, '{{')) {
+            $config['credential_id'] = null;
+        }
+
+        try {
+            return $this->credentials->credentialData($connectorKey, $workspace->id, $user->id, $config, markUsed: false);
+        } catch (RuntimeException) {
+            return [];
         }
     }
 

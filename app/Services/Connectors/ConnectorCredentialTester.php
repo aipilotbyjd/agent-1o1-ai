@@ -8,6 +8,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Checks a connection really works: it gets a usable access token
@@ -48,6 +49,15 @@ class ConnectorCredentialTester
     {
         $credential->loadMissing('connector');
         $appName = $credential->connector?->name ?? 'This app';
+
+        // These log in with several fields, so there is no one token to check.
+        if (in_array($credential->connector?->key, ['telegram', 'discord', 'twilio', 'smtp'], true)) {
+            try {
+                return $this->checkManual($credential->connector->key, (array) $credential->data, $appName);
+            } catch (ConnectionException) {
+                return $this->result(false, "Couldn't reach {$appName}. Try again in a moment.");
+            }
+        }
 
         try {
             $token = $this->tokens->accessToken($credential, markUsed: false);
@@ -136,6 +146,71 @@ class ConnectorCredentialTester
         }
 
         return $this->result(true, "{$appName} has a valid access token.");
+    }
+
+    /**
+     * The check for an app connected with its own keys: ask the app who the
+     * keys belong to (a mail server is only reached, and told who is logging in).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{ok: bool, message: string, account: ?string, tested_at: string}
+     *
+     * @throws ConnectionException
+     */
+    private function checkManual(string $connectorKey, array $data, string $appName): array
+    {
+        $token = (string) ($data['api_key'] ?? '');
+
+        if ($connectorKey === 'telegram') {
+            $response = Http::acceptJson()->timeout(self::TIMEOUT_SECONDS)->get('https://api.telegram.org/bot'.$token.'/getMe');
+
+            if ($response->status() === 401 || $response->status() === 404 || ($response->successful() && $response->json('ok') !== true)) {
+                return $this->rejected($appName);
+            }
+
+            $username = $response->json('result.username');
+
+            return $this->fromResponse($response, $appName, is_string($username) ? '@'.$username : null);
+        }
+
+        if ($connectorKey === 'discord') {
+            $response = Http::withHeaders(['Authorization' => 'Bot '.$token])->acceptJson()->timeout(self::TIMEOUT_SECONDS)->get('https://discord.com/api/v10/users/@me');
+
+            return $this->fromResponse($response, $appName, $response->json('username'));
+        }
+
+        if ($connectorKey === 'twilio') {
+            $sid = (string) ($data['account_sid'] ?? '');
+
+            if ($sid === '' || $token === '') {
+                return $this->result(false, 'Twilio needs both the account SID and the auth token.');
+            }
+
+            $response = Http::withBasicAuth($sid, $token)->acceptJson()->timeout(self::TIMEOUT_SECONDS)->get("https://api.twilio.com/2010-04-01/Accounts/{$sid}.json");
+
+            return $this->fromResponse($response, $appName, $response->json('friendly_name'));
+        }
+
+        return $this->checkSmtp($data, $appName);
+    }
+
+    /**
+     * Opens a connection to the mail server and logs in, without sending anything.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{ok: bool, message: string, account: ?string, tested_at: string}
+     */
+    private function checkSmtp(array $data, string $appName): array
+    {
+        try {
+            $transport = app(SmtpMailer::class)->transport($data);
+            $transport->start();
+            $transport->stop();
+        } catch (Throwable $e) {
+            return $this->result(false, 'The mail server did not accept these settings: '.Str::limit($e->getMessage(), 200));
+        }
+
+        return $this->result(true, "Connected to {$appName}.", (string) ($data['from_address'] ?? '') ?: null);
     }
 
     /**
