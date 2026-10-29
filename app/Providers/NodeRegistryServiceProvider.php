@@ -429,6 +429,29 @@ use App\Nodes\Integrations\Telegram\TelegramStopPollNode;
 use App\Nodes\Integrations\Telegram\TelegramUnbanChatMemberNode;
 use App\Nodes\Integrations\Telegram\TelegramUnpinAllChatMessagesNode;
 use App\Nodes\Integrations\Telegram\TelegramUnpinChatMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioCheckVerificationNode;
+use App\Nodes\Integrations\Twilio\TwilioDeleteMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioDeleteRecordingNode;
+use App\Nodes\Integrations\Twilio\TwilioGetAccountNode;
+use App\Nodes\Integrations\Twilio\TwilioGetBalanceNode;
+use App\Nodes\Integrations\Twilio\TwilioGetCallNode;
+use App\Nodes\Integrations\Twilio\TwilioGetMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioListCallsNode;
+use App\Nodes\Integrations\Twilio\TwilioListFailedMessagesNode;
+use App\Nodes\Integrations\Twilio\TwilioListMessagesNode;
+use App\Nodes\Integrations\Twilio\TwilioListNewCallsNode;
+use App\Nodes\Integrations\Twilio\TwilioListNewIncomingMessagesNode;
+use App\Nodes\Integrations\Twilio\TwilioListNewRecordingsNode;
+use App\Nodes\Integrations\Twilio\TwilioListPhoneNumbersNode;
+use App\Nodes\Integrations\Twilio\TwilioListRecordingsNode;
+use App\Nodes\Integrations\Twilio\TwilioListVerifyServicesNode;
+use App\Nodes\Integrations\Twilio\TwilioLookupPhoneNumberNode;
+use App\Nodes\Integrations\Twilio\TwilioMakeCallNode;
+use App\Nodes\Integrations\Twilio\TwilioRedactMessageNode;
+use App\Nodes\Integrations\Twilio\TwilioSendSmsNode;
+use App\Nodes\Integrations\Twilio\TwilioSendWhatsAppNode;
+use App\Nodes\Integrations\Twilio\TwilioStartVerificationNode;
+use App\Nodes\Integrations\Twilio\TwilioUpdateCallNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
 use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
@@ -909,6 +932,29 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'discord_timeout_member' => DiscordTimeoutMemberNode::class,
             'discord_unban_member' => DiscordUnbanMemberNode::class,
             'discord_unpin_message' => DiscordUnpinMessageNode::class,
+            'twilio_check_verification' => TwilioCheckVerificationNode::class,
+            'twilio_delete_message' => TwilioDeleteMessageNode::class,
+            'twilio_delete_recording' => TwilioDeleteRecordingNode::class,
+            'twilio_get_account' => TwilioGetAccountNode::class,
+            'twilio_get_balance' => TwilioGetBalanceNode::class,
+            'twilio_get_call' => TwilioGetCallNode::class,
+            'twilio_get_message' => TwilioGetMessageNode::class,
+            'twilio_list_calls' => TwilioListCallsNode::class,
+            'twilio_list_failed_messages' => TwilioListFailedMessagesNode::class,
+            'twilio_list_messages' => TwilioListMessagesNode::class,
+            'twilio_list_new_calls' => TwilioListNewCallsNode::class,
+            'twilio_list_new_incoming_messages' => TwilioListNewIncomingMessagesNode::class,
+            'twilio_list_new_recordings' => TwilioListNewRecordingsNode::class,
+            'twilio_list_phone_numbers' => TwilioListPhoneNumbersNode::class,
+            'twilio_list_recordings' => TwilioListRecordingsNode::class,
+            'twilio_list_verify_services' => TwilioListVerifyServicesNode::class,
+            'twilio_lookup_phone_number' => TwilioLookupPhoneNumberNode::class,
+            'twilio_make_call' => TwilioMakeCallNode::class,
+            'twilio_redact_message' => TwilioRedactMessageNode::class,
+            'twilio_send_sms' => TwilioSendSmsNode::class,
+            'twilio_send_whatsapp' => TwilioSendWhatsAppNode::class,
+            'twilio_start_verification' => TwilioStartVerificationNode::class,
+            'twilio_update_call' => TwilioUpdateCallNode::class,
         ];
     }
 }

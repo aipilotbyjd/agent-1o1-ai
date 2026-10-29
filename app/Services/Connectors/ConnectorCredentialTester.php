@@ -203,9 +203,7 @@ class ConnectorCredentialTester
     private function checkSmtp(array $data, string $appName): array
     {
         try {
-            $transport = app(SmtpMailer::class)->transport($data);
-            $transport->start();
-            $transport->stop();
+            app(SmtpMailer::class)->verify($data);
         } catch (Throwable $e) {
             return $this->result(false, 'The mail server did not accept these settings: '.Str::limit($e->getMessage(), 200));
         }

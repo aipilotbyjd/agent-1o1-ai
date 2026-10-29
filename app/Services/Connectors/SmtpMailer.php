@@ -3,9 +3,11 @@
 namespace App\Services\Connectors;
 
 use InvalidArgumentException;
+use RuntimeException;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mime\Email;
+use Throwable;
 
 /**
  * Talks to the mail server a member connected, from the settings stored on the
@@ -52,6 +54,42 @@ class SmtpMailer
         }
 
         return $transport;
+    }
+
+    /**
+     * Open a connection to the server and log in, without sending anything.
+     *
+     * @param  array<string, mixed>  $account
+     *
+     * @throws InvalidArgumentException when the settings are incomplete
+     * @throws Throwable when the server can't be reached or refuses the login
+     */
+    public function verify(array $account): void
+    {
+        $transport = $this->transport($account);
+
+        if (is_callable([$transport, 'start'])) {
+            try {
+                $transport->start();
+            } finally {
+                try {
+                    $transport->stop();
+                } catch (Throwable) {
+                    // Closing a connection that is already gone is not a failure.
+                }
+            }
+
+            return;
+        }
+
+        // Without a way to log in, at least prove the server answers on its port.
+        $socket = @fsockopen(($account['encryption'] ?? '') === 'ssl' ? 'ssl://'.$account['host'] : (string) $account['host'], (int) $account['port'], $code, $message, 10);
+
+        if ($socket === false) {
+            throw new RuntimeException("Could not connect to {$account['host']}:{$account['port']} ({$message}).");
+        }
+
+        fclose($socket);
     }
 
     /**
