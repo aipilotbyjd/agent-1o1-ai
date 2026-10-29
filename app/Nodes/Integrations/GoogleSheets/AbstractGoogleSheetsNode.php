@@ -41,6 +41,55 @@ abstract class AbstractGoogleSheetsNode implements DeclaresEffect, NodeContract
     }
 
     /**
+     * `/spreadsheets/{id}` with the ID URL-encoded.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    protected function spreadsheetPath(array $config): string
+    {
+        return '/spreadsheets/'.rawurlencode((string) $config['spreadsheet_id']);
+    }
+
+    /**
+     * The numeric ID of a tab, given its name or the A1 range the sheet
+     * dropdown produces (`'Q1 Sales'!A1:B2`, `Sheet1`).
+     *
+     * @param  array<string, mixed>  $config
+     *
+     * @throws RuntimeException when the spreadsheet has no such tab
+     */
+    protected function sheetIdFor(Run $run, array $config, string $tab): int
+    {
+        $name = self::tabName($tab);
+        $spreadsheet = $this->get($run, $this->spreadsheetPath($config), $config, [
+            'fields' => 'sheets.properties(sheetId,title)',
+        ]);
+
+        foreach ((array) ($spreadsheet['sheets'] ?? []) as $sheet) {
+            if (($sheet['properties']['title'] ?? null) === $name) {
+                return (int) $sheet['properties']['sheetId'];
+            }
+        }
+
+        throw new RuntimeException("Google Sheets: the spreadsheet has no tab named \"{$name}\".");
+    }
+
+    /**
+     * The tab name inside an A1 range: the part before `!`, without the
+     * quotes Sheets puts around names with spaces (and with `''` read as `'`).
+     */
+    public static function tabName(string $range): string
+    {
+        $tab = str_contains($range, '!') ? substr($range, 0, (int) strrpos($range, '!')) : $range;
+
+        if (strlen($tab) >= 2 && $tab[0] === "'" && str_ends_with($tab, "'")) {
+            return str_replace("''", "'", substr($tab, 1, -1));
+        }
+
+        return $tab;
+    }
+
+    /**
      * @param  array<string, mixed>  $config
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
@@ -86,7 +135,10 @@ abstract class AbstractGoogleSheetsNode implements DeclaresEffect, NodeContract
         $response = match ($method) {
             'get' => $request->get(self::BASE_URL.$endpoint, $params),
             'put' => $request->asJson()->put(self::BASE_URL.$endpoint, $params),
-            default => $request->asJson()->post(self::BASE_URL.$endpoint, $params),
+            // Some endpoints (clear) require a body-less POST: `[]` would be refused.
+            default => $params === []
+                ? $request->withBody('', 'application/json')->post(self::BASE_URL.$endpoint)
+                : $request->asJson()->post(self::BASE_URL.$endpoint, $params),
         };
 
         if ($response->failed()) {

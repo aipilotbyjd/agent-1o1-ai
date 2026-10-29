@@ -140,6 +140,20 @@ return [
     'poll_lock_seconds' => (int) env('TRIGGERS_POLL_LOCK_SECONDS', 600),
 
     /*
+    | Polling that backs off. A trigger without working push that finds nothing
+    | new waits one more interval for every `after_empty_polls` empty polls in
+    | a row, up to `max_multiplier` intervals; anything new starts it over.
+    | Most polls of a quiet trigger find nothing, so this is where polling
+    | cost goes. Off, every trigger polls at its own interval.
+    */
+
+    'adaptive_poll' => [
+        'enabled' => (bool) env('TRIGGERS_ADAPTIVE_POLL', true),
+        'after_empty_polls' => (int) env('TRIGGERS_ADAPTIVE_POLL_AFTER', 6),
+        'max_multiplier' => (int) env('TRIGGERS_ADAPTIVE_POLL_MAX', 4),
+    ],
+
+    /*
     | A poll that fails with a temporary error (a rate limit, a 5xx, a dropped
     | connection) only counts toward the circuit breaker after this many in a
     | row. Any other error counts at once.
@@ -235,7 +249,6 @@ return [
 
     'prune_at' => env('TRIGGERS_PRUNE_AT', '03:30'),
 
-
     /*
     |--------------------------------------------------------------------------
     | Instant (push) triggers
@@ -274,6 +287,29 @@ return [
         'google_drive' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_DRIVE_ENABLED', false)],
         'google_calendar' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_CALENDAR_ENABLED', false)],
         'github' => ['enabled' => (bool) env('TRIGGERS_PUSH_GITHUB_ENABLED', false)],
+
+        // Sheets and Docs watch the file through Drive's push channels, so like
+        // Drive and Calendar they need only the switch (and the connected
+        // account's Drive access).
+        'google_sheets' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_SHEETS_ENABLED', false)],
+        'google_docs' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_DOCS_ENABLED', false)],
+
+        // Forms tells a Pub/Sub topic about new responses: the topic must let
+        // forms-notifications@system.gserviceaccount.com publish, and a push
+        // subscription on it must call /api/hooks/apps/google_forms?token={verification_token}.
+        'google_forms' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_FORMS_ENABLED', false),
+            'topic' => env('TRIGGERS_GOOGLE_FORMS_PUBSUB_TOPIC'),
+            'verification_token' => env('TRIGGERS_GOOGLE_FORMS_PUSH_TOKEN'),
+        ],
+
+        // YouTube announces new uploads of a channel through Google's WebSub hub
+        // (no Google Cloud setup): the hub calls /api/hooks/apps/google_youtube.
+        'google_youtube' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_YOUTUBE_ENABLED', false),
+            'hub_url' => env('TRIGGERS_YOUTUBE_WEBSUB_HUB', 'https://pubsubhubbub.appspot.com/subscribe'),
+            'lease_seconds' => 432000,
+        ],
     ],
 
 ];

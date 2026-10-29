@@ -19,7 +19,7 @@ class GoogleCalendarSource extends GoogleChannelSource
 
     protected function nodeTypes(): array
     {
-        return ['google_calendar_list_events'];
+        return ['google_calendar_list_events', 'google_calendar_list_updated_events', 'google_calendar_list_cancelled_events', 'google_calendar_list_upcoming_events'];
     }
 
     protected function api(): string

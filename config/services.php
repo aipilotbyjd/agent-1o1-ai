@@ -72,6 +72,41 @@ return [
         'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
     ],
 
+    'google_tasks' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_contacts' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_forms' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_slides' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_youtube' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_analytics' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'google_search_console' => [
+        'client_id' => env('GOOGLE_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONNECTORS_CLIENT_SECRET'),
+    ],
+
     'outlook' => [
         'client_id' => env('MICROSOFT_CONNECTORS_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_CONNECTORS_CLIENT_SECRET'),

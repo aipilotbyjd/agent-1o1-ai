@@ -37,6 +37,12 @@ Route::prefix('hooks')->name('hooks.')->group(function (): void {
         ->middleware('throttle:1200,1')
         ->name('apps');
 
+    // A provider confirming a subscription with a GET (YouTube's WebSub hub):
+    // answered only for a channel we are watching, by the provider's ingress.
+    Route::get('apps/{provider}', ProviderIngressController::class)
+        ->middleware('throttle:1200,1')
+        ->name('apps.verify');
+
     // A provider confirming it has the right URL with a GET (Meta's
     // hub.challenge). Answered only for a webhook with a secret set.
     Route::get('{token}', WebhookController::class)

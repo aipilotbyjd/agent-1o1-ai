@@ -220,12 +220,37 @@ class Trigger extends Model
     /**
      * When the next poll is due: one interval from now, spread by up to 10 %
      * so polls set up together don't all land on the same minute.
+     *
+     * A trigger without working push that keeps finding nothing backs off
+     * (see backoffMultiplier), so a quiet Tasks list isn't read every few
+     * minutes all day.
+     *
+     * @param  int  $idlePolls  how many polls in a row found nothing new
      */
-    public function nextPollTime(): Carbon
+    public function nextPollTime(int $idlePolls = 0): Carbon
     {
-        $seconds = $this->pollIntervalMinutes() * 60;
+        $seconds = $this->pollIntervalMinutes() * 60 * $this->backoffMultiplier($idlePolls);
 
         return now()->addSeconds($seconds + random_int(0, (int) ($seconds / 10)));
+    }
+
+    /**
+     * How many times longer than its interval a quiet trigger waits: one more
+     * interval for every `triggers.adaptive_poll.after_empty_polls` empty
+     * polls, up to `max_multiplier`. Never for a trigger with working push
+     * (it already polls only to reconcile) or when the switch is off.
+     */
+    public function backoffMultiplier(int $idlePolls): int
+    {
+        $adaptive = (array) config('triggers.adaptive_poll');
+
+        if (! ($adaptive['enabled'] ?? false) || $this->subscription?->status === SubscriptionStatus::Active) {
+            return 1;
+        }
+
+        $perStep = max(1, (int) ($adaptive['after_empty_polls'] ?? 6));
+
+        return min(max(1, (int) ($adaptive['max_multiplier'] ?? 4)), 1 + intdiv(max(0, $idlePolls), $perStep));
     }
 
     /**

@@ -81,7 +81,7 @@ describe('polling', function () {
         // Both are bookkeeping outside #[Fillable]: they must still be saved,
         // or the cursor is lost and the poll interval is never respected.
         expect($trigger->events()->count())->toBe(2)
-            ->and($trigger->fresh()->poll_cursor)->toBe(['value' => 2])
+            ->and($trigger->fresh()->poll_cursor)->toBe(['value' => 2, 'idle' => 0])
             ->and($trigger->fresh()->last_run_at)->not->toBeNull();
     });
 

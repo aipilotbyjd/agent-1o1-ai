@@ -28,7 +28,7 @@ class GmailMessageSource extends AbstractWatchedSource
 
     protected function nodeTypes(): array
     {
-        return ['gmail_list_messages'];
+        return ['gmail_list_messages', 'gmail_list_messages_with_attachments'];
     }
 
     protected function isConfigured(): bool

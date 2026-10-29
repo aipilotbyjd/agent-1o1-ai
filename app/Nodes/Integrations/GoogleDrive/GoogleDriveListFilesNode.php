@@ -39,7 +39,7 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode implements Suppor
             'required' => [],
             'properties' => [
                 ...$this->credentialFields(),
-                'query' => Field::text('Search query', 'Drive search syntax.', "name contains 'report' and trashed = false"),
+                ...$this->fileFilterFields(),
                 'page_size' => Field::integer('Max results', null, 10, 1, 1000),
             ],
         ];
@@ -47,10 +47,7 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode implements Suppor
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return $this->get($run, '/files', $config, [
-            'q' => $config['query'] ?? '',
-            'pageSize' => $config['page_size'] ?? 10,
-        ]);
+        return $this->listFiles($run, $config, 'createdTime desc');
     }
 
     /**
@@ -84,6 +81,16 @@ class GoogleDriveListFilesNode extends AbstractGoogleDriveNode implements Suppor
     public function triggerReadConfig(array $config): array
     {
         return [...$config, 'page_size' => max((int) ($config['page_size'] ?? 0), 100)];
+    }
+
+    /**
+     * Newest first, as the list is ordered by when files were made: without an
+     * order Drive lists in no useful sequence, and a page of 100 could miss
+     * the newest file in a large Drive.
+     */
+    public function triggerListsNewestFirst(): bool
+    {
+        return true;
     }
 
     /**

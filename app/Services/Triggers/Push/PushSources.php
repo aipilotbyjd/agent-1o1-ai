@@ -30,8 +30,12 @@ class PushSources
         GoogleDriveSource $driveSource,
         GoogleCalendarSource $calendarSource,
         GitHubSource $githubSource,
+        GoogleSheetsSource $sheetsSource,
+        GoogleDocsSource $docsSource,
+        GoogleFormsSource $formsSource,
+        YouTubeUploadsSource $youtubeSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -42,6 +46,10 @@ class PushSources
             new GoogleChannelIngress('google_drive'),
             new GoogleChannelIngress('google_calendar'),
             new GitHubIngress,
+            new GoogleChannelIngress('google_sheets'),
+            new GoogleChannelIngress('google_docs'),
+            new GoogleFormsIngress,
+            new YouTubeUploadsIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

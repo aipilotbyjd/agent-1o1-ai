@@ -60,8 +60,9 @@ abstract class AbstractGmailNode implements DeclaresEffect, NodeContract
         $token = $this->resolveAccessToken($run, $config);
 
         $request = Http::withToken($token);
+        // An empty `query` array would replace a query string already in the endpoint.
         $response = $method === 'get'
-            ? $request->get(self::BASE_URL.$endpoint, $params)
+            ? ($params === [] ? $request->get(self::BASE_URL.$endpoint) : $request->get(self::BASE_URL.$endpoint, $params))
             : $request->asJson()->post(self::BASE_URL.$endpoint, $params);
 
         if ($response->failed()) {

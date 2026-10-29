@@ -20,7 +20,7 @@ class GoogleDriveSource extends GoogleChannelSource
 
     protected function nodeTypes(): array
     {
-        return ['google_drive_list_files'];
+        return ['google_drive_list_files', 'google_drive_list_updated_files'];
     }
 
     protected function api(): string

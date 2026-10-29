@@ -9,13 +9,19 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleCalendarOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleDocsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleDriveOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleFormsOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleSearchConsoleOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSheetsOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
+use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -51,6 +57,12 @@ class NodeOptionsService
         GoogleSheetsOptions::class,
         GoogleDocsOptions::class,
         GoogleCalendarOptions::class,
+        GoogleTasksOptions::class,
+        GoogleFormsOptions::class,
+        GoogleSlidesOptions::class,
+        GoogleAnalyticsOptions::class,
+        GoogleSearchConsoleOptions::class,
+        YouTubeOptions::class,
         OutlookOptions::class,
         WorkspaceOptions::class,
     ];

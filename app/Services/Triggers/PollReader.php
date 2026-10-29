@@ -2,6 +2,7 @@
 
 namespace App\Services\Triggers;
 
+use App\Contracts\SchedulesTriggerPolls;
 use App\Contracts\SupportsTriggerMode;
 use App\Exceptions\ConnectorException;
 use App\Models\Connectors\ConnectorCredential;
@@ -10,6 +11,7 @@ use App\Models\Triggers\Trigger;
 use App\Services\Connectors\ConnectorTokens;
 use App\Services\Http\GuardedHttp;
 use App\Services\Workflows\NodeRegistry;
+use Carbon\CarbonInterface;
 use Closure;
 use RuntimeException;
 
@@ -39,7 +41,10 @@ class PollReader
      * The trigger's items, oldest first, plus how to get each one's id,
      * payload and cursor value.
      *
-     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed}
+     * The fifth element says when the poll should next look when the source
+     * knows better than a fixed interval (see SchedulesTriggerPolls), else null.
+     *
+     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface}
      */
     public function read(Trigger $trigger): array
     {
@@ -57,7 +62,7 @@ class PollReader
      * value.
      *
      * @param  array<string, mixed>  $config
-     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed}
+     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface}
      */
     private function urlItems(Trigger $trigger, array $config): array
     {
@@ -81,6 +86,7 @@ class PollReader
             fn (array $item): string => (string) data_get($item, $idPath),
             fn (array $item): array => $item,
             fn (array $item): mixed => data_get($item, $config['cursor_path'] ?? $idPath),
+            fn (): ?CarbonInterface => null,
         ];
     }
 
@@ -92,7 +98,7 @@ class PollReader
      * urlItems().
      *
      * @param  array<string, mixed>  $config
-     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed}
+     * @return array{0: list<array<string, mixed>>, 1: Closure(array<string, mixed>): string, 2: Closure(array<string, mixed>): array<string, mixed>, 3: Closure(array<string, mixed>): mixed, 4: Closure(): ?CarbonInterface}
      */
     private function readerItems(Trigger $trigger, array $config): array
     {
@@ -112,7 +118,8 @@ class PollReader
         // acts for, which is all a real run gives ResolvesConnectorCredential.
         $run = new Run(['workspace_id' => $trigger->workspace_id, 'triggered_by' => $trigger->actingUser()?->id]);
 
-        $items = $node->triggerItems($node->execute($run, $node->triggerReadConfig($nodeConfig), []), $nodeConfig);
+        $output = $node->execute($run, $node->triggerReadConfig($nodeConfig), []);
+        $items = $node->triggerItems($output, $nodeConfig);
 
         // Runs start oldest first, so a burst is processed in the order it
         // happened.
@@ -125,6 +132,7 @@ class PollReader
             fn (array $item): string => $node->triggerItemId($item),
             fn (array $item): array => $node->expandTriggerItem($run, $nodeConfig, $item),
             fn (array $item): mixed => $node->triggerItemId($item),
+            fn (): ?CarbonInterface => $node instanceof SchedulesTriggerPolls ? $node->nextTriggerPollAt($output, $nodeConfig) : null,
         ];
     }
 

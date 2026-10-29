@@ -8,6 +8,7 @@ use App\Enums\Triggers\TriggerType;
 use App\Models\Triggers\Trigger;
 use App\Services\Triggers\PollReader;
 use App\Services\Triggers\TriggerService;
+use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -44,6 +45,17 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
      * (`triggers.poll_lock_seconds`).
      */
     public int $uniqueFor;
+
+    /**
+     * When the node asked for the next look, if it knows better than the
+     * interval (an event starting soon).
+     */
+    private ?CarbonInterface $scheduledAt = null;
+
+    /**
+     * How many polls in a row found nothing new, to let the interval grow.
+     */
+    private int $idlePolls = 0;
 
     /**
      * Queue a poll of one trigger on the polling queue.
@@ -86,11 +98,15 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        $this->idlePolls = (int) ($this->trigger->poll_cursor['idle'] ?? 0);
+
         // Prompted by a push (and so not a reconciliation check)?
         $wasPoked = Cache::pull(self::pokeKey($this->trigger)) === true;
 
         try {
-            [$items, $idOf, $expand, $cursorValue] = $reader->read($this->trigger);
+            [$items, $idOf, $expand, $cursorValue, $scheduleNextLook] = $reader->read($this->trigger);
+
+            $this->scheduledAt = $scheduleNextLook();
         } catch (Throwable $exception) {
             $this->recordReadError($triggers, $exception);
             $this->trigger->forceFill(['last_run_at' => now(), 'next_poll_at' => $this->nextPollAt()])->save();
@@ -140,6 +156,10 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
             }
         }
 
+        // Quiet polls make the next ones less frequent (see Trigger::nextPollTime);
+        // anything new, or the baseline, starts the count again.
+        $this->idlePolls = $isBaseline || $newItems > 0 ? 0 : $this->idlePolls + 1;
+
         // A check nobody asked for found something new while push was supposed
         // to be delivering: push missed it, so go back to checking on a timer.
         if (! $wasPoked && $newItems > 0) {
@@ -149,7 +169,10 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
         // forceFill: both are system bookkeeping, deliberately not fillable,
         // so update() would silently drop them.
         $this->trigger->forceFill([
-            'poll_cursor' => ['value' => $items === [] ? ($this->trigger->poll_cursor['value'] ?? null) : $cursorValue(end($items))],
+            'poll_cursor' => [
+                'value' => $items === [] ? ($this->trigger->poll_cursor['value'] ?? null) : $cursorValue(end($items)),
+                'idle' => $this->idlePolls,
+            ],
             'last_run_at' => now(),
             'next_poll_at' => $this->nextPollAt(),
         ])->save();
@@ -157,12 +180,23 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
 
     /**
      * When to poll next: at once if a push asked for a poll while this one was
-     * running (the scheduler claims it within a minute), otherwise one interval
-     * from now.
+     * running (the scheduler claims it within a minute); otherwise one interval
+     * from now, or sooner when the node knows when it will next have something
+     * to do (never less than half a minute away).
      */
     private function nextPollAt(): Carbon
     {
-        return Cache::has(self::pokeKey($this->trigger)) ? now() : $this->trigger->nextPollTime();
+        if (Cache::has(self::pokeKey($this->trigger))) {
+            return now();
+        }
+
+        $regular = $this->trigger->nextPollTime($this->idlePolls);
+
+        if ($this->scheduledAt === null || $this->scheduledAt->gte($regular)) {
+            return $regular;
+        }
+
+        return Carbon::instance($this->scheduledAt)->max(now()->addSeconds(30));
     }
 
     /**
@@ -242,5 +276,4 @@ class PollTrigger implements ShouldBeUnique, ShouldQueue
     {
         return "triggers:poll-transient:{$this->trigger->id}";
     }
-
 }

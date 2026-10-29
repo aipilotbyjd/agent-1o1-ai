@@ -24,26 +24,84 @@ use App\Nodes\Integrations\GitHub\GitHubListPullRequestsNode;
 use App\Nodes\Integrations\GitHub\GitHubListReposNode;
 use App\Nodes\Integrations\Gmail\GmailAddLabelNode;
 use App\Nodes\Integrations\Gmail\GmailCreateDraftNode;
+use App\Nodes\Integrations\Gmail\GmailCreateLabelNode;
 use App\Nodes\Integrations\Gmail\GmailDeleteMessageNode;
+use App\Nodes\Integrations\Gmail\GmailGetAttachmentNode;
 use App\Nodes\Integrations\Gmail\GmailGetMessageNode;
+use App\Nodes\Integrations\Gmail\GmailGetThreadNode;
 use App\Nodes\Integrations\Gmail\GmailListLabelsNode;
 use App\Nodes\Integrations\Gmail\GmailListMessagesNode;
+use App\Nodes\Integrations\Gmail\GmailListMessagesWithAttachmentsNode;
 use App\Nodes\Integrations\Gmail\GmailModifyMessageNode;
 use App\Nodes\Integrations\Gmail\GmailReplyToMessageNode;
+use App\Nodes\Integrations\Gmail\GmailSendDraftNode;
 use App\Nodes\Integrations\Gmail\GmailSendEmailNode;
+use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsListPropertiesNode;
+use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsRunRealtimeReportNode;
+use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsRunReportNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarCheckAvailabilityNode;
 use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarCreateEventNode;
 use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarDeleteEventNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarGetEventNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarListCalendarsNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarListCancelledEventsNode;
 use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarListEventsNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarListUpcomingEventsNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarListUpdatedEventsNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarQuickAddEventNode;
+use App\Nodes\Integrations\GoogleCalendar\GoogleCalendarUpdateEventNode;
+use App\Nodes\Integrations\GoogleContacts\GoogleContactsCreateContactNode;
+use App\Nodes\Integrations\GoogleContacts\GoogleContactsDeleteContactNode;
+use App\Nodes\Integrations\GoogleContacts\GoogleContactsGetContactNode;
+use App\Nodes\Integrations\GoogleContacts\GoogleContactsListContactsNode;
+use App\Nodes\Integrations\GoogleContacts\GoogleContactsListUpdatedContactsNode;
+use App\Nodes\Integrations\GoogleContacts\GoogleContactsSearchContactsNode;
+use App\Nodes\Integrations\GoogleContacts\GoogleContactsUpdateContactNode;
 use App\Nodes\Integrations\GoogleDocs\GoogleDocsAppendTextNode;
 use App\Nodes\Integrations\GoogleDocs\GoogleDocsCreateDocumentNode;
 use App\Nodes\Integrations\GoogleDocs\GoogleDocsGetDocumentNode;
+use App\Nodes\Integrations\GoogleDocs\GoogleDocsReadTextNode;
+use App\Nodes\Integrations\GoogleDocs\GoogleDocsReplaceTextNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveCopyFileNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveCreateFolderNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveDeleteFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveExportFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveGetFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveListFilesNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveListUpdatedFilesNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveMoveFileNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveRenameFileNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveShareFileNode;
+use App\Nodes\Integrations\GoogleDrive\GoogleDriveUploadFileNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsCreateFormNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsGetFormNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsGetResponseNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsListResponsesNode;
+use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleInspectUrlNode;
+use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitemapsNode;
+use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitesNode;
+use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleQuerySearchAnalyticsNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsAddSheetNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsAppendValuesNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsClearRangeNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsCreateSpreadsheetNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsDeleteRowsNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetSpreadsheetInfoNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsGetValuesNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsListUpdatedRowsNode;
+use App\Nodes\Integrations\GoogleSheets\GoogleSheetsLookupRowsNode;
 use App\Nodes\Integrations\GoogleSheets\GoogleSheetsUpdateValuesNode;
+use App\Nodes\Integrations\GoogleSlides\GoogleSlidesAddSlideNode;
+use App\Nodes\Integrations\GoogleSlides\GoogleSlidesCreatePresentationNode;
+use App\Nodes\Integrations\GoogleSlides\GoogleSlidesGetPresentationNode;
+use App\Nodes\Integrations\GoogleSlides\GoogleSlidesReplaceTextNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksCreateTaskListNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksCreateTaskNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksDeleteTaskNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksListCompletedTasksNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTaskListsNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTasksNode;
+use App\Nodes\Integrations\GoogleTasks\GoogleTasksUpdateTaskNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateEventNode;
 use App\Nodes\Integrations\Outlook\OutlookDeleteEventNode;
@@ -56,12 +114,17 @@ use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
 use App\Nodes\Integrations\Slack\SlackGetChannelHistoryNode;
-use App\Nodes\Integrations\Slack\SlackReactionAddedNode;
 use App\Nodes\Integrations\Slack\SlackInviteToChannelNode;
 use App\Nodes\Integrations\Slack\SlackListChannelsNode;
 use App\Nodes\Integrations\Slack\SlackListUsersNode;
 use App\Nodes\Integrations\Slack\SlackPostMessageNode;
+use App\Nodes\Integrations\Slack\SlackReactionAddedNode;
 use App\Nodes\Integrations\Slack\SlackUploadFileNode;
+use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
+use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
+use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
+use App\Nodes\Integrations\YouTube\YouTubeListPlaylistVideosNode;
+use App\Nodes\Integrations\YouTube\YouTubeSearchVideosNode;
 use App\Nodes\TriggersEvents\ManualTriggerNode;
 use App\Nodes\TriggersEvents\PollingTriggerNode;
 use App\Nodes\TriggersEvents\ScheduleTriggerNode;
@@ -126,6 +189,7 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'slack_list_users' => SlackListUsersNode::class,
             'gmail_send_email' => GmailSendEmailNode::class,
             'gmail_list_messages' => GmailListMessagesNode::class,
+            'gmail_list_messages_with_attachments' => GmailListMessagesWithAttachmentsNode::class,
             'gmail_get_message' => GmailGetMessageNode::class,
             'gmail_reply_to_message' => GmailReplyToMessageNode::class,
             'gmail_create_draft' => GmailCreateDraftNode::class,
@@ -133,6 +197,10 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'gmail_modify_message' => GmailModifyMessageNode::class,
             'gmail_add_label' => GmailAddLabelNode::class,
             'gmail_list_labels' => GmailListLabelsNode::class,
+            'gmail_create_label' => GmailCreateLabelNode::class,
+            'gmail_get_attachment' => GmailGetAttachmentNode::class,
+            'gmail_get_thread' => GmailGetThreadNode::class,
+            'gmail_send_draft' => GmailSendDraftNode::class,
             'github_get_repo' => GitHubGetRepoNode::class,
             'github_list_repos' => GitHubListReposNode::class,
             'github_create_repo' => GitHubCreateRepoNode::class,
@@ -143,18 +211,76 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'github_create_pull_request' => GitHubCreatePullRequestNode::class,
             'github_list_commits' => GitHubListCommitsNode::class,
             'google_drive_list_files' => GoogleDriveListFilesNode::class,
+            'google_drive_list_updated_files' => GoogleDriveListUpdatedFilesNode::class,
             'google_drive_get_file' => GoogleDriveGetFileNode::class,
             'google_drive_delete_file' => GoogleDriveDeleteFileNode::class,
             'google_drive_export_file' => GoogleDriveExportFileNode::class,
+            'google_drive_copy_file' => GoogleDriveCopyFileNode::class,
+            'google_drive_create_folder' => GoogleDriveCreateFolderNode::class,
+            'google_drive_move_file' => GoogleDriveMoveFileNode::class,
+            'google_drive_rename_file' => GoogleDriveRenameFileNode::class,
+            'google_drive_share_file' => GoogleDriveShareFileNode::class,
+            'google_drive_upload_file' => GoogleDriveUploadFileNode::class,
             'google_sheets_get_values' => GoogleSheetsGetValuesNode::class,
             'google_sheets_append_values' => GoogleSheetsAppendValuesNode::class,
             'google_sheets_update_values' => GoogleSheetsUpdateValuesNode::class,
+            'google_sheets_add_sheet' => GoogleSheetsAddSheetNode::class,
+            'google_sheets_clear_range' => GoogleSheetsClearRangeNode::class,
+            'google_sheets_create_spreadsheet' => GoogleSheetsCreateSpreadsheetNode::class,
+            'google_sheets_delete_rows' => GoogleSheetsDeleteRowsNode::class,
+            'google_sheets_get_spreadsheet_info' => GoogleSheetsGetSpreadsheetInfoNode::class,
+            'google_sheets_list_updated_rows' => GoogleSheetsListUpdatedRowsNode::class,
+            'google_sheets_lookup_rows' => GoogleSheetsLookupRowsNode::class,
             'google_docs_create_document' => GoogleDocsCreateDocumentNode::class,
             'google_docs_get_document' => GoogleDocsGetDocumentNode::class,
             'google_docs_append_text' => GoogleDocsAppendTextNode::class,
+            'google_docs_read_text' => GoogleDocsReadTextNode::class,
+            'google_docs_replace_text' => GoogleDocsReplaceTextNode::class,
             'google_calendar_list_events' => GoogleCalendarListEventsNode::class,
+            'google_calendar_list_cancelled_events' => GoogleCalendarListCancelledEventsNode::class,
+            'google_calendar_list_upcoming_events' => GoogleCalendarListUpcomingEventsNode::class,
+            'google_calendar_list_updated_events' => GoogleCalendarListUpdatedEventsNode::class,
             'google_calendar_create_event' => GoogleCalendarCreateEventNode::class,
             'google_calendar_delete_event' => GoogleCalendarDeleteEventNode::class,
+            'google_calendar_check_availability' => GoogleCalendarCheckAvailabilityNode::class,
+            'google_calendar_get_event' => GoogleCalendarGetEventNode::class,
+            'google_calendar_list_calendars' => GoogleCalendarListCalendarsNode::class,
+            'google_calendar_quick_add_event' => GoogleCalendarQuickAddEventNode::class,
+            'google_calendar_update_event' => GoogleCalendarUpdateEventNode::class,
+            'google_tasks_list_task_lists' => GoogleTasksListTaskListsNode::class,
+            'google_tasks_create_task_list' => GoogleTasksCreateTaskListNode::class,
+            'google_tasks_list_tasks' => GoogleTasksListTasksNode::class,
+            'google_tasks_list_completed_tasks' => GoogleTasksListCompletedTasksNode::class,
+            'google_tasks_create_task' => GoogleTasksCreateTaskNode::class,
+            'google_tasks_update_task' => GoogleTasksUpdateTaskNode::class,
+            'google_tasks_delete_task' => GoogleTasksDeleteTaskNode::class,
+            'google_contacts_list_contacts' => GoogleContactsListContactsNode::class,
+            'google_contacts_list_updated_contacts' => GoogleContactsListUpdatedContactsNode::class,
+            'google_contacts_search_contacts' => GoogleContactsSearchContactsNode::class,
+            'google_contacts_get_contact' => GoogleContactsGetContactNode::class,
+            'google_contacts_create_contact' => GoogleContactsCreateContactNode::class,
+            'google_contacts_update_contact' => GoogleContactsUpdateContactNode::class,
+            'google_contacts_delete_contact' => GoogleContactsDeleteContactNode::class,
+            'google_forms_get_form' => GoogleFormsGetFormNode::class,
+            'google_forms_list_responses' => GoogleFormsListResponsesNode::class,
+            'google_forms_get_response' => GoogleFormsGetResponseNode::class,
+            'google_forms_create_form' => GoogleFormsCreateFormNode::class,
+            'google_slides_create_presentation' => GoogleSlidesCreatePresentationNode::class,
+            'google_slides_get_presentation' => GoogleSlidesGetPresentationNode::class,
+            'google_slides_replace_text' => GoogleSlidesReplaceTextNode::class,
+            'google_slides_add_slide' => GoogleSlidesAddSlideNode::class,
+            'google_youtube_search_videos' => YouTubeSearchVideosNode::class,
+            'google_youtube_get_video' => YouTubeGetVideoNode::class,
+            'google_youtube_get_channel' => YouTubeGetChannelNode::class,
+            'google_youtube_list_playlist_videos' => YouTubeListPlaylistVideosNode::class,
+            'google_youtube_list_comments' => YouTubeListCommentsNode::class,
+            'google_analytics_run_report' => GoogleAnalyticsRunReportNode::class,
+            'google_analytics_run_realtime_report' => GoogleAnalyticsRunRealtimeReportNode::class,
+            'google_analytics_list_properties' => GoogleAnalyticsListPropertiesNode::class,
+            'google_search_console_list_sites' => GoogleSearchConsoleListSitesNode::class,
+            'google_search_console_query_search_analytics' => GoogleSearchConsoleQuerySearchAnalyticsNode::class,
+            'google_search_console_list_sitemaps' => GoogleSearchConsoleListSitemapsNode::class,
+            'google_search_console_inspect_url' => GoogleSearchConsoleInspectUrlNode::class,
             'outlook_list_messages' => OutlookListMessagesNode::class,
             'outlook_get_message' => OutlookGetMessageNode::class,
             'outlook_send_email' => OutlookSendEmailNode::class,

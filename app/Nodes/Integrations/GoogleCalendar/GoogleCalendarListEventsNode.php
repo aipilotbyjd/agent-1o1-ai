@@ -7,10 +7,17 @@ use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
+use Carbon\CarbonImmutable;
 
 class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode implements SupportsTriggerMode
 {
     use ActsAsTrigger;
+
+    /**
+     * How far back a poll looks for events made since it last ran. Longer than
+     * any gap between polls, and an event already seen is never run twice.
+     */
+    private const int NEW_EVENT_WINDOW_HOURS = 6;
 
     public function type(): string
     {
@@ -48,14 +55,7 @@ class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode implements
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $calendarId = $config['calendar_id'] ?? 'primary';
-
-        return $this->get($run, '/calendars/'.rawurlencode($calendarId).'/events', $config, [
-            'timeMin' => $config['time_min'] ?? now()->toRfc3339String(),
-            'maxResults' => $config['max_results'] ?? 10,
-            'singleEvents' => 'true',
-            'orderBy' => 'startTime',
-        ]);
+        return $this->listEvents($run, $config);
     }
 
     /**
@@ -83,12 +83,36 @@ class GoogleCalendarListEventsNode extends AbstractGoogleCalendarNode implements
     }
 
     /**
-     * Read a wider page than the node's default, so a burst between two polls
-     * isn't cut off.
+     * Read the events changed lately instead of the next ones by start time:
+     * an event created for next year is on the far end of the start-time list
+     * and would never be seen, but it was changed just now.
      */
     public function triggerReadConfig(array $config): array
     {
-        return [...$config, 'max_results' => max((int) ($config['max_results'] ?? 0), 100)];
+        return [
+            ...$config,
+            'ignore_time_min' => true,
+            'single_events' => false,
+            'order_by' => 'updated',
+            'updated_min' => now()->subHours(self::NEW_EVENT_WINDOW_HOURS)->toRfc3339String(),
+            'max_results' => 250,
+        ];
+    }
+
+    /**
+     * Events made within the window: one changed lately but made long ago is
+     * not new. An event without a creation time is taken as new.
+     */
+    public function triggerItems(array $output, array $config): array
+    {
+        $since = now()->subHours(self::NEW_EVENT_WINDOW_HOURS);
+
+        return array_values(array_filter(
+            (array) ($output['items'] ?? []),
+            fn (mixed $event): bool => is_array($event)
+                && ($event['status'] ?? 'confirmed') !== 'cancelled'
+                && (! isset($event['created']) || CarbonImmutable::parse((string) $event['created'])->gte($since)),
+        ));
     }
 
     /**
