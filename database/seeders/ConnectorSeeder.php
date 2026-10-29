@@ -389,7 +389,12 @@ class ConnectorSeeder extends Seeder
                     // Linear takes its scopes comma-separated. `read` and `write` cover every node;
                     // `issues:create` and `comments:create` let a member who can't edit still file and reply.
                     'scope_separator' => ',',
-                    'scopes' => ['read', 'write', 'issues:create', 'comments:create'],
+                    'scopes' => [
+                        'read', 'write', 'issues:create', 'comments:create',
+                        // Creating a webhook through the API needs `admin`, which is also
+                        // broad: only asked for while instant delivery is on.
+                        ...(config('triggers.push.linear.enabled') ? ['admin'] : []),
+                    ],
                 ],
                 'sort_order' => 17,
             ],
@@ -418,6 +423,8 @@ class ConnectorSeeder extends Seeder
                         'read:jira-work', 'write:jira-work', 'read:jira-user', 'manage:jira-project',
                         'manage:jira-configuration',
                         'read:servicedesk-request', 'write:servicedesk-request', 'manage:servicedesk-customer',
+                        // Registering a webhook; only asked for while instant delivery is on.
+                        ...(config('triggers.push.jira.enabled') ? ['manage:jira-webhook'] : []),
                     ],
                 ],
                 'sort_order' => 18,

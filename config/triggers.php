@@ -370,6 +370,18 @@ return [
             'enabled' => (bool) env('TRIGGERS_PUSH_NOTION_ENABLED', false),
             'verification_token' => env('TRIGGERS_NOTION_VERIFICATION_TOKEN'),
         ],
+
+        // Linear and Jira register a webhook per trigger through the connected
+        // account, so a switch is all they need. Linear signs each webhook with its
+        // own secret; `max_age_seconds` is how old a delivery may be. Registering a
+        // webhook needs an account connected with Linear's `admin` scope and Jira's
+        // `manage:jira-webhook` scope, which the connectors ask for only while their
+        // switch is on (an account connected earlier must reconnect).
+        'linear' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_LINEAR_ENABLED', false),
+            'max_age_seconds' => 300,
+        ],
+        'jira' => ['enabled' => (bool) env('TRIGGERS_PUSH_JIRA_ENABLED', false)],
     ],
 
 ];
