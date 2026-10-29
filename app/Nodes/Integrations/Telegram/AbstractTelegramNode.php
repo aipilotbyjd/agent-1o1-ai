@@ -287,10 +287,15 @@ abstract class AbstractTelegramNode implements DeclaresEffect, NodeContract
                 return null;
             }
 
+            // Text that isn't JSON is a comma-separated list, e.g. ids mapped from an earlier step.
+            if (! str_starts_with($value, '[') && ! str_starts_with($value, '{')) {
+                return array_values(array_filter(array_map('trim', explode(',', $value)), fn (string $part): bool => $part !== ''));
+            }
+
             $decoded = json_decode($value, true);
 
             if (! is_array($decoded)) {
-                throw new InvalidArgumentException('Expected a list, but got text that is not JSON.');
+                throw new InvalidArgumentException('Expected a list, but got text that is not valid JSON.');
             }
 
             return $decoded;
