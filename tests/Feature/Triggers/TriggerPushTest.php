@@ -3,6 +3,7 @@
 use App\Enums\Triggers\ProviderEventStatus;
 use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerEventStatus;
+use App\Enums\Triggers\TriggerType;
 use App\Jobs\Triggers\FireTriggerEvent;
 use App\Jobs\Triggers\SyncTriggerSubscription;
 use App\Models\Connectors\Connector;
@@ -28,18 +29,18 @@ use Laravel\Passport\Passport;
  * @param  array<string, mixed>  $credentialData
  * @return array{0: Workspace, 1: User, 2: Trigger, 3: ConnectorCredential}
  */
-function pushSlackTrigger(array $nodeConfig = [], array $credentialData = ['access_token' => 'xoxb-test', 'team_id' => 'T1']): array
+function pushSlackTrigger(array $nodeConfig = [], array $credentialData = ['access_token' => 'xoxb-test', 'team_id' => 'T1'], bool $appInChannel = true): array
 {
     config(['triggers.push.slack.enabled' => true, 'triggers.push.slack.signing_secret' => 'sekret']);
     Queue::fake([FireTriggerEvent::class]);
     // Slack is asked whether the app is in the channel when a trigger is published.
-    Http::fake(['https://slack.com/api/conversations.info' => Http::response(['ok' => true, 'channel' => ['name' => 'general', 'is_member' => true]])]);
+    Http::fake(['https://slack.com/api/conversations.info*' => Http::response(['ok' => true, 'channel' => ['name' => $appInChannel ? 'general' : 'sales', 'is_member' => $appInChannel]])]);
 
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $workflow = Workflow::factory()->forWorkspace($workspace)->create();
     $credential = ConnectorCredential::factory()->forWorkspace($workspace)
-        ->forConnector(Connector::factory()->create(['key' => 'slack']))
+        ->forConnector(Connector::query()->firstWhere('key', 'slack') ?? Connector::factory()->create(['key' => 'slack']))
         ->create(['data' => $credentialData, 'created_by' => $owner->id]);
 
     $workflow->replaceGraph([
@@ -220,9 +221,7 @@ describe('subscriptions', function () {
 
 describe('access warning', function () {
     it('tells the owner to add the app to the channel', function () {
-        Http::fake(['https://slack.com/api/conversations.info' => Http::response(['ok' => true, 'channel' => ['name' => 'sales', 'is_member' => false]])]);
-
-        [, , $trigger] = pushSlackTrigger();
+        [, , $trigger] = pushSlackTrigger(appInChannel: false);
 
         $status = app(TriggerStatus::class)->for($trigger->fresh());
 
@@ -304,10 +303,10 @@ describe('sample and replay', function () {
 
     it('explains when a trigger has nothing to sample', function () {
         [$workspace, $owner] = pushSlackTrigger();
-        $webhook = Trigger::factory()->webhook()->forWorkspace($workspace)->create();
+        $manual = Trigger::factory()->forWorkspace($workspace)->create(['type' => TriggerType::Manual]);
         Passport::actingAs($owner);
 
-        $this->getJson("/api/v1/workspaces/{$workspace->id}/triggers/{$webhook->id}/sample")->assertUnprocessable();
+        $this->getJson("/api/v1/workspaces/{$workspace->id}/triggers/{$manual->id}/sample")->assertUnprocessable();
     });
 
     it('runs a past event again as a new event', function () {

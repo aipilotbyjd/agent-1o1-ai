@@ -218,6 +218,11 @@ describe('breaker, credits and overlap', function () {
                 return true;
             }
 
+            public function activeRuns(Trigger $trigger): int
+            {
+                return 1;
+            }
+
             public function start(Trigger $trigger, array $payload): string
             {
                 return 'never';

@@ -81,6 +81,7 @@ it('hands the event back to the queue when firing throws, so the retry can claim
     $event = makeQueuedEvent();
 
     $failing = Mockery::mock(TriggerService::class);
+    $failing->shouldReceive('atConcurrencyLimit')->andReturnFalse();
     $failing->shouldReceive('fire')->once()->andThrow(new RuntimeException('target unavailable'));
 
     expect(fn () => (new FireTriggerEvent($event->trigger, $event))->handle($failing))

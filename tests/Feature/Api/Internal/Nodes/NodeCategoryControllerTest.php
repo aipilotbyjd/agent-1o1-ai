@@ -29,7 +29,7 @@ it('shows a single category with its builtin nodes', function () {
 
     $response->assertOk();
     expect($response->json('data.category.slug'))->toBe('slack');
-    expect($response->json('data.nodes_count'))->toBe(7);
+    expect($response->json('data.nodes_count'))->toBe(count(glob(app_path('Nodes/Integrations/Slack/Slack*Node.php'))));
     expect(collect($response->json('data.nodes'))->pluck('type'))->toContain('slack_post_message');
 });
 
