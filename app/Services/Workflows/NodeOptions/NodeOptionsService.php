@@ -7,6 +7,7 @@ use App\Models\Connectors\Connector;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
+use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
@@ -54,6 +55,7 @@ class NodeOptionsService
      */
     public const array SOURCES = [
         SlackOptions::class,
+        DiscordOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

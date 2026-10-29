@@ -38,8 +38,9 @@ class PushSources
         LinearSource $linearSource,
         JiraSource $jiraSource,
         TelegramSource $telegramSource,
+        DiscordSource $discordSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -58,6 +59,7 @@ class PushSources
             new LinearIngress,
             new JiraIngress,
             new TelegramIngress,
+            new DiscordIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

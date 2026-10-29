@@ -19,6 +19,62 @@ use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\InputsOutputs\WorkflowInputNode;
 use App\Nodes\InputsOutputs\WorkflowOutputNode;
+use App\Nodes\Integrations\Discord\DiscordAddReactionNode;
+use App\Nodes\Integrations\Discord\DiscordAddRoleNode;
+use App\Nodes\Integrations\Discord\DiscordAddThreadMemberNode;
+use App\Nodes\Integrations\Discord\DiscordArchiveThreadNode;
+use App\Nodes\Integrations\Discord\DiscordBanMemberNode;
+use App\Nodes\Integrations\Discord\DiscordBulkDeleteMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordClearReactionsNode;
+use App\Nodes\Integrations\Discord\DiscordCreateChannelNode;
+use App\Nodes\Integrations\Discord\DiscordCreateInviteNode;
+use App\Nodes\Integrations\Discord\DiscordCreateRoleNode;
+use App\Nodes\Integrations\Discord\DiscordCreateThreadNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteChannelNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteCommandNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteInviteNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteMessageNode;
+use App\Nodes\Integrations\Discord\DiscordDeleteRoleNode;
+use App\Nodes\Integrations\Discord\DiscordEditChannelNode;
+use App\Nodes\Integrations\Discord\DiscordEditMessageNode;
+use App\Nodes\Integrations\Discord\DiscordGetChannelNode;
+use App\Nodes\Integrations\Discord\DiscordGetGuildNode;
+use App\Nodes\Integrations\Discord\DiscordGetMemberNode;
+use App\Nodes\Integrations\Discord\DiscordGetMeNode;
+use App\Nodes\Integrations\Discord\DiscordGetMessageNode;
+use App\Nodes\Integrations\Discord\DiscordGetUserNode;
+use App\Nodes\Integrations\Discord\DiscordKickMemberNode;
+use App\Nodes\Integrations\Discord\DiscordListActiveThreadsNode;
+use App\Nodes\Integrations\Discord\DiscordListBansNode;
+use App\Nodes\Integrations\Discord\DiscordListChannelsNode;
+use App\Nodes\Integrations\Discord\DiscordListCommandsNode;
+use App\Nodes\Integrations\Discord\DiscordListGuildsNode;
+use App\Nodes\Integrations\Discord\DiscordListInvitesNode;
+use App\Nodes\Integrations\Discord\DiscordListMembersNode;
+use App\Nodes\Integrations\Discord\DiscordListMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordListNewChannelsNode;
+use App\Nodes\Integrations\Discord\DiscordListNewMembersNode;
+use App\Nodes\Integrations\Discord\DiscordListNewMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordListNewThreadsNode;
+use App\Nodes\Integrations\Discord\DiscordListPinnedMessagesNode;
+use App\Nodes\Integrations\Discord\DiscordListReactionsNode;
+use App\Nodes\Integrations\Discord\DiscordListRolesNode;
+use App\Nodes\Integrations\Discord\DiscordNewButtonClickNode;
+use App\Nodes\Integrations\Discord\DiscordNewSlashCommandNode;
+use App\Nodes\Integrations\Discord\DiscordPinMessageNode;
+use App\Nodes\Integrations\Discord\DiscordRegisterCommandNode;
+use App\Nodes\Integrations\Discord\DiscordRemoveReactionNode;
+use App\Nodes\Integrations\Discord\DiscordRemoveRoleNode;
+use App\Nodes\Integrations\Discord\DiscordRemoveThreadMemberNode;
+use App\Nodes\Integrations\Discord\DiscordRespondToInteractionNode;
+use App\Nodes\Integrations\Discord\DiscordSearchMembersNode;
+use App\Nodes\Integrations\Discord\DiscordSendDirectMessageNode;
+use App\Nodes\Integrations\Discord\DiscordSendMessageNode;
+use App\Nodes\Integrations\Discord\DiscordSendWebhookMessageNode;
+use App\Nodes\Integrations\Discord\DiscordSetNicknameNode;
+use App\Nodes\Integrations\Discord\DiscordTimeoutMemberNode;
+use App\Nodes\Integrations\Discord\DiscordUnbanMemberNode;
+use App\Nodes\Integrations\Discord\DiscordUnpinMessageNode;
 use App\Nodes\Integrations\Email\EmailParseInboundNode;
 use App\Nodes\Integrations\Email\EmailSendEmailNode;
 use App\Nodes\Integrations\Email\EmailSendToManyNode;
@@ -797,6 +853,62 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'telegram_unban_chat_member' => TelegramUnbanChatMemberNode::class,
             'telegram_unpin_all_chat_messages' => TelegramUnpinAllChatMessagesNode::class,
             'telegram_unpin_chat_message' => TelegramUnpinChatMessageNode::class,
+            'discord_add_reaction' => DiscordAddReactionNode::class,
+            'discord_add_role' => DiscordAddRoleNode::class,
+            'discord_add_thread_member' => DiscordAddThreadMemberNode::class,
+            'discord_archive_thread' => DiscordArchiveThreadNode::class,
+            'discord_ban_member' => DiscordBanMemberNode::class,
+            'discord_bulk_delete_messages' => DiscordBulkDeleteMessagesNode::class,
+            'discord_clear_reactions' => DiscordClearReactionsNode::class,
+            'discord_create_channel' => DiscordCreateChannelNode::class,
+            'discord_create_invite' => DiscordCreateInviteNode::class,
+            'discord_create_role' => DiscordCreateRoleNode::class,
+            'discord_create_thread' => DiscordCreateThreadNode::class,
+            'discord_delete_channel' => DiscordDeleteChannelNode::class,
+            'discord_delete_command' => DiscordDeleteCommandNode::class,
+            'discord_delete_invite' => DiscordDeleteInviteNode::class,
+            'discord_delete_message' => DiscordDeleteMessageNode::class,
+            'discord_delete_role' => DiscordDeleteRoleNode::class,
+            'discord_edit_channel' => DiscordEditChannelNode::class,
+            'discord_edit_message' => DiscordEditMessageNode::class,
+            'discord_get_channel' => DiscordGetChannelNode::class,
+            'discord_get_guild' => DiscordGetGuildNode::class,
+            'discord_get_me' => DiscordGetMeNode::class,
+            'discord_get_member' => DiscordGetMemberNode::class,
+            'discord_get_message' => DiscordGetMessageNode::class,
+            'discord_get_user' => DiscordGetUserNode::class,
+            'discord_kick_member' => DiscordKickMemberNode::class,
+            'discord_list_active_threads' => DiscordListActiveThreadsNode::class,
+            'discord_list_bans' => DiscordListBansNode::class,
+            'discord_list_channels' => DiscordListChannelsNode::class,
+            'discord_list_commands' => DiscordListCommandsNode::class,
+            'discord_list_guilds' => DiscordListGuildsNode::class,
+            'discord_list_invites' => DiscordListInvitesNode::class,
+            'discord_list_members' => DiscordListMembersNode::class,
+            'discord_list_messages' => DiscordListMessagesNode::class,
+            'discord_list_new_channels' => DiscordListNewChannelsNode::class,
+            'discord_list_new_members' => DiscordListNewMembersNode::class,
+            'discord_list_new_messages' => DiscordListNewMessagesNode::class,
+            'discord_list_new_threads' => DiscordListNewThreadsNode::class,
+            'discord_list_pinned_messages' => DiscordListPinnedMessagesNode::class,
+            'discord_list_reactions' => DiscordListReactionsNode::class,
+            'discord_list_roles' => DiscordListRolesNode::class,
+            'discord_new_button_click' => DiscordNewButtonClickNode::class,
+            'discord_new_slash_command' => DiscordNewSlashCommandNode::class,
+            'discord_pin_message' => DiscordPinMessageNode::class,
+            'discord_register_command' => DiscordRegisterCommandNode::class,
+            'discord_remove_reaction' => DiscordRemoveReactionNode::class,
+            'discord_remove_role' => DiscordRemoveRoleNode::class,
+            'discord_remove_thread_member' => DiscordRemoveThreadMemberNode::class,
+            'discord_respond_to_interaction' => DiscordRespondToInteractionNode::class,
+            'discord_search_members' => DiscordSearchMembersNode::class,
+            'discord_send_direct_message' => DiscordSendDirectMessageNode::class,
+            'discord_send_message' => DiscordSendMessageNode::class,
+            'discord_send_webhook_message' => DiscordSendWebhookMessageNode::class,
+            'discord_set_nickname' => DiscordSetNicknameNode::class,
+            'discord_timeout_member' => DiscordTimeoutMemberNode::class,
+            'discord_unban_member' => DiscordUnbanMemberNode::class,
+            'discord_unpin_message' => DiscordUnpinMessageNode::class,
         ];
     }
 }
