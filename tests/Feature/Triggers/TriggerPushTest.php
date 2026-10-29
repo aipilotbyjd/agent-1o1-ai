@@ -17,6 +17,7 @@ use App\Services\Triggers\TriggerStatus;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Testing\TestResponse;
 use Laravel\Passport\Passport;
 
 /**
@@ -61,7 +62,7 @@ function pushSlackTrigger(array $nodeConfig = [], array $credentialData = ['acce
  *
  * @param  array<string, mixed>  $body
  */
-function deliverSlack(array $body, ?string $secret = 'sekret', ?int $timestamp = null): Illuminate\Testing\TestResponse
+function deliverSlack(array $body, ?string $secret = 'sekret', ?int $timestamp = null): TestResponse
 {
     $json = json_encode($body);
     $timestamp ??= time();

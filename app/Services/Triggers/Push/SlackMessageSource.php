@@ -4,9 +4,9 @@ namespace App\Services\Triggers\Push;
 
 use App\Contracts\SupportsTriggerMode;
 use App\Contracts\Triggers\ItemPushSource;
-use App\Models\Triggers\ProviderWatch;
 use App\Exceptions\ConnectorException;
 use App\Models\Connectors\ConnectorCredential;
+use App\Models\Triggers\ProviderWatch;
 use App\Models\Triggers\Trigger;
 use App\Services\Connectors\ConnectorTokens;
 use App\Services\Workflows\NodeRegistry;

@@ -6,6 +6,7 @@ use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Enums\Workspaces\Permission;
+use App\Exceptions\ConnectorException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Triggers\IndexTriggerEventsRequest;
 use App\Http\Requests\Api\Internal\V1\Triggers\IndexTriggersRequest;
@@ -15,14 +16,13 @@ use App\Http\Resources\Api\Internal\V1\Triggers\TriggerEventResource;
 use App\Http\Resources\Api\Internal\V1\Triggers\TriggerResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Triggers\Trigger;
-use App\Models\Workspaces\Workspace;
-use App\Exceptions\ConnectorException;
 use App\Models\Triggers\TriggerEvent;
+use App\Models\Workspaces\Workspace;
 use App\Services\Triggers\TriggerSampler;
 use App\Services\Triggers\TriggerService;
+use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
 use Throwable;
-use Illuminate\Database\Eloquent\Builder;
 
 class TriggerController extends Controller
 {

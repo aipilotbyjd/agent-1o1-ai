@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\RunStatus;
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Jobs\Triggers\FireTriggerEvent;

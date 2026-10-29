@@ -4,9 +4,11 @@ use App\Enums\SuperAdmin\SuperAdminRole;
 use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\SuperAdmin\SuperAdminAuditLog;
 use App\Notifications\SuperAdmin\SuperAdminAlertNotification;
+use App\Services\SuperAdmin\Accounts\SuperAdminAccountService;
 use App\Services\SuperAdmin\Auth\SuperAdminTokenService;
 use Database\Factories\SuperAdmin\SuperAdminFactory;
 use Illuminate\Support\Facades\Notification;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 it('lets an owner create an account, records why, and the account can sign in with the temporary password', function () {
     $owner = superAdmin();
@@ -254,20 +256,20 @@ it('leaves refresh alone when a role gains abilities', function () {
 
 it('always keeps one active owner', function () {
     $onlyOwner = superAdmin();
-    $service = app(App\Services\SuperAdmin\Accounts\SuperAdminAccountService::class);
+    $service = app(SuperAdminAccountService::class);
 
     expect(fn () => $service->changeRole(null, $onlyOwner, SuperAdminRole::Viewer))
-        ->toThrow(Symfony\Component\HttpKernel\Exception\HttpException::class, 'At least one active owner must remain.');
+        ->toThrow(HttpException::class, 'At least one active owner must remain.');
 
     expect(fn () => $service->disable(null, $onlyOwner))
-        ->toThrow(Symfony\Component\HttpKernel\Exception\HttpException::class, 'At least one active owner must remain.');
+        ->toThrow(HttpException::class, 'At least one active owner must remain.');
 
     // A disabled owner does not count as a remaining owner.
     $second = superAdmin();
     $service->disable(null, $second);
 
     expect(fn () => $service->disable(null, $onlyOwner))
-        ->toThrow(Symfony\Component\HttpKernel\Exception\HttpException::class);
+        ->toThrow(HttpException::class);
 
     expect($onlyOwner->fresh()->isDisabled())->toBeFalse();
 });

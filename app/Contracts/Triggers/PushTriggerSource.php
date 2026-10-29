@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Triggers;
 
+use App\Exceptions\ConnectorException;
 use App\Models\Triggers\ProviderWatch;
 use App\Models\Triggers\Trigger;
 
@@ -45,7 +46,7 @@ interface PushTriggerSource
      * A watched source reads it from the trigger's watch. Anything else may
      * call the provider, so this only runs from a queued job.
      *
-     * @throws \App\Exceptions\ConnectorException when the account needs reconnecting
+     * @throws ConnectorException when the account needs reconnecting
      */
     public function routingKeyFor(Trigger $trigger, ?ProviderWatch $watch = null): ?string;
 

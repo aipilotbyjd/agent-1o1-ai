@@ -11,6 +11,7 @@ use App\Services\Billing\CreditOverage;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use Stripe\Invoice;
 use Throwable;
 
 /**
@@ -209,7 +210,7 @@ class BillOverageCreditsAction
     }
 
     /**
-     * @return list<\Stripe\Invoice>
+     * @return list<Invoice>
      */
     protected function invoicesForAttempt(Workspace $workspace, string $attemptId): array
     {

@@ -1,8 +1,6 @@
 <?php
 
 use App\Enums\Triggers\SubscriptionStatus;
-use App\Enums\Triggers\TriggerEventStatus;
-use App\Exceptions\ConnectorException;
 use App\Jobs\Triggers\FireTriggerEvent;
 use App\Jobs\Triggers\PollTrigger;
 use App\Jobs\Triggers\RenewProviderWatch;
@@ -22,6 +20,7 @@ use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Testing\TestResponse;
 
 /**
  * A published workflow whose reader node is switched on as a flow trigger,
@@ -285,7 +284,7 @@ describe('GitHub', function () {
         [, , $trigger] = watchedTrigger('github', 'github_list_issues', ['repo' => 'Acme/Widgets']);
         $watch = ProviderWatch::query()->sole();
         $body = json_encode(['action' => 'opened', 'repository' => ['full_name' => 'acme/widgets']]);
-        $send = fn (string $signature): Illuminate\Testing\TestResponse => $this->call('POST', '/api/hooks/apps/github', [], [], [], [
+        $send = fn (string $signature): TestResponse => $this->call('POST', '/api/hooks/apps/github', [], [], [], [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_X_GITHUB_HOOK_ID' => '42',
             'HTTP_X_GITHUB_DELIVERY' => 'd-'.$signature,

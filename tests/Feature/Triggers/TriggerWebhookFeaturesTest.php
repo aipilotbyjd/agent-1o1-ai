@@ -235,7 +235,7 @@ describe('concurrency caps', function () {
             'input' => [],
         ])->forceFill(['status' => RunStatus::Running])->save();
 
-        expect(app(App\Services\Triggers\TriggerService::class)->atConcurrencyLimit($trigger->fresh()))->toBeTrue();
+        expect(app(TriggerService::class)->atConcurrencyLimit($trigger->fresh()))->toBeTrue();
     });
 });
 

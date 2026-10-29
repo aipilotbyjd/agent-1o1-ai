@@ -7,7 +7,6 @@ use App\Jobs\Triggers\PollTrigger;
 use App\Models\Triggers\Trigger;
 use App\Services\Triggers\TriggerService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 

@@ -6,6 +6,7 @@ use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Triggers\Trigger;
+use Illuminate\Support\Carbon;
 
 /**
  * What a person is told about a trigger: how it gets its events and whether it
@@ -41,7 +42,7 @@ class TriggerStatus
             'label' => $label,
             'hint' => $hint,
             'action' => $action,
-            'last_event_at' => $lastEvent === null ? null : (string) \Illuminate\Support\Carbon::parse($lastEvent)->toIso8601String(),
+            'last_event_at' => $lastEvent === null ? null : (string) Carbon::parse($lastEvent)->toIso8601String(),
             'next_check_at' => $this->nextCheckAt($trigger)?->toIso8601String(),
         ];
     }
@@ -128,7 +129,7 @@ class TriggerStatus
     /**
      * When the next check happens, for the kinds that check on a timer.
      */
-    private function nextCheckAt(Trigger $trigger): ?\Illuminate\Support\Carbon
+    private function nextCheckAt(Trigger $trigger): ?Carbon
     {
         if (! $trigger->is_active) {
             return null;

@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Triggers;
 
+use App\Exceptions\ConnectorException;
 use App\Models\Triggers\ProviderWatch;
 use App\Models\Triggers\Trigger;
 
@@ -24,7 +25,7 @@ interface WatchedTriggerSource extends PushTriggerSource
      * Register the watch with the provider and fill in what came back:
      * `external_id`, `secret`, `meta`, `expires_at` and `renew_at`.
      *
-     * @throws \App\Exceptions\ConnectorException when the account can't be used
+     * @throws ConnectorException when the account can't be used
      */
     public function createWatch(ProviderWatch $watch, Trigger $trigger): void;
 
