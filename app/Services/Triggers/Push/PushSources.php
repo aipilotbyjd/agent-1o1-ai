@@ -34,8 +34,9 @@ class PushSources
         GoogleDocsSource $docsSource,
         GoogleFormsSource $formsSource,
         YouTubeUploadsSource $youtubeSource,
+        NotionSource $notionSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -50,6 +51,7 @@ class PushSources
             new GoogleChannelIngress('google_docs'),
             new GoogleFormsIngress,
             new YouTubeUploadsIngress,
+            new NotionIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

@@ -136,6 +136,14 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Read, draft and send email, and manage your calendar in Outlook (Microsoft 365).',
                 'sort_order' => 8,
             ],
+            [
+                'slug' => 'notion',
+                'name' => 'Notion',
+                'icon' => 'notion',
+                'color' => '#000000',
+                'description' => 'Create and update pages and database items, query databases, and work with content, comments and people in Notion.',
+                'sort_order' => 16,
+            ],
         ];
 
         foreach ($categories as $category) {

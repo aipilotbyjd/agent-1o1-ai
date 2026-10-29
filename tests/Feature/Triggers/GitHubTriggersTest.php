@@ -294,7 +294,7 @@ it('offers every GitHub and Slack trigger in the Triggers & Events catalog', fun
         'GitHub: New issue', 'GitHub: New pull request', 'GitHub: New release', 'GitHub: New repository', 'GitHub: New star',
         'GitHub: Pull request merged', 'GitHub: Workflow run finished',
     ])->and($names('slack'))->toBe([
-        'Slack: App mentioned', 'Slack: New channel', 'Slack: New file', 'Slack: New message', 'Slack: New person',
-        'Slack: Person joined channel', 'Slack: Reaction added',
+        'Slack: App mentioned', 'Slack: Direct message', 'Slack: Message pinned', 'Slack: New channel', 'Slack: New file',
+        'Slack: New message', 'Slack: New person', 'Slack: Person joined channel', 'Slack: Reaction added', 'Slack: Reaction removed',
     ]);
 });

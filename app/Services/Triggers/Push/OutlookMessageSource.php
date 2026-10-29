@@ -8,10 +8,11 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Carbon;
 
 /**
- * "New email" in Outlook through a Microsoft Graph change subscription on a
- * mail folder, shared by every Outlook trigger on that folder.
+ * "New email" and calendar changes in Outlook through Microsoft Graph change
+ * subscriptions: one on a mail folder, shared by every Outlook mail trigger on
+ * that folder, and one on the calendar, shared by every calendar trigger.
  *
- * Mail subscriptions last under three days, so they are renewed every two.
+ * Mail and event subscriptions last under three days, so they are renewed every two.
  * Graph posts a notification (validated with the watch's secret as
  * `clientState`) and the trigger's own poll fetches the mail.
  */
@@ -29,21 +30,24 @@ class OutlookMessageSource extends AbstractWatchedSource
         return 'outlook';
     }
 
+    /**
+     * The reader nodes that watch the calendar rather than a mail folder.
+     */
+    private const array CALENDAR_NODES = ['outlook_list_new_events', 'outlook_list_updated_events', 'outlook_list_cancelled_events', 'outlook_list_upcoming_events'];
+
     protected function nodeTypes(): array
     {
-        return ['outlook_list_messages'];
+        return ['outlook_list_messages', ...self::CALENDAR_NODES];
     }
 
     public function watchKeyFor(Trigger $trigger): ?string
     {
-        return 'folder:'.$this->folder($trigger);
+        return in_array($trigger->config['node_type'] ?? null, self::CALENDAR_NODES, true) ? 'events' : 'folder:'.$this->folder($trigger);
     }
 
     public function createWatch(ProviderWatch $watch, Trigger $trigger): void
     {
-        $folder = str_starts_with($watch->resource_key, 'folder:') ? substr($watch->resource_key, 7) : 'inbox';
-
-        $this->create($watch, $folder);
+        $this->create($watch);
     }
 
     /**
@@ -61,7 +65,7 @@ class OutlookMessageSource extends AbstractWatchedSource
                 throw $exception;
             }
 
-            $this->create($watch, substr($watch->resource_key, 7));
+            $this->create($watch);
 
             return;
         }
@@ -85,16 +89,18 @@ class OutlookMessageSource extends AbstractWatchedSource
         return $watch?->external_id;
     }
 
-    private function create(ProviderWatch $watch, string $folder): void
+    private function create(ProviderWatch $watch): void
     {
+        $isCalendar = $watch->resource_key === 'events';
+        $folder = str_starts_with($watch->resource_key, 'folder:') ? substr($watch->resource_key, 7) : 'inbox';
         $expires = Carbon::now()->addMinutes(self::LIFETIME_MINUTES);
         $secret = $this->newSecret();
 
         $body = $this->ok($this->http($this->credentialOf($watch))->post(self::API.'/subscriptions', [
-            'changeType' => 'created',
+            'changeType' => $isCalendar ? 'created,updated,deleted' : 'created',
             'notificationUrl' => $this->callbackUrl(),
             'lifecycleNotificationUrl' => $this->callbackUrl(),
-            'resource' => "me/mailFolders('{$folder}')/messages",
+            'resource' => $isCalendar ? 'me/events' : "me/mailFolders('{$folder}')/messages",
             'expirationDateTime' => $expires->toIso8601ZuluString(),
             'clientState' => $secret,
         ]))->json();

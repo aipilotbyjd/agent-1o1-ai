@@ -142,6 +142,10 @@ dataset('provider sources', [
         ]],
     ], ['value' => 'm1', 'label' => '(no subject)', 'description' => 'a@example.com'], null],
 
+    'outlook calendars' => [OutlookOptions::class, 'outlook.calendars', [], [
+        'graph.microsoft.com/v1.0/me/calendars*' => ['value' => [['id' => 'AAMk_1=', 'name' => 'Calendar', 'isDefaultCalendar' => true]]],
+    ], ['value' => 'AAMk_1=', 'label' => 'Calendar', 'description' => 'Main calendar'], null],
+
     'outlook events' => [OutlookOptions::class, 'outlook.events', [], [
         'graph.microsoft.com/v1.0/me/calendarView*' => ['value' => [['id' => 'ev1', 'subject' => 'Review', 'start' => ['dateTime' => '2026-10-07T10:00:00']]]],
     ], ['value' => 'ev1', 'label' => 'Review', 'description' => '2026-10-07T10:00:00'], null],

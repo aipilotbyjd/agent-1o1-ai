@@ -2,10 +2,12 @@
 
 namespace App\Services\Triggers;
 
+use App\Contracts\Triggers\NeedsPushDelivery;
 use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerType;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Triggers\Trigger;
+use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Carbon;
 
 /**
@@ -90,6 +92,11 @@ class TriggerStatus
 
         $subscription = $trigger->subscription;
 
+        // Some events can't be found by looking, only heard: without instant delivery nothing starts it.
+        if ($subscription?->status !== SubscriptionStatus::Active && $this->needsPush($trigger)) {
+            return [$delivery, 'needs_push', 'Needs instant delivery', 'This trigger only works with instant delivery, which is off or not working, so nothing will start it.', null];
+        }
+
         if ($subscription === null) {
             return [$delivery, 'checking', 'Checking for new items', null, null];
         }
@@ -101,6 +108,13 @@ class TriggerStatus
             SubscriptionStatus::ReconnectNeeded => [$delivery, 'reconnect_needed', 'Reconnect account', $subscription->last_error ?? 'Reconnect the account to get instant delivery.', 'reconnect'],
             SubscriptionStatus::Failed => [$delivery, 'checking', 'Checking for new items', $subscription->last_error ?? 'Instant delivery is not available for this trigger.', null],
         };
+    }
+
+    private function needsPush(Trigger $trigger): bool
+    {
+        $nodeType = $trigger->config['node_type'] ?? null;
+
+        return is_string($nodeType) && app(NodeRegistry::class)->has($nodeType) && app(NodeRegistry::class)->resolve($nodeType) instanceof NeedsPushDelivery;
     }
 
     /**

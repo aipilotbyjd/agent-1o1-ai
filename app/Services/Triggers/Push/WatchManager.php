@@ -2,6 +2,7 @@
 
 namespace App\Services\Triggers\Push;
 
+use App\Contracts\Triggers\RefreshesWatchForTrigger;
 use App\Contracts\Triggers\WatchedTriggerSource;
 use App\Enums\Triggers\SubscriptionStatus;
 use App\Exceptions\ConnectorException;
@@ -57,6 +58,10 @@ class WatchManager
                 $watch->status = SubscriptionStatus::Active;
                 $watch->last_ok_at = now();
                 $watch->last_error = null;
+            } elseif ($source instanceof RefreshesWatchForTrigger && $source->watchIsStale($watch, $trigger)) {
+                // The shared watch doesn't cover what this trigger needs (another label): widen it.
+                $source->renewWatch($watch);
+                $watch->last_ok_at = now();
             }
 
             $watch->save();

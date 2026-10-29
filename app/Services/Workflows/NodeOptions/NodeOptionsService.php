@@ -18,6 +18,7 @@ use App\Services\Workflows\NodeOptions\Sources\GoogleSearchConsoleOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSheetsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
+use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
@@ -64,6 +65,7 @@ class NodeOptionsService
         GoogleSearchConsoleOptions::class,
         YouTubeOptions::class,
         OutlookOptions::class,
+        NotionOptions::class,
         WorkspaceOptions::class,
     ];
 

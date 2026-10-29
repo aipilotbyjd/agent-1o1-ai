@@ -16,10 +16,14 @@ use App\Nodes\InputsOutputs\WorkflowOutputNode;
 use App\Nodes\Integrations\GitHub\GitHubAddAssigneesNode;
 use App\Nodes\Integrations\GitHub\GitHubAddLabelsNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateBranchNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateGistNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateOrUpdateFileNode;
+use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestNode;
 use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestReviewNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateReleaseNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubDeleteBranchNode;
 use App\Nodes\Integrations\GitHub\GitHubDeleteCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubDeleteFileNode;
@@ -30,16 +34,21 @@ use App\Nodes\Integrations\GitHub\GitHubGetFileContentNode;
 use App\Nodes\Integrations\GitHub\GitHubGetIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubGetLatestReleaseNode;
 use App\Nodes\Integrations\GitHub\GitHubGetPullRequestNode;
+use App\Nodes\Integrations\GitHub\GitHubGetRepoNode;
 use App\Nodes\Integrations\GitHub\GitHubGetUserNode;
 use App\Nodes\Integrations\GitHub\GitHubListBranchesNode;
 use App\Nodes\Integrations\GitHub\GitHubListClosedIssuesNode;
+use App\Nodes\Integrations\GitHub\GitHubListCommitsNode;
 use App\Nodes\Integrations\GitHub\GitHubListForksNode;
 use App\Nodes\Integrations\GitHub\GitHubListIssueCommentsNode;
+use App\Nodes\Integrations\GitHub\GitHubListIssuesNode;
 use App\Nodes\Integrations\GitHub\GitHubListMergedPullRequestsNode;
 use App\Nodes\Integrations\GitHub\GitHubListNotificationsNode;
 use App\Nodes\Integrations\GitHub\GitHubListPullRequestFilesNode;
+use App\Nodes\Integrations\GitHub\GitHubListPullRequestsNode;
 use App\Nodes\Integrations\GitHub\GitHubListReleasesNode;
 use App\Nodes\Integrations\GitHub\GitHubListRepoCommentsNode;
+use App\Nodes\Integrations\GitHub\GitHubListReposNode;
 use App\Nodes\Integrations\GitHub\GitHubListStargazersNode;
 use App\Nodes\Integrations\GitHub\GitHubListWorkflowRunsNode;
 use App\Nodes\Integrations\GitHub\GitHubMergePullRequestNode;
@@ -53,15 +62,6 @@ use App\Nodes\Integrations\GitHub\GitHubUnstarRepositoryNode;
 use App\Nodes\Integrations\GitHub\GitHubUpdateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubUpdateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubUpdatePullRequestNode;
-use App\Nodes\Integrations\GitHub\GitHubCreateCommentNode;
-use App\Nodes\Integrations\GitHub\GitHubCreateIssueNode;
-use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestNode;
-use App\Nodes\Integrations\GitHub\GitHubCreateRepoNode;
-use App\Nodes\Integrations\GitHub\GitHubGetRepoNode;
-use App\Nodes\Integrations\GitHub\GitHubListCommitsNode;
-use App\Nodes\Integrations\GitHub\GitHubListIssuesNode;
-use App\Nodes\Integrations\GitHub\GitHubListPullRequestsNode;
-use App\Nodes\Integrations\GitHub\GitHubListReposNode;
 use App\Nodes\Integrations\Gmail\GmailAddLabelNode;
 use App\Nodes\Integrations\Gmail\GmailCreateDraftNode;
 use App\Nodes\Integrations\Gmail\GmailCreateLabelNode;
@@ -142,31 +142,74 @@ use App\Nodes\Integrations\GoogleTasks\GoogleTasksListCompletedTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTaskListsNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksUpdateTaskNode;
+use App\Nodes\Integrations\Notion\NotionAppendBlocksNode;
+use App\Nodes\Integrations\Notion\NotionArchivePageNode;
+use App\Nodes\Integrations\Notion\NotionCreateCommentNode;
+use App\Nodes\Integrations\Notion\NotionCreateDatabaseItemNode;
+use App\Nodes\Integrations\Notion\NotionCreateDatabaseNode;
+use App\Nodes\Integrations\Notion\NotionCreatePageNode;
+use App\Nodes\Integrations\Notion\NotionDeleteBlockNode;
+use App\Nodes\Integrations\Notion\NotionFindDatabaseItemsNode;
+use App\Nodes\Integrations\Notion\NotionGetBlockNode;
+use App\Nodes\Integrations\Notion\NotionGetDatabaseNode;
+use App\Nodes\Integrations\Notion\NotionGetMeNode;
+use App\Nodes\Integrations\Notion\NotionGetPageNode;
+use App\Nodes\Integrations\Notion\NotionGetUserNode;
+use App\Nodes\Integrations\Notion\NotionListBlockChildrenNode;
+use App\Nodes\Integrations\Notion\NotionListCommentsNode;
+use App\Nodes\Integrations\Notion\NotionListNewCommentsNode;
+use App\Nodes\Integrations\Notion\NotionListNewDatabaseItemsNode;
+use App\Nodes\Integrations\Notion\NotionListNewDatabasesNode;
+use App\Nodes\Integrations\Notion\NotionListNewPagesNode;
+use App\Nodes\Integrations\Notion\NotionListNewUsersNode;
+use App\Nodes\Integrations\Notion\NotionListUpdatedDatabaseItemsNode;
+use App\Nodes\Integrations\Notion\NotionListUpdatedPagesNode;
+use App\Nodes\Integrations\Notion\NotionListUsersNode;
+use App\Nodes\Integrations\Notion\NotionQueryDatabaseNode;
+use App\Nodes\Integrations\Notion\NotionRestorePageNode;
+use App\Nodes\Integrations\Notion\NotionSearchNode;
+use App\Nodes\Integrations\Notion\NotionUpdateBlockNode;
+use App\Nodes\Integrations\Notion\NotionUpdateDatabaseNode;
+use App\Nodes\Integrations\Notion\NotionUpdatePageNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateEventNode;
 use App\Nodes\Integrations\Outlook\OutlookDeleteEventNode;
 use App\Nodes\Integrations\Outlook\OutlookDeleteMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookGetMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookListCancelledEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListMessagesNode;
+use App\Nodes\Integrations\Outlook\OutlookListNewEventsNode;
+use App\Nodes\Integrations\Outlook\OutlookListUpcomingEventsNode;
+use App\Nodes\Integrations\Outlook\OutlookListUpdatedEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
 use App\Nodes\Integrations\Slack\SlackAddReactionNode;
 use App\Nodes\Integrations\Slack\SlackArchiveChannelNode;
+use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
 use App\Nodes\Integrations\Slack\SlackDeleteMessageNode;
 use App\Nodes\Integrations\Slack\SlackFindUserByEmailNode;
+use App\Nodes\Integrations\Slack\SlackGetChannelHistoryNode;
 use App\Nodes\Integrations\Slack\SlackGetChannelInfoNode;
 use App\Nodes\Integrations\Slack\SlackGetMessageLinkNode;
 use App\Nodes\Integrations\Slack\SlackGetThreadRepliesNode;
 use App\Nodes\Integrations\Slack\SlackGetUserNode;
+use App\Nodes\Integrations\Slack\SlackInviteToChannelNode;
 use App\Nodes\Integrations\Slack\SlackJoinChannelNode;
 use App\Nodes\Integrations\Slack\SlackListChannelJoinsNode;
+use App\Nodes\Integrations\Slack\SlackListChannelsNode;
+use App\Nodes\Integrations\Slack\SlackListDirectMessagesNode;
 use App\Nodes\Integrations\Slack\SlackListFilesNode;
 use App\Nodes\Integrations\Slack\SlackListMentionsNode;
 use App\Nodes\Integrations\Slack\SlackListNewChannelsNode;
+use App\Nodes\Integrations\Slack\SlackListNewPinsNode;
 use App\Nodes\Integrations\Slack\SlackListNewUsersNode;
+use App\Nodes\Integrations\Slack\SlackListUsersNode;
 use App\Nodes\Integrations\Slack\SlackPinMessageNode;
+use App\Nodes\Integrations\Slack\SlackPostMessageNode;
+use App\Nodes\Integrations\Slack\SlackReactionAddedNode;
+use App\Nodes\Integrations\Slack\SlackReactionRemovedNode;
 use App\Nodes\Integrations\Slack\SlackRemoveFromChannelNode;
 use App\Nodes\Integrations\Slack\SlackRemoveReactionNode;
 use App\Nodes\Integrations\Slack\SlackRenameChannelNode;
@@ -177,13 +220,6 @@ use App\Nodes\Integrations\Slack\SlackSetChannelPurposeNode;
 use App\Nodes\Integrations\Slack\SlackSetChannelTopicNode;
 use App\Nodes\Integrations\Slack\SlackUnpinMessageNode;
 use App\Nodes\Integrations\Slack\SlackUpdateMessageNode;
-use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
-use App\Nodes\Integrations\Slack\SlackGetChannelHistoryNode;
-use App\Nodes\Integrations\Slack\SlackInviteToChannelNode;
-use App\Nodes\Integrations\Slack\SlackListChannelsNode;
-use App\Nodes\Integrations\Slack\SlackListUsersNode;
-use App\Nodes\Integrations\Slack\SlackPostMessageNode;
-use App\Nodes\Integrations\Slack\SlackReactionAddedNode;
 use App\Nodes\Integrations\Slack\SlackUploadFileNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
@@ -244,6 +280,38 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'ask_ai' => AskAiNode::class,
             'delay' => DelayNode::class,
             'agent' => AgentNode::class,
+            'notion_append_blocks' => NotionAppendBlocksNode::class,
+            'notion_archive_page' => NotionArchivePageNode::class,
+            'notion_create_comment' => NotionCreateCommentNode::class,
+            'notion_create_database_item' => NotionCreateDatabaseItemNode::class,
+            'notion_create_database' => NotionCreateDatabaseNode::class,
+            'notion_create_page' => NotionCreatePageNode::class,
+            'notion_delete_block' => NotionDeleteBlockNode::class,
+            'notion_find_database_items' => NotionFindDatabaseItemsNode::class,
+            'notion_get_block' => NotionGetBlockNode::class,
+            'notion_get_database' => NotionGetDatabaseNode::class,
+            'notion_get_me' => NotionGetMeNode::class,
+            'notion_get_page' => NotionGetPageNode::class,
+            'notion_get_user' => NotionGetUserNode::class,
+            'notion_list_block_children' => NotionListBlockChildrenNode::class,
+            'notion_list_comments' => NotionListCommentsNode::class,
+            'notion_list_new_comments' => NotionListNewCommentsNode::class,
+            'notion_list_new_database_items' => NotionListNewDatabaseItemsNode::class,
+            'notion_list_new_databases' => NotionListNewDatabasesNode::class,
+            'notion_list_new_pages' => NotionListNewPagesNode::class,
+            'notion_list_new_users' => NotionListNewUsersNode::class,
+            'notion_list_updated_database_items' => NotionListUpdatedDatabaseItemsNode::class,
+            'notion_list_updated_pages' => NotionListUpdatedPagesNode::class,
+            'notion_list_users' => NotionListUsersNode::class,
+            'notion_query_database' => NotionQueryDatabaseNode::class,
+            'notion_restore_page' => NotionRestorePageNode::class,
+            'notion_search' => NotionSearchNode::class,
+            'notion_update_block' => NotionUpdateBlockNode::class,
+            'notion_update_database' => NotionUpdateDatabaseNode::class,
+            'notion_update_page' => NotionUpdatePageNode::class,
+            'slack_reaction_removed' => SlackReactionRemovedNode::class,
+            'slack_list_new_pins' => SlackListNewPinsNode::class,
+            'slack_list_direct_messages' => SlackListDirectMessagesNode::class,
             'slack_post_message' => SlackPostMessageNode::class,
             'slack_list_channels' => SlackListChannelsNode::class,
             'slack_create_channel' => SlackCreateChannelNode::class,
@@ -419,6 +487,10 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'outlook_move_message' => OutlookMoveMessageNode::class,
             'outlook_delete_message' => OutlookDeleteMessageNode::class,
             'outlook_list_events' => OutlookListEventsNode::class,
+            'outlook_list_new_events' => OutlookListNewEventsNode::class,
+            'outlook_list_updated_events' => OutlookListUpdatedEventsNode::class,
+            'outlook_list_cancelled_events' => OutlookListCancelledEventsNode::class,
+            'outlook_list_upcoming_events' => OutlookListUpcomingEventsNode::class,
             'outlook_create_event' => OutlookCreateEventNode::class,
             'outlook_delete_event' => OutlookDeleteEventNode::class,
         ];

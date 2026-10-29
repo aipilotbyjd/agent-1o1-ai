@@ -100,6 +100,13 @@ class ConnectorCredentialTester
             return $this->fromResponse($response, $appName, $response->json('email'));
         }
 
+        if ($connectorKey === 'notion') {
+            $response = $request->withHeaders(['Notion-Version' => '2022-06-28'])->get('https://api.notion.com/v1/users/me');
+            $account = $response->json('bot.workspace_name') ?? $response->json('name');
+
+            return $this->fromResponse($response, $appName, is_string($account) ? $account : null);
+        }
+
         if ($connectorKey === 'outlook') {
             $response = $request->get('https://graph.microsoft.com/v1.0/me');
 

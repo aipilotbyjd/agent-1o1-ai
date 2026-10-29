@@ -10,10 +10,13 @@ use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Nodes\Integrations\Slack\SlackListChannelJoinsNode;
+use App\Nodes\Integrations\Slack\SlackListDirectMessagesNode;
 use App\Nodes\Integrations\Slack\SlackListFilesNode;
 use App\Nodes\Integrations\Slack\SlackListMentionsNode;
 use App\Nodes\Integrations\Slack\SlackListNewChannelsNode;
+use App\Nodes\Integrations\Slack\SlackListNewPinsNode;
 use App\Nodes\Integrations\Slack\SlackListNewUsersNode;
+use App\Services\Triggers\TriggerStatus;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -214,5 +217,106 @@ describe('what each trigger reads', function () {
     it('looks back the full window when used as a trigger', function () {
         expect((new SlackListChannelJoinsNode)->triggerReadConfig(['joined_within_hours' => 1])['joined_within_hours'])->toBe(6)
             ->and((new SlackListMentionsNode)->triggerReadConfig([])['mentioned_within_hours'])->toBe(6);
+    });
+});
+
+describe('direct messages, removed reactions and pins', function () {
+    it('starts a direct message trigger for a message to the app, once, named by conversation', function () {
+        $trigger = slackReaderTrigger('slack_list_direct_messages');
+
+        slackEvent(['type' => 'message', 'channel' => 'D1', 'channel_type' => 'im', 'user' => 'U1', 'text' => 'hello bot', 'ts' => '5.5'], 'Ev-dm1')->assertOk();
+        slackEvent(['type' => 'message', 'channel' => 'D2', 'channel_type' => 'im', 'user' => 'U2', 'text' => 'same time', 'ts' => '5.5'], 'Ev-dm2')->assertOk();
+        slackEvent(['type' => 'message', 'channel' => 'D1', 'channel_type' => 'im', 'user' => 'U1', 'text' => 'hello bot', 'ts' => '5.5'], 'Ev-dm3')->assertOk();
+
+        expect($trigger->events()->pluck('delivery_id')->sort()->values()->all())->toBe(['D1:5.5', 'D2:5.5']);
+    });
+
+    it('does not start a direct message trigger for a channel message, a bot, or an edit', function () {
+        $trigger = slackReaderTrigger('slack_list_direct_messages');
+
+        slackEvent(['type' => 'message', 'channel' => 'C1', 'user' => 'U1', 'text' => 'hi', 'ts' => '6.1'], 'Ev-a')->assertOk();
+        slackEvent(['type' => 'message', 'channel' => 'D1', 'bot_id' => 'B1', 'text' => 'beep', 'ts' => '6.2'], 'Ev-b')->assertOk();
+        slackEvent(['type' => 'message', 'subtype' => 'message_changed', 'channel' => 'D1', 'ts' => '6.3'], 'Ev-c')->assertOk();
+
+        expect($trigger->events()->count())->toBe(0);
+    });
+
+    it('reads recent direct messages across conversations, newest first', function () {
+        Carbon::setTestNow('2026-03-01 10:00:00');
+        Http::fake([
+            'slack.com/api/conversations.list*' => Http::response(['ok' => true, 'channels' => [['id' => 'D1', 'user' => 'U1'], ['id' => 'D2', 'user' => 'U2']]]),
+            'slack.com/api/conversations.history*channel=D1*' => Http::response(['ok' => true, 'messages' => [['ts' => '100.1', 'text' => 'a']]]),
+            'slack.com/api/conversations.history*channel=D2*' => Http::response(['ok' => true, 'messages' => [['ts' => '200.1', 'text' => 'b'], ['ts' => '150.1', 'bot_id' => 'B1', 'text' => 'bot']]]),
+        ]);
+        $node = new SlackListDirectMessagesNode;
+
+        $output = $node->execute(Run::factory()->create(), SLACK_TRIGGER_BASE, []);
+
+        expect(array_column($output['messages'], 'ts'))->toBe(['200.1', '150.1', '100.1'])
+            ->and(array_column($node->triggerItems($output, []), 'ts'))->toBe(['200.1', '100.1'])
+            ->and($node->triggerItemId($output['messages'][0]))->toBe('D2:200.1')
+            ->and($output['messages'][0]['dm_user'])->toBe('U2');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'types=im'));
+    });
+
+    it('starts a trigger for each removal of a reaction, even the same one removed again', function () {
+        $trigger = slackReaderTrigger('slack_reaction_removed', ['channel' => 'C1']);
+        $removed = ['type' => 'reaction_removed', 'user' => 'U1', 'reaction' => 'eyes', 'item' => ['type' => 'message', 'channel' => 'C1', 'ts' => '7.7']];
+
+        slackEvent([...$removed, 'event_ts' => '8.1'], 'Ev-r1')->assertOk();
+        slackEvent([...$removed, 'event_ts' => '9.1'], 'Ev-r2')->assertOk();
+        slackEvent([...$removed, 'item' => [...$removed['item'], 'channel' => 'C2'], 'event_ts' => '9.2'], 'Ev-r3')->assertOk();
+
+        expect($trigger->events()->count())->toBe(2)
+            ->and($trigger->events()->first()->payload)->toMatchArray(['emoji' => 'eyes', 'removed' => true]);
+    });
+
+    it('keeps added and removed reactions apart', function () {
+        $added = slackReaderTrigger('slack_reaction_added', ['channel' => 'C1']);
+        $removed = slackReaderTrigger('slack_reaction_removed', ['channel' => 'C1']);
+        $item = ['user' => 'U1', 'reaction' => 'eyes', 'item' => ['type' => 'message', 'channel' => 'C1', 'ts' => '7.7'], 'event_ts' => '8.1'];
+
+        slackEvent(['type' => 'reaction_removed', ...$item], 'Ev-1')->assertOk();
+        expect($added->events()->count())->toBe(0)->and($removed->events()->count())->toBe(1);
+
+        slackEvent(['type' => 'reaction_added', ...$item], 'Ev-2')->assertOk();
+        expect($added->events()->count())->toBe(1)->and($removed->events()->count())->toBe(1);
+    });
+
+    it('says a removed-reaction trigger needs instant delivery when it has none', function () {
+        $trigger = slackReaderTrigger('slack_reaction_removed', ['channel' => 'C1']);
+        $working = app(TriggerStatus::class)->for($trigger);
+
+        $trigger->subscription->delete();
+        $broken = app(TriggerStatus::class)->for($trigger->fresh());
+
+        expect($working['state'])->toBe('listening')
+            ->and($broken['state'])->toBe('needs_push')
+            ->and($broken['hint'])->toContain('instant delivery');
+    });
+
+    it('polls when something is pinned in the trigger\'s channel only', function () {
+        $trigger = slackReaderTrigger('slack_list_new_pins', ['channel' => 'C1']);
+
+        slackEvent(['type' => 'pin_added', 'channel_id' => 'C2', 'user' => 'U1', 'item' => []], 'Ev-p1')->assertOk();
+        Queue::assertNotPushed(PollTrigger::class);
+
+        slackEvent(['type' => 'pin_added', 'channel_id' => 'C1', 'user' => 'U1', 'item' => []], 'Ev-p2')->assertOk();
+        Queue::assertPushed(PollTrigger::class, fn (PollTrigger $job): bool => $job->trigger->is($trigger));
+    });
+
+    it('lists pinned messages latest pin first, and names a pin by message and pin time', function () {
+        Http::fake(['slack.com/api/pins.list*' => Http::response(['ok' => true, 'items' => [
+            ['type' => 'message', 'created' => 100, 'created_by' => 'U1', 'message' => ['ts' => '1.1', 'text' => 'old', 'user' => 'U2']],
+            ['type' => 'file', 'created' => 300, 'file' => ['id' => 'F1']],
+            ['type' => 'message', 'created' => 200, 'created_by' => 'U3', 'message' => ['ts' => '2.2', 'text' => 'new', 'permalink' => 'https://x']],
+        ]])]);
+        $node = new SlackListNewPinsNode;
+
+        $output = $node->execute(Run::factory()->create(), [...SLACK_TRIGGER_BASE, 'channel' => 'C1'], []);
+
+        expect(array_column($output['pins'], 'text'))->toBe(['new', 'old'])
+            ->and($node->triggerItemId($output['pins'][0]))->toBe('2.2:200')
+            ->and($output['pins'][0])->toMatchArray(['channel' => 'C1', 'pinned_by' => 'U3', 'permalink' => 'https://x']);
     });
 });

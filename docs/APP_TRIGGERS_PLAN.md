@@ -25,25 +25,30 @@ The plan:
 Built (code written; tests written but run by the team, not yet verified in CI):
 
 - **Foundation:** indexed poll claim (`triggers.next_poll_at`), `provider_events` inbox, `trigger_subscriptions`, shared `provider_watches`, `PollReader` shared by polls and samples, computed trigger status, sample and replay API.
-- **Instant delivery:** Slack (messages and reactions, items in the event), and Gmail, Outlook, Google Drive, Google Calendar and GitHub (the provider says "something changed" and the trigger's own poll fetches it, so filters, order and dedupe are the poll's).
+- **Instant delivery:** Slack (messages, direct messages and reactions added or removed carry the item in the event; new channels, people, files, joins, mentions and pins wake the trigger's own poll), Gmail (the watch listens to the labels the mailbox's triggers use), Outlook (mail folders and the calendar), Google Drive, Calendar, Sheets, Docs (through Drive file channels), Forms (Pub/Sub), YouTube uploads (WebSub), GitHub (repository hooks for issues, pull requests, pushes, releases, stars, forks, branches and tags, comments, workflow runs) and Notion (integration webhooks). Where the provider only says "something changed", the trigger's own poll fetches it, so filters, order and dedupe are the poll's.
+- **Polling-only triggers** (the provider has no push): Google Tasks and Contacts, YouTube comments, GitHub new repositories, Notion new workspace members. They back off when quiet (`triggers.adaptive_poll`). "Slack reaction removed" is the reverse: Slack never lists removals, so it works only through instant delivery and says so when that is off.
+- **Scheduled polls:** a node can set its own next poll time from what it read (`SchedulesTriggerPolls`): "event starting soon" in Google Calendar and Outlook polls when the next event enters its lead time, not every minute.
 - **Control plane:** `WatchManager` (share, renew, grace-period release), `triggers:renew-watches` every 10 min, `triggers:collect-watches` hourly, `triggers:subscriptions` to inspect or nudge, missed-push detection (a reconciliation poll that finds something marks the subscription degraded; the next push event recovers it).
 - **Delivery controls:** start from now or the beginning, runs per minute, group events (digest), per-trigger and per-workspace concurrency caps, plan-based polling floor (`min_poll_interval_minutes` in a plan's limits).
 - **Frontend:** status chip, health hints with one action, fetch sample for every trigger type, "Listen for event", replay, event history with held and grouped events.
 
 Not built:
 
-- Google Sheets push (its connector lacks a Drive scope for file watches; it keeps polling), Teams, Linear, Jira, Stripe, Typeform, Shopify, Monday, HubSpot, Notion, Airtable, Salesforce, Zendesk (no connector or reader node yet).
-- "Updated" and "deleted" modes (needs an item version per reader), the "N minutes before event" trigger, debounce, storm detector, event quotas, the admin console, canaries, provider simulators and load tests.
+- Teams, Linear, Jira, Stripe, Typeform, Shopify, Monday, HubSpot, Airtable, Salesforce, Zendesk (no connector or reader node yet).
+- "Deleted" modes (Drive trash, Sheets row deleted, Notion page deleted), Tasks "due soon", debounce, storm detector, event quotas, the admin console, canaries, provider simulators and load tests.
 
 Setup outside the app, per provider (each is off until its `TRIGGERS_PUSH_*_ENABLED` switch is on, and needs `APP_URL` to be a public HTTPS address):
 
 | Provider | What to set up |
 |---|---|
-| Slack | In the connector's Slack app: Events API request URL `/api/hooks/apps/slack`, bot events `message.channels`, `message.groups`, `reaction_added`; scopes `channels:history`, `groups:history`, `reactions:read`. Set `TRIGGERS_SLACK_SIGNING_SECRET`. Existing accounts must reconnect. |
+| Slack | In the connector's Slack app: Events API request URL `/api/hooks/apps/slack`; bot events `message.channels`, `message.groups`, `message.im`, `reaction_added`, `reaction_removed`, `pin_added`, `app_mention`, `member_joined_channel`, `channel_created`, `team_join`, `file_shared`; the scopes in the connector (`channels:history`, `groups:history`, `im:history`, `im:read`, `reactions:read`, `pins:read`, ...). Set `TRIGGERS_SLACK_SIGNING_SECRET`. Existing accounts must reconnect for new scopes. |
 | Gmail | A Pub/Sub topic that `gmail-api-push@system.gserviceaccount.com` may publish to, and a push subscription to `/api/hooks/apps/gmail?token=...`. Set `TRIGGERS_GMAIL_PUBSUB_TOPIC` and `TRIGGERS_GMAIL_PUSH_TOKEN`. Gmail's restricted scope needs Google's OAuth verification before real customers can use it. |
-| Outlook | Nothing beyond the connector: the app creates a Graph subscription with the account (`Mail.ReadWrite` is enough). |
-| Drive, Calendar | Nothing beyond the connector. |
+| Outlook | Nothing beyond the connector: the app creates Graph subscriptions with the account (`Mail.ReadWrite`, `Calendars.ReadWrite`). |
+| Drive, Calendar, Sheets, Docs | Nothing beyond the connector and its switch (`TRIGGERS_PUSH_GOOGLE_*_ENABLED`). |
+| Forms | A Pub/Sub topic that `forms-notifications@system.gserviceaccount.com` may publish to, and a push subscription to `/api/hooks/apps/google_forms?token=...`. Set `TRIGGERS_GOOGLE_FORMS_PUBSUB_TOPIC` and `TRIGGERS_GOOGLE_FORMS_PUSH_TOKEN`. |
+| YouTube | Nothing: the app subscribes through Google's WebSub hub. The callback URL must be public HTTPS. |
 | GitHub | The connected account needs admin rights on the repository; otherwise the trigger keeps polling and shows why. |
+| Notion | In the integration's Webhooks tab set the URL to `/api/hooks/apps/notion`. Notion posts a verification token, which is written to the log once; set `TRIGGERS_NOTION_VERIFICATION_TOKEN` to it and verify in Notion. Accounts connected before this existed must reconnect (the workspace id is kept at connect time). |
 
 ---
 
@@ -547,7 +552,7 @@ Critical path: Phase 0, then Slack proves the architecture, then Google (longest
 | Outlook / Teams | P3 Graph subscriptions + delta | Mail about 3 days max **(verify)**; renew often | Validation token + `clientState` | Delta query | Lifecycle notifications; per-mailbox limits |
 | Google Drive | P3 `changes.watch` | Short-lived channels **(verify)** | Channel id + token | `changes.list` from page token | Notification has no body; `sync` message first |
 | Google Calendar | P3 `events.watch` | Channels expire **(verify)** | Channel id + token | Sync token (410 means full resync) | Series and exceptions |
-| Google Sheets | P3 via Drive watch + row diff, or P4 | Per Drive channel | As Drive | Stored row hashes | No row-level push |
+| Google Sheets | P3 via Drive file channel, then the trigger's own poll reads the rows | Per Drive channel | As Drive | Stored row hashes | No row-level push |
 | GitHub | P2 repo hook, or P1 via GitHub App | No expiry; disabled after repeated failures | `X-Hub-Signature-256` | Redelivery API, list recent deliveries | Needs admin rights for repo hooks |
 | Linear | P2 webhooks | No expiry | HMAC header | Poll recent issues | Admin needed to create |
 | Jira Cloud | P2 webhooks | Dynamic webhooks expire (about 30 days **(verify)**), refresh | Per docs | JQL poll | Refresh job needed |
@@ -555,7 +560,8 @@ Critical path: Phase 0, then Slack proves the architecture, then Google (longest
 | Stripe | P2 endpoints | No expiry | Signature + tolerance | Events API list | Connect accounts |
 | Typeform, Shopify, Monday | P2 webhooks | No expiry (Monday: challenge handshake) | HMAC / challenge | Poll responses / orders / boards | Shopify mandatory topics |
 | Airtable | P3 webhooks (ping, then fetch payloads by cursor) | About 7 days unless refreshed **(verify)** | MAC | Payload cursor | Refresh job needed |
-| Notion, Salesforce, Zendesk | P4 (check push options at build time) | n/a | n/a | `last_edited` / modified filters | Page size caps |
+| Notion | P1 integration webhooks (event says what changed; the poll reads it) | No expiry | `X-Notion-Signature` HMAC with the verification token | Search / database query by edit time | Events are batched, so seconds to a minute late |
+| Salesforce, Zendesk | P4 (check push options at build time) | n/a | n/a | `last_edited` / modified filters | Page size caps |
 
 ## Appendix B. Repository layout (proposed)
 

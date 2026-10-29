@@ -110,7 +110,7 @@ class ConnectorSeeder extends Seeder
                         'chat:write', 'chat:write.public', 'app_mentions:read',
                         'channels:read', 'channels:history', 'channels:join', 'channels:manage',
                         'groups:read', 'groups:history', 'groups:write',
-                        'im:write', 'mpim:write',
+                        'im:write', 'im:read', 'im:history', 'mpim:write',
                         'reactions:read', 'reactions:write', 'pins:read', 'pins:write',
                         'files:read', 'files:write', 'users:read', 'users:read.email',
                     ],
@@ -351,6 +351,27 @@ class ConnectorSeeder extends Seeder
                     'scopes' => ['offline_access', 'User.Read', 'Mail.ReadWrite', 'Mail.Send', 'MailboxSettings.ReadWrite', 'Calendars.ReadWrite'],
                 ],
                 'sort_order' => 8,
+            ],
+            [
+                'key' => 'notion',
+                'name' => 'Notion',
+                'description' => 'Create and update pages and database items, query databases, and work with content, comments and people in Notion.',
+                'icon' => 'notion',
+                'color' => '#000000',
+                'category' => ConnectorCategory::Productivity,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::OAuth2,
+                'fields' => [],
+                'oauth' => [
+                    'authorize_url' => 'https://api.notion.com/v1/oauth/authorize',
+                    'token_url' => 'https://api.notion.com/v1/oauth/token',
+                    // Notion takes the client id and secret as Basic auth, and has no scopes:
+                    // access is whichever pages the person shares on Notion's own page.
+                    'token_auth' => 'basic',
+                    'authorize_params' => ['owner' => 'user'],
+                    'scopes' => [],
+                ],
+                'sort_order' => 9,
             ],
         ];
     }

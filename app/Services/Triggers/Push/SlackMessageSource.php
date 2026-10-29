@@ -27,6 +27,10 @@ class SlackMessageSource implements ItemPushSource, PollsOnEvent
 
     private const string REACTIONS_NODE = 'slack_reaction_added';
 
+    private const string REACTIONS_REMOVED_NODE = 'slack_reaction_removed';
+
+    private const string DIRECT_MESSAGES_NODE = 'slack_list_direct_messages';
+
     /**
      * Reader nodes whose trigger polls when Slack sends one of these events,
      * because the event carries too little to be the item itself.
@@ -39,7 +43,15 @@ class SlackMessageSource implements ItemPushSource, PollsOnEvent
         'slack_list_files' => ['file_shared'],
         'slack_list_channel_joins' => ['member_joined_channel'],
         'slack_list_mentions' => ['app_mention'],
+        'slack_list_new_pins' => ['pin_added'],
     ];
+
+    /**
+     * Reader nodes whose items the events carry themselves.
+     *
+     * @var list<string>
+     */
+    private const array DELIVERED_NODES = [self::MESSAGES_NODE, self::REACTIONS_NODE, self::REACTIONS_REMOVED_NODE, self::DIRECT_MESSAGES_NODE];
 
     public function __construct(
         private readonly NodeRegistry $registry,
@@ -70,7 +82,7 @@ class SlackMessageSource implements ItemPushSource, PollsOnEvent
     {
         $nodeType = $trigger->config['node_type'] ?? null;
 
-        return (in_array($nodeType, [self::MESSAGES_NODE, self::REACTIONS_NODE], true) || isset(self::POLLED_ON[$nodeType])) && $trigger->credential_id !== null;
+        return (in_array($nodeType, self::DELIVERED_NODES, true) || isset(self::POLLED_ON[$nodeType])) && $trigger->credential_id !== null;
     }
 
     /**
@@ -171,19 +183,29 @@ class SlackMessageSource implements ItemPushSource, PollsOnEvent
     {
         $nodeConfig = (array) ($trigger->config['node_config'] ?? []);
         $nodeType = (string) ($trigger->config['node_type'] ?? '');
+
+        // Only these triggers take items; the rest poll (see wantsPoll).
+        if (! in_array($nodeType, self::DELIVERED_NODES, true)) {
+            return false;
+        }
+
         $isReaction = isset($item['emoji']);
 
-        // Only message and reaction triggers take items; the rest poll (see wantsPoll).
-        if (! in_array($nodeType, [self::MESSAGES_NODE, self::REACTIONS_NODE], true)) {
+        // A reaction trigger takes reactions (added or removed, as it is for), the others take messages.
+        if ($isReaction !== in_array($nodeType, [self::REACTIONS_NODE, self::REACTIONS_REMOVED_NODE], true)) {
             return false;
         }
 
-        // A message trigger takes messages, a reaction trigger takes reactions.
-        if ($isReaction !== ($nodeType === self::REACTIONS_NODE)) {
+        if ($isReaction && isset($item['removed']) !== ($nodeType === self::REACTIONS_REMOVED_NODE)) {
             return false;
         }
 
-        if (($item['channel'] ?? null) !== ($nodeConfig['channel'] ?? null)) {
+        // A direct message trigger takes messages in any conversation with the app; the others one channel.
+        if ($nodeType === self::DIRECT_MESSAGES_NODE) {
+            if (! str_starts_with((string) ($item['channel'] ?? ''), 'D')) {
+                return false;
+            }
+        } elseif (($item['channel'] ?? null) !== ($nodeConfig['channel'] ?? null)) {
             return false;
         }
 
@@ -201,7 +223,7 @@ class SlackMessageSource implements ItemPushSource, PollsOnEvent
      */
     public function itemFor(array $event): array
     {
-        if (($event['type'] ?? null) === 'reaction_added') {
+        if (in_array($event['type'] ?? null, ['reaction_added', 'reaction_removed'], true)) {
             return array_filter([
                 'ts' => $event['item']['ts'] ?? null,
                 'channel' => $event['item']['channel'] ?? null,
@@ -209,6 +231,7 @@ class SlackMessageSource implements ItemPushSource, PollsOnEvent
                 'user' => $event['user'] ?? null,
                 'item_user' => $event['item_user'] ?? null,
                 'event_ts' => $event['event_ts'] ?? null,
+                'removed' => $event['type'] === 'reaction_removed' ? true : null,
             ], fn (mixed $value): bool => $value !== null);
         }
 
@@ -225,9 +248,14 @@ class SlackMessageSource implements ItemPushSource, PollsOnEvent
      */
     public function itemId(array $item): string
     {
-        // A reaction is named message, emoji and person, as the poll names it.
-        return isset($item['emoji'])
-            ? ($item['ts'] ?? '').':'.$item['emoji'].':'.($item['user'] ?? '')
+        // A reaction is named message, emoji and person, as the poll names it; a removal also by when.
+        if (isset($item['emoji'])) {
+            return ($item['ts'] ?? '').':'.$item['emoji'].':'.($item['user'] ?? '').(isset($item['removed']) ? ':removed:'.($item['event_ts'] ?? '') : '');
+        }
+
+        // A direct message is named by its conversation too, as the poll names it.
+        return str_starts_with((string) ($item['channel'] ?? ''), 'D')
+            ? $item['channel'].':'.($item['ts'] ?? '')
             : (string) ($item['ts'] ?? '');
     }
 }

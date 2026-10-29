@@ -14,6 +14,7 @@ use App\Models\Triggers\TriggerSubscription;
 use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
+use App\Nodes\Integrations\GitHub\GitHubListIssuesNode;
 use App\Services\Triggers\Push\GmailMessageSource;
 use App\Services\Triggers\Push\WatchManager;
 use App\Services\Workspaces\WorkspaceService;
@@ -307,7 +308,7 @@ describe('GitHub', function () {
 
         expect($trigger->subscription->status)->toBe(SubscriptionStatus::Failed)
             ->and($trigger->subscription->last_error)->toContain('Instant delivery is not available')
-            ->and($trigger->pollIntervalMinutes())->toBe(1);
+            ->and($trigger->pollIntervalMinutes())->toBe((new GitHubListIssuesNode)->triggerPollMinutes());
     });
 });
 
@@ -317,7 +318,7 @@ describe('when push falls behind', function () {
             'gmail.googleapis.com/gmail/v1/users/me/profile' => Http::response(['emailAddress' => 'me@example.com']),
             'gmail.googleapis.com/gmail/v1/users/me/watch' => Http::response(['historyId' => '1', 'expiration' => (string) now()->addDays(7)->getTimestampMs()]),
             'gmail.googleapis.com/gmail/v1/users/me/messages/m1*' => Http::response(['id' => 'm1', 'payload' => ['headers' => []]]),
-            'gmail.googleapis.com/gmail/v1/users/me/messages*' => Http::sequence()->push(['messages' => []])->push(['messages' => [['id' => 'm1']]]),
+            'gmail.googleapis.com/gmail/v1/users/me/messages?*' => Http::sequence()->push(['messages' => []])->push(['messages' => [['id' => 'm1']]]),
         ]);
         [, , $trigger] = watchedTrigger('gmail', 'gmail_list_messages');
         Queue::fake([FireTriggerEvent::class]);
@@ -333,7 +334,7 @@ describe('when push falls behind', function () {
             'gmail.googleapis.com/gmail/v1/users/me/profile' => Http::response(['emailAddress' => 'me@example.com']),
             'gmail.googleapis.com/gmail/v1/users/me/watch' => Http::response(['historyId' => '1', 'expiration' => (string) now()->addDays(7)->getTimestampMs()]),
             'gmail.googleapis.com/gmail/v1/users/me/messages/m1*' => Http::response(['id' => 'm1', 'payload' => ['headers' => []]]),
-            'gmail.googleapis.com/gmail/v1/users/me/messages*' => Http::sequence()->push(['messages' => []])->push(['messages' => [['id' => 'm1']]]),
+            'gmail.googleapis.com/gmail/v1/users/me/messages?*' => Http::sequence()->push(['messages' => []])->push(['messages' => [['id' => 'm1']]]),
         ]);
         [, , $trigger] = watchedTrigger('gmail', 'gmail_list_messages');
         Queue::fake([FireTriggerEvent::class]);
@@ -378,5 +379,68 @@ describe('when push falls behind', function () {
         dispatch_sync(new PollTrigger($trigger->fresh()));
 
         expect($trigger->fresh()->next_poll_at->lte(now()->addSecond()))->toBeTrue();
+    });
+});
+
+describe('Gmail labels', function () {
+    function gmailWatchBodies(): array
+    {
+        return Http::recorded()
+            ->filter(fn (array $pair): bool => str_ends_with($pair[0]->url(), '/users/me/watch'))
+            ->map(fn (array $pair): array => $pair[0]->data())
+            ->values()
+            ->all();
+    }
+
+    it('listens to the label a trigger is about, not only the Inbox', function () {
+        fakeGmail();
+
+        watchedTrigger('gmail', 'gmail_list_messages', ['label_ids' => ['SENT', 'STARRED']]);
+
+        expect(gmailWatchBodies())->toHaveCount(1)
+            ->and(gmailWatchBodies()[0]['labelIds'])->toBe(['SENT']);
+    });
+
+    it('widens the shared watch when another trigger on the mailbox needs more, and only then', function () {
+        fakeGmail();
+        [$workspace, $owner, , $credential] = watchedTrigger('gmail', 'gmail_list_messages', ['label_ids' => ['SENT']]);
+
+        watchedTrigger('gmail', 'gmail_list_messages', [], $workspace, $owner, $credential);
+        watchedTrigger('gmail', 'gmail_list_messages', ['label_ids' => ['INBOX']], $workspace, $owner, $credential);
+        $bodies = gmailWatchBodies();
+
+        // First: Sent. Second (no filter, so the Inbox): both. Third: already covered, no new call.
+        expect(array_column($bodies, 'labelIds'))->toBe([['SENT'], ['INBOX', 'SENT']]);
+    });
+});
+
+describe('Outlook calendar', function () {
+    it('subscribes to the calendar once for every calendar trigger, apart from the mail subscription', function () {
+        Http::fake(['graph.microsoft.com/v1.0/subscriptions' => Http::sequence()
+            ->push(['id' => 'sub-cal', 'expirationDateTime' => now()->addDays(3)->toIso8601ZuluString()])
+            ->push(['id' => 'sub-mail', 'expirationDateTime' => now()->addDays(3)->toIso8601ZuluString()])]);
+
+        [$workspace, $owner, $first, $credential] = watchedTrigger('outlook', 'outlook_list_new_events');
+        [, , $second] = watchedTrigger('outlook', 'outlook_list_upcoming_events', [], $workspace, $owner, $credential);
+        [, , $mail] = watchedTrigger('outlook', 'outlook_list_messages', [], $workspace, $owner, $credential);
+
+        $created = Http::recorded()->map(fn (array $pair): array => $pair[0]->data())->values();
+
+        expect($created)->toHaveCount(2)
+            ->and($created[0])->toMatchArray(['resource' => 'me/events', 'changeType' => 'created,updated,deleted'])
+            ->and($created[1]['resource'])->toBe("me/mailFolders('inbox')/messages")
+            ->and($first->subscription->routing_key)->toBe('sub-cal')
+            ->and($second->subscription->routing_key)->toBe('sub-cal')
+            ->and($mail->subscription->routing_key)->toBe('sub-mail');
+    });
+
+    it('wakes a calendar trigger when the calendar changes', function () {
+        Http::fake(['graph.microsoft.com/v1.0/subscriptions' => Http::response(['id' => 'sub-cal', 'expirationDateTime' => now()->addDays(3)->toIso8601ZuluString()])]);
+        [, , $trigger] = watchedTrigger('outlook', 'outlook_list_updated_events');
+        $secret = ProviderWatch::query()->sole()->secret;
+
+        $this->postJson('/api/hooks/apps/outlook', ['value' => [['subscriptionId' => 'sub-cal', 'clientState' => $secret, 'changeType' => 'updated', 'resource' => 'Users/u/Events/e1']]])->assertOk();
+
+        Queue::assertPushed(PollTrigger::class, fn (PollTrigger $job): bool => $job->trigger->is($trigger));
     });
 });

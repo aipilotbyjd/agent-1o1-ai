@@ -84,6 +84,7 @@ return [
     'max_sync_wait_seconds' => (int) env('TRIGGERS_MAX_SYNC_WAIT_SECONDS', 25),
 
     'allowed_headers' => [
+        'X-Notion-Signature',
         'X-GitHub-Delivery',
         'X-GitHub-Event',
         'X-Hub-Signature-256',
@@ -263,7 +264,10 @@ return [
     | Slack: the signing secret is that of the Slack app people connect through
     | Apps (the one behind the `slack` connector), not the assistant's app. In
     | that app, set the Events API request URL to /api/hooks/apps/slack and
-    | subscribe to the bot events message.channels and message.groups.
+    | subscribe to the bot events message.channels and message.groups, plus
+    | message.im (direct messages), reaction_added, reaction_removed, pin_added,
+    | and the others the Slack triggers use (app_mention, member_joined_channel,
+    | channel_created, team_join, file_shared).
     */
 
     'push' => [
@@ -309,6 +313,15 @@ return [
             'enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_YOUTUBE_ENABLED', false),
             'hub_url' => env('TRIGGERS_YOUTUBE_WEBSUB_HUB', 'https://pubsubhubbub.appspot.com/subscribe'),
             'lease_seconds' => 432000,
+        ],
+
+        // Notion sends one webhook URL per integration: in the integration's
+        // Webhooks tab, set it to /api/hooks/apps/notion. Notion first posts a
+        // verification_token (logged here once); paste it back in Notion and
+        // set it as the verification token.
+        'notion' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_NOTION_ENABLED', false),
+            'verification_token' => env('TRIGGERS_NOTION_VERIFICATION_TOKEN'),
         ],
     ],
 
