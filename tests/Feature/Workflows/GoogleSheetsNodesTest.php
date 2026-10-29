@@ -276,9 +276,9 @@ it('keeps only the last rows of a big sheet for the new row trigger, so rows at 
 
     $items = (new GoogleSheetsGetValuesNode)->triggerItems(['range' => 'Sheet1!A1:A11', 'values' => $values], []);
 
-    // 2 items per poll x 3 polls of headroom = the last 6 rows, still numbered as in the sheet.
-    expect(array_column($items, '_row'))->toBe([6, 7, 8, 9, 10, 11])
-        ->and($items[5]['Name'])->toBe('row 10');
+    // One poll looks at 2 items, so the last 2 rows are kept, still numbered as in the sheet.
+    expect(array_column($items, '_row'))->toBe([10, 11])
+        ->and($items[1]['Name'])->toBe('row 10');
 });
 
 it('keeps every row of a small sheet', function () {
@@ -321,7 +321,7 @@ it('triggers again when a cell in a row changes, and not when it does not', func
 });
 
 it('caps the rows a poll acts on at the tail of the sheet', function () {
-    config(['triggers.poll_max_items' => 1]);
+    config(['triggers.poll_max_items' => 3]);
     $rows = array_map(fn (int $number): array => ['_row' => $number, '_version' => 'v'], range(2, 20));
 
     expect(array_column((new GoogleSheetsListUpdatedRowsNode)->triggerItems(['rows' => $rows], []), '_row'))->toBe([18, 19, 20]);

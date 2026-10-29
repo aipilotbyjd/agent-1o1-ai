@@ -13,6 +13,46 @@ use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\InputsOutputs\WorkflowInputNode;
 use App\Nodes\InputsOutputs\WorkflowOutputNode;
+use App\Nodes\Integrations\GitHub\GitHubAddAssigneesNode;
+use App\Nodes\Integrations\GitHub\GitHubAddLabelsNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateBranchNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateGistNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateOrUpdateFileNode;
+use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestReviewNode;
+use App\Nodes\Integrations\GitHub\GitHubCreateReleaseNode;
+use App\Nodes\Integrations\GitHub\GitHubDeleteBranchNode;
+use App\Nodes\Integrations\GitHub\GitHubDeleteCommentNode;
+use App\Nodes\Integrations\GitHub\GitHubDeleteFileNode;
+use App\Nodes\Integrations\GitHub\GitHubDispatchWorkflowNode;
+use App\Nodes\Integrations\GitHub\GitHubForkRepositoryNode;
+use App\Nodes\Integrations\GitHub\GitHubGetCommitNode;
+use App\Nodes\Integrations\GitHub\GitHubGetFileContentNode;
+use App\Nodes\Integrations\GitHub\GitHubGetIssueNode;
+use App\Nodes\Integrations\GitHub\GitHubGetLatestReleaseNode;
+use App\Nodes\Integrations\GitHub\GitHubGetPullRequestNode;
+use App\Nodes\Integrations\GitHub\GitHubGetUserNode;
+use App\Nodes\Integrations\GitHub\GitHubListBranchesNode;
+use App\Nodes\Integrations\GitHub\GitHubListClosedIssuesNode;
+use App\Nodes\Integrations\GitHub\GitHubListForksNode;
+use App\Nodes\Integrations\GitHub\GitHubListIssueCommentsNode;
+use App\Nodes\Integrations\GitHub\GitHubListMergedPullRequestsNode;
+use App\Nodes\Integrations\GitHub\GitHubListNotificationsNode;
+use App\Nodes\Integrations\GitHub\GitHubListPullRequestFilesNode;
+use App\Nodes\Integrations\GitHub\GitHubListReleasesNode;
+use App\Nodes\Integrations\GitHub\GitHubListRepoCommentsNode;
+use App\Nodes\Integrations\GitHub\GitHubListStargazersNode;
+use App\Nodes\Integrations\GitHub\GitHubListWorkflowRunsNode;
+use App\Nodes\Integrations\GitHub\GitHubMergePullRequestNode;
+use App\Nodes\Integrations\GitHub\GitHubRemoveLabelNode;
+use App\Nodes\Integrations\GitHub\GitHubRequestReviewersNode;
+use App\Nodes\Integrations\GitHub\GitHubRerunWorkflowRunNode;
+use App\Nodes\Integrations\GitHub\GitHubSearchIssuesNode;
+use App\Nodes\Integrations\GitHub\GitHubSearchRepositoriesNode;
+use App\Nodes\Integrations\GitHub\GitHubStarRepositoryNode;
+use App\Nodes\Integrations\GitHub\GitHubUnstarRepositoryNode;
+use App\Nodes\Integrations\GitHub\GitHubUpdateCommentNode;
+use App\Nodes\Integrations\GitHub\GitHubUpdateIssueNode;
+use App\Nodes\Integrations\GitHub\GitHubUpdatePullRequestNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubCreateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubCreatePullRequestNode;
@@ -112,6 +152,31 @@ use App\Nodes\Integrations\Outlook\OutlookListMessagesNode;
 use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
+use App\Nodes\Integrations\Slack\SlackAddReactionNode;
+use App\Nodes\Integrations\Slack\SlackArchiveChannelNode;
+use App\Nodes\Integrations\Slack\SlackDeleteMessageNode;
+use App\Nodes\Integrations\Slack\SlackFindUserByEmailNode;
+use App\Nodes\Integrations\Slack\SlackGetChannelInfoNode;
+use App\Nodes\Integrations\Slack\SlackGetMessageLinkNode;
+use App\Nodes\Integrations\Slack\SlackGetThreadRepliesNode;
+use App\Nodes\Integrations\Slack\SlackGetUserNode;
+use App\Nodes\Integrations\Slack\SlackJoinChannelNode;
+use App\Nodes\Integrations\Slack\SlackListChannelJoinsNode;
+use App\Nodes\Integrations\Slack\SlackListFilesNode;
+use App\Nodes\Integrations\Slack\SlackListMentionsNode;
+use App\Nodes\Integrations\Slack\SlackListNewChannelsNode;
+use App\Nodes\Integrations\Slack\SlackListNewUsersNode;
+use App\Nodes\Integrations\Slack\SlackPinMessageNode;
+use App\Nodes\Integrations\Slack\SlackRemoveFromChannelNode;
+use App\Nodes\Integrations\Slack\SlackRemoveReactionNode;
+use App\Nodes\Integrations\Slack\SlackRenameChannelNode;
+use App\Nodes\Integrations\Slack\SlackScheduleMessageNode;
+use App\Nodes\Integrations\Slack\SlackSendDirectMessageNode;
+use App\Nodes\Integrations\Slack\SlackSendEphemeralMessageNode;
+use App\Nodes\Integrations\Slack\SlackSetChannelPurposeNode;
+use App\Nodes\Integrations\Slack\SlackSetChannelTopicNode;
+use App\Nodes\Integrations\Slack\SlackUnpinMessageNode;
+use App\Nodes\Integrations\Slack\SlackUpdateMessageNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
 use App\Nodes\Integrations\Slack\SlackGetChannelHistoryNode;
 use App\Nodes\Integrations\Slack\SlackInviteToChannelNode;
@@ -187,6 +252,31 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'slack_reaction_added' => SlackReactionAddedNode::class,
             'slack_upload_file' => SlackUploadFileNode::class,
             'slack_list_users' => SlackListUsersNode::class,
+            'slack_add_reaction' => SlackAddReactionNode::class,
+            'slack_archive_channel' => SlackArchiveChannelNode::class,
+            'slack_delete_message' => SlackDeleteMessageNode::class,
+            'slack_find_user_by_email' => SlackFindUserByEmailNode::class,
+            'slack_get_channel_info' => SlackGetChannelInfoNode::class,
+            'slack_get_message_link' => SlackGetMessageLinkNode::class,
+            'slack_get_thread_replies' => SlackGetThreadRepliesNode::class,
+            'slack_get_user' => SlackGetUserNode::class,
+            'slack_join_channel' => SlackJoinChannelNode::class,
+            'slack_list_channel_joins' => SlackListChannelJoinsNode::class,
+            'slack_list_files' => SlackListFilesNode::class,
+            'slack_list_mentions' => SlackListMentionsNode::class,
+            'slack_list_new_channels' => SlackListNewChannelsNode::class,
+            'slack_list_new_users' => SlackListNewUsersNode::class,
+            'slack_pin_message' => SlackPinMessageNode::class,
+            'slack_remove_from_channel' => SlackRemoveFromChannelNode::class,
+            'slack_remove_reaction' => SlackRemoveReactionNode::class,
+            'slack_rename_channel' => SlackRenameChannelNode::class,
+            'slack_schedule_message' => SlackScheduleMessageNode::class,
+            'slack_send_direct_message' => SlackSendDirectMessageNode::class,
+            'slack_send_ephemeral_message' => SlackSendEphemeralMessageNode::class,
+            'slack_set_channel_purpose' => SlackSetChannelPurposeNode::class,
+            'slack_set_channel_topic' => SlackSetChannelTopicNode::class,
+            'slack_unpin_message' => SlackUnpinMessageNode::class,
+            'slack_update_message' => SlackUpdateMessageNode::class,
             'gmail_send_email' => GmailSendEmailNode::class,
             'gmail_list_messages' => GmailListMessagesNode::class,
             'gmail_list_messages_with_attachments' => GmailListMessagesWithAttachmentsNode::class,
@@ -210,6 +300,46 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'github_list_pull_requests' => GitHubListPullRequestsNode::class,
             'github_create_pull_request' => GitHubCreatePullRequestNode::class,
             'github_list_commits' => GitHubListCommitsNode::class,
+            'github_add_assignees' => GitHubAddAssigneesNode::class,
+            'github_add_labels' => GitHubAddLabelsNode::class,
+            'github_create_branch' => GitHubCreateBranchNode::class,
+            'github_create_gist' => GitHubCreateGistNode::class,
+            'github_create_or_update_file' => GitHubCreateOrUpdateFileNode::class,
+            'github_create_pull_request_review' => GitHubCreatePullRequestReviewNode::class,
+            'github_create_release' => GitHubCreateReleaseNode::class,
+            'github_delete_branch' => GitHubDeleteBranchNode::class,
+            'github_delete_comment' => GitHubDeleteCommentNode::class,
+            'github_delete_file' => GitHubDeleteFileNode::class,
+            'github_dispatch_workflow' => GitHubDispatchWorkflowNode::class,
+            'github_fork_repository' => GitHubForkRepositoryNode::class,
+            'github_get_commit' => GitHubGetCommitNode::class,
+            'github_get_file_content' => GitHubGetFileContentNode::class,
+            'github_get_issue' => GitHubGetIssueNode::class,
+            'github_get_latest_release' => GitHubGetLatestReleaseNode::class,
+            'github_get_pull_request' => GitHubGetPullRequestNode::class,
+            'github_get_user' => GitHubGetUserNode::class,
+            'github_list_branches' => GitHubListBranchesNode::class,
+            'github_list_closed_issues' => GitHubListClosedIssuesNode::class,
+            'github_list_forks' => GitHubListForksNode::class,
+            'github_list_issue_comments' => GitHubListIssueCommentsNode::class,
+            'github_list_merged_pull_requests' => GitHubListMergedPullRequestsNode::class,
+            'github_list_notifications' => GitHubListNotificationsNode::class,
+            'github_list_pull_request_files' => GitHubListPullRequestFilesNode::class,
+            'github_list_releases' => GitHubListReleasesNode::class,
+            'github_list_repo_comments' => GitHubListRepoCommentsNode::class,
+            'github_list_stargazers' => GitHubListStargazersNode::class,
+            'github_list_workflow_runs' => GitHubListWorkflowRunsNode::class,
+            'github_merge_pull_request' => GitHubMergePullRequestNode::class,
+            'github_remove_label' => GitHubRemoveLabelNode::class,
+            'github_request_reviewers' => GitHubRequestReviewersNode::class,
+            'github_rerun_workflow_run' => GitHubRerunWorkflowRunNode::class,
+            'github_search_issues' => GitHubSearchIssuesNode::class,
+            'github_search_repositories' => GitHubSearchRepositoriesNode::class,
+            'github_star_repository' => GitHubStarRepositoryNode::class,
+            'github_unstar_repository' => GitHubUnstarRepositoryNode::class,
+            'github_update_comment' => GitHubUpdateCommentNode::class,
+            'github_update_issue' => GitHubUpdateIssueNode::class,
+            'github_update_pull_request' => GitHubUpdatePullRequestNode::class,
             'google_drive_list_files' => GoogleDriveListFilesNode::class,
             'google_drive_list_updated_files' => GoogleDriveListUpdatedFilesNode::class,
             'google_drive_get_file' => GoogleDriveGetFileNode::class,

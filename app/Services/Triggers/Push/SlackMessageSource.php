@@ -4,6 +4,7 @@ namespace App\Services\Triggers\Push;
 
 use App\Contracts\SupportsTriggerMode;
 use App\Contracts\Triggers\ItemPushSource;
+use App\Contracts\Triggers\PollsOnEvent;
 use App\Exceptions\ConnectorException;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Triggers\ProviderWatch;
@@ -20,11 +21,25 @@ use Illuminate\Support\Facades\Http;
  * item passes is decided by the Slack node's own trigger filter, so push and
  * poll can never disagree about it.
  */
-class SlackMessageSource implements ItemPushSource
+class SlackMessageSource implements ItemPushSource, PollsOnEvent
 {
     private const string MESSAGES_NODE = 'slack_get_channel_history';
 
     private const string REACTIONS_NODE = 'slack_reaction_added';
+
+    /**
+     * Reader nodes whose trigger polls when Slack sends one of these events,
+     * because the event carries too little to be the item itself.
+     *
+     * @var array<string, list<string>>
+     */
+    private const array POLLED_ON = [
+        'slack_list_new_channels' => ['channel_created'],
+        'slack_list_new_users' => ['team_join'],
+        'slack_list_files' => ['file_shared'],
+        'slack_list_channel_joins' => ['member_joined_channel'],
+        'slack_list_mentions' => ['app_mention'],
+    ];
 
     public function __construct(
         private readonly NodeRegistry $registry,
@@ -53,7 +68,30 @@ class SlackMessageSource implements ItemPushSource
      */
     public function supports(Trigger $trigger): bool
     {
-        return in_array($trigger->config['node_type'] ?? null, [self::MESSAGES_NODE, self::REACTIONS_NODE], true) && $trigger->credential_id !== null;
+        $nodeType = $trigger->config['node_type'] ?? null;
+
+        return (in_array($nodeType, [self::MESSAGES_NODE, self::REACTIONS_NODE], true) || isset(self::POLLED_ON[$nodeType])) && $trigger->credential_id !== null;
+    }
+
+    /**
+     * Whether the event is one the trigger polls on: the right kind of event,
+     * and (for a channel trigger) in the trigger's channel.
+     */
+    public function wantsPoll(Trigger $trigger, array $event): bool
+    {
+        $nodeType = (string) ($trigger->config['node_type'] ?? '');
+
+        if (! in_array($event['type'] ?? null, self::POLLED_ON[$nodeType] ?? [], true)) {
+            return false;
+        }
+
+        $watched = trim((string) ($trigger->config['node_config']['channel'] ?? ''));
+        // Most events name their channel by id; `channel_created` carries the channel itself.
+        $channel = $event['channel'] ?? $event['channel_id'] ?? '';
+        $inChannel = is_string($channel) ? $channel : '';
+
+        // A trigger with no channel (new channels, new people, files anywhere) takes every event.
+        return $watched === '' || $watched === $inChannel;
     }
 
     /**
@@ -134,6 +172,11 @@ class SlackMessageSource implements ItemPushSource
         $nodeConfig = (array) ($trigger->config['node_config'] ?? []);
         $nodeType = (string) ($trigger->config['node_type'] ?? '');
         $isReaction = isset($item['emoji']);
+
+        // Only message and reaction triggers take items; the rest poll (see wantsPoll).
+        if (! in_array($nodeType, [self::MESSAGES_NODE, self::REACTIONS_NODE], true)) {
+            return false;
+        }
 
         // A message trigger takes messages, a reaction trigger takes reactions.
         if ($isReaction !== ($nodeType === self::REACTIONS_NODE)) {

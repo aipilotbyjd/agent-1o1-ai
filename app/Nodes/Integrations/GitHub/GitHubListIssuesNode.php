@@ -41,6 +41,7 @@ class GitHubListIssuesNode extends AbstractGitHubNode implements SupportsTrigger
                 ...$this->credentialFields(),
                 'repo' => Field::dynamic('Repository', 'github.repos', 'In owner/name form.', 'acme/widgets'),
                 'state' => Field::select('State', ['open' => 'Open', 'closed' => 'Closed', 'all' => 'All'], default: 'open'),
+                'labels' => Field::dynamic('Only with labels', 'github.labels', 'Only issues that have all of these labels.', dependsOn: ['repo'], multiple: true, type: 'array'),
                 'per_page' => Field::advanced(Field::integer('Results per page', default: 30, minimum: 1, maximum: 100)),
             ],
         ];
@@ -48,8 +49,9 @@ class GitHubListIssuesNode extends AbstractGitHubNode implements SupportsTrigger
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return ['issues' => $this->get($run, "/repos/{$config['repo']}/issues", $config, [
+        return ['issues' => $this->get($run, "/repos/{$this->repo($config)}/issues", $config, [
             'state' => $config['state'] ?? 'open',
+            'labels' => implode(',', array_filter((array) ($config['labels'] ?? []))) ?: null,
             'per_page' => $config['per_page'] ?? 30,
         ])];
     }
@@ -61,6 +63,18 @@ class GitHubListIssuesNode extends AbstractGitHubNode implements SupportsTrigger
     public function triggerReadConfig(array $config): array
     {
         return [...$config, 'per_page' => 100];
+    }
+
+    /**
+     * Issues only: GitHub's issues list also holds every pull request (they
+     * carry a `pull_request` key), which have a trigger of their own.
+     */
+    public function triggerItems(array $output, array $config): array
+    {
+        return array_values(array_filter(
+            (array) ($output['issues'] ?? []),
+            fn (mixed $issue): bool => is_array($issue) && ! isset($issue['pull_request']),
+        ));
     }
 
     /**

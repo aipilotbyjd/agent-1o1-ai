@@ -3,6 +3,7 @@
 namespace App\Jobs\Triggers;
 
 use App\Contracts\Triggers\ItemPushSource;
+use App\Contracts\Triggers\PollsOnEvent;
 use App\Enums\Triggers\ProviderEventStatus;
 use App\Enums\Triggers\SubscriptionStatus;
 use App\Enums\Triggers\TriggerType;
@@ -85,9 +86,13 @@ class RouteProviderEvent implements ShouldQueue
             }
 
             try {
-                $delivered = $source instanceof ItemPushSource
-                    ? $this->deliverItem($source, $triggers, $trigger)
-                    : $this->pokePoll($trigger);
+                // An event that only signals "look now" (a file was shared) wakes the poll
+                // even for a source that otherwise delivers items.
+                $delivered = match (true) {
+                    $source instanceof PollsOnEvent && $source->wantsPoll($trigger, (array) $this->event->payload) => $this->pokePoll($trigger),
+                    $source instanceof ItemPushSource => $this->deliverItem($source, $triggers, $trigger),
+                    default => $this->pokePoll($trigger),
+                };
             } catch (Throwable $exception) {
                 report($exception);
 

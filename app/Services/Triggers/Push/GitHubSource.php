@@ -6,8 +6,9 @@ use App\Models\Triggers\ProviderWatch;
 use App\Models\Triggers\Trigger;
 
 /**
- * New issues and pull requests in a GitHub repository through a repository
- * webhook, shared by every trigger on that repository and event.
+ * Issues, pull requests, commits, releases, stars, forks, branches, comments
+ * and workflow runs in a GitHub repository through a repository webhook,
+ * shared by every trigger on that repository and event.
  *
  * Needs admin rights on the repository; without them GitHub refuses (403/404)
  * and the trigger keeps checking on a timer. The hook does not expire. The
@@ -24,7 +25,17 @@ class GitHubSource extends AbstractWatchedSource
      */
     private const array EVENTS = [
         'github_list_issues' => 'issues',
+        'github_list_closed_issues' => 'issues',
         'github_list_pull_requests' => 'pull_request',
+        'github_list_merged_pull_requests' => 'pull_request',
+        'github_list_commits' => 'push',
+        'github_list_releases' => 'release',
+        // GitHub names a star event "watch".
+        'github_list_stargazers' => 'watch',
+        'github_list_forks' => 'fork',
+        'github_list_branches' => 'create',
+        'github_list_repo_comments' => 'issue_comment',
+        'github_list_workflow_runs' => 'workflow_run',
     ];
 
     public function provider(): string

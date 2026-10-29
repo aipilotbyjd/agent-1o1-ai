@@ -40,14 +40,16 @@ trait ReadsRowsAsTriggerItems
     }
 
     /**
-     * The last rows only, enough for several polls' worth of new ones.
+     * The last rows only: as many as one poll looks at. A poll examines the
+     * first `poll_max_items` items of what it is given, so a longer list would
+     * hide the newest rows behind older ones it has already seen.
      *
      * @param  list<array<string, mixed>>  $rows
      * @return list<array<string, mixed>>
      */
     protected function recentRows(array $rows): array
     {
-        $keep = max(1, (int) config('triggers.poll_max_items')) * 3;
+        $keep = max(1, (int) config('triggers.poll_max_items'));
 
         return count($rows) > $keep ? array_slice($rows, -$keep) : $rows;
     }

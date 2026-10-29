@@ -85,7 +85,9 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => 'https://github.com/login/oauth/authorize',
                     'token_url' => 'https://github.com/login/oauth/access_token',
-                    'scopes' => ['repo'],
+                    // repo: code, issues, pull requests and webhooks. workflow: run Actions workflows.
+                    // read:org: organizations and teams. gist: create gists. notifications: read them.
+                    'scopes' => ['repo', 'workflow', 'read:org', 'gist', 'notifications'],
                 ],
                 'sort_order' => 1,
             ],
@@ -102,7 +104,16 @@ class ConnectorSeeder extends Seeder
                 'oauth' => [
                     'authorize_url' => 'https://slack.com/oauth/v2/authorize',
                     'token_url' => 'https://slack.com/api/oauth.v2.access',
-                    'scopes' => ['chat:write', 'channels:read', 'channels:history', 'groups:history', 'reactions:read', 'users:read'],
+                    // Everything the Slack nodes and triggers call: posting and editing, direct
+                    // messages, channel management, reactions, pins, files, people, mentions.
+                    'scopes' => [
+                        'chat:write', 'chat:write.public', 'app_mentions:read',
+                        'channels:read', 'channels:history', 'channels:join', 'channels:manage',
+                        'groups:read', 'groups:history', 'groups:write',
+                        'im:write', 'mpim:write',
+                        'reactions:read', 'reactions:write', 'pins:read', 'pins:write',
+                        'files:read', 'files:write', 'users:read', 'users:read.email',
+                    ],
                 ],
                 'sort_order' => 2,
             ],

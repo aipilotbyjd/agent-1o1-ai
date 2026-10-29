@@ -89,3 +89,11 @@ it('offers every Google trigger in the Triggers & Events catalog', function () {
         'YouTube: New video',
     ]);
 });
+
+it('asks Slack and GitHub for every permission their nodes and triggers use', function () {
+    $this->seed(ConnectorSeeder::class);
+    $scopes = fn (string $key): array => Connector::query()->where('key', $key)->firstOrFail()->oauth['scopes'];
+
+    expect($scopes('slack'))->toContain('chat:write', 'im:write', 'reactions:write', 'pins:write', 'files:write', 'users:read.email', 'channels:manage', 'channels:join', 'app_mentions:read')
+        ->and($scopes('github'))->toContain('repo', 'workflow', 'gist', 'read:org', 'notifications');
+});
