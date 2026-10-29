@@ -144,6 +144,22 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Create and update pages and database items, query databases, and work with content, comments and people in Notion.',
                 'sort_order' => 16,
             ],
+            [
+                'slug' => 'linear',
+                'name' => 'Linear',
+                'icon' => 'linear',
+                'color' => '#5E6AD2',
+                'description' => 'Create, search and update issues, projects and initiatives, relate issues, comment, and post project updates in Linear.',
+                'sort_order' => 17,
+            ],
+            [
+                'slug' => 'jira',
+                'name' => 'Jira',
+                'icon' => 'jira',
+                'color' => '#0052CC',
+                'description' => 'Create, search, update and transition issues, manage projects, comments, attachments, links, users and groups, and Service Management requests in Jira Cloud.',
+                'sort_order' => 18,
+            ],
         ];
 
         foreach ($categories as $category) {

@@ -69,8 +69,9 @@ class OAuthConnectorFlowService
             ...($connector->oauth['authorize_params'] ?? []),
             'client_id' => $this->clientId($connector),
             'redirect_uri' => $redirectUri,
-            // Notion has no scopes (access is what the person picks on its page).
-            ...(($connector->oauth['scopes'] ?? []) === [] ? [] : ['scope' => implode(' ', $connector->oauth['scopes'])]),
+            // Notion has no scopes (access is what the person picks on its page). Linear
+            // wants them comma-separated, the rest space-separated (`scope_separator`).
+            ...(($connector->oauth['scopes'] ?? []) === [] ? [] : ['scope' => implode($connector->oauth['scope_separator'] ?? ' ', $connector->oauth['scopes'])]),
             'state' => $state,
             'response_type' => 'code',
         ]);
@@ -191,7 +192,8 @@ class OAuthConnectorFlowService
     /**
      * Calls the provider's token endpoint. Most take the client id and secret
      * in a form body; a connector with `token_auth` = `basic` (Notion) takes
-     * them as HTTP Basic credentials and a JSON body.
+     * them as HTTP Basic credentials and a JSON body, and one with `json`
+     * (Atlassian) takes them in a JSON body.
      *
      * @param  array<string, string>  $params
      */
@@ -203,6 +205,14 @@ class OAuthConnectorFlowService
 
         if (($connector->oauth['token_auth'] ?? null) === 'basic') {
             return $request->withBasicAuth($clientId, $clientSecret)->asJson()->post($connector->oauth['token_url'], $params);
+        }
+
+        if (($connector->oauth['token_auth'] ?? null) === 'json') {
+            return $request->asJson()->post($connector->oauth['token_url'], [
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+                ...$params,
+            ]);
         }
 
         return $request->asForm()->post($connector->oauth['token_url'], [

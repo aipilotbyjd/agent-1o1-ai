@@ -107,6 +107,28 @@ class ConnectorCredentialTester
             return $this->fromResponse($response, $appName, is_string($account) ? $account : null);
         }
 
+        if ($connectorKey === 'linear') {
+            $response = $request->post('https://api.linear.app/graphql', ['query' => '{ viewer { name email } }']);
+
+            // Linear answers a rejected token with 200 and `errors` as often as with 401.
+            if ($response->successful() && ! empty($response->json('errors'))) {
+                return $this->rejected($appName);
+            }
+
+            return $this->fromResponse($response, $appName, $response->json('data.viewer.email') ?? $response->json('data.viewer.name'));
+        }
+
+        if ($connectorKey === 'jira') {
+            $response = $request->get('https://api.atlassian.com/oauth/token/accessible-resources');
+            $sites = collect((array) $response->json())->pluck('name')->filter()->implode(', ');
+
+            if ($response->successful() && $sites === '') {
+                return $this->result(false, 'This Atlassian account has no Jira site. Connect one that can open a site.');
+            }
+
+            return $this->fromResponse($response, $appName, $sites !== '' ? $sites : null);
+        }
+
         if ($connectorKey === 'outlook') {
             $response = $request->get('https://graph.microsoft.com/v1.0/me');
 

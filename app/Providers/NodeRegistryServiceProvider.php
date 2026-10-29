@@ -151,6 +151,89 @@ use App\Nodes\Integrations\GoogleTasks\GoogleTasksListDueSoonTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTaskListsNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksUpdateTaskNode;
+use App\Nodes\Integrations\Jira\JiraAddAttachmentNode;
+use App\Nodes\Integrations\Jira\JiraAddCommentNode;
+use App\Nodes\Integrations\Jira\JiraAddUserToGroupNode;
+use App\Nodes\Integrations\Jira\JiraAddUserToIssueNode;
+use App\Nodes\Integrations\Jira\JiraCreateCustomerRequestNode;
+use App\Nodes\Integrations\Jira\JiraCreateGroupNode;
+use App\Nodes\Integrations\Jira\JiraCreateIssueLinkNode;
+use App\Nodes\Integrations\Jira\JiraCreateIssueNode;
+use App\Nodes\Integrations\Jira\JiraCreateProjectNode;
+use App\Nodes\Integrations\Jira\JiraDeleteCommentNode;
+use App\Nodes\Integrations\Jira\JiraDeleteIssueLinkNode;
+use App\Nodes\Integrations\Jira\JiraDeleteIssueNode;
+use App\Nodes\Integrations\Jira\JiraDeleteProjectNode;
+use App\Nodes\Integrations\Jira\JiraDownloadAttachmentNode;
+use App\Nodes\Integrations\Jira\JiraGetCustomerRequestNode;
+use App\Nodes\Integrations\Jira\JiraGetEditMetadataNode;
+use App\Nodes\Integrations\Jira\JiraGetIssueLinksNode;
+use App\Nodes\Integrations\Jira\JiraGetIssueNode;
+use App\Nodes\Integrations\Jira\JiraGetMyIssuesNode;
+use App\Nodes\Integrations\Jira\JiraGetMyPermissionsNode;
+use App\Nodes\Integrations\Jira\JiraGetMyRecentActivityNode;
+use App\Nodes\Integrations\Jira\JiraGetMyselfNode;
+use App\Nodes\Integrations\Jira\JiraGetProjectNode;
+use App\Nodes\Integrations\Jira\JiraGetRequestTypeFieldsNode;
+use App\Nodes\Integrations\Jira\JiraGetRequestTypesNode;
+use App\Nodes\Integrations\Jira\JiraListCommentsNode;
+use App\Nodes\Integrations\Jira\JiraListCustomerRequestsNode;
+use App\Nodes\Integrations\Jira\JiraListFieldsNode;
+use App\Nodes\Integrations\Jira\JiraListFiltersNode;
+use App\Nodes\Integrations\Jira\JiraListGroupsNode;
+use App\Nodes\Integrations\Jira\JiraListIssueLinkTypesNode;
+use App\Nodes\Integrations\Jira\JiraListIssuesNode;
+use App\Nodes\Integrations\Jira\JiraListIssueTypesNode;
+use App\Nodes\Integrations\Jira\JiraListNewIssuesNode;
+use App\Nodes\Integrations\Jira\JiraListPrioritiesNode;
+use App\Nodes\Integrations\Jira\JiraListProjectsNode;
+use App\Nodes\Integrations\Jira\JiraListServiceDesksNode;
+use App\Nodes\Integrations\Jira\JiraListTransitionsNode;
+use App\Nodes\Integrations\Jira\JiraListUpdatedIssuesNode;
+use App\Nodes\Integrations\Jira\JiraListUsersNode;
+use App\Nodes\Integrations\Jira\JiraRemoveUserFromGroupNode;
+use App\Nodes\Integrations\Jira\JiraSearchIssuesNode;
+use App\Nodes\Integrations\Jira\JiraTransitionIssueNode;
+use App\Nodes\Integrations\Jira\JiraUpdateCommentNode;
+use App\Nodes\Integrations\Jira\JiraUpdateIssueNode;
+use App\Nodes\Integrations\Jira\JiraUpdateProjectNode;
+use App\Nodes\Integrations\Linear\LinearCreateCommentNode;
+use App\Nodes\Integrations\Linear\LinearCreateInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearCreateIssueNode;
+use App\Nodes\Integrations\Linear\LinearCreateIssueRelationNode;
+use App\Nodes\Integrations\Linear\LinearCreateProjectNode;
+use App\Nodes\Integrations\Linear\LinearCreateStatusUpdateNode;
+use App\Nodes\Integrations\Linear\LinearDeleteCommentNode;
+use App\Nodes\Integrations\Linear\LinearDeleteInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearDeleteIssueNode;
+use App\Nodes\Integrations\Linear\LinearDeleteIssueRelationNode;
+use App\Nodes\Integrations\Linear\LinearDeleteProjectNode;
+use App\Nodes\Integrations\Linear\LinearDeleteStatusUpdateNode;
+use App\Nodes\Integrations\Linear\LinearGetInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearGetIssueNode;
+use App\Nodes\Integrations\Linear\LinearGetMeNode;
+use App\Nodes\Integrations\Linear\LinearGetProjectNode;
+use App\Nodes\Integrations\Linear\LinearListCommentsNode;
+use App\Nodes\Integrations\Linear\LinearListCyclesNode;
+use App\Nodes\Integrations\Linear\LinearListInitiativesNode;
+use App\Nodes\Integrations\Linear\LinearListIssueRelationsNode;
+use App\Nodes\Integrations\Linear\LinearListIssuesNode;
+use App\Nodes\Integrations\Linear\LinearListLabelsNode;
+use App\Nodes\Integrations\Linear\LinearListNewCommentsNode;
+use App\Nodes\Integrations\Linear\LinearListNewIssuesNode;
+use App\Nodes\Integrations\Linear\LinearListProjectsNode;
+use App\Nodes\Integrations\Linear\LinearListStatusUpdatesNode;
+use App\Nodes\Integrations\Linear\LinearListTeamsNode;
+use App\Nodes\Integrations\Linear\LinearListUpdatedIssuesNode;
+use App\Nodes\Integrations\Linear\LinearListUsersNode;
+use App\Nodes\Integrations\Linear\LinearListWorkflowStatesNode;
+use App\Nodes\Integrations\Linear\LinearSearchIssuesNode;
+use App\Nodes\Integrations\Linear\LinearUpdateCommentNode;
+use App\Nodes\Integrations\Linear\LinearUpdateInitiativeNode;
+use App\Nodes\Integrations\Linear\LinearUpdateIssueNode;
+use App\Nodes\Integrations\Linear\LinearUpdateIssueRelationNode;
+use App\Nodes\Integrations\Linear\LinearUpdateProjectNode;
+use App\Nodes\Integrations\Linear\LinearUpdateStatusUpdateNode;
 use App\Nodes\Integrations\Notion\NotionAppendBlocksNode;
 use App\Nodes\Integrations\Notion\NotionArchivePageNode;
 use App\Nodes\Integrations\Notion\NotionCreateCommentNode;
@@ -166,12 +249,12 @@ use App\Nodes\Integrations\Notion\NotionGetPageNode;
 use App\Nodes\Integrations\Notion\NotionGetUserNode;
 use App\Nodes\Integrations\Notion\NotionListBlockChildrenNode;
 use App\Nodes\Integrations\Notion\NotionListCommentsNode;
+use App\Nodes\Integrations\Notion\NotionListDeletedDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListNewCommentsNode;
 use App\Nodes\Integrations\Notion\NotionListNewDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListNewDatabasesNode;
 use App\Nodes\Integrations\Notion\NotionListNewPagesNode;
 use App\Nodes\Integrations\Notion\NotionListNewUsersNode;
-use App\Nodes\Integrations\Notion\NotionListDeletedDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListUpdatedDatabaseItemsNode;
 use App\Nodes\Integrations\Notion\NotionListUpdatedPagesNode;
 use App\Nodes\Integrations\Notion\NotionListUsersNode;
@@ -513,6 +596,89 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'outlook_list_upcoming_events' => OutlookListUpcomingEventsNode::class,
             'outlook_create_event' => OutlookCreateEventNode::class,
             'outlook_delete_event' => OutlookDeleteEventNode::class,
+            'jira_add_attachment' => JiraAddAttachmentNode::class,
+            'jira_add_comment' => JiraAddCommentNode::class,
+            'jira_add_user_to_group' => JiraAddUserToGroupNode::class,
+            'jira_add_user_to_issue' => JiraAddUserToIssueNode::class,
+            'jira_create_customer_request' => JiraCreateCustomerRequestNode::class,
+            'jira_create_group' => JiraCreateGroupNode::class,
+            'jira_create_issue' => JiraCreateIssueNode::class,
+            'jira_create_issue_link' => JiraCreateIssueLinkNode::class,
+            'jira_create_project' => JiraCreateProjectNode::class,
+            'jira_delete_comment' => JiraDeleteCommentNode::class,
+            'jira_delete_issue' => JiraDeleteIssueNode::class,
+            'jira_delete_issue_link' => JiraDeleteIssueLinkNode::class,
+            'jira_delete_project' => JiraDeleteProjectNode::class,
+            'jira_download_attachment' => JiraDownloadAttachmentNode::class,
+            'jira_get_customer_request' => JiraGetCustomerRequestNode::class,
+            'jira_get_edit_metadata' => JiraGetEditMetadataNode::class,
+            'jira_get_issue' => JiraGetIssueNode::class,
+            'jira_get_issue_links' => JiraGetIssueLinksNode::class,
+            'jira_get_my_issues' => JiraGetMyIssuesNode::class,
+            'jira_get_my_permissions' => JiraGetMyPermissionsNode::class,
+            'jira_get_my_recent_activity' => JiraGetMyRecentActivityNode::class,
+            'jira_get_myself' => JiraGetMyselfNode::class,
+            'jira_get_project' => JiraGetProjectNode::class,
+            'jira_get_request_type_fields' => JiraGetRequestTypeFieldsNode::class,
+            'jira_get_request_types' => JiraGetRequestTypesNode::class,
+            'jira_list_comments' => JiraListCommentsNode::class,
+            'jira_list_customer_requests' => JiraListCustomerRequestsNode::class,
+            'jira_list_fields' => JiraListFieldsNode::class,
+            'jira_list_filters' => JiraListFiltersNode::class,
+            'jira_list_groups' => JiraListGroupsNode::class,
+            'jira_list_issue_link_types' => JiraListIssueLinkTypesNode::class,
+            'jira_list_issue_types' => JiraListIssueTypesNode::class,
+            'jira_list_issues' => JiraListIssuesNode::class,
+            'jira_list_new_issues' => JiraListNewIssuesNode::class,
+            'jira_list_priorities' => JiraListPrioritiesNode::class,
+            'jira_list_projects' => JiraListProjectsNode::class,
+            'jira_list_service_desks' => JiraListServiceDesksNode::class,
+            'jira_list_transitions' => JiraListTransitionsNode::class,
+            'jira_list_updated_issues' => JiraListUpdatedIssuesNode::class,
+            'jira_list_users' => JiraListUsersNode::class,
+            'jira_remove_user_from_group' => JiraRemoveUserFromGroupNode::class,
+            'jira_search_issues' => JiraSearchIssuesNode::class,
+            'jira_transition_issue' => JiraTransitionIssueNode::class,
+            'jira_update_comment' => JiraUpdateCommentNode::class,
+            'jira_update_issue' => JiraUpdateIssueNode::class,
+            'jira_update_project' => JiraUpdateProjectNode::class,
+            'linear_create_comment' => LinearCreateCommentNode::class,
+            'linear_create_initiative' => LinearCreateInitiativeNode::class,
+            'linear_create_issue' => LinearCreateIssueNode::class,
+            'linear_create_issue_relation' => LinearCreateIssueRelationNode::class,
+            'linear_create_project' => LinearCreateProjectNode::class,
+            'linear_create_status_update' => LinearCreateStatusUpdateNode::class,
+            'linear_delete_comment' => LinearDeleteCommentNode::class,
+            'linear_delete_initiative' => LinearDeleteInitiativeNode::class,
+            'linear_delete_issue' => LinearDeleteIssueNode::class,
+            'linear_delete_issue_relation' => LinearDeleteIssueRelationNode::class,
+            'linear_delete_project' => LinearDeleteProjectNode::class,
+            'linear_delete_status_update' => LinearDeleteStatusUpdateNode::class,
+            'linear_get_initiative' => LinearGetInitiativeNode::class,
+            'linear_get_issue' => LinearGetIssueNode::class,
+            'linear_get_me' => LinearGetMeNode::class,
+            'linear_get_project' => LinearGetProjectNode::class,
+            'linear_list_comments' => LinearListCommentsNode::class,
+            'linear_list_cycles' => LinearListCyclesNode::class,
+            'linear_list_initiatives' => LinearListInitiativesNode::class,
+            'linear_list_issue_relations' => LinearListIssueRelationsNode::class,
+            'linear_list_issues' => LinearListIssuesNode::class,
+            'linear_list_labels' => LinearListLabelsNode::class,
+            'linear_list_new_comments' => LinearListNewCommentsNode::class,
+            'linear_list_new_issues' => LinearListNewIssuesNode::class,
+            'linear_list_projects' => LinearListProjectsNode::class,
+            'linear_list_status_updates' => LinearListStatusUpdatesNode::class,
+            'linear_list_teams' => LinearListTeamsNode::class,
+            'linear_list_updated_issues' => LinearListUpdatedIssuesNode::class,
+            'linear_list_users' => LinearListUsersNode::class,
+            'linear_list_workflow_states' => LinearListWorkflowStatesNode::class,
+            'linear_search_issues' => LinearSearchIssuesNode::class,
+            'linear_update_comment' => LinearUpdateCommentNode::class,
+            'linear_update_initiative' => LinearUpdateInitiativeNode::class,
+            'linear_update_issue' => LinearUpdateIssueNode::class,
+            'linear_update_issue_relation' => LinearUpdateIssueRelationNode::class,
+            'linear_update_project' => LinearUpdateProjectNode::class,
+            'linear_update_status_update' => LinearUpdateStatusUpdateNode::class,
         ];
     }
 }

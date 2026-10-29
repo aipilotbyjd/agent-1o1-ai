@@ -112,6 +112,16 @@ return [
         'client_secret' => env('NOTION_CLIENT_SECRET'),
     ],
 
+    'linear' => [
+        'client_id' => env('LINEAR_CLIENT_ID'),
+        'client_secret' => env('LINEAR_CLIENT_SECRET'),
+    ],
+
+    'jira' => [
+        'client_id' => env('JIRA_CLIENT_ID'),
+        'client_secret' => env('JIRA_CLIENT_SECRET'),
+    ],
+
     'outlook' => [
         'client_id' => env('MICROSOFT_CONNECTORS_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_CONNECTORS_CLIENT_SECRET'),

@@ -31,7 +31,7 @@ const REMOVAL_NOTION_DB = '11111111-2222-4333-8444-555555555555';
  *
  * @param  array<string, mixed>  $nodeConfig
  */
-function readerTrigger(string $category, string $nodeType, array $nodeConfig): Trigger
+function stateReaderTrigger(string $category, string $nodeType, array $nodeConfig): Trigger
 {
     Queue::fake([FireTriggerEvent::class]);
 
@@ -160,7 +160,7 @@ describe('presence tracker', function () {
 
 describe('google sheets: row deleted', function () {
     it('reports a deleted row once, found by its id column', function () {
-        $trigger = readerTrigger('google_sheets', 'google_sheets_list_deleted_rows', ['spreadsheet_id' => 'sheet1', 'range' => 'Sheet1', 'id_column' => 'Order ID']);
+        $trigger = stateReaderTrigger('google_sheets', 'google_sheets_list_deleted_rows', ['spreadsheet_id' => 'sheet1', 'range' => 'Sheet1', 'id_column' => 'Order ID']);
         Http::fake(['sheets.googleapis.com/*' => Http::sequence()
             ->push(removalSheet(['A1', 'A2', 'A3']))
             ->push(removalSheet(['A1', 'A3']))
@@ -181,7 +181,7 @@ describe('google sheets: row deleted', function () {
     });
 
     it('starts a new baseline when the trigger\'s settings change, rather than reporting every old row gone', function () {
-        $trigger = readerTrigger('google_sheets', 'google_sheets_list_deleted_rows', ['spreadsheet_id' => 'sheet1', 'range' => 'Sheet1', 'id_column' => 'Order ID']);
+        $trigger = stateReaderTrigger('google_sheets', 'google_sheets_list_deleted_rows', ['spreadsheet_id' => 'sheet1', 'range' => 'Sheet1', 'id_column' => 'Order ID']);
         Http::fake(['sheets.googleapis.com/*' => Http::sequence()
             ->push(removalSheet(['A1', 'A2']))
             ->push(['range' => 'Sheet1!A1:B3', 'values' => [['Order ID', 'Email'], ['A1', 'a@x.com'], ['A2', 'b@x.com']]])]);
@@ -227,7 +227,7 @@ describe('google sheets: row deleted', function () {
     });
 
     it('shows an example removal as the sample, without moving its state', function () {
-        $trigger = readerTrigger('google_sheets', 'google_sheets_list_deleted_rows', ['spreadsheet_id' => 'sheet1', 'range' => 'Sheet1', 'id_column' => 'Order ID']);
+        $trigger = stateReaderTrigger('google_sheets', 'google_sheets_list_deleted_rows', ['spreadsheet_id' => 'sheet1', 'range' => 'Sheet1', 'id_column' => 'Order ID']);
         Http::fake();
 
         $sample = app(TriggerSampler::class)->sample($trigger);
@@ -271,7 +271,7 @@ describe('notion: database item deleted', function () {
 
 describe('google drive: file trashed', function () {
     it('reads the change feed from where it left off and reports trashed and deleted files', function () {
-        $trigger = readerTrigger('google_drive', 'google_drive_list_trashed_files', []);
+        $trigger = stateReaderTrigger('google_drive', 'google_drive_list_trashed_files', []);
         Http::fake([
             'www.googleapis.com/drive/v3/changes/startPageToken*' => Http::response(['startPageToken' => 'tok1']),
             'www.googleapis.com/drive/v3/changes*' => Http::response([
@@ -421,7 +421,7 @@ describe('google tasks: task due soon', function () {
 
     it('fires for a task that comes due after the trigger was switched on', function () {
         Carbon::setTestNow('2026-03-01 09:00:00');
-        $trigger = readerTrigger('google_tasks', 'google_tasks_list_due_soon_tasks', ['hours_before' => 24]);
+        $trigger = stateReaderTrigger('google_tasks', 'google_tasks_list_due_soon_tasks', ['hours_before' => 24]);
         Http::fake(['tasks.googleapis.com/*' => Http::sequence()
             ->push(['items' => [['id' => 'old', 'status' => 'needsAction', 'due' => '2026-03-02T00:00:00.000Z']]])
             ->push(['items' => [['id' => 'old', 'status' => 'needsAction', 'due' => '2026-03-02T00:00:00.000Z'], ['id' => 'new', 'status' => 'needsAction', 'due' => '2026-03-02T00:00:00.000Z']]])]);

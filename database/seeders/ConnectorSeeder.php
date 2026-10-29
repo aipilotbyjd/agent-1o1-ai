@@ -373,6 +373,55 @@ class ConnectorSeeder extends Seeder
                 ],
                 'sort_order' => 9,
             ],
+            [
+                'key' => 'linear',
+                'name' => 'Linear',
+                'description' => 'Create, search and update issues, projects and initiatives, relate issues, comment, and post project updates in Linear.',
+                'icon' => 'linear',
+                'color' => '#5E6AD2',
+                'category' => ConnectorCategory::Productivity,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::OAuth2,
+                'fields' => [],
+                'oauth' => [
+                    'authorize_url' => 'https://linear.app/oauth/authorize',
+                    'token_url' => 'https://api.linear.app/oauth/token',
+                    // Linear takes its scopes comma-separated. `read` and `write` cover every node;
+                    // `issues:create` and `comments:create` let a member who can't edit still file and reply.
+                    'scope_separator' => ',',
+                    'scopes' => ['read', 'write', 'issues:create', 'comments:create'],
+                ],
+                'sort_order' => 17,
+            ],
+            [
+                // One Atlassian login reaches every Jira site the person belongs to; the nodes
+                // pick the site (`site`) from the account's accessible resources.
+                'key' => 'jira',
+                'name' => 'Jira',
+                'description' => 'Create, search, update and transition issues, manage projects, comments, attachments, links, users and groups, and Service Management requests in Jira Cloud.',
+                'icon' => 'jira',
+                'color' => '#0052CC',
+                'category' => ConnectorCategory::Developer,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::OAuth2,
+                'fields' => [],
+                'oauth' => [
+                    'authorize_url' => 'https://auth.atlassian.com/authorize',
+                    'token_url' => 'https://auth.atlassian.com/oauth/token',
+                    // Atlassian wants the client id and secret in a JSON body, an `audience`, and a
+                    // consent screen every time, or it issues no refresh token (`offline_access`
+                    // is also needed for one).
+                    'token_auth' => 'json',
+                    'authorize_params' => ['audience' => 'api.atlassian.com', 'prompt' => 'consent'],
+                    'scopes' => [
+                        'offline_access',
+                        'read:jira-work', 'write:jira-work', 'read:jira-user', 'manage:jira-project',
+                        'manage:jira-configuration',
+                        'read:servicedesk-request', 'write:servicedesk-request', 'manage:servicedesk-customer',
+                    ],
+                ],
+                'sort_order' => 18,
+            ],
         ];
     }
 }
