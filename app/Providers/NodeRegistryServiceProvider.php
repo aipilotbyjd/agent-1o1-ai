@@ -5,8 +5,14 @@ namespace App\Providers;
 use App\Contracts\NodeContract;
 use App\Nodes\AiAutomation\AgentNode;
 use App\Nodes\AiAutomation\AskAiNode;
+use App\Nodes\DataTransform\ArrayNode;
 use App\Nodes\DataTransform\CallApiNode;
+use App\Nodes\DataTransform\DateTimeNode;
+use App\Nodes\DataTransform\JsonNode;
+use App\Nodes\DataTransform\MathNode;
 use App\Nodes\DataTransform\RunCodeNode;
+use App\Nodes\DataTransform\SetVariableNode;
+use App\Nodes\DataTransform\StringNode;
 use App\Nodes\DataTransform\TransformNode;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Nodes\FlowLogic\FilterNode;
@@ -275,6 +281,12 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'transform' => TransformNode::class,
             'call_api' => CallApiNode::class,
             'run_code' => RunCodeNode::class,
+            'set_variable' => SetVariableNode::class,
+            'string' => StringNode::class,
+            'json' => JsonNode::class,
+            'array' => ArrayNode::class,
+            'math' => MathNode::class,
+            'date_time' => DateTimeNode::class,
             'router' => RouterNode::class,
             'filter' => FilterNode::class,
             'ask_ai' => AskAiNode::class,

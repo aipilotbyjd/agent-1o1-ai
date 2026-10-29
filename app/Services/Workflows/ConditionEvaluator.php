@@ -95,7 +95,7 @@ final class ConditionEvaluator
             return false;
         }
 
-        return @preg_match(self::delimited($pattern), '') !== false;
+        return @preg_match(self::regex($pattern), '') !== false;
     }
 
     /**
@@ -164,14 +164,14 @@ final class ConditionEvaluator
             return false;
         }
 
-        return @preg_match(self::delimited($pattern), (string) $actual) === 1;
+        return @preg_match(self::regex($pattern), (string) $actual) === 1;
     }
 
     /**
      * The user types the pattern body; the delimiter is ours so it can't be
-     * used to smuggle in modifiers.
+     * used to smuggle in modifiers. Also how the String node reads patterns.
      */
-    private static function delimited(string $pattern): string
+    public static function regex(string $pattern): string
     {
         return '~'.str_replace('~', '\~', $pattern).'~u';
     }

@@ -20,6 +20,12 @@ it('registers every minimal built-in node under its own type string', function (
         'router' => RouterNode::class,
         'filter' => FilterNode::class,
         'ask_ai' => AskAiNode::class,
+        'set_variable' => App\Nodes\DataTransform\SetVariableNode::class,
+        'string' => App\Nodes\DataTransform\StringNode::class,
+        'json' => App\Nodes\DataTransform\JsonNode::class,
+        'array' => App\Nodes\DataTransform\ArrayNode::class,
+        'math' => App\Nodes\DataTransform\MathNode::class,
+        'date_time' => App\Nodes\DataTransform\DateTimeNode::class,
     ];
 
     foreach ($expected as $type => $class) {

@@ -50,7 +50,24 @@ Old project's equivalent is `Nodes/Core`, `Nodes/Flow`, `Nodes/Custom`, `Nodes/A
 
 ## Data nodes (`Nodes/DataTransform/`)
 
-`CacheNode`, `StringNode`, `DataNode`, `JsonNode`, `DateTimeNode`, `ArrayNode`, `VariableNode`, `MathNode` — ported from `Apps/Data/*`, one class each, same names.
+Built (all extend `PureDataNode`: no network, files or database, `ActionEffect::Read`, so agents may call them freely; each returns `result` unless noted):
+
+| Type | Class | What it does |
+|---|---|---|
+| `set_variable` | `SetVariableNode` | Names values for later steps (`variables` name → value, types kept). Output is one field per variable; names must be `[A-Za-z_][A-Za-z0-9_]*`. Replaces the old `VariableNode`/`SetVariableNode`. |
+| `string` | `StringNode` ("Text") | trim, upper/lower/title case, slugify, length, find and replace, regex replace/extract, substring, truncate, split. |
+| `json` | `JsonNode` | parse JSON text, stringify data, get a value by dot path with a default. |
+| `array` | `ArrayNode` ("List") | length, first, last, join, unique, sort (by field, either way), reverse, slice, pluck a field, flatten. |
+| `math` | `MathNode` | add, subtract, multiply, divide, remainder, power, round/floor/ceil/abs, and sum/average/min/max of a list. |
+| `date_time` | `DateTimeNode` | now, reformat or change timezone, add/subtract time, time between two dates (also returns `timestamp`). |
+
+Notes for these nodes:
+
+- **Typing.** The engine casts a whole `{{ }}` value to the field's declared type (`ResolvedConfigCaster`), so a field that must receive data as it is (`json.value`) is declared without a `type`; a typed text field would turn a list into JSON text first.
+- **Errors, not guesses.** Bad input (divide by zero, a result too large to hold, an unreadable date, a broken pattern, a list where text was expected) throws `InvalidArgumentException` with a sentence for the run log. Size caps: text 1,000,000 characters, JSON 5 MB, lists 100,000 items.
+- **Patterns** use `ConditionEvaluator::regex()`: our delimiter and the `u` flag, 200 characters at most.
+- **Dates** read a timezone-less value in the chosen timezone (UTC when empty) and print ISO 8601. Months and years can be added but not measured, because they vary in length.
+- **Still to port:** `CacheNode` (needs a workspace-scoped store and a retention rule first), `DataNode` (undefined in the old project's notes: confirm what it did before building) and `LoggerNode` (decide where its lines are shown).
 
 ## AI nodes (`Nodes/AiAutomation/`)
 
