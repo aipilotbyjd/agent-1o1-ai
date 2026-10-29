@@ -318,6 +318,61 @@ use App\Nodes\Integrations\Slack\SlackSetChannelTopicNode;
 use App\Nodes\Integrations\Slack\SlackUnpinMessageNode;
 use App\Nodes\Integrations\Slack\SlackUpdateMessageNode;
 use App\Nodes\Integrations\Slack\SlackUploadFileNode;
+use App\Nodes\Integrations\Telegram\TelegramAnswerCallbackQueryNode;
+use App\Nodes\Integrations\Telegram\TelegramApproveChatJoinRequestNode;
+use App\Nodes\Integrations\Telegram\TelegramBanChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramBotChatStatusNode;
+use App\Nodes\Integrations\Telegram\TelegramCopyMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramCreateChatInviteLinkNode;
+use App\Nodes\Integrations\Telegram\TelegramDeclineChatJoinRequestNode;
+use App\Nodes\Integrations\Telegram\TelegramDeleteMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramDeleteMessagesNode;
+use App\Nodes\Integrations\Telegram\TelegramDeleteMyCommandsNode;
+use App\Nodes\Integrations\Telegram\TelegramEditedMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramEditMessageButtonsNode;
+use App\Nodes\Integrations\Telegram\TelegramEditMessageCaptionNode;
+use App\Nodes\Integrations\Telegram\TelegramEditMessageTextNode;
+use App\Nodes\Integrations\Telegram\TelegramForwardMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatAdministratorsNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatMemberCountNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramGetChatNode;
+use App\Nodes\Integrations\Telegram\TelegramGetFileNode;
+use App\Nodes\Integrations\Telegram\TelegramGetMeNode;
+use App\Nodes\Integrations\Telegram\TelegramGetMyCommandsNode;
+use App\Nodes\Integrations\Telegram\TelegramGetWebhookInfoNode;
+use App\Nodes\Integrations\Telegram\TelegramLeaveChatNode;
+use App\Nodes\Integrations\Telegram\TelegramMemberJoinedNode;
+use App\Nodes\Integrations\Telegram\TelegramMemberLeftNode;
+use App\Nodes\Integrations\Telegram\TelegramNewCallbackQueryNode;
+use App\Nodes\Integrations\Telegram\TelegramNewChannelPostNode;
+use App\Nodes\Integrations\Telegram\TelegramNewJoinRequestNode;
+use App\Nodes\Integrations\Telegram\TelegramNewMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramNewPollAnswerNode;
+use App\Nodes\Integrations\Telegram\TelegramPinChatMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramRestrictChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramSendAnimationNode;
+use App\Nodes\Integrations\Telegram\TelegramSendAudioNode;
+use App\Nodes\Integrations\Telegram\TelegramSendChatActionNode;
+use App\Nodes\Integrations\Telegram\TelegramSendContactNode;
+use App\Nodes\Integrations\Telegram\TelegramSendDiceNode;
+use App\Nodes\Integrations\Telegram\TelegramSendDocumentNode;
+use App\Nodes\Integrations\Telegram\TelegramSendLocationNode;
+use App\Nodes\Integrations\Telegram\TelegramSendMediaGroupNode;
+use App\Nodes\Integrations\Telegram\TelegramSendMessageNode;
+use App\Nodes\Integrations\Telegram\TelegramSendPhotoNode;
+use App\Nodes\Integrations\Telegram\TelegramSendPollNode;
+use App\Nodes\Integrations\Telegram\TelegramSendStickerNode;
+use App\Nodes\Integrations\Telegram\TelegramSendVenueNode;
+use App\Nodes\Integrations\Telegram\TelegramSendVideoNode;
+use App\Nodes\Integrations\Telegram\TelegramSendVoiceNode;
+use App\Nodes\Integrations\Telegram\TelegramSetChatDescriptionNode;
+use App\Nodes\Integrations\Telegram\TelegramSetChatTitleNode;
+use App\Nodes\Integrations\Telegram\TelegramSetMyCommandsNode;
+use App\Nodes\Integrations\Telegram\TelegramStopPollNode;
+use App\Nodes\Integrations\Telegram\TelegramUnbanChatMemberNode;
+use App\Nodes\Integrations\Telegram\TelegramUnpinAllChatMessagesNode;
+use App\Nodes\Integrations\Telegram\TelegramUnpinChatMessageNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
 use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
@@ -687,6 +742,61 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'email_send' => EmailSendEmailNode::class,
             'email_send_to_many' => EmailSendToManyNode::class,
             'email_validate_address' => EmailValidateAddressNode::class,
+            'telegram_answer_callback_query' => TelegramAnswerCallbackQueryNode::class,
+            'telegram_approve_chat_join_request' => TelegramApproveChatJoinRequestNode::class,
+            'telegram_ban_chat_member' => TelegramBanChatMemberNode::class,
+            'telegram_bot_chat_status' => TelegramBotChatStatusNode::class,
+            'telegram_copy_message' => TelegramCopyMessageNode::class,
+            'telegram_create_chat_invite_link' => TelegramCreateChatInviteLinkNode::class,
+            'telegram_decline_chat_join_request' => TelegramDeclineChatJoinRequestNode::class,
+            'telegram_delete_message' => TelegramDeleteMessageNode::class,
+            'telegram_delete_messages' => TelegramDeleteMessagesNode::class,
+            'telegram_delete_my_commands' => TelegramDeleteMyCommandsNode::class,
+            'telegram_edit_message_buttons' => TelegramEditMessageButtonsNode::class,
+            'telegram_edit_message_caption' => TelegramEditMessageCaptionNode::class,
+            'telegram_edit_message_text' => TelegramEditMessageTextNode::class,
+            'telegram_edited_message' => TelegramEditedMessageNode::class,
+            'telegram_forward_message' => TelegramForwardMessageNode::class,
+            'telegram_get_chat_administrators' => TelegramGetChatAdministratorsNode::class,
+            'telegram_get_chat_member_count' => TelegramGetChatMemberCountNode::class,
+            'telegram_get_chat_member' => TelegramGetChatMemberNode::class,
+            'telegram_get_chat' => TelegramGetChatNode::class,
+            'telegram_get_file' => TelegramGetFileNode::class,
+            'telegram_get_me' => TelegramGetMeNode::class,
+            'telegram_get_my_commands' => TelegramGetMyCommandsNode::class,
+            'telegram_get_webhook_info' => TelegramGetWebhookInfoNode::class,
+            'telegram_leave_chat' => TelegramLeaveChatNode::class,
+            'telegram_member_joined' => TelegramMemberJoinedNode::class,
+            'telegram_member_left' => TelegramMemberLeftNode::class,
+            'telegram_new_callback_query' => TelegramNewCallbackQueryNode::class,
+            'telegram_new_channel_post' => TelegramNewChannelPostNode::class,
+            'telegram_new_join_request' => TelegramNewJoinRequestNode::class,
+            'telegram_new_message' => TelegramNewMessageNode::class,
+            'telegram_new_poll_answer' => TelegramNewPollAnswerNode::class,
+            'telegram_pin_chat_message' => TelegramPinChatMessageNode::class,
+            'telegram_restrict_chat_member' => TelegramRestrictChatMemberNode::class,
+            'telegram_send_animation' => TelegramSendAnimationNode::class,
+            'telegram_send_audio' => TelegramSendAudioNode::class,
+            'telegram_send_chat_action' => TelegramSendChatActionNode::class,
+            'telegram_send_contact' => TelegramSendContactNode::class,
+            'telegram_send_dice' => TelegramSendDiceNode::class,
+            'telegram_send_document' => TelegramSendDocumentNode::class,
+            'telegram_send_location' => TelegramSendLocationNode::class,
+            'telegram_send_media_group' => TelegramSendMediaGroupNode::class,
+            'telegram_send_message' => TelegramSendMessageNode::class,
+            'telegram_send_photo' => TelegramSendPhotoNode::class,
+            'telegram_send_poll' => TelegramSendPollNode::class,
+            'telegram_send_sticker' => TelegramSendStickerNode::class,
+            'telegram_send_venue' => TelegramSendVenueNode::class,
+            'telegram_send_video' => TelegramSendVideoNode::class,
+            'telegram_send_voice' => TelegramSendVoiceNode::class,
+            'telegram_set_chat_description' => TelegramSetChatDescriptionNode::class,
+            'telegram_set_chat_title' => TelegramSetChatTitleNode::class,
+            'telegram_set_my_commands' => TelegramSetMyCommandsNode::class,
+            'telegram_stop_poll' => TelegramStopPollNode::class,
+            'telegram_unban_chat_member' => TelegramUnbanChatMemberNode::class,
+            'telegram_unpin_all_chat_messages' => TelegramUnpinAllChatMessagesNode::class,
+            'telegram_unpin_chat_message' => TelegramUnpinChatMessageNode::class,
         ];
     }
 }

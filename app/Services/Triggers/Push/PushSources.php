@@ -37,8 +37,9 @@ class PushSources
         NotionSource $notionSource,
         LinearSource $linearSource,
         JiraSource $jiraSource,
+        TelegramSource $telegramSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -56,6 +57,7 @@ class PushSources
             new NotionIngress,
             new LinearIngress,
             new JiraIngress,
+            new TelegramIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }
