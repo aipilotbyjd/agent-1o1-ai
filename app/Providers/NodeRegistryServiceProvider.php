@@ -1051,6 +1051,23 @@ use App\Nodes\Integrations\ZohoDesk\ZohoDeskSearchTicketsNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskSendReplyNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateContactNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateTicketNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsAddTaskCommentNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateBugNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateMilestoneNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateProjectNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateTaskNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsGetProjectNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsGetTaskNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListBugsNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListChangedTasksNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListMilestonesNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListNewBugsNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListNewTasksNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListProjectsNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListTasksNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListUsersNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsLogTimeNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsUpdateTaskNode;
 use App\Nodes\TriggersEvents\ManualTriggerNode;
 use App\Nodes\TriggersEvents\PollingTriggerNode;
 use App\Nodes\TriggersEvents\ScheduleTriggerNode;
@@ -2143,6 +2160,23 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_books_mark_invoice' => ZohoBooksMarkInvoiceNode::class,
             'zoho_books_record_payment' => ZohoBooksRecordPaymentNode::class,
             'zoho_books_update_contact' => ZohoBooksUpdateContactNode::class,
+            'zoho_projects_add_task_comment' => ZohoProjectsAddTaskCommentNode::class,
+            'zoho_projects_create_bug' => ZohoProjectsCreateBugNode::class,
+            'zoho_projects_create_milestone' => ZohoProjectsCreateMilestoneNode::class,
+            'zoho_projects_create_project' => ZohoProjectsCreateProjectNode::class,
+            'zoho_projects_create_task' => ZohoProjectsCreateTaskNode::class,
+            'zoho_projects_get_project' => ZohoProjectsGetProjectNode::class,
+            'zoho_projects_get_task' => ZohoProjectsGetTaskNode::class,
+            'zoho_projects_list_bugs' => ZohoProjectsListBugsNode::class,
+            'zoho_projects_list_changed_tasks' => ZohoProjectsListChangedTasksNode::class,
+            'zoho_projects_list_milestones' => ZohoProjectsListMilestonesNode::class,
+            'zoho_projects_list_new_bugs' => ZohoProjectsListNewBugsNode::class,
+            'zoho_projects_list_new_tasks' => ZohoProjectsListNewTasksNode::class,
+            'zoho_projects_list_projects' => ZohoProjectsListProjectsNode::class,
+            'zoho_projects_list_tasks' => ZohoProjectsListTasksNode::class,
+            'zoho_projects_list_users' => ZohoProjectsListUsersNode::class,
+            'zoho_projects_log_time' => ZohoProjectsLogTimeNode::class,
+            'zoho_projects_update_task' => ZohoProjectsUpdateTaskNode::class,
         ];
     }
 }

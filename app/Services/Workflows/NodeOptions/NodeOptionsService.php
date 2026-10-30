@@ -48,6 +48,7 @@ use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoBooksOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoDeskOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoProjectsOptions;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -100,6 +101,7 @@ class NodeOptionsService
         ZohoOptions::class,
         ZohoDeskOptions::class,
         ZohoBooksOptions::class,
+        ZohoProjectsOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

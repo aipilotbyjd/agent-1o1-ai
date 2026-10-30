@@ -104,7 +104,7 @@ class CrmAccessTokens
         $base = match ($app) {
             'desk' => "https://desk.{$domain}/api/v1",
             'books' => $login['api'].'/books/v3',
-            'projects' => "https://projects.{$domain}/api/v3",
+            'projects' => "https://projectsapi.{$domain}/api/v3",
             'campaigns' => "https://campaigns.{$domain}/api/v1.1",
             'mail' => "https://mail.{$domain}/api",
             'cliq' => "https://cliq.{$domain}/api/v2",
