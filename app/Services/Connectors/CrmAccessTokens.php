@@ -79,6 +79,42 @@ class CrmAccessTokens
     }
 
     /**
+     * The domain each Zoho data center's apps live under (desk.zoho.eu, mail.zoho.eu...).
+     *
+     * @var array<string, string>
+     */
+    public const array ZOHO_DOMAINS = ['us' => 'zoho.com', 'eu' => 'zoho.eu', 'in' => 'zoho.in', 'au' => 'zoho.com.au', 'jp' => 'zoho.jp', 'ca' => 'zohocloud.ca', 'sa' => 'zoho.sa'];
+
+    /**
+     * A Zoho access token and the base URL of one of the other Zoho apps for the account's data center.
+     * The same refresh token serves every app it was given the scopes of.
+     *
+     * @param  array<string, mixed>  $data  the connection's fields
+     * @param  string  $app  desk, books, projects, campaigns, mail or cliq
+     * @return array{token: string, base: string}
+     *
+     * @throws InvalidArgumentException
+     */
+    public function zohoApp(array $data, string $app): array
+    {
+        $login = $this->zoho($data);
+        $region = strtolower(trim((string) ($data['region'] ?? ''))) ?: 'us';
+        $domain = self::ZOHO_DOMAINS[$region];
+
+        $base = match ($app) {
+            'desk' => "https://desk.{$domain}/api/v1",
+            'books' => $login['api'].'/books/v3',
+            'projects' => "https://projectsapi.{$domain}/api/v3",
+            'campaigns' => "https://campaigns.{$domain}/api/v1.1",
+            'mail' => "https://mail.{$domain}/api",
+            'cliq' => "https://cliq.{$domain}/api/v2",
+            default => throw new InvalidArgumentException("\"{$app}\" is not a Zoho app."),
+        };
+
+        return ['token' => $login['token'], 'base' => $base];
+    }
+
+    /**
      * A Zoho access token and the API root for the account's data center.
      *
      * @param  array<string, mixed>  $data  the connection's fields: region, client_id, api_key (the client secret), refresh_token

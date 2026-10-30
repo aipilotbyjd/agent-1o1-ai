@@ -1005,6 +1005,92 @@ use App\Nodes\Integrations\Zoho\ZohoUpdateDealNode;
 use App\Nodes\Integrations\Zoho\ZohoUpdateLeadNode;
 use App\Nodes\Integrations\Zoho\ZohoUpdateTaskNode;
 use App\Nodes\Integrations\Zoho\ZohoUpsertRecordNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateBillNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateCustomerNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateEstimateNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateItemNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateVendorNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksDeleteInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksEmailEstimateNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksEmailInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetBillNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetContactNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetOrganizationNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListBillsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListContactsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListEstimatesNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListInvoicesNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListItemsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListNewCustomersNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListNewInvoicesNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListNewPaymentsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListPaymentsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksMarkEstimateNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksMarkInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksRecordPaymentNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksUpdateContactNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsAddSubscriberNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListCampaignsNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListListsNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListNewSubscribersNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListSubscribersNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListUnsubscribesNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsSendCampaignNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsUnsubscribeNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqListChannelsNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqListMessagesNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqListUsersNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqSendChannelMessageNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqSendChatMessageNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqSendDirectMessageNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskAddCommentNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskCloseTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskCreateContactNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskCreateTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskDeleteTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskFindContactNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskGetMeNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskGetTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListAgentsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListChangedTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListContactsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListCustomerRepliesNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListDepartmentsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListNewTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListThreadsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskSearchTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskSendReplyNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateContactNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateTicketNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailGetAccountNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailGetMessageNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailListFoldersNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailListMessagesNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailListNewMessagesNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailMarkReadNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailMoveMessageNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailSearchMessagesNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailSendEmailNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsAddTaskCommentNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateBugNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateMilestoneNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateProjectNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateTaskNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsGetProjectNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsGetTaskNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListBugsNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListChangedTasksNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListMilestonesNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListNewBugsNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListNewTasksNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListProjectsNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListTasksNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListUsersNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsLogTimeNode;
+use App\Nodes\Integrations\ZohoProjects\ZohoProjectsUpdateTaskNode;
 use App\Nodes\TriggersEvents\ManualTriggerNode;
 use App\Nodes\TriggersEvents\PollingTriggerNode;
 use App\Nodes\TriggersEvents\ScheduleTriggerNode;
@@ -2051,6 +2137,92 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_update_lead' => ZohoUpdateLeadNode::class,
             'zoho_update_task' => ZohoUpdateTaskNode::class,
             'zoho_upsert_record' => ZohoUpsertRecordNode::class,
+            'zoho_desk_add_comment' => ZohoDeskAddCommentNode::class,
+            'zoho_desk_close_ticket' => ZohoDeskCloseTicketNode::class,
+            'zoho_desk_create_contact' => ZohoDeskCreateContactNode::class,
+            'zoho_desk_create_ticket' => ZohoDeskCreateTicketNode::class,
+            'zoho_desk_delete_ticket' => ZohoDeskDeleteTicketNode::class,
+            'zoho_desk_find_contact' => ZohoDeskFindContactNode::class,
+            'zoho_desk_get_me' => ZohoDeskGetMeNode::class,
+            'zoho_desk_get_ticket' => ZohoDeskGetTicketNode::class,
+            'zoho_desk_list_agents' => ZohoDeskListAgentsNode::class,
+            'zoho_desk_list_changed_tickets' => ZohoDeskListChangedTicketsNode::class,
+            'zoho_desk_list_contacts' => ZohoDeskListContactsNode::class,
+            'zoho_desk_list_customer_replies' => ZohoDeskListCustomerRepliesNode::class,
+            'zoho_desk_list_departments' => ZohoDeskListDepartmentsNode::class,
+            'zoho_desk_list_new_tickets' => ZohoDeskListNewTicketsNode::class,
+            'zoho_desk_list_threads' => ZohoDeskListThreadsNode::class,
+            'zoho_desk_list_tickets' => ZohoDeskListTicketsNode::class,
+            'zoho_desk_search_tickets' => ZohoDeskSearchTicketsNode::class,
+            'zoho_desk_send_reply' => ZohoDeskSendReplyNode::class,
+            'zoho_desk_update_contact' => ZohoDeskUpdateContactNode::class,
+            'zoho_desk_update_ticket' => ZohoDeskUpdateTicketNode::class,
+            'zoho_books_create_bill' => ZohoBooksCreateBillNode::class,
+            'zoho_books_create_customer' => ZohoBooksCreateCustomerNode::class,
+            'zoho_books_create_estimate' => ZohoBooksCreateEstimateNode::class,
+            'zoho_books_create_invoice' => ZohoBooksCreateInvoiceNode::class,
+            'zoho_books_create_item' => ZohoBooksCreateItemNode::class,
+            'zoho_books_create_vendor' => ZohoBooksCreateVendorNode::class,
+            'zoho_books_delete_invoice' => ZohoBooksDeleteInvoiceNode::class,
+            'zoho_books_email_estimate' => ZohoBooksEmailEstimateNode::class,
+            'zoho_books_email_invoice' => ZohoBooksEmailInvoiceNode::class,
+            'zoho_books_get_bill' => ZohoBooksGetBillNode::class,
+            'zoho_books_get_contact' => ZohoBooksGetContactNode::class,
+            'zoho_books_get_invoice' => ZohoBooksGetInvoiceNode::class,
+            'zoho_books_get_organization' => ZohoBooksGetOrganizationNode::class,
+            'zoho_books_list_bills' => ZohoBooksListBillsNode::class,
+            'zoho_books_list_contacts' => ZohoBooksListContactsNode::class,
+            'zoho_books_list_estimates' => ZohoBooksListEstimatesNode::class,
+            'zoho_books_list_invoices' => ZohoBooksListInvoicesNode::class,
+            'zoho_books_list_items' => ZohoBooksListItemsNode::class,
+            'zoho_books_list_new_customers' => ZohoBooksListNewCustomersNode::class,
+            'zoho_books_list_new_invoices' => ZohoBooksListNewInvoicesNode::class,
+            'zoho_books_list_new_payments' => ZohoBooksListNewPaymentsNode::class,
+            'zoho_books_list_payments' => ZohoBooksListPaymentsNode::class,
+            'zoho_books_mark_estimate' => ZohoBooksMarkEstimateNode::class,
+            'zoho_books_mark_invoice' => ZohoBooksMarkInvoiceNode::class,
+            'zoho_books_record_payment' => ZohoBooksRecordPaymentNode::class,
+            'zoho_books_update_contact' => ZohoBooksUpdateContactNode::class,
+            'zoho_projects_add_task_comment' => ZohoProjectsAddTaskCommentNode::class,
+            'zoho_projects_create_bug' => ZohoProjectsCreateBugNode::class,
+            'zoho_projects_create_milestone' => ZohoProjectsCreateMilestoneNode::class,
+            'zoho_projects_create_project' => ZohoProjectsCreateProjectNode::class,
+            'zoho_projects_create_task' => ZohoProjectsCreateTaskNode::class,
+            'zoho_projects_get_project' => ZohoProjectsGetProjectNode::class,
+            'zoho_projects_get_task' => ZohoProjectsGetTaskNode::class,
+            'zoho_projects_list_bugs' => ZohoProjectsListBugsNode::class,
+            'zoho_projects_list_changed_tasks' => ZohoProjectsListChangedTasksNode::class,
+            'zoho_projects_list_milestones' => ZohoProjectsListMilestonesNode::class,
+            'zoho_projects_list_new_bugs' => ZohoProjectsListNewBugsNode::class,
+            'zoho_projects_list_new_tasks' => ZohoProjectsListNewTasksNode::class,
+            'zoho_projects_list_projects' => ZohoProjectsListProjectsNode::class,
+            'zoho_projects_list_tasks' => ZohoProjectsListTasksNode::class,
+            'zoho_projects_list_users' => ZohoProjectsListUsersNode::class,
+            'zoho_projects_log_time' => ZohoProjectsLogTimeNode::class,
+            'zoho_projects_update_task' => ZohoProjectsUpdateTaskNode::class,
+            'zoho_campaigns_add_subscriber' => ZohoCampaignsAddSubscriberNode::class,
+            'zoho_campaigns_list_campaigns' => ZohoCampaignsListCampaignsNode::class,
+            'zoho_campaigns_list_lists' => ZohoCampaignsListListsNode::class,
+            'zoho_campaigns_list_new_subscribers' => ZohoCampaignsListNewSubscribersNode::class,
+            'zoho_campaigns_list_subscribers' => ZohoCampaignsListSubscribersNode::class,
+            'zoho_campaigns_list_unsubscribes' => ZohoCampaignsListUnsubscribesNode::class,
+            'zoho_campaigns_send_campaign' => ZohoCampaignsSendCampaignNode::class,
+            'zoho_campaigns_unsubscribe' => ZohoCampaignsUnsubscribeNode::class,
+            'zoho_mail_get_account' => ZohoMailGetAccountNode::class,
+            'zoho_mail_get_message' => ZohoMailGetMessageNode::class,
+            'zoho_mail_list_folders' => ZohoMailListFoldersNode::class,
+            'zoho_mail_list_messages' => ZohoMailListMessagesNode::class,
+            'zoho_mail_list_new_messages' => ZohoMailListNewMessagesNode::class,
+            'zoho_mail_mark_read' => ZohoMailMarkReadNode::class,
+            'zoho_mail_move_message' => ZohoMailMoveMessageNode::class,
+            'zoho_mail_search_messages' => ZohoMailSearchMessagesNode::class,
+            'zoho_mail_send_email' => ZohoMailSendEmailNode::class,
+            'zoho_cliq_list_channels' => ZohoCliqListChannelsNode::class,
+            'zoho_cliq_list_messages' => ZohoCliqListMessagesNode::class,
+            'zoho_cliq_list_users' => ZohoCliqListUsersNode::class,
+            'zoho_cliq_send_channel_message' => ZohoCliqSendChannelMessageNode::class,
+            'zoho_cliq_send_chat_message' => ZohoCliqSendChatMessageNode::class,
+            'zoho_cliq_send_direct_message' => ZohoCliqSendDirectMessageNode::class,
         ];
     }
 }

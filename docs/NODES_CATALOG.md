@@ -176,6 +176,28 @@ Behaviour worth knowing:
 - **Not built.** Salesforce's lead conversion and Chatter, HubSpot's marketing email and forms, Pipedrive products and mail, and Zoho's blueprint and campaigns.
 - **To verify against the providers** (written from the public docs, not run against live accounts): HubSpot's association type ids for notes and tasks (202, 190, 214, 228 and 204, 192, 216, 230) and the `memberships/add` body; Pipedrive's v1 webhook creation and `sort=add_time DESC` on each list (v1 webhooks are being replaced by v2); Salesforce's client-credentials response and `instance_url`, and SOQL `SystemModstamp >= datetime`; Zoho's `actions/watch` body and renewal, `Parent_Id` on Notes, and COQL on lookup fields such as `Owner`.
 
+### Zoho business apps: Desk (20), Books (26), Projects (17), Campaigns (8), Mail (9) and Cliq (6)
+
+All six connect with the same Zoho login as Zoho CRM (client id and secret, a refresh token from a Self Client, the data center). One refresh token can carry the scopes of several apps; each app has its own connection so that a workspace can use only the ones it needs. `CrmAccessTokens::zohoApp()` trades the fields for a short-lived token (kept for 55 minutes) and returns that app's API root for the data center.
+
+| App | Extra connection field | Nodes | Triggers |
+|---|---|---|---|
+| **Zoho Desk** | Organization id | Tickets: Create, Update, Get, Close, Move to Trash, List, Search; Add Comment, Send Reply, List Conversation; Contacts: Create, Update, Find by Email, List; Departments and Agents | New ticket, Ticket updated, Customer replied: **instant** (a Desk webhook per event) with a poll as backstop |
+| **Zoho Books** | Organization id | Customers and Vendors: Create, Update, Get, List; Invoices: Create, Get, List, Email, Mark Sent or Void, Delete; Estimates: Create, List, Email, Mark; Payments: Record, List; Bills: Create, Get, List; Items: Create, List; Get Organization | New invoice, Payment received, New customer: polled |
+| **Zoho Projects** | Portal id | Projects: Create, Get, List; Tasks: Create, Update, Get, List; Add Task Comment, Log Time; Milestones: Create, List; Bugs: Create, List; List Users | New task, Task updated, New bug: polled |
+| **Zoho Campaigns** | none | Mailing Lists, Subscribers: List, Add, Unsubscribe; Campaigns: List, Send | New subscriber, Unsubscribed: polled |
+| **Zoho Mail** | Account id (optional; the first account is used when empty) | Get Account, List Folders, List and Search Messages, Get Message, Send Email, Mark Read or Unread, Move Message | New mail: polled |
+| **Zoho Cliq** | none | List Channels and Users; Send Channel Message (as you or a bot), Send Direct Message, Send Chat Message; List Messages | Message received: polled |
+
+Behaviour worth knowing:
+
+- **Only Desk can register a webhook through its API**, so only Desk has instant delivery (`ZohoDeskSource` and `ZohoDeskIngress`, switch `TRIGGERS_PUSH_ZOHO_DESK_ENABLED`; the token-in-URL pattern the other apps use). Books, Projects, Campaigns, Mail and Cliq have their webhooks, workflow rules or bots set up inside the app itself. For instant delivery there, point that webhook or a Cliq bot at a **Webhook** trigger; the polled triggers keep working beside it.
+- **Polled triggers dedupe by id**: the first poll is a baseline, later polls run the flow for each record not seen before. Changed tickets and tasks use `id:modified time` so every change is an event. A subscriber who unsubscribes, resubscribes and unsubscribes again is seen once by the Unsubscribed trigger.
+- **Values never go into a URL unchecked**: ids must be long numbers (Campaigns keys, Cliq channel names and chat ids have their own checks), and email addresses are validated.
+- **Quirks handled**: Books and Campaigns can answer `200` with an error code or `"status": "error"`, which is turned into the provider's sentence; a missing record becomes `found: false` or `deleted: false`; Desk and Projects answer `204` for an empty list.
+- **Not built**: Desk's tasks, calls, events and knowledge base; Books' credit notes, expenses, bank feeds and recurring documents; Projects' forums, documents and phases; Campaigns' campaign creation and reports; Mail's attachments and drafts; Cliq's bot and slash-command handlers.
+- **To verify against the providers** (written from the public docs, not run against live accounts): the Projects v3 base address (`projectsapi`), its task owner body (`owners_and_work`), the `sort_by` form, `timelogs` body and the portal-wide `/issues` list; Campaigns' `list_of_details` and `recent_campaigns` keys and the `sort` parameter; Cliq's channel lookup (`chat_id` on `/channelsbyname/{name}`) and `/chats/{id}/messages` shape; Mail's `searchKey` syntax and `updatemessage` modes; Books' `send=true` on invoice create; Desk's webhook body (`subscriptions`) and `isEnabled` flag.
+
 ### Triggers that keep state (`KeepsTriggerState`)
 
 A reader node can start a flow by listing what's new (`SupportsTriggerMode`). When the event is something that *stopped* being there (a row deleted, a file trashed), the node also implements `KeepsTriggerState`: `pollSince($run, $config, $state)` returns the items and the state to keep, `triggerSampleItems()` gives example items for the editor. Use `ActsAsRemovalTrigger` plus `PresenceTracker` for "this id was there and now isn't"; use a provider's own change token (Drive) when it has one. Built: `google_sheets_list_deleted_rows`, `notion_list_deleted_database_items`, `google_drive_list_trashed_files`. Details and limits: `docs/APP_TRIGGERS_PLAN.md`.

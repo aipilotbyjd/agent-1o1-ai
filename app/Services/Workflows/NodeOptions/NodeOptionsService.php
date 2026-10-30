@@ -45,7 +45,13 @@ use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
 use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
 use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoBooksOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoCampaignsOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoCliqOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoDeskOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoMailOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoProjectsOptions;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -96,6 +102,12 @@ class NodeOptionsService
         PipedriveOptions::class,
         SalesforceOptions::class,
         ZohoOptions::class,
+        ZohoDeskOptions::class,
+        ZohoBooksOptions::class,
+        ZohoProjectsOptions::class,
+        ZohoCampaignsOptions::class,
+        ZohoMailOptions::class,
+        ZohoCliqOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

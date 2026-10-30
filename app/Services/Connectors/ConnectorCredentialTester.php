@@ -28,7 +28,7 @@ class ConnectorCredentialTester
      *
      * @var list<string>
      */
-    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho'];
+    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho', 'zoho_desk', 'zoho_books', 'zoho_projects', 'zoho_campaigns', 'zoho_mail', 'zoho_cliq'];
 
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
@@ -337,6 +337,33 @@ class ConnectorCredentialTester
                 $response = $request->withHeaders(['Authorization' => 'Zoho-oauthtoken '.$login['token']])->get($login['api'].'/crm/v7/users', ['type' => 'CurrentUser']);
 
                 return $this->fromResponse($response, $appName, $response->json('users.0.email'));
+
+            case 'zoho_desk':
+            case 'zoho_books':
+            case 'zoho_projects':
+            case 'zoho_campaigns':
+            case 'zoho_mail':
+            case 'zoho_cliq':
+                $zohoApp = substr($connectorKey, 5);
+
+                try {
+                    $login = app(CrmAccessTokens::class)->zohoApp($data, $zohoApp);
+                } catch (InvalidArgumentException|RuntimeException $e) {
+                    return $this->result(false, $e->getMessage());
+                }
+
+                [$path, $headers, $query] = match ($zohoApp) {
+                    'desk' => ['/organizations', ['orgId' => trim((string) ($data['org_id'] ?? ''))], []],
+                    'books' => ['/organizations', [], []],
+                    'projects' => ['/portals', [], []],
+                    'campaigns' => ['/getmailinglists', [], ['resfmt' => 'JSON', 'range' => 1, 'fromindex' => 1]],
+                    'mail' => ['/accounts', [], []],
+                    default => ['/users', [], ['limit' => 1]],
+                };
+
+                $response = $request->withHeaders(['Authorization' => 'Zoho-oauthtoken '.$login['token'], ...$headers])->get($login['base'].$path, $query);
+
+                return $this->fromResponse($response, $appName, null);
 
             case 'resend':
                 $response = $request->withToken($key)->get('https://api.resend.com/domains');
