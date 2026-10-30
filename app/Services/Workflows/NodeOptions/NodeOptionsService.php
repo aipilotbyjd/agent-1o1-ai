@@ -45,6 +45,7 @@ use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
 use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
 use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoBooksOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoDeskOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoOptions;
 use App\Services\Workflows\NodeRegistry;
@@ -98,6 +99,7 @@ class NodeOptionsService
         SalesforceOptions::class,
         ZohoOptions::class,
         ZohoDeskOptions::class,
+        ZohoBooksOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

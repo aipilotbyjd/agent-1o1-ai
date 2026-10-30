@@ -1005,6 +1005,32 @@ use App\Nodes\Integrations\Zoho\ZohoUpdateDealNode;
 use App\Nodes\Integrations\Zoho\ZohoUpdateLeadNode;
 use App\Nodes\Integrations\Zoho\ZohoUpdateTaskNode;
 use App\Nodes\Integrations\Zoho\ZohoUpsertRecordNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateBillNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateCustomerNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateEstimateNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateItemNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksCreateVendorNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksDeleteInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksEmailEstimateNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksEmailInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetBillNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetContactNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksGetOrganizationNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListBillsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListContactsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListEstimatesNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListInvoicesNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListItemsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListNewCustomersNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListNewInvoicesNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListNewPaymentsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksListPaymentsNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksMarkEstimateNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksMarkInvoiceNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksRecordPaymentNode;
+use App\Nodes\Integrations\ZohoBooks\ZohoBooksUpdateContactNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskAddCommentNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskCloseTicketNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskCreateContactNode;
@@ -2091,6 +2117,32 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_desk_send_reply' => ZohoDeskSendReplyNode::class,
             'zoho_desk_update_contact' => ZohoDeskUpdateContactNode::class,
             'zoho_desk_update_ticket' => ZohoDeskUpdateTicketNode::class,
+            'zoho_books_create_bill' => ZohoBooksCreateBillNode::class,
+            'zoho_books_create_customer' => ZohoBooksCreateCustomerNode::class,
+            'zoho_books_create_estimate' => ZohoBooksCreateEstimateNode::class,
+            'zoho_books_create_invoice' => ZohoBooksCreateInvoiceNode::class,
+            'zoho_books_create_item' => ZohoBooksCreateItemNode::class,
+            'zoho_books_create_vendor' => ZohoBooksCreateVendorNode::class,
+            'zoho_books_delete_invoice' => ZohoBooksDeleteInvoiceNode::class,
+            'zoho_books_email_estimate' => ZohoBooksEmailEstimateNode::class,
+            'zoho_books_email_invoice' => ZohoBooksEmailInvoiceNode::class,
+            'zoho_books_get_bill' => ZohoBooksGetBillNode::class,
+            'zoho_books_get_contact' => ZohoBooksGetContactNode::class,
+            'zoho_books_get_invoice' => ZohoBooksGetInvoiceNode::class,
+            'zoho_books_get_organization' => ZohoBooksGetOrganizationNode::class,
+            'zoho_books_list_bills' => ZohoBooksListBillsNode::class,
+            'zoho_books_list_contacts' => ZohoBooksListContactsNode::class,
+            'zoho_books_list_estimates' => ZohoBooksListEstimatesNode::class,
+            'zoho_books_list_invoices' => ZohoBooksListInvoicesNode::class,
+            'zoho_books_list_items' => ZohoBooksListItemsNode::class,
+            'zoho_books_list_new_customers' => ZohoBooksListNewCustomersNode::class,
+            'zoho_books_list_new_invoices' => ZohoBooksListNewInvoicesNode::class,
+            'zoho_books_list_new_payments' => ZohoBooksListNewPaymentsNode::class,
+            'zoho_books_list_payments' => ZohoBooksListPaymentsNode::class,
+            'zoho_books_mark_estimate' => ZohoBooksMarkEstimateNode::class,
+            'zoho_books_mark_invoice' => ZohoBooksMarkInvoiceNode::class,
+            'zoho_books_record_payment' => ZohoBooksRecordPaymentNode::class,
+            'zoho_books_update_contact' => ZohoBooksUpdateContactNode::class,
         ];
     }
 }
