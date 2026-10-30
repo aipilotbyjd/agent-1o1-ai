@@ -482,6 +482,25 @@ use App\Nodes\Integrations\Outlook\OutlookListUpdatedEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
+use App\Nodes\Integrations\Resend\ResendAddContactNode;
+use App\Nodes\Integrations\Resend\ResendCancelEmailNode;
+use App\Nodes\Integrations\Resend\ResendCreateAudienceNode;
+use App\Nodes\Integrations\Resend\ResendCreateBroadcastNode;
+use App\Nodes\Integrations\Resend\ResendDeleteAudienceNode;
+use App\Nodes\Integrations\Resend\ResendDeleteBroadcastNode;
+use App\Nodes\Integrations\Resend\ResendDeleteContactNode;
+use App\Nodes\Integrations\Resend\ResendGetContactNode;
+use App\Nodes\Integrations\Resend\ResendGetEmailNode;
+use App\Nodes\Integrations\Resend\ResendListAudiencesNode;
+use App\Nodes\Integrations\Resend\ResendListBroadcastsNode;
+use App\Nodes\Integrations\Resend\ResendListContactsNode;
+use App\Nodes\Integrations\Resend\ResendListDomainsNode;
+use App\Nodes\Integrations\Resend\ResendListEmailsNode;
+use App\Nodes\Integrations\Resend\ResendRescheduleEmailNode;
+use App\Nodes\Integrations\Resend\ResendSendBatchNode;
+use App\Nodes\Integrations\Resend\ResendSendBroadcastNode;
+use App\Nodes\Integrations\Resend\ResendSendEmailNode;
+use App\Nodes\Integrations\Resend\ResendVerifyDomainNode;
 use App\Nodes\Integrations\SendGrid\SendGridAddGlobalUnsubscribeNode;
 use App\Nodes\Integrations\SendGrid\SendGridCreateListNode;
 use App\Nodes\Integrations\SendGrid\SendGridDeleteContactNode;
@@ -1317,6 +1336,25 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'sendgrid_search_contacts' => SendGridSearchContactsNode::class,
             'sendgrid_send_email' => SendGridSendEmailNode::class,
             'sendgrid_upsert_contact' => SendGridUpsertContactNode::class,
+            'resend_add_contact' => ResendAddContactNode::class,
+            'resend_cancel_email' => ResendCancelEmailNode::class,
+            'resend_create_audience' => ResendCreateAudienceNode::class,
+            'resend_create_broadcast' => ResendCreateBroadcastNode::class,
+            'resend_delete_audience' => ResendDeleteAudienceNode::class,
+            'resend_delete_broadcast' => ResendDeleteBroadcastNode::class,
+            'resend_delete_contact' => ResendDeleteContactNode::class,
+            'resend_get_contact' => ResendGetContactNode::class,
+            'resend_get_email' => ResendGetEmailNode::class,
+            'resend_list_audiences' => ResendListAudiencesNode::class,
+            'resend_list_broadcasts' => ResendListBroadcastsNode::class,
+            'resend_list_contacts' => ResendListContactsNode::class,
+            'resend_list_domains' => ResendListDomainsNode::class,
+            'resend_list_emails' => ResendListEmailsNode::class,
+            'resend_reschedule_email' => ResendRescheduleEmailNode::class,
+            'resend_send_batch' => ResendSendBatchNode::class,
+            'resend_send_broadcast' => ResendSendBroadcastNode::class,
+            'resend_send_email' => ResendSendEmailNode::class,
+            'resend_verify_domain' => ResendVerifyDomainNode::class,
         ];
     }
 }

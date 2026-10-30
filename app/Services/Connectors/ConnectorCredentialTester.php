@@ -27,7 +27,7 @@ class ConnectorCredentialTester
      *
      * @var list<string>
      */
-    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid'];
+    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun'];
 
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
@@ -268,6 +268,31 @@ class ConnectorCredentialTester
                 $response = $request->withHeaders(['api-key' => $key])->get('https://api.brevo.com/v3/account');
 
                 return $this->fromResponse($response, $appName, $response->json('email'));
+
+            case 'resend':
+                $response = $request->withToken($key)->get('https://api.resend.com/domains');
+
+                // A key limited to sending can't list domains: it is refused for that, which still proves the key is real.
+                return $response->status() === 401 && $response->json('name') === 'restricted_api_key'
+                    ? $this->result(true, "Connected to {$appName} (a sending-only key).")
+                    : $this->fromResponse($response, $appName, null);
+
+            case 'postmark':
+                $response = $request->withHeaders(['X-Postmark-Server-Token' => $key])->get('https://api.postmarkapp.com/server');
+
+                return $this->fromResponse($response, $appName, $response->json('Name'));
+
+            case 'mailgun':
+                $domain = strtolower(trim((string) ($data['domain'] ?? '')));
+
+                if (preg_match('/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/', $domain) !== 1) {
+                    return $this->result(false, 'Enter the sending domain, like mg.example.com.');
+                }
+
+                $host = strtolower((string) ($data['region'] ?? '')) === 'eu' ? 'api.eu.mailgun.net' : 'api.mailgun.net';
+                $response = $request->withBasicAuth('api', $key)->get("https://{$host}/v4/domains/{$domain}");
+
+                return $this->fromResponse($response, $appName, $response->json('domain.name'));
 
             default:
                 $response = $request->withToken($key)->get('https://api.sendgrid.com/v3/user/account');

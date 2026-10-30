@@ -248,6 +248,30 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Send email, manage marketing contacts and lists, read stats and suppressions, and start flows from bounces, spam reports and unsubscribes.',
                 'sort_order' => 29,
             ],
+            [
+                'slug' => 'resend',
+                'name' => 'Resend',
+                'icon' => 'mail',
+                'color' => '#000000',
+                'description' => 'Send email and batches, manage audiences, contacts and broadcasts, and start flows from delivered, bounced, opened and clicked email.',
+                'sort_order' => 30,
+            ],
+            [
+                'slug' => 'postmark',
+                'name' => 'Postmark',
+                'icon' => 'mail',
+                'color' => '#FFDE00',
+                'description' => 'Send transactional email, read messages, bounces and stats, manage templates and suppressions, and start flows from bounces, complaints, opens and clicks.',
+                'sort_order' => 31,
+            ],
+            [
+                'slug' => 'mailgun',
+                'name' => 'Mailgun',
+                'icon' => 'mail',
+                'color' => '#F06B66',
+                'description' => 'Send email, read events and stats, manage mailing lists, templates and suppressions, and start flows from delivered, failed, opened, clicked and unsubscribed email.',
+                'sort_order' => 32,
+            ],
         ];
 
         foreach ($categories as $category) {

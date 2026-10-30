@@ -28,6 +28,7 @@ use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
 use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
+use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
 use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
@@ -72,6 +73,7 @@ class NodeOptionsService
         KlaviyoOptions::class,
         BrevoOptions::class,
         SendGridOptions::class,
+        ResendOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

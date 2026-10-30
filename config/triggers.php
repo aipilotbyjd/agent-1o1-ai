@@ -329,6 +329,9 @@ return [
         'mailchimp' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILCHIMP_ENABLED', true)],
         'kit' => ['enabled' => (bool) env('TRIGGERS_PUSH_KIT_ENABLED', true)],
         'activecampaign' => ['enabled' => (bool) env('TRIGGERS_PUSH_ACTIVECAMPAIGN_ENABLED', true)],
+        'resend' => ['enabled' => (bool) env('TRIGGERS_PUSH_RESEND_ENABLED', true)],
+        'postmark' => ['enabled' => (bool) env('TRIGGERS_PUSH_POSTMARK_ENABLED', true)],
+        'mailgun' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILGUN_ENABLED', true)],
 
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
