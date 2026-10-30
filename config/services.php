@@ -122,7 +122,22 @@ return [
         'client_secret' => env('JIRA_CLIENT_SECRET'),
     ],
 
+    'linkedin_ads' => [
+        'client_id' => env('LINKEDIN_ADS_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_ADS_CLIENT_SECRET'),
+    ],
+
+    'meta_ads' => [
+        'client_id' => env('META_ADS_CLIENT_ID'),
+        'client_secret' => env('META_ADS_CLIENT_SECRET'),
+    ],
+
     'outlook' => [
+        'client_id' => env('MICROSOFT_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CONNECTORS_CLIENT_SECRET'),
+    ],
+
+    'excel' => [
         'client_id' => env('MICROSOFT_CONNECTORS_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_CONNECTORS_CLIENT_SECRET'),
     ],

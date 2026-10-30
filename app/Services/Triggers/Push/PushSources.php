@@ -55,8 +55,13 @@ class PushSources
         PipedriveSource $pipedriveSource,
         ZohoSource $zohoSource,
         ZohoDeskSource $zohoDeskSource,
+        ZendeskSource $zendeskSource,
+        DatadogSource $datadogSource,
+        FirecrawlSource $firecrawlSource,
+        ApifySource $apifySource,
+        ExaSource $exaSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource, $mondaySource, $pipedriveSource, $zohoSource, $zohoDeskSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource, $mondaySource, $pipedriveSource, $zohoSource, $zohoDeskSource, $zendeskSource, $datadogSource, $firecrawlSource, $apifySource, $exaSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -92,6 +97,11 @@ class PushSources
             new PipedriveIngress,
             new ZohoIngress,
             new ZohoDeskIngress,
+            new ZendeskIngress,
+            new DatadogIngress,
+            new FirecrawlIngress,
+            new ApifyIngress,
+            new ExaIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

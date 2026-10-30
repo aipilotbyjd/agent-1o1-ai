@@ -5,6 +5,13 @@ namespace App\Services\Connectors;
 use App\Exceptions\ConnectorException;
 use App\Models\Connectors\ConnectorCredential;
 use App\Nodes\Integrations\ActiveCampaign\AbstractActiveCampaignNode;
+use App\Nodes\Integrations\LinkedInAds\AbstractLinkedInAdsNode;
+use App\Nodes\Integrations\MetaAds\AbstractMetaAdsNode;
+use App\Nodes\Integrations\Freshdesk\AbstractFreshdeskNode;
+use App\Nodes\Integrations\Intercom\AbstractIntercomNode;
+use App\Nodes\Integrations\Zendesk\AbstractZendeskNode;
+use App\Nodes\Integrations\Datadog\AbstractDatadogNode;
+use App\Nodes\Integrations\Sentry\AbstractSentryNode;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -28,7 +35,7 @@ class ConnectorCredentialTester
      *
      * @var list<string>
      */
-    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho', 'zoho_desk', 'zoho_books', 'zoho_projects', 'zoho_campaigns', 'zoho_mail', 'zoho_cliq'];
+    private const array MANUAL = ['apollo', 'telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho', 'zoho_desk', 'zoho_books', 'zoho_projects', 'zoho_campaigns', 'zoho_mail', 'zoho_cliq', 'zendesk', 'intercom', 'freshdesk', 'datadog', 'sentry', 'firecrawl', 'apify', 'exa', 'perplexity', 'tavily', 'semrush', 'ahrefs'];
 
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
@@ -149,10 +156,23 @@ class ConnectorCredentialTester
             return $this->fromResponse($response, $appName, $sites !== '' ? $sites : null);
         }
 
-        if ($connectorKey === 'outlook') {
+        if ($connectorKey === 'outlook' || $connectorKey === 'excel') {
             $response = $request->get('https://graph.microsoft.com/v1.0/me');
 
             return $this->fromResponse($response, $appName, $response->json('mail') ?? $response->json('userPrincipalName'));
+        }
+
+        if ($connectorKey === 'linkedin_ads') {
+            $response = $request->withHeaders(['Linkedin-Version' => AbstractLinkedInAdsNode::VERSION, 'X-Restli-Protocol-Version' => '2.0.0'])->get('https://api.linkedin.com/rest/adAccountUsers', ['q' => 'authenticatedUser']);
+            $accounts = count((array) $response->json('elements'));
+
+            return $this->fromResponse($response, $appName, $accounts > 0 ? $accounts.' ad accounts' : null);
+        }
+
+        if ($connectorKey === 'meta_ads') {
+            $response = $request->get(AbstractMetaAdsNode::BASE_URL.'/me', ['fields' => 'id,name']);
+
+            return $this->fromResponse($response, $appName, $response->json('name'));
         }
 
         return $this->result(true, "{$appName} has a valid access token.");
@@ -306,6 +326,16 @@ class ConnectorCredentialTester
 
                 return $this->fromResponse($response, $appName, $response->json('email') ?? $response->json('id'));
 
+            case 'apollo':
+                $response = $request->withHeaders(['x-api-key' => $key])->get('https://api.apollo.io/api/v1/auth/health');
+
+                // Apollo can answer a bad key with 200 and is_logged_in false.
+                if ($response->successful() && $response->json('is_logged_in') === false) {
+                    return $this->rejected($appName);
+                }
+
+                return $this->fromResponse($response, $appName, null);
+
             case 'hubspot':
                 $response = $request->withToken($key)->get('https://api.hubapi.com/account-info/v3/details');
 
@@ -365,7 +395,103 @@ class ConnectorCredentialTester
 
                 return $this->fromResponse($response, $appName, null);
 
-            case 'resend':
+            case 'datadog':
+                try {
+                    $response = AbstractDatadogNode::send($data, 'GET', '/api/v2/validate_keys');
+                } catch (InvalidArgumentException $e) {
+                    return $this->result(false, $e->getMessage());
+                }
+
+                return $this->fromResponse($response, $appName, AbstractDatadogNode::siteHost((string) ($data['site'] ?? '')));
+
+            case 'sentry':
+                $organization = trim((string) ($data['organization'] ?? ''));
+
+                if (preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/', $organization) !== 1) {
+                    return $this->result(false, 'Enter the Sentry organization slug, like my-org.');
+                }
+
+                try {
+                    $response = AbstractSentryNode::send($data, 'GET', "/api/0/organizations/{$organization}/");
+                } catch (InvalidArgumentException $e) {
+                    return $this->result(false, $e->getMessage());
+                }
+
+                if ($response->status() === 404) {
+                    return $this->result(false, "Sentry doesn't know the organization \"{$organization}\", or the token can't reach it.");
+                }
+
+                return $this->fromResponse($response, $appName, $response->json('name') ?? $organization);
+
+            case 'firecrawl':
+                $response = $request->withToken($key)->get('https://api.firecrawl.dev/v2/team/credit-usage');
+
+                return $this->fromResponse($response, $appName, null);
+
+            case 'apify':
+                $response = $request->withToken($key)->get('https://api.apify.com/v2/users/me');
+
+                return $this->fromResponse($response, $appName, $response->json('data.username') ?? $response->json('data.email'));
+
+            case 'exa':
+                $response = $request->withHeaders(['x-api-key' => $key])->get('https://api.exa.ai/v0/teams/me');
+
+                return $this->fromResponse($response, $appName, $response->json('name'));
+
+            case 'perplexity':
+                // The models list needs no key, so this asks for something that does: the account's batches.
+                $response = $request->withToken($key)->get('https://api.perplexity.ai/v1/batches', ['limit' => 1]);
+
+                return $this->fromResponse($response, $appName, null);
+
+            case 'tavily':
+                $response = $request->withToken($key)->get('https://api.tavily.com/usage');
+
+                return $this->fromResponse($response, $appName, $response->json('account.current_plan'));
+
+            case 'zendesk':
+                try {
+                    $response = AbstractZendeskNode::client($data)->timeout(self::TIMEOUT_SECONDS)->get(AbstractZendeskNode::apiRoot((string) ($data['subdomain'] ?? '')).'/users/me');
+                } catch (InvalidArgumentException $e) {
+                    return $this->result(false, $e->getMessage());
+                }
+
+                // Zendesk answers a refused login as an anonymous user rather than with an error.
+                if ($response->successful() && blank($response->json('user.id'))) {
+                    return $this->rejected($appName);
+                }
+
+                return $this->fromResponse($response, $appName, $response->json('user.email'));
+
+            case 'intercom':
+                $response = AbstractIntercomNode::client($data)->timeout(self::TIMEOUT_SECONDS)->get(AbstractIntercomNode::apiRoot($data).'/me');
+
+                return $this->fromResponse($response, $appName, $response->json('app.name') ?? $response->json('email'));
+
+            case 'freshdesk':
+                try {
+                    $response = AbstractFreshdeskNode::client($data)->timeout(self::TIMEOUT_SECONDS)->get(AbstractFreshdeskNode::apiRoot((string) ($data['subdomain'] ?? '')).'/agents/me');
+                } catch (InvalidArgumentException $e) {
+                    return $this->result(false, $e->getMessage());
+                }
+
+                return $this->fromResponse($response, $appName, $response->json('contact.email'));
+
+            case 'semrush':
+                $response = Http::timeout(self::TIMEOUT_SECONDS)->get('https://www.semrush.com/users/countapiunits.html', ['key' => $key]);
+
+                // A refused key still gets a 200, with an error line instead of the balance.
+                if ($response->successful() && ! is_numeric(str_replace(',', '', trim($response->body())))) {
+                    return $this->rejected($appName);
+                }
+
+                return $this->fromResponse($response, $appName, $response->successful() ? trim($response->body()).' API units left' : null);
+
+            case 'ahrefs':
+                $response = $request->withToken($key)->get('https://api.ahrefs.com/v3/subscription-info/limits-and-usage', ['output' => 'json']);
+
+                return $this->fromResponse($response, $appName, $response->json('limits_and_usage.subscription'));
+
                 $response = $request->withToken($key)->get('https://api.resend.com/domains');
 
                 // A key limited to sending can't list domains: it is refused for that, which still proves the key is real.

@@ -341,6 +341,13 @@ return [
         'pipedrive' => ['enabled' => (bool) env('TRIGGERS_PUSH_PIPEDRIVE_ENABLED', true)],
         'zoho' => ['enabled' => (bool) env('TRIGGERS_PUSH_ZOHO_ENABLED', true)],
         'zoho_desk' => ['enabled' => (bool) env('TRIGGERS_PUSH_ZOHO_DESK_ENABLED', true)],
+        'zendesk' => ['enabled' => (bool) env('TRIGGERS_PUSH_ZENDESK_ENABLED', true)],
+        // Opt-in per trigger as well: it adds a webhook mention to the monitor's message.
+        'datadog' => ['enabled' => (bool) env('TRIGGERS_PUSH_DATADOG_ENABLED', true)],
+        // Web data apps: each registers its webhook through the connected key.
+        'firecrawl' => ['enabled' => (bool) env('TRIGGERS_PUSH_FIRECRAWL_ENABLED', true)],
+        'apify' => ['enabled' => (bool) env('TRIGGERS_PUSH_APIFY_ENABLED', true)],
+        'exa' => ['enabled' => (bool) env('TRIGGERS_PUSH_EXA_ENABLED', true)],
 
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),

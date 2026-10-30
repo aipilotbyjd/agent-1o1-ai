@@ -8,13 +8,18 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
 use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
+use App\Services\Workflows\NodeOptions\Sources\AhrefsOptions;
 use App\Services\Workflows\NodeOptions\Sources\AirtableOptions;
+use App\Services\Workflows\NodeOptions\Sources\ApolloOptions;
 use App\Services\Workflows\NodeOptions\Sources\AsanaOptions;
 use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
 use App\Services\Workflows\NodeOptions\Sources\ClickUpOptions;
+use App\Services\Workflows\NodeOptions\Sources\DatadogOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
+use App\Services\Workflows\NodeOptions\Sources\FreshdeskOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\HubSpotOptions;
+use App\Services\Workflows\NodeOptions\Sources\IntercomOptions;
 use App\Services\Workflows\NodeOptions\Sources\KitOptions;
 use App\Services\Workflows\NodeOptions\Sources\KlaviyoOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
@@ -29,6 +34,8 @@ use App\Services\Workflows\NodeOptions\Sources\GoogleSheetsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
 use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
+use App\Services\Workflows\NodeOptions\Sources\LinkedInAdsOptions;
+use App\Services\Workflows\NodeOptions\Sources\MetaAdsOptions;
 use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
 use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
@@ -38,13 +45,21 @@ use App\Services\Workflows\NodeOptions\Sources\PipedriveOptions;
 use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
 use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
 use App\Services\Workflows\NodeOptions\Sources\SalesforceOptions;
+use App\Services\Workflows\NodeOptions\Sources\SemrushOptions;
 use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
+use App\Services\Workflows\NodeOptions\Sources\SentryOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\TrelloOptions;
 use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
 use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
 use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
+use App\Services\Workflows\NodeOptions\Sources\ApifyOptions;
+use App\Services\Workflows\NodeOptions\Sources\ExaOptions;
+use App\Services\Workflows\NodeOptions\Sources\ExcelOptions;
+use App\Services\Workflows\NodeOptions\Sources\FirecrawlOptions;
+use App\Services\Workflows\NodeOptions\Sources\PerplexityOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZendeskOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoBooksOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoCampaignsOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoCliqOptions;
@@ -108,6 +123,16 @@ class NodeOptionsService
         ZohoCampaignsOptions::class,
         ZohoMailOptions::class,
         ZohoCliqOptions::class,
+        ApolloOptions::class,
+        LinkedInAdsOptions::class,
+        MetaAdsOptions::class,
+        ZendeskOptions::class,
+        IntercomOptions::class,
+        FreshdeskOptions::class,
+        FirecrawlOptions::class,
+        ApifyOptions::class,
+        ExaOptions::class,
+        PerplexityOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
@@ -124,6 +149,11 @@ class NodeOptionsService
         NotionOptions::class,
         LinearOptions::class,
         JiraOptions::class,
+        DatadogOptions::class,
+        SentryOptions::class,
+        SemrushOptions::class,
+        AhrefsOptions::class,
+        ExcelOptions::class,
         WorkspaceOptions::class,
     ];
 

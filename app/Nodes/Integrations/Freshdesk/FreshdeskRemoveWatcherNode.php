@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Nodes\Integrations\Freshdesk;
+
+use App\Enums\Agents\ActionEffect;
+use App\Models\Runs\Run;
+use App\Nodes\Support\Field;
+
+class FreshdeskRemoveWatcherNode extends AbstractFreshdeskNode
+{
+    public function type(): string
+    {
+        return 'freshdesk_remove_watcher';
+    }
+
+    public function name(): string
+    {
+        return 'Freshdesk: Remove Self Watcher';
+    }
+
+    public function description(): string
+    {
+        return 'Stops this connection\'s agent watching a ticket.';
+    }
+
+    public function effect(array $config): ActionEffect
+    {
+        return ActionEffect::Write;
+    }
+
+    public function configSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'required' => ['ticket_id'],
+            'properties' => [
+                ...$this->credentialFields(),
+                'ticket_id' => Field::text('Ticket id'),
+            ],
+        ];
+    }
+
+    public function execute(Run $run, array $config, array $context): array
+    {
+        $id = $this->numericId($config, 'ticket_id', 'The ticket');
+        $this->freshdesk($run, $config, 'PUT', "/tickets/{$id}/unwatch");
+
+        return ['watching' => false, 'ticket_id' => (int) $id];
+    }
+}
