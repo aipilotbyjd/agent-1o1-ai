@@ -5,6 +5,7 @@ namespace App\Nodes\Integrations\SendGrid;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
+use InvalidArgumentException;
 
 class SendGridAddGlobalUnsubscribeNode extends AbstractSendGridNode
 {

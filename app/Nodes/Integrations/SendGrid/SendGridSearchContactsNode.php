@@ -7,6 +7,8 @@ use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ActsAsTrigger;
 use App\Nodes\Support\Field;
+use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 
 class SendGridSearchContactsNode extends AbstractSendGridNode implements SupportsTriggerMode
 {
