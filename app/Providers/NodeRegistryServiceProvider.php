@@ -98,6 +98,31 @@ use App\Nodes\Integrations\Brevo\BrevoSendEmailNode;
 use App\Nodes\Integrations\Brevo\BrevoSendSmsNode;
 use App\Nodes\Integrations\Brevo\BrevoTrackEventNode;
 use App\Nodes\Integrations\Brevo\BrevoUpdateContactNode;
+use App\Nodes\Integrations\ClickUp\ClickUpAddChecklistItemNode;
+use App\Nodes\Integrations\ClickUp\ClickUpAddCommentNode;
+use App\Nodes\Integrations\ClickUp\ClickUpAddTagNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateChecklistNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateListNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateTaskNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateTimeEntryNode;
+use App\Nodes\Integrations\ClickUp\ClickUpDeleteTaskNode;
+use App\Nodes\Integrations\ClickUp\ClickUpFilterTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpGetListNode;
+use App\Nodes\Integrations\ClickUp\ClickUpGetMeNode;
+use App\Nodes\Integrations\ClickUp\ClickUpGetTaskNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListCommentsNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListCustomFieldsNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListFoldersNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListListsNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListNewTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListSpacesNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListTimeEntriesNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListUpdatedTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListWorkspacesNode;
+use App\Nodes\Integrations\ClickUp\ClickUpRemoveTagNode;
+use App\Nodes\Integrations\ClickUp\ClickUpSetCustomFieldNode;
+use App\Nodes\Integrations\ClickUp\ClickUpUpdateTaskNode;
 use App\Nodes\Integrations\Discord\DiscordAddReactionNode;
 use App\Nodes\Integrations\Discord\DiscordAddRoleNode;
 use App\Nodes\Integrations\Discord\DiscordAddThreadMemberNode;
@@ -1615,6 +1640,31 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'asana_search_tasks' => AsanaSearchTasksNode::class,
             'asana_update_project' => AsanaUpdateProjectNode::class,
             'asana_update_task' => AsanaUpdateTaskNode::class,
+            'clickup_add_checklist_item' => ClickUpAddChecklistItemNode::class,
+            'clickup_add_comment' => ClickUpAddCommentNode::class,
+            'clickup_add_tag' => ClickUpAddTagNode::class,
+            'clickup_create_checklist' => ClickUpCreateChecklistNode::class,
+            'clickup_create_list' => ClickUpCreateListNode::class,
+            'clickup_create_task' => ClickUpCreateTaskNode::class,
+            'clickup_create_time_entry' => ClickUpCreateTimeEntryNode::class,
+            'clickup_delete_task' => ClickUpDeleteTaskNode::class,
+            'clickup_filter_tasks' => ClickUpFilterTasksNode::class,
+            'clickup_get_list' => ClickUpGetListNode::class,
+            'clickup_get_me' => ClickUpGetMeNode::class,
+            'clickup_get_task' => ClickUpGetTaskNode::class,
+            'clickup_list_comments' => ClickUpListCommentsNode::class,
+            'clickup_list_custom_fields' => ClickUpListCustomFieldsNode::class,
+            'clickup_list_folders' => ClickUpListFoldersNode::class,
+            'clickup_list_lists' => ClickUpListListsNode::class,
+            'clickup_list_new_tasks' => ClickUpListNewTasksNode::class,
+            'clickup_list_spaces' => ClickUpListSpacesNode::class,
+            'clickup_list_tasks' => ClickUpListTasksNode::class,
+            'clickup_list_time_entries' => ClickUpListTimeEntriesNode::class,
+            'clickup_list_updated_tasks' => ClickUpListUpdatedTasksNode::class,
+            'clickup_list_workspaces' => ClickUpListWorkspacesNode::class,
+            'clickup_remove_tag' => ClickUpRemoveTagNode::class,
+            'clickup_set_custom_field' => ClickUpSetCustomFieldNode::class,
+            'clickup_update_task' => ClickUpUpdateTaskNode::class,
         ];
     }
 }

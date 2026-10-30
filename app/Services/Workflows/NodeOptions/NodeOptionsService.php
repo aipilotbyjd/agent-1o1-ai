@@ -10,6 +10,7 @@ use App\Services\Connectors\ConnectorCredentialResolver;
 use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
 use App\Services\Workflows\NodeOptions\Sources\AsanaOptions;
 use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
+use App\Services\Workflows\NodeOptions\Sources\ClickUpOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\KitOptions;
@@ -82,6 +83,7 @@ class NodeOptionsService
         MailgunOptions::class,
         TrelloOptions::class,
         AsanaOptions::class,
+        ClickUpOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
