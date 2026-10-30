@@ -347,6 +347,44 @@ use App\Nodes\Integrations\GoogleTasks\GoogleTasksListDueSoonTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTaskListsNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksUpdateTaskNode;
+use App\Nodes\Integrations\HubSpot\HubSpotAddNoteNode;
+use App\Nodes\Integrations\HubSpot\HubSpotAddToListNode;
+use App\Nodes\Integrations\HubSpot\HubSpotAssociateNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateTaskNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetAccountNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedCompaniesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedContactsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedDealsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedTicketsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewCompaniesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewContactsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewDealsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewTicketsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListOwnersNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListPipelinesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListPropertiesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotRemoveFromListNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchCompaniesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchContactsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchDealsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchTicketsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpsertContactNode;
 use App\Nodes\Integrations\Jira\JiraAddAttachmentNode;
 use App\Nodes\Integrations\Jira\JiraAddCommentNode;
 use App\Nodes\Integrations\Jira\JiraAddUserToGroupNode;
@@ -1735,6 +1773,44 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'monday_move_item' => MondayMoveItemNode::class,
             'monday_set_column' => MondaySetColumnNode::class,
             'monday_update_item' => MondayUpdateItemNode::class,
+            'hubspot_add_note' => HubSpotAddNoteNode::class,
+            'hubspot_add_contacts_to_list' => HubSpotAddToListNode::class,
+            'hubspot_associate' => HubSpotAssociateNode::class,
+            'hubspot_create_company' => HubSpotCreateCompanyNode::class,
+            'hubspot_create_contact' => HubSpotCreateContactNode::class,
+            'hubspot_create_deal' => HubSpotCreateDealNode::class,
+            'hubspot_create_task' => HubSpotCreateTaskNode::class,
+            'hubspot_create_ticket' => HubSpotCreateTicketNode::class,
+            'hubspot_delete_company' => HubSpotDeleteCompanyNode::class,
+            'hubspot_delete_contact' => HubSpotDeleteContactNode::class,
+            'hubspot_delete_deal' => HubSpotDeleteDealNode::class,
+            'hubspot_delete_ticket' => HubSpotDeleteTicketNode::class,
+            'hubspot_get_account' => HubSpotGetAccountNode::class,
+            'hubspot_get_company' => HubSpotGetCompanyNode::class,
+            'hubspot_get_contact' => HubSpotGetContactNode::class,
+            'hubspot_get_deal' => HubSpotGetDealNode::class,
+            'hubspot_get_ticket' => HubSpotGetTicketNode::class,
+            'hubspot_list_changed_companies' => HubSpotListChangedCompaniesNode::class,
+            'hubspot_list_changed_contacts' => HubSpotListChangedContactsNode::class,
+            'hubspot_list_changed_deals' => HubSpotListChangedDealsNode::class,
+            'hubspot_list_changed_tickets' => HubSpotListChangedTicketsNode::class,
+            'hubspot_list_new_companies' => HubSpotListNewCompaniesNode::class,
+            'hubspot_list_new_contacts' => HubSpotListNewContactsNode::class,
+            'hubspot_list_new_deals' => HubSpotListNewDealsNode::class,
+            'hubspot_list_new_tickets' => HubSpotListNewTicketsNode::class,
+            'hubspot_list_owners' => HubSpotListOwnersNode::class,
+            'hubspot_list_pipelines' => HubSpotListPipelinesNode::class,
+            'hubspot_list_properties' => HubSpotListPropertiesNode::class,
+            'hubspot_remove_contacts_from_list' => HubSpotRemoveFromListNode::class,
+            'hubspot_search_companies' => HubSpotSearchCompaniesNode::class,
+            'hubspot_search_contacts' => HubSpotSearchContactsNode::class,
+            'hubspot_search_deals' => HubSpotSearchDealsNode::class,
+            'hubspot_search_tickets' => HubSpotSearchTicketsNode::class,
+            'hubspot_update_company' => HubSpotUpdateCompanyNode::class,
+            'hubspot_update_contact' => HubSpotUpdateContactNode::class,
+            'hubspot_update_deal' => HubSpotUpdateDealNode::class,
+            'hubspot_update_ticket' => HubSpotUpdateTicketNode::class,
+            'hubspot_upsert_contact' => HubSpotUpsertContactNode::class,
         ];
     }
 }

@@ -312,6 +312,38 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Create, find, update and delete records, and start flows from new and changed records.',
                 'sort_order' => 37,
             ],
+            [
+                'slug' => 'hubspot',
+                'name' => 'HubSpot',
+                'icon' => 'hubspot',
+                'color' => '#FF7A59',
+                'description' => 'Find, create and update contacts, companies, deals and tickets, log notes and tasks, and start flows from new and changed records.',
+                'sort_order' => 38,
+            ],
+            [
+                'slug' => 'pipedrive',
+                'name' => 'Pipedrive',
+                'icon' => 'pipedrive',
+                'color' => '#017737',
+                'description' => 'Find, create and update people, organizations, deals, leads and activities, and start flows from new and changed ones.',
+                'sort_order' => 39,
+            ],
+            [
+                'slug' => 'salesforce',
+                'name' => 'Salesforce',
+                'icon' => 'salesforce',
+                'color' => '#00A1E0',
+                'description' => 'Find, create and update leads, contacts, accounts, opportunities and cases, run SOQL, and start flows from new and changed records.',
+                'sort_order' => 40,
+            ],
+            [
+                'slug' => 'zoho',
+                'name' => 'Zoho CRM',
+                'icon' => 'zoho',
+                'color' => '#E42527',
+                'description' => 'Find, create and update leads, contacts, accounts, deals and tasks, and start flows from new and changed records.',
+                'sort_order' => 41,
+            ],
         ];
 
         foreach ($categories as $category) {

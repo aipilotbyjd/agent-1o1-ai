@@ -14,6 +14,7 @@ use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
 use App\Services\Workflows\NodeOptions\Sources\ClickUpOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
+use App\Services\Workflows\NodeOptions\Sources\HubSpotOptions;
 use App\Services\Workflows\NodeOptions\Sources\KitOptions;
 use App\Services\Workflows\NodeOptions\Sources\KlaviyoOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
@@ -88,6 +89,7 @@ class NodeOptionsService
         ClickUpOptions::class,
         AirtableOptions::class,
         MondayOptions::class,
+        HubSpotOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

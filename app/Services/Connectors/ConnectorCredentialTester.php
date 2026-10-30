@@ -10,6 +10,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -27,7 +28,7 @@ class ConnectorCredentialTester
      *
      * @var list<string>
      */
-    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable'];
+    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho'];
 
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
@@ -304,6 +305,38 @@ class ConnectorCredentialTester
                 $response = $request->withToken($key)->get('https://api.airtable.com/v0/meta/whoami');
 
                 return $this->fromResponse($response, $appName, $response->json('email') ?? $response->json('id'));
+
+            case 'hubspot':
+                $response = $request->withToken($key)->get('https://api.hubapi.com/account-info/v3/details');
+
+                return $this->fromResponse($response, $appName, $response->json('portalId') !== null ? 'Portal '.$response->json('portalId') : null);
+
+            case 'pipedrive':
+                $response = $request->withHeaders(['x-api-token' => $key])->get('https://api.pipedrive.com/v1/users/me');
+
+                return $this->fromResponse($response, $appName, $response->json('data.email') ?? $response->json('data.name'));
+
+            case 'salesforce':
+                try {
+                    $login = app(CrmAccessTokens::class)->salesforce($data);
+                } catch (InvalidArgumentException|RuntimeException $e) {
+                    return $this->result(false, $e->getMessage());
+                }
+
+                $response = $request->withToken($login['token'])->get($login['instance'].'/services/data/v62.0/limits');
+
+                return $this->fromResponse($response, $appName, parse_url($login['instance'], PHP_URL_HOST) ?: null);
+
+            case 'zoho':
+                try {
+                    $login = app(CrmAccessTokens::class)->zoho($data);
+                } catch (InvalidArgumentException|RuntimeException $e) {
+                    return $this->result(false, $e->getMessage());
+                }
+
+                $response = $request->withHeaders(['Authorization' => 'Zoho-oauthtoken '.$login['token']])->get($login['api'].'/crm/v7/users', ['type' => 'CurrentUser']);
+
+                return $this->fromResponse($response, $appName, $response->json('users.0.email'));
 
             case 'resend':
                 $response = $request->withToken($key)->get('https://api.resend.com/domains');
