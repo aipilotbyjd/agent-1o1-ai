@@ -30,6 +30,7 @@ use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
 use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
 use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
+use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
@@ -86,6 +87,7 @@ class NodeOptionsService
         AsanaOptions::class,
         ClickUpOptions::class,
         AirtableOptions::class,
+        MondayOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

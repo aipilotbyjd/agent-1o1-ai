@@ -542,6 +542,26 @@ use App\Nodes\Integrations\Mailgun\MailgunSendEmailNode;
 use App\Nodes\Integrations\Mailgun\MailgunUpdateMemberNode;
 use App\Nodes\Integrations\Mailgun\MailgunValidateEmailNode;
 use App\Nodes\Integrations\Mailgun\MailgunVerifyDomainNode;
+use App\Nodes\Integrations\Monday\MondayAddUpdateNode;
+use App\Nodes\Integrations\Monday\MondayArchiveItemNode;
+use App\Nodes\Integrations\Monday\MondayCreateBoardNode;
+use App\Nodes\Integrations\Monday\MondayCreateGroupNode;
+use App\Nodes\Integrations\Monday\MondayCreateItemNode;
+use App\Nodes\Integrations\Monday\MondayCreateSubitemNode;
+use App\Nodes\Integrations\Monday\MondayDeleteItemNode;
+use App\Nodes\Integrations\Monday\MondayGetBoardNode;
+use App\Nodes\Integrations\Monday\MondayGetItemNode;
+use App\Nodes\Integrations\Monday\MondayGetMeNode;
+use App\Nodes\Integrations\Monday\MondayListBoardsNode;
+use App\Nodes\Integrations\Monday\MondayListItemsNode;
+use App\Nodes\Integrations\Monday\MondayListNewItemsNode;
+use App\Nodes\Integrations\Monday\MondayListUpdatedItemsNode;
+use App\Nodes\Integrations\Monday\MondayListUpdatesNode;
+use App\Nodes\Integrations\Monday\MondayListUsersNode;
+use App\Nodes\Integrations\Monday\MondayListWorkspacesNode;
+use App\Nodes\Integrations\Monday\MondayMoveItemNode;
+use App\Nodes\Integrations\Monday\MondaySetColumnNode;
+use App\Nodes\Integrations\Monday\MondayUpdateItemNode;
 use App\Nodes\Integrations\Notion\NotionAppendBlocksNode;
 use App\Nodes\Integrations\Notion\NotionArchivePageNode;
 use App\Nodes\Integrations\Notion\NotionCreateCommentNode;
@@ -1695,6 +1715,26 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'airtable_list_updated_records' => AirtableListUpdatedRecordsNode::class,
             'airtable_update_record' => AirtableUpdateRecordNode::class,
             'airtable_upsert_record' => AirtableUpsertRecordNode::class,
+            'monday_add_update' => MondayAddUpdateNode::class,
+            'monday_archive_item' => MondayArchiveItemNode::class,
+            'monday_create_board' => MondayCreateBoardNode::class,
+            'monday_create_group' => MondayCreateGroupNode::class,
+            'monday_create_item' => MondayCreateItemNode::class,
+            'monday_create_subitem' => MondayCreateSubitemNode::class,
+            'monday_delete_item' => MondayDeleteItemNode::class,
+            'monday_get_board' => MondayGetBoardNode::class,
+            'monday_get_item' => MondayGetItemNode::class,
+            'monday_get_me' => MondayGetMeNode::class,
+            'monday_list_boards' => MondayListBoardsNode::class,
+            'monday_list_items' => MondayListItemsNode::class,
+            'monday_list_new_items' => MondayListNewItemsNode::class,
+            'monday_list_updated_items' => MondayListUpdatedItemsNode::class,
+            'monday_list_updates' => MondayListUpdatesNode::class,
+            'monday_list_users' => MondayListUsersNode::class,
+            'monday_list_workspaces' => MondayListWorkspacesNode::class,
+            'monday_move_item' => MondayMoveItemNode::class,
+            'monday_set_column' => MondaySetColumnNode::class,
+            'monday_update_item' => MondayUpdateItemNode::class,
         ];
     }
 }
