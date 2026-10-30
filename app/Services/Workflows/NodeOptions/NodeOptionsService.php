@@ -9,6 +9,7 @@ use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
+use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleCalendarOptions;
@@ -60,6 +61,7 @@ class NodeOptionsService
         DiscordOptions::class,
         TwilioOptions::class,
         TypeformOptions::class,
+        MailchimpOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

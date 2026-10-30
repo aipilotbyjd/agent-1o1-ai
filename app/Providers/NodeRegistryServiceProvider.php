@@ -294,6 +294,46 @@ use App\Nodes\Integrations\Linear\LinearUpdateIssueNode;
 use App\Nodes\Integrations\Linear\LinearUpdateIssueRelationNode;
 use App\Nodes\Integrations\Linear\LinearUpdateProjectNode;
 use App\Nodes\Integrations\Linear\LinearUpdateStatusUpdateNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpAddNoteNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpAddOrUpdateMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpAddTagsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpArchiveMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCheckSendReadinessNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCreateAudienceNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCreateCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCreateSegmentNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpDeleteAudienceNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpDeleteCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpDeleteMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetAccountNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetAudienceNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetCampaignReportNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetMemberActivityNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListAudiencesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListCampaignClicksNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListCampaignsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListCleanedMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListMemberTagsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListMergeFieldsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListNewSubscribersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListNotesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListSegmentsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListTemplatesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListUnsubscribesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListUpdatedMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpRemoveTagsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpReplicateCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpScheduleCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSearchMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSendCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSendTestEmailNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSetCampaignContentNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpUnscheduleCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpUnsubscribeMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpUpdateMemberNode;
 use App\Nodes\Integrations\Notion\NotionAppendBlocksNode;
 use App\Nodes\Integrations\Notion\NotionArchivePageNode;
 use App\Nodes\Integrations\Notion\NotionCreateCommentNode;
@@ -989,6 +1029,46 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'typeform_list_workspaces' => TypeformListWorkspacesNode::class,
             'typeform_rename_workspace' => TypeformRenameWorkspaceNode::class,
             'typeform_update_form' => TypeformUpdateFormNode::class,
+            'mailchimp_add_note' => MailchimpAddNoteNode::class,
+            'mailchimp_add_or_update_member' => MailchimpAddOrUpdateMemberNode::class,
+            'mailchimp_add_tags' => MailchimpAddTagsNode::class,
+            'mailchimp_archive_member' => MailchimpArchiveMemberNode::class,
+            'mailchimp_check_send_readiness' => MailchimpCheckSendReadinessNode::class,
+            'mailchimp_create_audience' => MailchimpCreateAudienceNode::class,
+            'mailchimp_create_campaign' => MailchimpCreateCampaignNode::class,
+            'mailchimp_create_segment' => MailchimpCreateSegmentNode::class,
+            'mailchimp_delete_audience' => MailchimpDeleteAudienceNode::class,
+            'mailchimp_delete_campaign' => MailchimpDeleteCampaignNode::class,
+            'mailchimp_delete_member' => MailchimpDeleteMemberNode::class,
+            'mailchimp_get_account' => MailchimpGetAccountNode::class,
+            'mailchimp_get_audience' => MailchimpGetAudienceNode::class,
+            'mailchimp_get_campaign' => MailchimpGetCampaignNode::class,
+            'mailchimp_get_campaign_report' => MailchimpGetCampaignReportNode::class,
+            'mailchimp_get_member_activity' => MailchimpGetMemberActivityNode::class,
+            'mailchimp_get_member' => MailchimpGetMemberNode::class,
+            'mailchimp_list_audiences' => MailchimpListAudiencesNode::class,
+            'mailchimp_list_campaign_clicks' => MailchimpListCampaignClicksNode::class,
+            'mailchimp_list_campaigns' => MailchimpListCampaignsNode::class,
+            'mailchimp_list_cleaned_members' => MailchimpListCleanedMembersNode::class,
+            'mailchimp_list_member_tags' => MailchimpListMemberTagsNode::class,
+            'mailchimp_list_members' => MailchimpListMembersNode::class,
+            'mailchimp_list_merge_fields' => MailchimpListMergeFieldsNode::class,
+            'mailchimp_list_new_subscribers' => MailchimpListNewSubscribersNode::class,
+            'mailchimp_list_notes' => MailchimpListNotesNode::class,
+            'mailchimp_list_segments' => MailchimpListSegmentsNode::class,
+            'mailchimp_list_templates' => MailchimpListTemplatesNode::class,
+            'mailchimp_list_unsubscribes' => MailchimpListUnsubscribesNode::class,
+            'mailchimp_list_updated_members' => MailchimpListUpdatedMembersNode::class,
+            'mailchimp_remove_tags' => MailchimpRemoveTagsNode::class,
+            'mailchimp_replicate_campaign' => MailchimpReplicateCampaignNode::class,
+            'mailchimp_schedule_campaign' => MailchimpScheduleCampaignNode::class,
+            'mailchimp_search_members' => MailchimpSearchMembersNode::class,
+            'mailchimp_send_campaign' => MailchimpSendCampaignNode::class,
+            'mailchimp_send_test_email' => MailchimpSendTestEmailNode::class,
+            'mailchimp_set_campaign_content' => MailchimpSetCampaignContentNode::class,
+            'mailchimp_unschedule_campaign' => MailchimpUnscheduleCampaignNode::class,
+            'mailchimp_unsubscribe_member' => MailchimpUnsubscribeMemberNode::class,
+            'mailchimp_update_member' => MailchimpUpdateMemberNode::class,
         ];
     }
 }

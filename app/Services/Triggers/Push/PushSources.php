@@ -41,8 +41,9 @@ class PushSources
         DiscordSource $discordSource,
         TwilioSource $twilioSource,
         TypeformSource $typeformSource,
+        MailchimpSource $mailchimpSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -64,6 +65,7 @@ class PushSources
             new DiscordIngress,
             new TwilioIngress,
             new TypeformIngress,
+            new MailchimpIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }
