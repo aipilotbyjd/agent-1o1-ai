@@ -43,8 +43,9 @@ class PushSources
         TypeformSource $typeformSource,
         MailchimpSource $mailchimpSource,
         KitSource $kitSource,
+        ActiveCampaignSource $activeCampaignSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -68,6 +69,7 @@ class PushSources
             new TypeformIngress,
             new MailchimpIngress,
             new KitIngress,
+            new ActiveCampaignIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

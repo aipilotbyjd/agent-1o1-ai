@@ -4,10 +4,12 @@ namespace App\Services\Connectors;
 
 use App\Exceptions\ConnectorException;
 use App\Models\Connectors\ConnectorCredential;
+use App\Nodes\Integrations\ActiveCampaign\AbstractActiveCampaignNode;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Throwable;
 
 /**
@@ -247,15 +249,15 @@ class ConnectorCredentialTester
                 return $this->fromResponse($response, $appName, $response->json('account.name') ?? $response->json('user.email'));
 
             case 'activecampaign':
-                $url = rtrim((string) ($data['api_url'] ?? ''), '/');
-
-                if (preg_match('#^https://[\w.-]+\.(?:api-us1\.com|activehosted\.com|api-[\w]+\.com)$#i', $url) !== 1) {
-                    return $this->result(false, 'The ActiveCampaign account URL looks like https://youraccount.api-us1.com (Settings > Developer).');
+                try {
+                    $root = AbstractActiveCampaignNode::apiRoot((string) ($data['api_url'] ?? ''));
+                } catch (InvalidArgumentException $e) {
+                    return $this->result(false, $e->getMessage());
                 }
 
-                $response = $request->withHeaders(['Api-Token' => $key])->get("{$url}/api/3/users/me");
+                $response = $request->withHeaders(['Api-Token' => $key])->get("{$root}/users/me");
 
-                return $this->fromResponse($response, $appName, $response->json('user.email') ?? $url);
+                return $this->fromResponse($response, $appName, $response->json('user.email') ?? rtrim((string) $data['api_url'], '/'));
 
             case 'klaviyo':
                 $response = $request->withHeaders(['Authorization' => 'Klaviyo-API-Key '.$key, 'revision' => '2024-10-15'])->get('https://a.klaviyo.com/api/accounts/');

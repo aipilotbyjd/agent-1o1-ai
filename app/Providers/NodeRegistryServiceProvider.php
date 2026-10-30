@@ -19,6 +19,35 @@ use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\InputsOutputs\WorkflowInputNode;
 use App\Nodes\InputsOutputs\WorkflowOutputNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignAddNoteNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignAddTagNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignAddToAutomationNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignCreateDealNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignCreateListNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignCreateTagNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignDeleteContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignDeleteDealNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignGetAccountNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignGetContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignGetDealNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListAutomationsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListContactNotesNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListContactsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListContactTagsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListCustomFieldsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListDealsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListListsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListPipelinesNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListTagsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListUpdatedContactsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListUsersNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignRemoveFromAutomationNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignRemoveTagNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignSubscribeToListNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignSyncContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUnsubscribeFromListNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateDealNode;
 use App\Nodes\Integrations\Discord\DiscordAddReactionNode;
 use App\Nodes\Integrations\Discord\DiscordAddRoleNode;
 use App\Nodes\Integrations\Discord\DiscordAddThreadMemberNode;
@@ -1129,6 +1158,35 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'kit_untag_subscriber' => KitUntagSubscriberNode::class,
             'kit_update_broadcast' => KitUpdateBroadcastNode::class,
             'kit_update_subscriber' => KitUpdateSubscriberNode::class,
+            'activecampaign_add_note' => ActiveCampaignAddNoteNode::class,
+            'activecampaign_add_tag' => ActiveCampaignAddTagNode::class,
+            'activecampaign_add_to_automation' => ActiveCampaignAddToAutomationNode::class,
+            'activecampaign_create_deal' => ActiveCampaignCreateDealNode::class,
+            'activecampaign_create_list' => ActiveCampaignCreateListNode::class,
+            'activecampaign_create_tag' => ActiveCampaignCreateTagNode::class,
+            'activecampaign_delete_contact' => ActiveCampaignDeleteContactNode::class,
+            'activecampaign_delete_deal' => ActiveCampaignDeleteDealNode::class,
+            'activecampaign_get_account' => ActiveCampaignGetAccountNode::class,
+            'activecampaign_get_contact' => ActiveCampaignGetContactNode::class,
+            'activecampaign_get_deal' => ActiveCampaignGetDealNode::class,
+            'activecampaign_list_automations' => ActiveCampaignListAutomationsNode::class,
+            'activecampaign_list_contact_notes' => ActiveCampaignListContactNotesNode::class,
+            'activecampaign_list_contact_tags' => ActiveCampaignListContactTagsNode::class,
+            'activecampaign_list_contacts' => ActiveCampaignListContactsNode::class,
+            'activecampaign_list_custom_fields' => ActiveCampaignListCustomFieldsNode::class,
+            'activecampaign_list_deals' => ActiveCampaignListDealsNode::class,
+            'activecampaign_list_lists' => ActiveCampaignListListsNode::class,
+            'activecampaign_list_pipelines' => ActiveCampaignListPipelinesNode::class,
+            'activecampaign_list_tags' => ActiveCampaignListTagsNode::class,
+            'activecampaign_list_updated_contacts' => ActiveCampaignListUpdatedContactsNode::class,
+            'activecampaign_list_users' => ActiveCampaignListUsersNode::class,
+            'activecampaign_remove_from_automation' => ActiveCampaignRemoveFromAutomationNode::class,
+            'activecampaign_remove_tag' => ActiveCampaignRemoveTagNode::class,
+            'activecampaign_subscribe_to_list' => ActiveCampaignSubscribeToListNode::class,
+            'activecampaign_sync_contact' => ActiveCampaignSyncContactNode::class,
+            'activecampaign_unsubscribe_from_list' => ActiveCampaignUnsubscribeFromListNode::class,
+            'activecampaign_update_contact' => ActiveCampaignUpdateContactNode::class,
+            'activecampaign_update_deal' => ActiveCampaignUpdateDealNode::class,
         ];
     }
 }

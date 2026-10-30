@@ -7,6 +7,7 @@ use App\Models\Connectors\Connector;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
+use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\KitOptions;
@@ -64,6 +65,7 @@ class NodeOptionsService
         TypeformOptions::class,
         MailchimpOptions::class,
         KitOptions::class,
+        ActiveCampaignOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
