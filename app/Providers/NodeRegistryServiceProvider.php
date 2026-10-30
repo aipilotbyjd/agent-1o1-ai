@@ -683,6 +683,35 @@ use App\Nodes\Integrations\Telegram\TelegramStopPollNode;
 use App\Nodes\Integrations\Telegram\TelegramUnbanChatMemberNode;
 use App\Nodes\Integrations\Telegram\TelegramUnpinAllChatMessagesNode;
 use App\Nodes\Integrations\Telegram\TelegramUnpinChatMessageNode;
+use App\Nodes\Integrations\Trello\TrelloAddAttachmentNode;
+use App\Nodes\Integrations\Trello\TrelloAddChecklistItemNode;
+use App\Nodes\Integrations\Trello\TrelloAddCommentNode;
+use App\Nodes\Integrations\Trello\TrelloAddLabelNode;
+use App\Nodes\Integrations\Trello\TrelloAddMemberNode;
+use App\Nodes\Integrations\Trello\TrelloArchiveAllCardsNode;
+use App\Nodes\Integrations\Trello\TrelloCreateBoardNode;
+use App\Nodes\Integrations\Trello\TrelloCreateCardNode;
+use App\Nodes\Integrations\Trello\TrelloCreateChecklistNode;
+use App\Nodes\Integrations\Trello\TrelloCreateLabelNode;
+use App\Nodes\Integrations\Trello\TrelloCreateListNode;
+use App\Nodes\Integrations\Trello\TrelloDeleteCardNode;
+use App\Nodes\Integrations\Trello\TrelloGetBoardNode;
+use App\Nodes\Integrations\Trello\TrelloGetCardNode;
+use App\Nodes\Integrations\Trello\TrelloGetMemberNode;
+use App\Nodes\Integrations\Trello\TrelloListActivityNode;
+use App\Nodes\Integrations\Trello\TrelloListBoardsNode;
+use App\Nodes\Integrations\Trello\TrelloListCardsNode;
+use App\Nodes\Integrations\Trello\TrelloListCommentsNode;
+use App\Nodes\Integrations\Trello\TrelloListLabelsNode;
+use App\Nodes\Integrations\Trello\TrelloListListsNode;
+use App\Nodes\Integrations\Trello\TrelloListMembersNode;
+use App\Nodes\Integrations\Trello\TrelloMoveCardNode;
+use App\Nodes\Integrations\Trello\TrelloRemoveLabelNode;
+use App\Nodes\Integrations\Trello\TrelloRemoveMemberNode;
+use App\Nodes\Integrations\Trello\TrelloSearchCardsNode;
+use App\Nodes\Integrations\Trello\TrelloSetChecklistItemNode;
+use App\Nodes\Integrations\Trello\TrelloUpdateCardNode;
+use App\Nodes\Integrations\Trello\TrelloUpdateListNode;
 use App\Nodes\Integrations\Twilio\TwilioCheckVerificationNode;
 use App\Nodes\Integrations\Twilio\TwilioDeleteMessageNode;
 use App\Nodes\Integrations\Twilio\TwilioDeleteRecordingNode;
@@ -1497,6 +1526,35 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'outlook_send_draft' => OutlookSendDraftNode::class,
             'outlook_set_auto_reply' => OutlookSetAutoReplyNode::class,
             'outlook_set_categories' => OutlookSetCategoriesNode::class,
+            'trello_add_attachment' => TrelloAddAttachmentNode::class,
+            'trello_add_checklist_item' => TrelloAddChecklistItemNode::class,
+            'trello_add_comment' => TrelloAddCommentNode::class,
+            'trello_add_label' => TrelloAddLabelNode::class,
+            'trello_add_member' => TrelloAddMemberNode::class,
+            'trello_archive_all_cards' => TrelloArchiveAllCardsNode::class,
+            'trello_create_board' => TrelloCreateBoardNode::class,
+            'trello_create_card' => TrelloCreateCardNode::class,
+            'trello_create_checklist' => TrelloCreateChecklistNode::class,
+            'trello_create_label' => TrelloCreateLabelNode::class,
+            'trello_create_list' => TrelloCreateListNode::class,
+            'trello_delete_card' => TrelloDeleteCardNode::class,
+            'trello_get_board' => TrelloGetBoardNode::class,
+            'trello_get_card' => TrelloGetCardNode::class,
+            'trello_get_member' => TrelloGetMemberNode::class,
+            'trello_list_activity' => TrelloListActivityNode::class,
+            'trello_list_boards' => TrelloListBoardsNode::class,
+            'trello_list_cards' => TrelloListCardsNode::class,
+            'trello_list_comments' => TrelloListCommentsNode::class,
+            'trello_list_labels' => TrelloListLabelsNode::class,
+            'trello_list_lists' => TrelloListListsNode::class,
+            'trello_list_members' => TrelloListMembersNode::class,
+            'trello_move_card' => TrelloMoveCardNode::class,
+            'trello_remove_label' => TrelloRemoveLabelNode::class,
+            'trello_remove_member' => TrelloRemoveMemberNode::class,
+            'trello_search_cards' => TrelloSearchCardsNode::class,
+            'trello_set_checklist_item' => TrelloSetChecklistItemNode::class,
+            'trello_update_card' => TrelloUpdateCardNode::class,
+            'trello_update_list' => TrelloUpdateListNode::class,
         ];
     }
 }

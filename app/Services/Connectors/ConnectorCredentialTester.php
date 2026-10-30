@@ -27,7 +27,7 @@ class ConnectorCredentialTester
      *
      * @var list<string>
      */
-    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun'];
+    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable'];
 
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
@@ -268,6 +268,42 @@ class ConnectorCredentialTester
                 $response = $request->withHeaders(['api-key' => $key])->get('https://api.brevo.com/v3/account');
 
                 return $this->fromResponse($response, $appName, $response->json('email'));
+
+            case 'trello':
+                $appKey = trim((string) ($data['app_key'] ?? ''));
+
+                if ($appKey === '') {
+                    return $this->result(false, "{$appName} needs the API key as well as the token.");
+                }
+
+                $response = $request->get('https://api.trello.com/1/members/me', ['key' => $appKey, 'token' => $key, 'fields' => 'fullName,username']);
+
+                return $this->fromResponse($response, $appName, $response->json('username') ?? $response->json('fullName'));
+
+            case 'asana':
+                $response = $request->withToken($key)->get('https://app.asana.com/api/1.0/users/me');
+
+                return $this->fromResponse($response, $appName, $response->json('data.email') ?? $response->json('data.name'));
+
+            case 'clickup':
+                $response = $request->withHeaders(['Authorization' => $key])->get('https://api.clickup.com/api/v2/user');
+
+                return $this->fromResponse($response, $appName, $response->json('user.email') ?? $response->json('user.username'));
+
+            case 'monday':
+                $response = $request->withHeaders(['Authorization' => $key, 'API-Version' => '2024-10'])->post('https://api.monday.com/v2', ['query' => '{ me { name email } }']);
+
+                // monday answers a bad token with 200 and an errors list.
+                if ($response->successful() && $response->json('errors') !== null) {
+                    return $this->result(false, (string) ($response->json('errors.0.message') ?? 'monday.com refused the token.'));
+                }
+
+                return $this->fromResponse($response, $appName, $response->json('data.me.email'));
+
+            case 'airtable':
+                $response = $request->withToken($key)->get('https://api.airtable.com/v0/meta/whoami');
+
+                return $this->fromResponse($response, $appName, $response->json('email') ?? $response->json('id'));
 
             case 'resend':
                 $response = $request->withToken($key)->get('https://api.resend.com/domains');

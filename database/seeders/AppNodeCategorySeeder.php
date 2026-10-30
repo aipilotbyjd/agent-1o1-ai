@@ -272,6 +272,46 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Send email, read events and stats, manage mailing lists, templates and suppressions, and start flows from delivered, failed, opened, clicked and unsubscribed email.',
                 'sort_order' => 32,
             ],
+            [
+                'slug' => 'trello',
+                'name' => 'Trello',
+                'icon' => 'trello',
+                'color' => '#0079BF',
+                'description' => 'Create and move cards, manage boards, lists, labels and checklists, and start flows from new cards, moves and comments.',
+                'sort_order' => 33,
+            ],
+            [
+                'slug' => 'asana',
+                'name' => 'Asana',
+                'icon' => 'asana',
+                'color' => '#F06A6A',
+                'description' => 'Create and update tasks, subtasks, projects, sections and comments, and start flows from new, completed and changed tasks.',
+                'sort_order' => 34,
+            ],
+            [
+                'slug' => 'clickup',
+                'name' => 'ClickUp',
+                'icon' => 'clickup',
+                'color' => '#7B68EE',
+                'description' => 'Create and update tasks, lists, comments and checklists, and start flows from new and changed tasks.',
+                'sort_order' => 35,
+            ],
+            [
+                'slug' => 'monday',
+                'name' => 'monday.com',
+                'icon' => 'monday',
+                'color' => '#FF3D57',
+                'description' => 'Create and update items, boards, groups and updates, and start flows from new and changed items.',
+                'sort_order' => 36,
+            ],
+            [
+                'slug' => 'airtable',
+                'name' => 'Airtable',
+                'icon' => 'airtable',
+                'color' => '#18BFFF',
+                'description' => 'Create, find, update and delete records, and start flows from new and changed records.',
+                'sort_order' => 37,
+            ],
         ];
 
         foreach ($categories as $category) {

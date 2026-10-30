@@ -33,6 +33,7 @@ use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
 use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
 use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
+use App\Services\Workflows\NodeOptions\Sources\TrelloOptions;
 use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
 use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
@@ -78,6 +79,7 @@ class NodeOptionsService
         ResendOptions::class,
         PostmarkOptions::class,
         MailgunOptions::class,
+        TrelloOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

@@ -332,6 +332,12 @@ return [
         'resend' => ['enabled' => (bool) env('TRIGGERS_PUSH_RESEND_ENABLED', true)],
         'postmark' => ['enabled' => (bool) env('TRIGGERS_PUSH_POSTMARK_ENABLED', true)],
         'mailgun' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILGUN_ENABLED', true)],
+        // Project tools: each registers its webhook through the connected account.
+        'trello' => ['enabled' => (bool) env('TRIGGERS_PUSH_TRELLO_ENABLED', true)],
+        'asana' => ['enabled' => (bool) env('TRIGGERS_PUSH_ASANA_ENABLED', true)],
+        'clickup' => ['enabled' => (bool) env('TRIGGERS_PUSH_CLICKUP_ENABLED', true)],
+        'monday' => ['enabled' => (bool) env('TRIGGERS_PUSH_MONDAY_ENABLED', true)],
+        'airtable' => ['enabled' => (bool) env('TRIGGERS_PUSH_AIRTABLE_ENABLED', true)],
 
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
