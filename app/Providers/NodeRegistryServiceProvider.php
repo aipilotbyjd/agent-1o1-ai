@@ -479,6 +479,26 @@ use App\Nodes\Integrations\Outlook\OutlookListUpdatedEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
+use App\Nodes\Integrations\SendGrid\SendGridAddGlobalUnsubscribeNode;
+use App\Nodes\Integrations\SendGrid\SendGridCreateListNode;
+use App\Nodes\Integrations\SendGrid\SendGridDeleteContactNode;
+use App\Nodes\Integrations\SendGrid\SendGridDeleteListNode;
+use App\Nodes\Integrations\SendGrid\SendGridGetAccountNode;
+use App\Nodes\Integrations\SendGrid\SendGridGetContactNode;
+use App\Nodes\Integrations\SendGrid\SendGridGetStatsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListBlocksNode;
+use App\Nodes\Integrations\SendGrid\SendGridListBouncesNode;
+use App\Nodes\Integrations\SendGrid\SendGridListInvalidEmailsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListListsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListSendersNode;
+use App\Nodes\Integrations\SendGrid\SendGridListSpamReportsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListTemplatesNode;
+use App\Nodes\Integrations\SendGrid\SendGridListUnsubscribesNode;
+use App\Nodes\Integrations\SendGrid\SendGridRemoveContactFromListNode;
+use App\Nodes\Integrations\SendGrid\SendGridRemoveSuppressionNode;
+use App\Nodes\Integrations\SendGrid\SendGridSearchContactsNode;
+use App\Nodes\Integrations\SendGrid\SendGridSendEmailNode;
+use App\Nodes\Integrations\SendGrid\SendGridUpsertContactNode;
 use App\Nodes\Integrations\Slack\SlackAddReactionNode;
 use App\Nodes\Integrations\Slack\SlackArchiveChannelNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
@@ -1271,6 +1291,26 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'brevo_track_event' => BrevoTrackEventNode::class,
             'brevo_update_contact' => BrevoUpdateContactNode::class,
             'brevo_list_updated_contacts' => BrevoListUpdatedContactsNode::class,
+            'sendgrid_add_global_unsubscribe' => SendGridAddGlobalUnsubscribeNode::class,
+            'sendgrid_create_list' => SendGridCreateListNode::class,
+            'sendgrid_delete_contact' => SendGridDeleteContactNode::class,
+            'sendgrid_delete_list' => SendGridDeleteListNode::class,
+            'sendgrid_get_account' => SendGridGetAccountNode::class,
+            'sendgrid_get_contact' => SendGridGetContactNode::class,
+            'sendgrid_get_stats' => SendGridGetStatsNode::class,
+            'sendgrid_list_blocks' => SendGridListBlocksNode::class,
+            'sendgrid_list_bounces' => SendGridListBouncesNode::class,
+            'sendgrid_list_invalid_emails' => SendGridListInvalidEmailsNode::class,
+            'sendgrid_list_lists' => SendGridListListsNode::class,
+            'sendgrid_list_senders' => SendGridListSendersNode::class,
+            'sendgrid_list_spam_reports' => SendGridListSpamReportsNode::class,
+            'sendgrid_list_templates' => SendGridListTemplatesNode::class,
+            'sendgrid_list_unsubscribes' => SendGridListUnsubscribesNode::class,
+            'sendgrid_remove_contact_from_list' => SendGridRemoveContactFromListNode::class,
+            'sendgrid_remove_suppression' => SendGridRemoveSuppressionNode::class,
+            'sendgrid_search_contacts' => SendGridSearchContactsNode::class,
+            'sendgrid_send_email' => SendGridSendEmailNode::class,
+            'sendgrid_upsert_contact' => SendGridUpsertContactNode::class,
         ];
     }
 }
