@@ -520,6 +520,18 @@ use App\Nodes\Integrations\Linear\LinearUpdateIssueNode;
 use App\Nodes\Integrations\Linear\LinearUpdateIssueRelationNode;
 use App\Nodes\Integrations\Linear\LinearUpdateProjectNode;
 use App\Nodes\Integrations\Linear\LinearUpdateStatusUpdateNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInCommentOnPostNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInCreateImagePostNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInCreateLinkPostNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInCreateTextPostNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInDeletePostNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInGetMeNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInGetPostNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInLikePostNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInListCommentsNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInListPagesNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInListPostsNode;
+use App\Nodes\Integrations\LinkedIn\LinkedInPageFollowersNode;
 use App\Nodes\Integrations\Mailchimp\MailchimpAddNoteNode;
 use App\Nodes\Integrations\Mailchimp\MailchimpAddOrUpdateMemberNode;
 use App\Nodes\Integrations\Mailchimp\MailchimpAddTagsNode;
@@ -2223,6 +2235,18 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_cliq_send_channel_message' => ZohoCliqSendChannelMessageNode::class,
             'zoho_cliq_send_chat_message' => ZohoCliqSendChatMessageNode::class,
             'zoho_cliq_send_direct_message' => ZohoCliqSendDirectMessageNode::class,
+            'linkedin_comment_on_post' => LinkedInCommentOnPostNode::class,
+            'linkedin_create_image_post' => LinkedInCreateImagePostNode::class,
+            'linkedin_create_link_post' => LinkedInCreateLinkPostNode::class,
+            'linkedin_create_text_post' => LinkedInCreateTextPostNode::class,
+            'linkedin_delete_post' => LinkedInDeletePostNode::class,
+            'linkedin_get_me' => LinkedInGetMeNode::class,
+            'linkedin_get_post' => LinkedInGetPostNode::class,
+            'linkedin_like_post' => LinkedInLikePostNode::class,
+            'linkedin_list_comments' => LinkedInListCommentsNode::class,
+            'linkedin_list_pages' => LinkedInListPagesNode::class,
+            'linkedin_list_posts' => LinkedInListPostsNode::class,
+            'linkedin_page_followers' => LinkedInPageFollowersNode::class,
         ];
     }
 }

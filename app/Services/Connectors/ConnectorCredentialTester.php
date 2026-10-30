@@ -28,7 +28,7 @@ class ConnectorCredentialTester
      *
      * @var list<string>
      */
-    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho', 'zoho_desk', 'zoho_books', 'zoho_projects', 'zoho_campaigns', 'zoho_mail', 'zoho_cliq'];
+    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho', 'zoho_desk', 'zoho_books', 'zoho_projects', 'zoho_campaigns', 'zoho_mail', 'zoho_cliq', 'linkedin', 'pinterest'];
 
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
@@ -364,6 +364,16 @@ class ConnectorCredentialTester
                 $response = $request->withHeaders(['Authorization' => 'Zoho-oauthtoken '.$login['token'], ...$headers])->get($login['base'].$path, $query);
 
                 return $this->fromResponse($response, $appName, null);
+
+            case 'linkedin':
+                $response = $request->withToken($key)->get('https://api.linkedin.com/v2/userinfo');
+
+                return $this->fromResponse($response, $appName, $response->json('email') ?? $response->json('name'));
+
+            case 'pinterest':
+                $response = $request->withToken($key)->get('https://api.pinterest.com/v5/user_account');
+
+                return $this->fromResponse($response, $appName, $response->json('username'));
 
             case 'resend':
                 $response = $request->withToken($key)->get('https://api.resend.com/domains');

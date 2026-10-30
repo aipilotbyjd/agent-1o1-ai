@@ -392,6 +392,22 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Send messages to channels, people and chats, read channels and users, and start flows from new chat messages.',
                 'sort_order' => 47,
             ],
+            [
+                'slug' => 'linkedin',
+                'name' => 'LinkedIn',
+                'icon' => 'linkedin',
+                'color' => '#0A66C2',
+                'description' => 'Publish posts as yourself or a company page, read posts and comments, comment and like, and start flows from new posts and comments.',
+                'sort_order' => 48,
+            ],
+            [
+                'slug' => 'pinterest',
+                'name' => 'Pinterest',
+                'icon' => 'pinterest',
+                'color' => '#E60023',
+                'description' => 'Create and manage pins, boards and sections, read pin analytics, and start flows from new pins and boards.',
+                'sort_order' => 49,
+            ],
         ];
 
         foreach ($categories as $category) {

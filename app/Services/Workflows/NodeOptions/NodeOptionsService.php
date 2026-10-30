@@ -30,6 +30,7 @@ use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
 use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
 use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
+use App\Services\Workflows\NodeOptions\Sources\LinkedInOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
 use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
@@ -108,6 +109,7 @@ class NodeOptionsService
         ZohoCampaignsOptions::class,
         ZohoMailOptions::class,
         ZohoCliqOptions::class,
+        LinkedInOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

@@ -911,6 +911,36 @@ class ConnectorSeeder extends Seeder
                 'oauth' => null,
                 'sort_order' => 47,
             ],
+            [
+                'key' => 'linkedin',
+                'name' => 'LinkedIn',
+                'description' => 'Publish text, link and image posts as yourself or a company page, read posts and comments, comment, like, and start flows from new posts and comments.',
+                'icon' => 'linkedin',
+                'color' => '#0A66C2',
+                'category' => ConnectorCategory::Marketing,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::ApiKey,
+                'fields' => [
+                    ['name' => 'api_key', 'label' => 'Access token', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'A 3-legged OAuth token for your LinkedIn app (developer.linkedin.com > your app > Auth > OAuth token tools). Scopes: openid, profile, w_member_social; for company pages w_organization_social and rw_organization_admin; to read posts r_member_social or r_organization_social. Tokens last 60 days.'],
+                ],
+                'oauth' => null,
+                'sort_order' => 48,
+            ],
+            [
+                'key' => 'pinterest',
+                'name' => 'Pinterest',
+                'description' => 'Create, update and delete pins and boards, organise board sections, read pin analytics, and start flows from new pins and boards.',
+                'icon' => 'pinterest',
+                'color' => '#E60023',
+                'category' => ConnectorCategory::Marketing,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::ApiKey,
+                'fields' => [
+                    ['name' => 'api_key', 'label' => 'Access token', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'developers.pinterest.com > your app > Generate access token. Scopes: user_accounts:read, boards:read, boards:write, pins:read, pins:write. A token from a Trial app only works against the sandbox.'],
+                ],
+                'oauth' => null,
+                'sort_order' => 49,
+            ],
         ];
     }
 }
