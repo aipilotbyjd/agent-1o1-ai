@@ -502,20 +502,34 @@ use App\Nodes\Integrations\Notion\NotionSearchNode;
 use App\Nodes\Integrations\Notion\NotionUpdateBlockNode;
 use App\Nodes\Integrations\Notion\NotionUpdateDatabaseNode;
 use App\Nodes\Integrations\Notion\NotionUpdatePageNode;
+use App\Nodes\Integrations\Outlook\OutlookCopyMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateEventNode;
+use App\Nodes\Integrations\Outlook\OutlookCreateFolderNode;
 use App\Nodes\Integrations\Outlook\OutlookDeleteEventNode;
 use App\Nodes\Integrations\Outlook\OutlookDeleteMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookFlagMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookForwardMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookGetAttachmentNode;
+use App\Nodes\Integrations\Outlook\OutlookGetAutoReplyNode;
 use App\Nodes\Integrations\Outlook\OutlookGetMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookGetProfileNode;
+use App\Nodes\Integrations\Outlook\OutlookListAttachmentsNode;
 use App\Nodes\Integrations\Outlook\OutlookListCancelledEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListEventsNode;
+use App\Nodes\Integrations\Outlook\OutlookListFoldersNode;
 use App\Nodes\Integrations\Outlook\OutlookListMessagesNode;
 use App\Nodes\Integrations\Outlook\OutlookListNewEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListUpcomingEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListUpdatedEventsNode;
+use App\Nodes\Integrations\Outlook\OutlookMarkReadNode;
 use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookReplyAllNode;
 use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookSendDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
+use App\Nodes\Integrations\Outlook\OutlookSetAutoReplyNode;
+use App\Nodes\Integrations\Outlook\OutlookSetCategoriesNode;
 use App\Nodes\Integrations\Postmark\PostmarkActivateBounceNode;
 use App\Nodes\Integrations\Postmark\PostmarkAddSuppressionsNode;
 use App\Nodes\Integrations\Postmark\PostmarkDeleteSuppressionsNode;
@@ -1469,6 +1483,20 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'gmail_untrash_message' => GmailUntrashMessageNode::class,
             'gmail_update_draft' => GmailUpdateDraftNode::class,
             'gmail_update_label' => GmailUpdateLabelNode::class,
+            'outlook_copy_message' => OutlookCopyMessageNode::class,
+            'outlook_create_folder' => OutlookCreateFolderNode::class,
+            'outlook_flag_message' => OutlookFlagMessageNode::class,
+            'outlook_forward_message' => OutlookForwardMessageNode::class,
+            'outlook_get_attachment' => OutlookGetAttachmentNode::class,
+            'outlook_get_auto_reply' => OutlookGetAutoReplyNode::class,
+            'outlook_get_profile' => OutlookGetProfileNode::class,
+            'outlook_list_attachments' => OutlookListAttachmentsNode::class,
+            'outlook_list_folders' => OutlookListFoldersNode::class,
+            'outlook_mark_read' => OutlookMarkReadNode::class,
+            'outlook_reply_all' => OutlookReplyAllNode::class,
+            'outlook_send_draft' => OutlookSendDraftNode::class,
+            'outlook_set_auto_reply' => OutlookSetAutoReplyNode::class,
+            'outlook_set_categories' => OutlookSetCategoriesNode::class,
         ];
     }
 }

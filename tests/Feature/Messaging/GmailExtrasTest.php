@@ -16,10 +16,22 @@ use App\Nodes\Integrations\Gmail\GmailUntrashMessageNode;
 use App\Nodes\Integrations\Gmail\GmailUpdateDraftNode;
 use App\Nodes\Integrations\Gmail\GmailUpdateLabelNode;
 use App\Services\Workflows\NodeRegistry;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 const GMAIL_EXTRA = ['access_token' => 'ya29-test'];
+
+/**
+ * Answer the API from a fresh fake, so a test can change its answers part-way.
+ *
+ * @param  array<string, mixed>  $stubs
+ */
+function gmailExtraFake(array $stubs): void
+{
+    Http::swap(new Factory);
+    Http::fake($stubs);
+}
 
 /**
  * The JSON body of the one call made to a path.
@@ -44,7 +56,7 @@ it('registers every extra gmail node under the gmail category', function () {
 });
 
 it('trashes and restores a message', function () {
-    Http::fake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => ['TRASH']])]);
+    gmailExtraFake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => ['TRASH']])]);
 
     $trashed = (new GmailTrashMessageNode)->execute(Run::factory()->create(), [...GMAIL_EXTRA, 'message_id' => 'm1'], []);
     $restored = (new GmailUntrashMessageNode)->execute(Run::factory()->create(), [...GMAIL_EXTRA, 'message_id' => 'm1'], []);
@@ -55,23 +67,23 @@ it('trashes and restores a message', function () {
 });
 
 it('marks read or unread and archives through the UNREAD and INBOX labels', function () {
-    Http::fake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => []])]);
+    gmailExtraFake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => []])]);
     $run = Run::factory()->create();
 
     (new GmailMarkReadNode)->execute($run, [...GMAIL_EXTRA, 'message_id' => 'm1'], []);
     expect(gmailExtraBody('POST', '/messages/m1/modify'))->toBe(['removeLabelIds' => ['UNREAD']]);
 
-    Http::fake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => ['UNREAD']])]);
+    gmailExtraFake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => ['UNREAD']])]);
     $unread = (new GmailMarkReadNode)->execute($run, [...GMAIL_EXTRA, 'message_id' => 'm1', 'state' => 'unread'], []);
     expect($unread['is_read'])->toBeFalse();
 
-    Http::fake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => []])]);
+    gmailExtraFake(['gmail.googleapis.com/*' => Http::response(['id' => 'm1', 'labelIds' => []])]);
     (new GmailArchiveMessageNode)->execute($run, [...GMAIL_EXTRA, 'message_id' => 'm1'], []);
     Http::assertSent(fn (Request $request): bool => ($request['removeLabelIds'] ?? null) === ['INBOX']);
 });
 
 it('changes labels on many messages at once, after checking the list', function () {
-    Http::fake(['gmail.googleapis.com/*' => Http::response(null, 204)]);
+    gmailExtraFake(['gmail.googleapis.com/*' => Http::response(null, 204)]);
     $node = new GmailBatchModifyMessagesNode;
     $run = Run::factory()->create();
 
@@ -92,7 +104,7 @@ it('forwards the text of a message with a note, as a new email', function () {
             'body' => ['data' => rtrim(strtr(base64_encode('The numbers are up.'), '+/', '-_'), '='), 'size' => 19],
         ],
     ];
-    Http::fake(['gmail.googleapis.com/gmail/v1/users/me/messages/send' => Http::response(['id' => 'sent1', 'threadId' => 'tnew']), 'gmail.googleapis.com/*' => Http::response($original)]);
+    gmailExtraFake(['gmail.googleapis.com/gmail/v1/users/me/messages/send' => Http::response(['id' => 'sent1', 'threadId' => 'tnew']), 'gmail.googleapis.com/*' => Http::response($original)]);
 
     $output = (new GmailForwardMessageNode)->execute(Run::factory()->create(), [...GMAIL_EXTRA, 'message_id' => 'm1', 'to' => 'bob@example.com', 'comment' => 'FYI'], []);
     $raw = (string) gmailExtraBody('POST', '/messages/send')['raw'];
@@ -104,7 +116,7 @@ it('forwards the text of a message with a note, as a new email', function () {
 });
 
 it('trashes a conversation and reads the profile', function () {
-    Http::fake([
+    gmailExtraFake([
         'gmail.googleapis.com/gmail/v1/users/me/profile' => Http::response(['emailAddress' => 'me@example.com', 'messagesTotal' => 10, 'threadsTotal' => 4, 'historyId' => '99']),
         'gmail.googleapis.com/*' => Http::response(['id' => 't1']),
     ]);
@@ -114,7 +126,7 @@ it('trashes a conversation and reads the profile', function () {
 });
 
 it('edits and deletes a label, and needs something to change', function () {
-    Http::fake(['gmail.googleapis.com/*' => Http::response(['id' => 'Label_1', 'name' => 'Clients/Acme', 'type' => 'user'])]);
+    gmailExtraFake(['gmail.googleapis.com/*' => Http::response(['id' => 'Label_1', 'name' => 'Clients/Acme', 'type' => 'user'])]);
     $run = Run::factory()->create();
 
     $updated = (new GmailUpdateLabelNode)->execute($run, [...GMAIL_EXTRA, 'label_id' => 'Label_1', 'name' => ' Clients/Acme ', 'label_visibility' => 'labelHide'], []);
@@ -123,7 +135,7 @@ it('edits and deletes a label, and needs something to change', function () {
         ->and(gmailExtraBody('PATCH', '/labels/Label_1'))->toBe(['name' => 'Clients/Acme', 'labelListVisibility' => 'labelHide'])
         ->and(fn () => (new GmailUpdateLabelNode)->execute($run, [...GMAIL_EXTRA, 'label_id' => 'Label_1'], []))->toThrow(InvalidArgumentException::class, 'Change at least one thing');
 
-    Http::fake(['gmail.googleapis.com/*' => Http::response(null, 204)]);
+    gmailExtraFake(['gmail.googleapis.com/*' => Http::response(null, 204)]);
 
     expect((new GmailDeleteLabelNode)->execute($run, [...GMAIL_EXTRA, 'label_id' => 'Label_1'], []))->toBe(['deleted' => true, 'label_id' => 'Label_1']);
     Http::assertSent(fn (Request $request): bool => $request->method() === 'DELETE' && str_ends_with($request->url(), '/users/me/labels/Label_1'));
@@ -131,7 +143,7 @@ it('edits and deletes a label, and needs something to change', function () {
 
 it('lists, reads, updates and deletes drafts', function () {
     $draft = ['id' => 'd1', 'message' => ['id' => 'dm1', 'threadId' => 'dt1', 'labelIds' => ['DRAFT'], 'payload' => ['mimeType' => 'text/plain', 'headers' => [['name' => 'Subject', 'value' => 'Hello'], ['name' => 'To', 'value' => 'ada@example.com']], 'body' => ['data' => rtrim(strtr(base64_encode('Draft text'), '+/', '-_'), '='), 'size' => 10]]]];
-    Http::fake([
+    gmailExtraFake([
         'gmail.googleapis.com/gmail/v1/users/me/drafts?*' => Http::response(['drafts' => [['id' => 'd1', 'message' => ['id' => 'dm1', 'threadId' => 'dt1']]]]),
         'gmail.googleapis.com/gmail/v1/users/me/drafts/d1*' => fn (Request $request) => $request->method() === 'DELETE' ? Http::response(null, 204) : Http::response($draft),
     ]);
