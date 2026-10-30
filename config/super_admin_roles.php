@@ -22,6 +22,7 @@ $view = [
     Ability::RunsView->value,
     Ability::BillingView->value,
     Ability::ModelsView->value,
+    Ability::PricingView->value,
     Ability::BroadcastsView->value,
     Ability::SystemView->value,
     Ability::AlertsView->value,
@@ -59,6 +60,8 @@ return [
             Ability::BillingReplayWebhooks->value,
             Ability::ModelsPrices->value,
             Ability::RevenueView->value,
+            Ability::PricingManage->value,
+            Ability::PricingPrices->value,
         ],
 
         Role::Support->value => [

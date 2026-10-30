@@ -15,6 +15,8 @@ class PlanController extends Controller
     {
         $plans = Plan::query()
             ->where('is_active', true)
+            ->where('is_public', true)
+            ->whereNull('archived_at')
             ->orderBy('sort_order')
             ->get();
 

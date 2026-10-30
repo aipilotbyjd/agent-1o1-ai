@@ -6,6 +6,7 @@ use App\Enums\Billing\BillingInterval;
 use App\Enums\Billing\PlanGrantSource;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
+use App\Models\Billing\PricingCoupon;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use Laravel\Cashier\Checkout;
@@ -52,6 +53,7 @@ class CheckoutLifetimePlanAction
         /** @var Checkout $checkout */
         $checkout = $workspace->checkout([$priceId => 1], [
             'mode' => 'payment',
+            'allow_promotion_codes' => PricingCoupon::query()->where('is_active', true)->exists(),
             'success_url' => $this->successUrl($workspace),
             'cancel_url' => $this->cancelUrl($workspace),
             'metadata' => [

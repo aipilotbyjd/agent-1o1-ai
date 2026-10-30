@@ -6,7 +6,8 @@ use App\Models\Billing\Plan;
 use Illuminate\Database\Seeder;
 
 /**
- * The plan catalog. Paid plans read their Stripe price IDs from env: they
+ * The starting plan catalog; after that the Super Admin pricing manager
+ * owns it, so this only ever creates missing plans. Paid plans read their Stripe price IDs from env: they
  * must be created ahead of time in the Stripe dashboard: three recurring
  * prices (monthly, every-3-months, yearly) plus a one-time price for the
  * lifetime purchase. A price ID left unset simply means the plan isn't sold
@@ -19,10 +20,14 @@ class PlanSeeder extends Seeder
         $sort = 0;
 
         foreach ($this->catalog() as $plan) {
-            Plan::query()->updateOrCreate(
+            // Create-if-missing only: once a plan exists the Super Admin
+            // pricing manager owns it, and re-seeding must not undo its edits.
+            Plan::query()->firstOrCreate(
                 ['slug' => $plan['slug']],
-                [...$plan, 'is_active' => true, 'sort_order' => $sort++],
+                [...$plan, 'is_active' => true, 'sort_order' => $sort],
             );
+
+            $sort++;
         }
     }
 

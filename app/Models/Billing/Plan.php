@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'description', 'price_monthly', 'price_quarterly', 'price_yearly', 'price_lifetime', 'credits_monthly', 'limits', 'features', 'stripe_product_id', 'stripe_price_id_monthly', 'stripe_price_id_quarterly', 'stripe_price_id_yearly', 'stripe_price_id_lifetime', 'enabled_intervals', 'trial_days', 'is_active', 'sort_order'])]
+#[Fillable(['name', 'slug', 'description', 'price_monthly', 'price_quarterly', 'price_yearly', 'price_lifetime', 'credits_monthly', 'limits', 'features', 'stripe_product_id', 'stripe_price_id_monthly', 'stripe_price_id_quarterly', 'stripe_price_id_yearly', 'stripe_price_id_lifetime', 'enabled_intervals', 'trial_days', 'is_active', 'archived_at', 'is_public', 'badge', 'updated_by', 'sort_order'])]
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */
@@ -29,6 +29,8 @@ class Plan extends Model
             'features' => 'array',
             'enabled_intervals' => 'array',
             'is_active' => 'boolean',
+            'is_public' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -38,6 +40,45 @@ class Plan extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Subscriptions that are paying or in trial, as opposed to every row ever.
+     *
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscribers(): HasMany
+    {
+        return $this->hasMany(Subscription::class)->whereIn('stripe_status', ['active', 'trialing']);
+    }
+
+    /**
+     * @return HasMany<PlanGrant, $this>
+     */
+    public function activeGrants(): HasMany
+    {
+        return $this->hasMany(PlanGrant::class)->active();
+    }
+
+    /**
+     * @return HasMany<PlanGrant, $this>
+     */
+    public function planGrants(): HasMany
+    {
+        return $this->hasMany(PlanGrant::class);
+    }
+
+    /**
+     * @return HasMany<PlanPriceHistory, $this>
+     */
+    public function priceHistory(): HasMany
+    {
+        return $this->hasMany(PlanPriceHistory::class);
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
     }
 
     /**
@@ -110,16 +151,30 @@ class Plan extends Model
      * Deliberately not filtered to `is_active`: withdrawing a plan from sale
      * never revokes what someone already bought, so a subscription on a
      * deactivated plan must still resolve to it.
+     *
+     * A price an admin has since replaced is no longer in any `stripe_price_id_*`
+     * column but its subscribers are still paying it, so `plan_price_history`
+     * is consulted as well. Without that, a price change would orphan every
+     * existing subscriber on the old price.
      */
     public static function findByStripePriceId(string $stripePriceId): ?self
     {
-        return self::query()
+        $current = self::query()
             ->where(function (Builder $query) use ($stripePriceId): void {
                 foreach (BillingInterval::cases() as $interval) {
                     $query->orWhere($interval->stripePriceColumn(), $stripePriceId);
                 }
             })
             ->first();
+
+        if ($current !== null) {
+            return $current;
+        }
+
+        return PlanPriceHistory::query()
+            ->where('stripe_price_id', $stripePriceId)
+            ->first()
+            ?->plan;
     }
 
     public function priceFor(BillingInterval $interval): int
