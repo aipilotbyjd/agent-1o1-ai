@@ -400,6 +400,14 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Manage customers, payments, refunds, invoices, subscriptions, products and prices, and start flows once for each Stripe event, the moment it happens.',
                 'sort_order' => 48,
             ],
+            [
+                'slug' => 'shopify',
+                'name' => 'Shopify',
+                'icon' => 'shopify',
+                'color' => '#95BF47',
+                'description' => 'Read and manage orders, customers, products, inventory, fulfillment and refunds, and start flows the moment an order is placed or paid, a product or customer changes, or a checkout is abandoned.',
+                'sort_order' => 49,
+            ],
         ];
 
         foreach ($categories as $category) {

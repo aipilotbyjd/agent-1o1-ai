@@ -334,6 +334,8 @@ return [
         'mailgun' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILGUN_ENABLED', true)],
         // Payments: registers a webhook endpoint through the connected account.
         'stripe' => ['enabled' => (bool) env('TRIGGERS_PUSH_STRIPE_ENABLED', true)],
+        // Shopify: a webhook per topic, registered through the store's own access token.
+        'shopify' => ['enabled' => (bool) env('TRIGGERS_PUSH_SHOPIFY_ENABLED', true)],
         // Project tools: each registers its webhook through the connected account.
         'trello' => ['enabled' => (bool) env('TRIGGERS_PUSH_TRELLO_ENABLED', true)],
         'asana' => ['enabled' => (bool) env('TRIGGERS_PUSH_ASANA_ENABLED', true)],
