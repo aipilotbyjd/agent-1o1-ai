@@ -178,19 +178,33 @@ use App\Nodes\Integrations\GitHub\GitHubUpdateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubUpdateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubUpdatePullRequestNode;
 use App\Nodes\Integrations\Gmail\GmailAddLabelNode;
+use App\Nodes\Integrations\Gmail\GmailArchiveMessageNode;
+use App\Nodes\Integrations\Gmail\GmailBatchModifyMessagesNode;
 use App\Nodes\Integrations\Gmail\GmailCreateDraftNode;
 use App\Nodes\Integrations\Gmail\GmailCreateLabelNode;
+use App\Nodes\Integrations\Gmail\GmailDeleteDraftNode;
+use App\Nodes\Integrations\Gmail\GmailDeleteLabelNode;
 use App\Nodes\Integrations\Gmail\GmailDeleteMessageNode;
+use App\Nodes\Integrations\Gmail\GmailForwardMessageNode;
 use App\Nodes\Integrations\Gmail\GmailGetAttachmentNode;
+use App\Nodes\Integrations\Gmail\GmailGetDraftNode;
 use App\Nodes\Integrations\Gmail\GmailGetMessageNode;
+use App\Nodes\Integrations\Gmail\GmailGetProfileNode;
 use App\Nodes\Integrations\Gmail\GmailGetThreadNode;
+use App\Nodes\Integrations\Gmail\GmailListDraftsNode;
 use App\Nodes\Integrations\Gmail\GmailListLabelsNode;
 use App\Nodes\Integrations\Gmail\GmailListMessagesNode;
 use App\Nodes\Integrations\Gmail\GmailListMessagesWithAttachmentsNode;
+use App\Nodes\Integrations\Gmail\GmailMarkReadNode;
 use App\Nodes\Integrations\Gmail\GmailModifyMessageNode;
 use App\Nodes\Integrations\Gmail\GmailReplyToMessageNode;
 use App\Nodes\Integrations\Gmail\GmailSendDraftNode;
 use App\Nodes\Integrations\Gmail\GmailSendEmailNode;
+use App\Nodes\Integrations\Gmail\GmailTrashMessageNode;
+use App\Nodes\Integrations\Gmail\GmailTrashThreadNode;
+use App\Nodes\Integrations\Gmail\GmailUntrashMessageNode;
+use App\Nodes\Integrations\Gmail\GmailUpdateDraftNode;
+use App\Nodes\Integrations\Gmail\GmailUpdateLabelNode;
 use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsListPropertiesNode;
 use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsRunRealtimeReportNode;
 use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsRunReportNode;
@@ -1441,6 +1455,20 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'mailgun_update_member' => MailgunUpdateMemberNode::class,
             'mailgun_validate_email' => MailgunValidateEmailNode::class,
             'mailgun_verify_domain' => MailgunVerifyDomainNode::class,
+            'gmail_archive_message' => GmailArchiveMessageNode::class,
+            'gmail_batch_modify_messages' => GmailBatchModifyMessagesNode::class,
+            'gmail_delete_draft' => GmailDeleteDraftNode::class,
+            'gmail_delete_label' => GmailDeleteLabelNode::class,
+            'gmail_forward_message' => GmailForwardMessageNode::class,
+            'gmail_get_draft' => GmailGetDraftNode::class,
+            'gmail_get_profile' => GmailGetProfileNode::class,
+            'gmail_list_drafts' => GmailListDraftsNode::class,
+            'gmail_mark_read' => GmailMarkReadNode::class,
+            'gmail_trash_message' => GmailTrashMessageNode::class,
+            'gmail_trash_thread' => GmailTrashThreadNode::class,
+            'gmail_untrash_message' => GmailUntrashMessageNode::class,
+            'gmail_update_draft' => GmailUpdateDraftNode::class,
+            'gmail_update_label' => GmailUpdateLabelNode::class,
         ];
     }
 }

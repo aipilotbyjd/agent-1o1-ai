@@ -74,8 +74,8 @@ Setup outside the app, per provider (each is off until its `TRIGGERS_PUSH_*_ENAB
 | ActiveCampaign | Nothing beyond the connection (account URL and API key). The app adds a webhook for the chosen events. |
 | Klaviyo, Brevo, SendGrid | Nothing: these triggers poll every few minutes. |
 | Resend | Nothing beyond the connection (API key; a sending-only key can send but cannot create the webhook, so use a full-access key for triggers). |
-| Postmark | Nothing beyond the connection (server token). For "Email received", the server\'s inbound webhook must be empty; the app sets and clears it. |
-| Mailgun | Nothing beyond the connection (private key, sending domain, region). The key needs access to the domain\'s webhooks. |
+| Postmark | Nothing beyond the connection (server token). For "Email received", the server's inbound webhook must be empty; the app sets and clears it. |
+| Mailgun | Nothing beyond the connection (private key, sending domain, region). The key needs access to the domain's webhooks. |
 
 ---
 
