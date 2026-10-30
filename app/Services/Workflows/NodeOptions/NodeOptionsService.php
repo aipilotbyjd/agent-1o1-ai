@@ -34,6 +34,7 @@ use App\Services\Workflows\NodeOptions\Sources\LinkedInOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
 use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
+use App\Services\Workflows\NodeOptions\Sources\PinterestOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\PipedriveOptions;
 use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
@@ -110,6 +111,7 @@ class NodeOptionsService
         ZohoMailOptions::class,
         ZohoCliqOptions::class,
         LinkedInOptions::class,
+        PinterestOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

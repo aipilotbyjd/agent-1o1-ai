@@ -670,6 +670,20 @@ use App\Nodes\Integrations\Outlook\OutlookSendDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
 use App\Nodes\Integrations\Outlook\OutlookSetAutoReplyNode;
 use App\Nodes\Integrations\Outlook\OutlookSetCategoriesNode;
+use App\Nodes\Integrations\Pinterest\PinterestCreateBoardNode;
+use App\Nodes\Integrations\Pinterest\PinterestCreatePinNode;
+use App\Nodes\Integrations\Pinterest\PinterestCreateSectionNode;
+use App\Nodes\Integrations\Pinterest\PinterestDeleteBoardNode;
+use App\Nodes\Integrations\Pinterest\PinterestDeletePinNode;
+use App\Nodes\Integrations\Pinterest\PinterestGetAccountNode;
+use App\Nodes\Integrations\Pinterest\PinterestGetBoardNode;
+use App\Nodes\Integrations\Pinterest\PinterestGetPinNode;
+use App\Nodes\Integrations\Pinterest\PinterestListBoardsNode;
+use App\Nodes\Integrations\Pinterest\PinterestListPinsNode;
+use App\Nodes\Integrations\Pinterest\PinterestListSectionsNode;
+use App\Nodes\Integrations\Pinterest\PinterestPinAnalyticsNode;
+use App\Nodes\Integrations\Pinterest\PinterestUpdateBoardNode;
+use App\Nodes\Integrations\Pinterest\PinterestUpdatePinNode;
 use App\Nodes\Integrations\Pipedrive\PipedriveAddNoteNode;
 use App\Nodes\Integrations\Pipedrive\PipedriveCreateActivityNode;
 use App\Nodes\Integrations\Pipedrive\PipedriveCreateDealNode;
@@ -2247,6 +2261,20 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'linkedin_list_pages' => LinkedInListPagesNode::class,
             'linkedin_list_posts' => LinkedInListPostsNode::class,
             'linkedin_page_followers' => LinkedInPageFollowersNode::class,
+            'pinterest_create_board' => PinterestCreateBoardNode::class,
+            'pinterest_create_pin' => PinterestCreatePinNode::class,
+            'pinterest_create_section' => PinterestCreateSectionNode::class,
+            'pinterest_delete_board' => PinterestDeleteBoardNode::class,
+            'pinterest_delete_pin' => PinterestDeletePinNode::class,
+            'pinterest_get_account' => PinterestGetAccountNode::class,
+            'pinterest_get_board' => PinterestGetBoardNode::class,
+            'pinterest_get_pin' => PinterestGetPinNode::class,
+            'pinterest_list_boards' => PinterestListBoardsNode::class,
+            'pinterest_list_pins' => PinterestListPinsNode::class,
+            'pinterest_list_sections' => PinterestListSectionsNode::class,
+            'pinterest_pin_analytics' => PinterestPinAnalyticsNode::class,
+            'pinterest_update_board' => PinterestUpdateBoardNode::class,
+            'pinterest_update_pin' => PinterestUpdatePinNode::class,
         ];
     }
 }
