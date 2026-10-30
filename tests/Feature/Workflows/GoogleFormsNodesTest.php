@@ -1,10 +1,13 @@
 <?php
 
 use App\Models\Runs\Run;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsAddQuestionNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsCreateFormNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsDeleteItemNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsGetFormNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsGetResponseNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsListResponsesNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsUpdateFormInfoNode;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -36,7 +39,7 @@ const ADA_RESPONSE = [
 ];
 
 it('registers every google forms node under the google_forms category', function () {
-    foreach (['get_form', 'list_responses', 'get_response', 'create_form'] as $suffix) {
+    foreach (['get_form', 'list_responses', 'get_response', 'create_form', 'update_form_info', 'add_question', 'delete_item'] as $suffix) {
         expect(app(NodeRegistry::class)->resolve("google_forms_{$suffix}")->category())->toBe('google_forms');
     }
 });
@@ -183,4 +186,58 @@ it('reads only the last day of responses for the trigger', function () {
     expect($config['submitted_after'])->toBe('2026-02-28T10:00:00Z')
         ->and($config['max_results'])->toBe(500);
     Carbon::setTestNow();
+});
+
+it('changes only the title or description that is filled in', function () {
+    Http::fake(['forms.googleapis.com/*' => Http::response([])]);
+    $node = new GoogleFormsUpdateFormInfoNode;
+
+    $output = $node->execute(Run::factory()->create(), [...FORMS_BASE, 'form_id' => 'form1', 'title' => ' New title ', 'description' => ''], []);
+
+    expect($output)->toBe(['updated' => true, 'form_id' => 'form1', 'title' => 'New title']);
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), '/forms/form1:batchUpdate') && $request['requests'] === [['updateFormInfo' => ['info' => ['title' => 'New title'], 'updateMask' => 'title']]]);
+    expect(fn () => $node->execute(Run::factory()->create(), [...FORMS_BASE, 'form_id' => 'form1'], []))->toThrow(InvalidArgumentException::class, 'Change at least');
+});
+
+it('adds a choice question at the end, and returns the ids Google made', function () {
+    Http::fake([
+        'forms.googleapis.com/v1/forms/form1:batchUpdate' => Http::response(['replies' => [['createItem' => ['itemId' => 'item9', 'questionId' => ['q9']]]]]),
+        'forms.googleapis.com/v1/forms/form1' => Http::response(FEEDBACK_FORM),
+    ]);
+
+    $output = (new GoogleFormsAddQuestionNode)->execute(Run::factory()->create(), [...FORMS_BASE, 'form_id' => 'form1', 'title' => 'Pick one', 'kind' => 'checkboxes', 'options' => ['A', ' ', 'B', 'A'], 'required' => true, 'help_text' => 'Any'], []);
+
+    expect($output)->toBe(['added' => true, 'form_id' => 'form1', 'item_id' => 'item9', 'question_id' => 'q9', 'position' => 4]);
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), ':batchUpdate') && $request['requests'][0]['createItem'] === [
+        'item' => ['title' => 'Pick one', 'description' => 'Any', 'questionItem' => ['question' => ['required' => true, 'choiceQuestion' => ['type' => 'CHECKBOX', 'options' => [['value' => 'A'], ['value' => 'B']]]]]],
+        'location' => ['index' => 4],
+    ]);
+});
+
+it('adds scale and text questions at a given position, and checks them', function () {
+    Http::fake(['forms.googleapis.com/*' => Http::response(['replies' => [['createItem' => ['itemId' => 'i', 'questionId' => ['q']]]]])]);
+    $node = new GoogleFormsAddQuestionNode;
+    $base = [...FORMS_BASE, 'form_id' => 'form1', 'title' => 'How was it?'];
+
+    $node->execute(Run::factory()->create(), [...$base, 'kind' => 'scale', 'scale_high' => 10, 'high_label' => 'Great', 'position' => 0], []);
+
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), ':batchUpdate') && $request['requests'][0]['createItem']['item']['questionItem']['question']['scaleQuestion'] === ['low' => 1, 'high' => 10, 'highLabel' => 'Great'] && $request['requests'][0]['createItem']['location'] === ['index' => 0]);
+    expect(fn () => $node->execute(Run::factory()->create(), [...$base, 'kind' => 'dropdown', 'position' => 0], []))->toThrow(InvalidArgumentException::class, 'at least one choice')
+        ->and(fn () => $node->execute(Run::factory()->create(), [...$base, 'kind' => 'scale', 'scale_low' => 1, 'scale_high' => 1, 'position' => 0], []))->toThrow(InvalidArgumentException::class, 'A scale runs')
+        ->and(fn () => $node->execute(Run::factory()->create(), [...$base, 'kind' => 'bogus', 'position' => 0], []))->toThrow(InvalidArgumentException::class, 'not a question type');
+});
+
+it('deletes the one question that matches, by title, item id or question id', function () {
+    $form = ['items' => [
+        ['itemId' => 'a1', 'title' => 'Name', 'questionItem' => ['question' => ['questionId' => 'qa']]],
+        ['itemId' => 'b2', 'title' => 'Email', 'questionItem' => ['question' => ['questionId' => 'qb']]],
+        ['itemId' => 'c3', 'title' => 'Email', 'questionItem' => ['question' => ['questionId' => 'qc']]],
+    ]];
+    Http::fake(['forms.googleapis.com/v1/forms/form1:batchUpdate' => Http::response([]), 'forms.googleapis.com/v1/forms/form1' => Http::response($form)]);
+    $node = new GoogleFormsDeleteItemNode;
+
+    expect($node->execute(Run::factory()->create(), [...FORMS_BASE, 'form_id' => 'form1', 'item' => 'qc'], []))->toBe(['deleted' => true, 'form_id' => 'form1', 'title' => 'Email', 'position' => 2]);
+    Http::assertSent(fn ($request) => str_ends_with($request->url(), ':batchUpdate') && $request['requests'] === [['deleteItem' => ['location' => ['index' => 2]]]]);
+    expect(fn () => $node->execute(Run::factory()->create(), [...FORMS_BASE, 'form_id' => 'form1', 'item' => 'Email'], []))->toThrow(InvalidArgumentException::class, 'More than one question')
+        ->and(fn () => $node->execute(Run::factory()->create(), [...FORMS_BASE, 'form_id' => 'form1', 'item' => 'Nope'], []))->toThrow(InvalidArgumentException::class, 'No question matches');
 });

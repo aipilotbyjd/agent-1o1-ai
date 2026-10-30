@@ -229,10 +229,13 @@ use App\Nodes\Integrations\GoogleDrive\GoogleDriveMoveFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveRenameFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveShareFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveUploadFileNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsAddQuestionNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsCreateFormNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsDeleteItemNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsGetFormNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsGetResponseNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsListResponsesNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsUpdateFormInfoNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleInspectUrlNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitemapsNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitesNode;
@@ -882,6 +885,9 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_forms_list_responses' => GoogleFormsListResponsesNode::class,
             'google_forms_get_response' => GoogleFormsGetResponseNode::class,
             'google_forms_create_form' => GoogleFormsCreateFormNode::class,
+            'google_forms_add_question' => GoogleFormsAddQuestionNode::class,
+            'google_forms_delete_item' => GoogleFormsDeleteItemNode::class,
+            'google_forms_update_form_info' => GoogleFormsUpdateFormInfoNode::class,
             'google_slides_create_presentation' => GoogleSlidesCreatePresentationNode::class,
             'google_slides_get_presentation' => GoogleSlidesGetPresentationNode::class,
             'google_slides_replace_text' => GoogleSlidesReplaceTextNode::class,
