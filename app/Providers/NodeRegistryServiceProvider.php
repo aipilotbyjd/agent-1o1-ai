@@ -1031,6 +1031,14 @@ use App\Nodes\Integrations\ZohoBooks\ZohoBooksMarkEstimateNode;
 use App\Nodes\Integrations\ZohoBooks\ZohoBooksMarkInvoiceNode;
 use App\Nodes\Integrations\ZohoBooks\ZohoBooksRecordPaymentNode;
 use App\Nodes\Integrations\ZohoBooks\ZohoBooksUpdateContactNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsAddSubscriberNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListCampaignsNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListListsNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListNewSubscribersNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListSubscribersNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListUnsubscribesNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsSendCampaignNode;
+use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsUnsubscribeNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskAddCommentNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskCloseTicketNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskCreateContactNode;
@@ -2177,6 +2185,14 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_projects_list_users' => ZohoProjectsListUsersNode::class,
             'zoho_projects_log_time' => ZohoProjectsLogTimeNode::class,
             'zoho_projects_update_task' => ZohoProjectsUpdateTaskNode::class,
+            'zoho_campaigns_add_subscriber' => ZohoCampaignsAddSubscriberNode::class,
+            'zoho_campaigns_list_campaigns' => ZohoCampaignsListCampaignsNode::class,
+            'zoho_campaigns_list_lists' => ZohoCampaignsListListsNode::class,
+            'zoho_campaigns_list_new_subscribers' => ZohoCampaignsListNewSubscribersNode::class,
+            'zoho_campaigns_list_subscribers' => ZohoCampaignsListSubscribersNode::class,
+            'zoho_campaigns_list_unsubscribes' => ZohoCampaignsListUnsubscribesNode::class,
+            'zoho_campaigns_send_campaign' => ZohoCampaignsSendCampaignNode::class,
+            'zoho_campaigns_unsubscribe' => ZohoCampaignsUnsubscribeNode::class,
         ];
     }
 }
