@@ -324,6 +324,22 @@ return [
         'telegram' => ['enabled' => (bool) env('TRIGGERS_PUSH_TELEGRAM_ENABLED', true)],
         'discord' => ['enabled' => (bool) env('TRIGGERS_PUSH_DISCORD_ENABLED', true), 'max_age_seconds' => 300],
         'twilio' => ['enabled' => (bool) env('TRIGGERS_PUSH_TWILIO_ENABLED', true)],
+        // The marketing apps are connected with the member's own key too: each registers its webhook through it.
+        'typeform' => ['enabled' => (bool) env('TRIGGERS_PUSH_TYPEFORM_ENABLED', true)],
+        'mailchimp' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILCHIMP_ENABLED', true)],
+        'kit' => ['enabled' => (bool) env('TRIGGERS_PUSH_KIT_ENABLED', true)],
+        'activecampaign' => ['enabled' => (bool) env('TRIGGERS_PUSH_ACTIVECAMPAIGN_ENABLED', true)],
+        'resend' => ['enabled' => (bool) env('TRIGGERS_PUSH_RESEND_ENABLED', true)],
+        'postmark' => ['enabled' => (bool) env('TRIGGERS_PUSH_POSTMARK_ENABLED', true)],
+        'mailgun' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILGUN_ENABLED', true)],
+        // Project tools: each registers its webhook through the connected account.
+        'trello' => ['enabled' => (bool) env('TRIGGERS_PUSH_TRELLO_ENABLED', true)],
+        'asana' => ['enabled' => (bool) env('TRIGGERS_PUSH_ASANA_ENABLED', true)],
+        'clickup' => ['enabled' => (bool) env('TRIGGERS_PUSH_CLICKUP_ENABLED', true)],
+        'monday' => ['enabled' => (bool) env('TRIGGERS_PUSH_MONDAY_ENABLED', true)],
+        'airtable' => ['enabled' => (bool) env('TRIGGERS_PUSH_AIRTABLE_ENABLED', true)],
+        'pipedrive' => ['enabled' => (bool) env('TRIGGERS_PUSH_PIPEDRIVE_ENABLED', true)],
+        'zoho' => ['enabled' => (bool) env('TRIGGERS_PUSH_ZOHO_ENABLED', true)],
 
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),

@@ -40,8 +40,22 @@ class PushSources
         TelegramSource $telegramSource,
         DiscordSource $discordSource,
         TwilioSource $twilioSource,
+        TypeformSource $typeformSource,
+        MailchimpSource $mailchimpSource,
+        KitSource $kitSource,
+        ActiveCampaignSource $activeCampaignSource,
+        ResendSource $resendSource,
+        PostmarkSource $postmarkSource,
+        MailgunSource $mailgunSource,
+        TrelloSource $trelloSource,
+        AsanaSource $asanaSource,
+        ClickUpSource $clickUpSource,
+        AirtableSource $airtableSource,
+        MondaySource $mondaySource,
+        PipedriveSource $pipedriveSource,
+        ZohoSource $zohoSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource, $mondaySource, $pipedriveSource, $zohoSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -62,6 +76,20 @@ class PushSources
             new TelegramIngress,
             new DiscordIngress,
             new TwilioIngress,
+            new TypeformIngress,
+            new MailchimpIngress,
+            new KitIngress,
+            new ActiveCampaignIngress,
+            new ResendIngress,
+            new PostmarkIngress,
+            new MailgunIngress,
+            new TrelloIngress,
+            new AsanaIngress,
+            new ClickUpIngress,
+            new AirtableIngress,
+            new MondayIngress,
+            new PipedriveIngress,
+            new ZohoIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

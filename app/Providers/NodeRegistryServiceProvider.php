@@ -19,6 +19,125 @@ use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
 use App\Nodes\InputsOutputs\WorkflowInputNode;
 use App\Nodes\InputsOutputs\WorkflowOutputNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignAddNoteNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignAddTagNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignAddToAutomationNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignCreateDealNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignCreateListNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignCreateTagNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignDeleteContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignDeleteDealNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignGetAccountNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignGetContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignGetDealNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListAutomationsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListContactNotesNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListContactsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListContactTagsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListCustomFieldsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListDealsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListListsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListPipelinesNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListTagsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListUpdatedContactsNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignListUsersNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignRemoveFromAutomationNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignRemoveTagNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignSubscribeToListNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignSyncContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUnsubscribeFromListNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateContactNode;
+use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateDealNode;
+use App\Nodes\Integrations\Airtable\AirtableAddCommentNode;
+use App\Nodes\Integrations\Airtable\AirtableCreateRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableCreateRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableDeleteRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableFindRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableGetMeNode;
+use App\Nodes\Integrations\Airtable\AirtableGetRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableListBasesNode;
+use App\Nodes\Integrations\Airtable\AirtableListCommentsNode;
+use App\Nodes\Integrations\Airtable\AirtableListNewRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableListRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableListTablesNode;
+use App\Nodes\Integrations\Airtable\AirtableListUpdatedRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableUpdateRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableUpsertRecordNode;
+use App\Nodes\Integrations\Asana\AsanaAddCommentNode;
+use App\Nodes\Integrations\Asana\AsanaAddTagNode;
+use App\Nodes\Integrations\Asana\AsanaAddTaskToProjectNode;
+use App\Nodes\Integrations\Asana\AsanaCompleteTaskNode;
+use App\Nodes\Integrations\Asana\AsanaCreateProjectNode;
+use App\Nodes\Integrations\Asana\AsanaCreateSectionNode;
+use App\Nodes\Integrations\Asana\AsanaCreateSubtaskNode;
+use App\Nodes\Integrations\Asana\AsanaCreateTagNode;
+use App\Nodes\Integrations\Asana\AsanaCreateTaskNode;
+use App\Nodes\Integrations\Asana\AsanaDeleteTaskNode;
+use App\Nodes\Integrations\Asana\AsanaGetMeNode;
+use App\Nodes\Integrations\Asana\AsanaGetProjectNode;
+use App\Nodes\Integrations\Asana\AsanaGetTaskNode;
+use App\Nodes\Integrations\Asana\AsanaListCommentsNode;
+use App\Nodes\Integrations\Asana\AsanaListCompletedTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListNewTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListProjectsNode;
+use App\Nodes\Integrations\Asana\AsanaListSectionsNode;
+use App\Nodes\Integrations\Asana\AsanaListSubtasksNode;
+use App\Nodes\Integrations\Asana\AsanaListTagsNode;
+use App\Nodes\Integrations\Asana\AsanaListTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListUpdatedTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListUsersNode;
+use App\Nodes\Integrations\Asana\AsanaListWorkspacesNode;
+use App\Nodes\Integrations\Asana\AsanaMoveTaskToSectionNode;
+use App\Nodes\Integrations\Asana\AsanaRemoveTagNode;
+use App\Nodes\Integrations\Asana\AsanaRemoveTaskFromProjectNode;
+use App\Nodes\Integrations\Asana\AsanaSearchTasksNode;
+use App\Nodes\Integrations\Asana\AsanaUpdateProjectNode;
+use App\Nodes\Integrations\Asana\AsanaUpdateTaskNode;
+use App\Nodes\Integrations\Brevo\BrevoAddContactsToListNode;
+use App\Nodes\Integrations\Brevo\BrevoCreateListNode;
+use App\Nodes\Integrations\Brevo\BrevoCreateOrUpdateContactNode;
+use App\Nodes\Integrations\Brevo\BrevoDeleteContactNode;
+use App\Nodes\Integrations\Brevo\BrevoGetAccountNode;
+use App\Nodes\Integrations\Brevo\BrevoGetCampaignNode;
+use App\Nodes\Integrations\Brevo\BrevoGetContactNode;
+use App\Nodes\Integrations\Brevo\BrevoListAttributesNode;
+use App\Nodes\Integrations\Brevo\BrevoListCampaignsNode;
+use App\Nodes\Integrations\Brevo\BrevoListContactsNode;
+use App\Nodes\Integrations\Brevo\BrevoListListsNode;
+use App\Nodes\Integrations\Brevo\BrevoListSendersNode;
+use App\Nodes\Integrations\Brevo\BrevoListTemplatesNode;
+use App\Nodes\Integrations\Brevo\BrevoListUpdatedContactsNode;
+use App\Nodes\Integrations\Brevo\BrevoRemoveContactsFromListNode;
+use App\Nodes\Integrations\Brevo\BrevoSendCampaignNode;
+use App\Nodes\Integrations\Brevo\BrevoSendEmailNode;
+use App\Nodes\Integrations\Brevo\BrevoSendSmsNode;
+use App\Nodes\Integrations\Brevo\BrevoTrackEventNode;
+use App\Nodes\Integrations\Brevo\BrevoUpdateContactNode;
+use App\Nodes\Integrations\ClickUp\ClickUpAddChecklistItemNode;
+use App\Nodes\Integrations\ClickUp\ClickUpAddCommentNode;
+use App\Nodes\Integrations\ClickUp\ClickUpAddTagNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateChecklistNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateListNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateTaskNode;
+use App\Nodes\Integrations\ClickUp\ClickUpCreateTimeEntryNode;
+use App\Nodes\Integrations\ClickUp\ClickUpDeleteTaskNode;
+use App\Nodes\Integrations\ClickUp\ClickUpFilterTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpGetListNode;
+use App\Nodes\Integrations\ClickUp\ClickUpGetMeNode;
+use App\Nodes\Integrations\ClickUp\ClickUpGetTaskNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListCommentsNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListCustomFieldsNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListFoldersNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListListsNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListNewTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListSpacesNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListTimeEntriesNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListUpdatedTasksNode;
+use App\Nodes\Integrations\ClickUp\ClickUpListWorkspacesNode;
+use App\Nodes\Integrations\ClickUp\ClickUpRemoveTagNode;
+use App\Nodes\Integrations\ClickUp\ClickUpSetCustomFieldNode;
+use App\Nodes\Integrations\ClickUp\ClickUpUpdateTaskNode;
 use App\Nodes\Integrations\Discord\DiscordAddReactionNode;
 use App\Nodes\Integrations\Discord\DiscordAddRoleNode;
 use App\Nodes\Integrations\Discord\DiscordAddThreadMemberNode;
@@ -129,19 +248,33 @@ use App\Nodes\Integrations\GitHub\GitHubUpdateCommentNode;
 use App\Nodes\Integrations\GitHub\GitHubUpdateIssueNode;
 use App\Nodes\Integrations\GitHub\GitHubUpdatePullRequestNode;
 use App\Nodes\Integrations\Gmail\GmailAddLabelNode;
+use App\Nodes\Integrations\Gmail\GmailArchiveMessageNode;
+use App\Nodes\Integrations\Gmail\GmailBatchModifyMessagesNode;
 use App\Nodes\Integrations\Gmail\GmailCreateDraftNode;
 use App\Nodes\Integrations\Gmail\GmailCreateLabelNode;
+use App\Nodes\Integrations\Gmail\GmailDeleteDraftNode;
+use App\Nodes\Integrations\Gmail\GmailDeleteLabelNode;
 use App\Nodes\Integrations\Gmail\GmailDeleteMessageNode;
+use App\Nodes\Integrations\Gmail\GmailForwardMessageNode;
 use App\Nodes\Integrations\Gmail\GmailGetAttachmentNode;
+use App\Nodes\Integrations\Gmail\GmailGetDraftNode;
 use App\Nodes\Integrations\Gmail\GmailGetMessageNode;
+use App\Nodes\Integrations\Gmail\GmailGetProfileNode;
 use App\Nodes\Integrations\Gmail\GmailGetThreadNode;
+use App\Nodes\Integrations\Gmail\GmailListDraftsNode;
 use App\Nodes\Integrations\Gmail\GmailListLabelsNode;
 use App\Nodes\Integrations\Gmail\GmailListMessagesNode;
 use App\Nodes\Integrations\Gmail\GmailListMessagesWithAttachmentsNode;
+use App\Nodes\Integrations\Gmail\GmailMarkReadNode;
 use App\Nodes\Integrations\Gmail\GmailModifyMessageNode;
 use App\Nodes\Integrations\Gmail\GmailReplyToMessageNode;
 use App\Nodes\Integrations\Gmail\GmailSendDraftNode;
 use App\Nodes\Integrations\Gmail\GmailSendEmailNode;
+use App\Nodes\Integrations\Gmail\GmailTrashMessageNode;
+use App\Nodes\Integrations\Gmail\GmailTrashThreadNode;
+use App\Nodes\Integrations\Gmail\GmailUntrashMessageNode;
+use App\Nodes\Integrations\Gmail\GmailUpdateDraftNode;
+use App\Nodes\Integrations\Gmail\GmailUpdateLabelNode;
 use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsListPropertiesNode;
 use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsRunRealtimeReportNode;
 use App\Nodes\Integrations\GoogleAnalytics\GoogleAnalyticsRunReportNode;
@@ -180,10 +313,13 @@ use App\Nodes\Integrations\GoogleDrive\GoogleDriveMoveFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveRenameFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveShareFileNode;
 use App\Nodes\Integrations\GoogleDrive\GoogleDriveUploadFileNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsAddQuestionNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsCreateFormNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsDeleteItemNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsGetFormNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsGetResponseNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsListResponsesNode;
+use App\Nodes\Integrations\GoogleForms\GoogleFormsUpdateFormInfoNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleInspectUrlNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitemapsNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitesNode;
@@ -211,6 +347,44 @@ use App\Nodes\Integrations\GoogleTasks\GoogleTasksListDueSoonTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTaskListsNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksListTasksNode;
 use App\Nodes\Integrations\GoogleTasks\GoogleTasksUpdateTaskNode;
+use App\Nodes\Integrations\HubSpot\HubSpotAddNoteNode;
+use App\Nodes\Integrations\HubSpot\HubSpotAddToListNode;
+use App\Nodes\Integrations\HubSpot\HubSpotAssociateNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateTaskNode;
+use App\Nodes\Integrations\HubSpot\HubSpotCreateTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotDeleteTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetAccountNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotGetTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedCompaniesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedContactsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedDealsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListChangedTicketsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewCompaniesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewContactsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewDealsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListNewTicketsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListOwnersNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListPipelinesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotListPropertiesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotRemoveFromListNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchCompaniesNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchContactsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchDealsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotSearchTicketsNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateCompanyNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateContactNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateDealNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpdateTicketNode;
+use App\Nodes\Integrations\HubSpot\HubSpotUpsertContactNode;
 use App\Nodes\Integrations\Jira\JiraAddAttachmentNode;
 use App\Nodes\Integrations\Jira\JiraAddCommentNode;
 use App\Nodes\Integrations\Jira\JiraAddUserToGroupNode;
@@ -257,6 +431,58 @@ use App\Nodes\Integrations\Jira\JiraTransitionIssueNode;
 use App\Nodes\Integrations\Jira\JiraUpdateCommentNode;
 use App\Nodes\Integrations\Jira\JiraUpdateIssueNode;
 use App\Nodes\Integrations\Jira\JiraUpdateProjectNode;
+use App\Nodes\Integrations\Kit\KitAddSubscriberToFormNode;
+use App\Nodes\Integrations\Kit\KitAddSubscriberToSequenceNode;
+use App\Nodes\Integrations\Kit\KitCreateBroadcastNode;
+use App\Nodes\Integrations\Kit\KitCreateCustomFieldNode;
+use App\Nodes\Integrations\Kit\KitCreateOrUpdateSubscriberNode;
+use App\Nodes\Integrations\Kit\KitCreatePurchaseNode;
+use App\Nodes\Integrations\Kit\KitCreateTagNode;
+use App\Nodes\Integrations\Kit\KitDeleteBroadcastNode;
+use App\Nodes\Integrations\Kit\KitGetAccountNode;
+use App\Nodes\Integrations\Kit\KitGetBroadcastNode;
+use App\Nodes\Integrations\Kit\KitGetBroadcastStatsNode;
+use App\Nodes\Integrations\Kit\KitGetSubscriberNode;
+use App\Nodes\Integrations\Kit\KitListBouncedSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListBroadcastsNode;
+use App\Nodes\Integrations\Kit\KitListCustomFieldsNode;
+use App\Nodes\Integrations\Kit\KitListEmailTemplatesNode;
+use App\Nodes\Integrations\Kit\KitListFormsNode;
+use App\Nodes\Integrations\Kit\KitListFormSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListPurchasesNode;
+use App\Nodes\Integrations\Kit\KitListSequencesNode;
+use App\Nodes\Integrations\Kit\KitListSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListSubscriberTagsNode;
+use App\Nodes\Integrations\Kit\KitListTaggedSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListTagsNode;
+use App\Nodes\Integrations\Kit\KitListUnsubscribesNode;
+use App\Nodes\Integrations\Kit\KitTagSubscriberNode;
+use App\Nodes\Integrations\Kit\KitUnsubscribeSubscriberNode;
+use App\Nodes\Integrations\Kit\KitUntagSubscriberNode;
+use App\Nodes\Integrations\Kit\KitUpdateBroadcastNode;
+use App\Nodes\Integrations\Kit\KitUpdateSubscriberNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoAddProfileToListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoCreateListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoDeleteListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoGetAccountNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoGetProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListCampaignsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListEventsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListFlowsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListListProfilesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListListsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListMetricsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListProfilesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListSegmentProfilesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListSegmentsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListTemplatesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoRemoveProfileFromListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoSetFlowStatusNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoSubscribeProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoTrackEventNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoUnsubscribeProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoUpdateProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoUpsertProfileNode;
 use App\Nodes\Integrations\Linear\LinearCreateCommentNode;
 use App\Nodes\Integrations\Linear\LinearCreateInitiativeNode;
 use App\Nodes\Integrations\Linear\LinearCreateIssueNode;
@@ -294,6 +520,86 @@ use App\Nodes\Integrations\Linear\LinearUpdateIssueNode;
 use App\Nodes\Integrations\Linear\LinearUpdateIssueRelationNode;
 use App\Nodes\Integrations\Linear\LinearUpdateProjectNode;
 use App\Nodes\Integrations\Linear\LinearUpdateStatusUpdateNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpAddNoteNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpAddOrUpdateMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpAddTagsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpArchiveMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCheckSendReadinessNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCreateAudienceNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCreateCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpCreateSegmentNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpDeleteAudienceNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpDeleteCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpDeleteMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetAccountNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetAudienceNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetCampaignReportNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetMemberActivityNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpGetMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListAudiencesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListCampaignClicksNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListCampaignsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListCleanedMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListMemberTagsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListMergeFieldsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListNewSubscribersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListNotesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListSegmentsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListTemplatesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListUnsubscribesNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpListUpdatedMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpRemoveTagsNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpReplicateCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpScheduleCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSearchMembersNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSendCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSendTestEmailNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpSetCampaignContentNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpUnscheduleCampaignNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpUnsubscribeMemberNode;
+use App\Nodes\Integrations\Mailchimp\MailchimpUpdateMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunAddMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunAddSuppressionNode;
+use App\Nodes\Integrations\Mailgun\MailgunCreateMailingListNode;
+use App\Nodes\Integrations\Mailgun\MailgunDeleteMailingListNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetDomainNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetStatsNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetTemplateNode;
+use App\Nodes\Integrations\Mailgun\MailgunListDomainsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListEventsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListMailingListsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListMembersNode;
+use App\Nodes\Integrations\Mailgun\MailgunListSuppressionsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListTemplatesNode;
+use App\Nodes\Integrations\Mailgun\MailgunRemoveMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunRemoveSuppressionNode;
+use App\Nodes\Integrations\Mailgun\MailgunSendEmailNode;
+use App\Nodes\Integrations\Mailgun\MailgunUpdateMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunValidateEmailNode;
+use App\Nodes\Integrations\Mailgun\MailgunVerifyDomainNode;
+use App\Nodes\Integrations\Monday\MondayAddUpdateNode;
+use App\Nodes\Integrations\Monday\MondayArchiveItemNode;
+use App\Nodes\Integrations\Monday\MondayCreateBoardNode;
+use App\Nodes\Integrations\Monday\MondayCreateGroupNode;
+use App\Nodes\Integrations\Monday\MondayCreateItemNode;
+use App\Nodes\Integrations\Monday\MondayCreateSubitemNode;
+use App\Nodes\Integrations\Monday\MondayDeleteItemNode;
+use App\Nodes\Integrations\Monday\MondayGetBoardNode;
+use App\Nodes\Integrations\Monday\MondayGetItemNode;
+use App\Nodes\Integrations\Monday\MondayGetMeNode;
+use App\Nodes\Integrations\Monday\MondayListBoardsNode;
+use App\Nodes\Integrations\Monday\MondayListItemsNode;
+use App\Nodes\Integrations\Monday\MondayListNewItemsNode;
+use App\Nodes\Integrations\Monday\MondayListUpdatedItemsNode;
+use App\Nodes\Integrations\Monday\MondayListUpdatesNode;
+use App\Nodes\Integrations\Monday\MondayListUsersNode;
+use App\Nodes\Integrations\Monday\MondayListWorkspacesNode;
+use App\Nodes\Integrations\Monday\MondayMoveItemNode;
+use App\Nodes\Integrations\Monday\MondaySetColumnNode;
+use App\Nodes\Integrations\Monday\MondayUpdateItemNode;
 use App\Nodes\Integrations\Notion\NotionAppendBlocksNode;
 use App\Nodes\Integrations\Notion\NotionArchivePageNode;
 use App\Nodes\Integrations\Notion\NotionCreateCommentNode;
@@ -324,20 +630,172 @@ use App\Nodes\Integrations\Notion\NotionSearchNode;
 use App\Nodes\Integrations\Notion\NotionUpdateBlockNode;
 use App\Nodes\Integrations\Notion\NotionUpdateDatabaseNode;
 use App\Nodes\Integrations\Notion\NotionUpdatePageNode;
+use App\Nodes\Integrations\Outlook\OutlookCopyMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookCreateEventNode;
+use App\Nodes\Integrations\Outlook\OutlookCreateFolderNode;
 use App\Nodes\Integrations\Outlook\OutlookDeleteEventNode;
 use App\Nodes\Integrations\Outlook\OutlookDeleteMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookFlagMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookForwardMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookGetAttachmentNode;
+use App\Nodes\Integrations\Outlook\OutlookGetAutoReplyNode;
 use App\Nodes\Integrations\Outlook\OutlookGetMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookGetProfileNode;
+use App\Nodes\Integrations\Outlook\OutlookListAttachmentsNode;
 use App\Nodes\Integrations\Outlook\OutlookListCancelledEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListEventsNode;
+use App\Nodes\Integrations\Outlook\OutlookListFoldersNode;
 use App\Nodes\Integrations\Outlook\OutlookListMessagesNode;
 use App\Nodes\Integrations\Outlook\OutlookListNewEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListUpcomingEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookListUpdatedEventsNode;
+use App\Nodes\Integrations\Outlook\OutlookMarkReadNode;
 use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookReplyAllNode;
 use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
+use App\Nodes\Integrations\Outlook\OutlookSendDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
+use App\Nodes\Integrations\Outlook\OutlookSetAutoReplyNode;
+use App\Nodes\Integrations\Outlook\OutlookSetCategoriesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveAddNoteNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreatePersonNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeletePersonNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetMeNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetPersonNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListActivitiesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedActivitiesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListLeadsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewActivitiesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNotesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListPipelinesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListUsersNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveMarkDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchLeadsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdatePersonNode;
+use App\Nodes\Integrations\Postmark\PostmarkActivateBounceNode;
+use App\Nodes\Integrations\Postmark\PostmarkAddSuppressionsNode;
+use App\Nodes\Integrations\Postmark\PostmarkDeleteSuppressionsNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetBounceNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetDeliveryStatsNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetInboundMessageNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetOutboundMessageNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetServerNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetStatsNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetTemplateNode;
+use App\Nodes\Integrations\Postmark\PostmarkListBouncesNode;
+use App\Nodes\Integrations\Postmark\PostmarkListClicksNode;
+use App\Nodes\Integrations\Postmark\PostmarkListInboundMessagesNode;
+use App\Nodes\Integrations\Postmark\PostmarkListMessageStreamsNode;
+use App\Nodes\Integrations\Postmark\PostmarkListOpensNode;
+use App\Nodes\Integrations\Postmark\PostmarkListOutboundMessagesNode;
+use App\Nodes\Integrations\Postmark\PostmarkListSendersNode;
+use App\Nodes\Integrations\Postmark\PostmarkListSpamComplaintsNode;
+use App\Nodes\Integrations\Postmark\PostmarkListSuppressionsNode;
+use App\Nodes\Integrations\Postmark\PostmarkListTemplatesNode;
+use App\Nodes\Integrations\Postmark\PostmarkSendBatchNode;
+use App\Nodes\Integrations\Postmark\PostmarkSendEmailNode;
+use App\Nodes\Integrations\Postmark\PostmarkSendTemplateEmailNode;
+use App\Nodes\Integrations\Resend\ResendAddContactNode;
+use App\Nodes\Integrations\Resend\ResendCancelEmailNode;
+use App\Nodes\Integrations\Resend\ResendCreateAudienceNode;
+use App\Nodes\Integrations\Resend\ResendCreateBroadcastNode;
+use App\Nodes\Integrations\Resend\ResendDeleteAudienceNode;
+use App\Nodes\Integrations\Resend\ResendDeleteBroadcastNode;
+use App\Nodes\Integrations\Resend\ResendDeleteContactNode;
+use App\Nodes\Integrations\Resend\ResendGetContactNode;
+use App\Nodes\Integrations\Resend\ResendGetEmailNode;
+use App\Nodes\Integrations\Resend\ResendListAudiencesNode;
+use App\Nodes\Integrations\Resend\ResendListBroadcastsNode;
+use App\Nodes\Integrations\Resend\ResendListContactsNode;
+use App\Nodes\Integrations\Resend\ResendListDomainsNode;
+use App\Nodes\Integrations\Resend\ResendListEmailsNode;
+use App\Nodes\Integrations\Resend\ResendRescheduleEmailNode;
+use App\Nodes\Integrations\Resend\ResendSendBatchNode;
+use App\Nodes\Integrations\Resend\ResendSendBroadcastNode;
+use App\Nodes\Integrations\Resend\ResendSendEmailNode;
+use App\Nodes\Integrations\Resend\ResendVerifyDomainNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateAccountNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateCaseNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateContactNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateLeadNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateOpportunityNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateTaskNode;
+use App\Nodes\Integrations\Salesforce\SalesforceDeleteRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceDescribeObjectNode;
+use App\Nodes\Integrations\Salesforce\SalesforceFindRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceGetOrgNode;
+use App\Nodes\Integrations\Salesforce\SalesforceGetRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedAccountsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedCasesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedContactsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedLeadsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedOpportunitiesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewAccountsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewCasesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewContactsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewLeadsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewOpportunitiesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListObjectsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceRunQueryNode;
+use App\Nodes\Integrations\Salesforce\SalesforceSearchNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateAccountNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateCaseNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateContactNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateLeadNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateOpportunityNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateTaskNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpsertRecordNode;
+use App\Nodes\Integrations\SendGrid\SendGridAddGlobalUnsubscribeNode;
+use App\Nodes\Integrations\SendGrid\SendGridCreateListNode;
+use App\Nodes\Integrations\SendGrid\SendGridDeleteContactNode;
+use App\Nodes\Integrations\SendGrid\SendGridDeleteListNode;
+use App\Nodes\Integrations\SendGrid\SendGridGetAccountNode;
+use App\Nodes\Integrations\SendGrid\SendGridGetContactNode;
+use App\Nodes\Integrations\SendGrid\SendGridGetStatsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListBlocksNode;
+use App\Nodes\Integrations\SendGrid\SendGridListBouncesNode;
+use App\Nodes\Integrations\SendGrid\SendGridListInvalidEmailsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListListsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListSendersNode;
+use App\Nodes\Integrations\SendGrid\SendGridListSpamReportsNode;
+use App\Nodes\Integrations\SendGrid\SendGridListTemplatesNode;
+use App\Nodes\Integrations\SendGrid\SendGridListUnsubscribesNode;
+use App\Nodes\Integrations\SendGrid\SendGridRemoveContactFromListNode;
+use App\Nodes\Integrations\SendGrid\SendGridRemoveSuppressionNode;
+use App\Nodes\Integrations\SendGrid\SendGridSearchContactsNode;
+use App\Nodes\Integrations\SendGrid\SendGridSendEmailNode;
+use App\Nodes\Integrations\SendGrid\SendGridUpsertContactNode;
 use App\Nodes\Integrations\Slack\SlackAddReactionNode;
 use App\Nodes\Integrations\Slack\SlackArchiveChannelNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
@@ -429,6 +887,35 @@ use App\Nodes\Integrations\Telegram\TelegramStopPollNode;
 use App\Nodes\Integrations\Telegram\TelegramUnbanChatMemberNode;
 use App\Nodes\Integrations\Telegram\TelegramUnpinAllChatMessagesNode;
 use App\Nodes\Integrations\Telegram\TelegramUnpinChatMessageNode;
+use App\Nodes\Integrations\Trello\TrelloAddAttachmentNode;
+use App\Nodes\Integrations\Trello\TrelloAddChecklistItemNode;
+use App\Nodes\Integrations\Trello\TrelloAddCommentNode;
+use App\Nodes\Integrations\Trello\TrelloAddLabelNode;
+use App\Nodes\Integrations\Trello\TrelloAddMemberNode;
+use App\Nodes\Integrations\Trello\TrelloArchiveAllCardsNode;
+use App\Nodes\Integrations\Trello\TrelloCreateBoardNode;
+use App\Nodes\Integrations\Trello\TrelloCreateCardNode;
+use App\Nodes\Integrations\Trello\TrelloCreateChecklistNode;
+use App\Nodes\Integrations\Trello\TrelloCreateLabelNode;
+use App\Nodes\Integrations\Trello\TrelloCreateListNode;
+use App\Nodes\Integrations\Trello\TrelloDeleteCardNode;
+use App\Nodes\Integrations\Trello\TrelloGetBoardNode;
+use App\Nodes\Integrations\Trello\TrelloGetCardNode;
+use App\Nodes\Integrations\Trello\TrelloGetMemberNode;
+use App\Nodes\Integrations\Trello\TrelloListActivityNode;
+use App\Nodes\Integrations\Trello\TrelloListBoardsNode;
+use App\Nodes\Integrations\Trello\TrelloListCardsNode;
+use App\Nodes\Integrations\Trello\TrelloListCommentsNode;
+use App\Nodes\Integrations\Trello\TrelloListLabelsNode;
+use App\Nodes\Integrations\Trello\TrelloListListsNode;
+use App\Nodes\Integrations\Trello\TrelloListMembersNode;
+use App\Nodes\Integrations\Trello\TrelloMoveCardNode;
+use App\Nodes\Integrations\Trello\TrelloRemoveLabelNode;
+use App\Nodes\Integrations\Trello\TrelloRemoveMemberNode;
+use App\Nodes\Integrations\Trello\TrelloSearchCardsNode;
+use App\Nodes\Integrations\Trello\TrelloSetChecklistItemNode;
+use App\Nodes\Integrations\Trello\TrelloUpdateCardNode;
+use App\Nodes\Integrations\Trello\TrelloUpdateListNode;
 use App\Nodes\Integrations\Twilio\TwilioCheckVerificationNode;
 use App\Nodes\Integrations\Twilio\TwilioDeleteMessageNode;
 use App\Nodes\Integrations\Twilio\TwilioDeleteRecordingNode;
@@ -452,11 +939,72 @@ use App\Nodes\Integrations\Twilio\TwilioSendSmsNode;
 use App\Nodes\Integrations\Twilio\TwilioSendWhatsAppNode;
 use App\Nodes\Integrations\Twilio\TwilioStartVerificationNode;
 use App\Nodes\Integrations\Twilio\TwilioUpdateCallNode;
+use App\Nodes\Integrations\Typeform\TypeformCreateFormNode;
+use App\Nodes\Integrations\Typeform\TypeformCreateWebhookNode;
+use App\Nodes\Integrations\Typeform\TypeformCreateWorkspaceNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteFormNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteResponsesNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteWebhookNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteWorkspaceNode;
+use App\Nodes\Integrations\Typeform\TypeformGetFormNode;
+use App\Nodes\Integrations\Typeform\TypeformGetMeNode;
+use App\Nodes\Integrations\Typeform\TypeformGetResponseNode;
+use App\Nodes\Integrations\Typeform\TypeformListFormsNode;
+use App\Nodes\Integrations\Typeform\TypeformListResponsesNode;
+use App\Nodes\Integrations\Typeform\TypeformListThemesNode;
+use App\Nodes\Integrations\Typeform\TypeformListWebhooksNode;
+use App\Nodes\Integrations\Typeform\TypeformListWorkspacesNode;
+use App\Nodes\Integrations\Typeform\TypeformRenameWorkspaceNode;
+use App\Nodes\Integrations\Typeform\TypeformUpdateFormNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
 use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
 use App\Nodes\Integrations\YouTube\YouTubeListPlaylistVideosNode;
 use App\Nodes\Integrations\YouTube\YouTubeSearchVideosNode;
+use App\Nodes\Integrations\Zoho\ZohoAddNoteNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateContactNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateDealNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateRecordNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteContactNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteDealNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoGetAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoGetContactNode;
+use App\Nodes\Integrations\Zoho\ZohoGetDealNode;
+use App\Nodes\Integrations\Zoho\ZohoGetLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoGetMeNode;
+use App\Nodes\Integrations\Zoho\ZohoGetTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedAccountsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedContactsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedDealsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedLeadsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedTasksNode;
+use App\Nodes\Integrations\Zoho\ZohoListFieldsNode;
+use App\Nodes\Integrations\Zoho\ZohoListModulesNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewAccountsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewContactsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewDealsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewLeadsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewTasksNode;
+use App\Nodes\Integrations\Zoho\ZohoListNotesNode;
+use App\Nodes\Integrations\Zoho\ZohoListUsersNode;
+use App\Nodes\Integrations\Zoho\ZohoRunCoqlNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchAccountsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchContactsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchDealsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchLeadsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchTasksNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateContactNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateDealNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoUpsertRecordNode;
 use App\Nodes\TriggersEvents\ManualTriggerNode;
 use App\Nodes\TriggersEvents\PollingTriggerNode;
 use App\Nodes\TriggersEvents\ScheduleTriggerNode;
@@ -704,6 +1252,9 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_forms_list_responses' => GoogleFormsListResponsesNode::class,
             'google_forms_get_response' => GoogleFormsGetResponseNode::class,
             'google_forms_create_form' => GoogleFormsCreateFormNode::class,
+            'google_forms_add_question' => GoogleFormsAddQuestionNode::class,
+            'google_forms_delete_item' => GoogleFormsDeleteItemNode::class,
+            'google_forms_update_form_info' => GoogleFormsUpdateFormInfoNode::class,
             'google_slides_create_presentation' => GoogleSlidesCreatePresentationNode::class,
             'google_slides_get_presentation' => GoogleSlidesGetPresentationNode::class,
             'google_slides_replace_text' => GoogleSlidesReplaceTextNode::class,
@@ -955,6 +1506,551 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'twilio_send_whatsapp' => TwilioSendWhatsAppNode::class,
             'twilio_start_verification' => TwilioStartVerificationNode::class,
             'twilio_update_call' => TwilioUpdateCallNode::class,
+            'typeform_create_form' => TypeformCreateFormNode::class,
+            'typeform_create_webhook' => TypeformCreateWebhookNode::class,
+            'typeform_create_workspace' => TypeformCreateWorkspaceNode::class,
+            'typeform_delete_form' => TypeformDeleteFormNode::class,
+            'typeform_delete_responses' => TypeformDeleteResponsesNode::class,
+            'typeform_delete_webhook' => TypeformDeleteWebhookNode::class,
+            'typeform_delete_workspace' => TypeformDeleteWorkspaceNode::class,
+            'typeform_get_form' => TypeformGetFormNode::class,
+            'typeform_get_me' => TypeformGetMeNode::class,
+            'typeform_get_response' => TypeformGetResponseNode::class,
+            'typeform_list_forms' => TypeformListFormsNode::class,
+            'typeform_list_responses' => TypeformListResponsesNode::class,
+            'typeform_list_themes' => TypeformListThemesNode::class,
+            'typeform_list_webhooks' => TypeformListWebhooksNode::class,
+            'typeform_list_workspaces' => TypeformListWorkspacesNode::class,
+            'typeform_rename_workspace' => TypeformRenameWorkspaceNode::class,
+            'typeform_update_form' => TypeformUpdateFormNode::class,
+            'mailchimp_add_note' => MailchimpAddNoteNode::class,
+            'mailchimp_add_or_update_member' => MailchimpAddOrUpdateMemberNode::class,
+            'mailchimp_add_tags' => MailchimpAddTagsNode::class,
+            'mailchimp_archive_member' => MailchimpArchiveMemberNode::class,
+            'mailchimp_check_send_readiness' => MailchimpCheckSendReadinessNode::class,
+            'mailchimp_create_audience' => MailchimpCreateAudienceNode::class,
+            'mailchimp_create_campaign' => MailchimpCreateCampaignNode::class,
+            'mailchimp_create_segment' => MailchimpCreateSegmentNode::class,
+            'mailchimp_delete_audience' => MailchimpDeleteAudienceNode::class,
+            'mailchimp_delete_campaign' => MailchimpDeleteCampaignNode::class,
+            'mailchimp_delete_member' => MailchimpDeleteMemberNode::class,
+            'mailchimp_get_account' => MailchimpGetAccountNode::class,
+            'mailchimp_get_audience' => MailchimpGetAudienceNode::class,
+            'mailchimp_get_campaign' => MailchimpGetCampaignNode::class,
+            'mailchimp_get_campaign_report' => MailchimpGetCampaignReportNode::class,
+            'mailchimp_get_member_activity' => MailchimpGetMemberActivityNode::class,
+            'mailchimp_get_member' => MailchimpGetMemberNode::class,
+            'mailchimp_list_audiences' => MailchimpListAudiencesNode::class,
+            'mailchimp_list_campaign_clicks' => MailchimpListCampaignClicksNode::class,
+            'mailchimp_list_campaigns' => MailchimpListCampaignsNode::class,
+            'mailchimp_list_cleaned_members' => MailchimpListCleanedMembersNode::class,
+            'mailchimp_list_member_tags' => MailchimpListMemberTagsNode::class,
+            'mailchimp_list_members' => MailchimpListMembersNode::class,
+            'mailchimp_list_merge_fields' => MailchimpListMergeFieldsNode::class,
+            'mailchimp_list_new_subscribers' => MailchimpListNewSubscribersNode::class,
+            'mailchimp_list_notes' => MailchimpListNotesNode::class,
+            'mailchimp_list_segments' => MailchimpListSegmentsNode::class,
+            'mailchimp_list_templates' => MailchimpListTemplatesNode::class,
+            'mailchimp_list_unsubscribes' => MailchimpListUnsubscribesNode::class,
+            'mailchimp_list_updated_members' => MailchimpListUpdatedMembersNode::class,
+            'mailchimp_remove_tags' => MailchimpRemoveTagsNode::class,
+            'mailchimp_replicate_campaign' => MailchimpReplicateCampaignNode::class,
+            'mailchimp_schedule_campaign' => MailchimpScheduleCampaignNode::class,
+            'mailchimp_search_members' => MailchimpSearchMembersNode::class,
+            'mailchimp_send_campaign' => MailchimpSendCampaignNode::class,
+            'mailchimp_send_test_email' => MailchimpSendTestEmailNode::class,
+            'mailchimp_set_campaign_content' => MailchimpSetCampaignContentNode::class,
+            'mailchimp_unschedule_campaign' => MailchimpUnscheduleCampaignNode::class,
+            'mailchimp_unsubscribe_member' => MailchimpUnsubscribeMemberNode::class,
+            'mailchimp_update_member' => MailchimpUpdateMemberNode::class,
+            'kit_add_subscriber_to_form' => KitAddSubscriberToFormNode::class,
+            'kit_add_subscriber_to_sequence' => KitAddSubscriberToSequenceNode::class,
+            'kit_create_broadcast' => KitCreateBroadcastNode::class,
+            'kit_create_custom_field' => KitCreateCustomFieldNode::class,
+            'kit_create_or_update_subscriber' => KitCreateOrUpdateSubscriberNode::class,
+            'kit_create_purchase' => KitCreatePurchaseNode::class,
+            'kit_create_tag' => KitCreateTagNode::class,
+            'kit_delete_broadcast' => KitDeleteBroadcastNode::class,
+            'kit_get_account' => KitGetAccountNode::class,
+            'kit_get_broadcast' => KitGetBroadcastNode::class,
+            'kit_get_broadcast_stats' => KitGetBroadcastStatsNode::class,
+            'kit_get_subscriber' => KitGetSubscriberNode::class,
+            'kit_list_bounced_subscribers' => KitListBouncedSubscribersNode::class,
+            'kit_list_broadcasts' => KitListBroadcastsNode::class,
+            'kit_list_custom_fields' => KitListCustomFieldsNode::class,
+            'kit_list_email_templates' => KitListEmailTemplatesNode::class,
+            'kit_list_form_subscribers' => KitListFormSubscribersNode::class,
+            'kit_list_forms' => KitListFormsNode::class,
+            'kit_list_purchases' => KitListPurchasesNode::class,
+            'kit_list_sequences' => KitListSequencesNode::class,
+            'kit_list_subscriber_tags' => KitListSubscriberTagsNode::class,
+            'kit_list_subscribers' => KitListSubscribersNode::class,
+            'kit_list_tagged_subscribers' => KitListTaggedSubscribersNode::class,
+            'kit_list_tags' => KitListTagsNode::class,
+            'kit_list_unsubscribes' => KitListUnsubscribesNode::class,
+            'kit_tag_subscriber' => KitTagSubscriberNode::class,
+            'kit_unsubscribe_subscriber' => KitUnsubscribeSubscriberNode::class,
+            'kit_untag_subscriber' => KitUntagSubscriberNode::class,
+            'kit_update_broadcast' => KitUpdateBroadcastNode::class,
+            'kit_update_subscriber' => KitUpdateSubscriberNode::class,
+            'activecampaign_add_note' => ActiveCampaignAddNoteNode::class,
+            'activecampaign_add_tag' => ActiveCampaignAddTagNode::class,
+            'activecampaign_add_to_automation' => ActiveCampaignAddToAutomationNode::class,
+            'activecampaign_create_deal' => ActiveCampaignCreateDealNode::class,
+            'activecampaign_create_list' => ActiveCampaignCreateListNode::class,
+            'activecampaign_create_tag' => ActiveCampaignCreateTagNode::class,
+            'activecampaign_delete_contact' => ActiveCampaignDeleteContactNode::class,
+            'activecampaign_delete_deal' => ActiveCampaignDeleteDealNode::class,
+            'activecampaign_get_account' => ActiveCampaignGetAccountNode::class,
+            'activecampaign_get_contact' => ActiveCampaignGetContactNode::class,
+            'activecampaign_get_deal' => ActiveCampaignGetDealNode::class,
+            'activecampaign_list_automations' => ActiveCampaignListAutomationsNode::class,
+            'activecampaign_list_contact_notes' => ActiveCampaignListContactNotesNode::class,
+            'activecampaign_list_contact_tags' => ActiveCampaignListContactTagsNode::class,
+            'activecampaign_list_contacts' => ActiveCampaignListContactsNode::class,
+            'activecampaign_list_custom_fields' => ActiveCampaignListCustomFieldsNode::class,
+            'activecampaign_list_deals' => ActiveCampaignListDealsNode::class,
+            'activecampaign_list_lists' => ActiveCampaignListListsNode::class,
+            'activecampaign_list_pipelines' => ActiveCampaignListPipelinesNode::class,
+            'activecampaign_list_tags' => ActiveCampaignListTagsNode::class,
+            'activecampaign_list_updated_contacts' => ActiveCampaignListUpdatedContactsNode::class,
+            'activecampaign_list_users' => ActiveCampaignListUsersNode::class,
+            'activecampaign_remove_from_automation' => ActiveCampaignRemoveFromAutomationNode::class,
+            'activecampaign_remove_tag' => ActiveCampaignRemoveTagNode::class,
+            'activecampaign_subscribe_to_list' => ActiveCampaignSubscribeToListNode::class,
+            'activecampaign_sync_contact' => ActiveCampaignSyncContactNode::class,
+            'activecampaign_unsubscribe_from_list' => ActiveCampaignUnsubscribeFromListNode::class,
+            'activecampaign_update_contact' => ActiveCampaignUpdateContactNode::class,
+            'activecampaign_update_deal' => ActiveCampaignUpdateDealNode::class,
+            'klaviyo_add_profile_to_list' => KlaviyoAddProfileToListNode::class,
+            'klaviyo_create_list' => KlaviyoCreateListNode::class,
+            'klaviyo_delete_list' => KlaviyoDeleteListNode::class,
+            'klaviyo_get_account' => KlaviyoGetAccountNode::class,
+            'klaviyo_get_profile' => KlaviyoGetProfileNode::class,
+            'klaviyo_list_campaigns' => KlaviyoListCampaignsNode::class,
+            'klaviyo_list_events' => KlaviyoListEventsNode::class,
+            'klaviyo_list_flows' => KlaviyoListFlowsNode::class,
+            'klaviyo_list_list_profiles' => KlaviyoListListProfilesNode::class,
+            'klaviyo_list_lists' => KlaviyoListListsNode::class,
+            'klaviyo_list_metrics' => KlaviyoListMetricsNode::class,
+            'klaviyo_list_profiles' => KlaviyoListProfilesNode::class,
+            'klaviyo_list_segment_profiles' => KlaviyoListSegmentProfilesNode::class,
+            'klaviyo_list_segments' => KlaviyoListSegmentsNode::class,
+            'klaviyo_list_templates' => KlaviyoListTemplatesNode::class,
+            'klaviyo_remove_profile_from_list' => KlaviyoRemoveProfileFromListNode::class,
+            'klaviyo_set_flow_status' => KlaviyoSetFlowStatusNode::class,
+            'klaviyo_subscribe_profile' => KlaviyoSubscribeProfileNode::class,
+            'klaviyo_track_event' => KlaviyoTrackEventNode::class,
+            'klaviyo_unsubscribe_profile' => KlaviyoUnsubscribeProfileNode::class,
+            'klaviyo_update_profile' => KlaviyoUpdateProfileNode::class,
+            'klaviyo_upsert_profile' => KlaviyoUpsertProfileNode::class,
+            'brevo_add_contacts_to_list' => BrevoAddContactsToListNode::class,
+            'brevo_create_list' => BrevoCreateListNode::class,
+            'brevo_create_or_update_contact' => BrevoCreateOrUpdateContactNode::class,
+            'brevo_delete_contact' => BrevoDeleteContactNode::class,
+            'brevo_get_account' => BrevoGetAccountNode::class,
+            'brevo_get_campaign' => BrevoGetCampaignNode::class,
+            'brevo_get_contact' => BrevoGetContactNode::class,
+            'brevo_list_attributes' => BrevoListAttributesNode::class,
+            'brevo_list_campaigns' => BrevoListCampaignsNode::class,
+            'brevo_list_contacts' => BrevoListContactsNode::class,
+            'brevo_list_lists' => BrevoListListsNode::class,
+            'brevo_list_senders' => BrevoListSendersNode::class,
+            'brevo_list_templates' => BrevoListTemplatesNode::class,
+            'brevo_remove_contacts_from_list' => BrevoRemoveContactsFromListNode::class,
+            'brevo_send_campaign' => BrevoSendCampaignNode::class,
+            'brevo_send_email' => BrevoSendEmailNode::class,
+            'brevo_send_sms' => BrevoSendSmsNode::class,
+            'brevo_track_event' => BrevoTrackEventNode::class,
+            'brevo_update_contact' => BrevoUpdateContactNode::class,
+            'brevo_list_updated_contacts' => BrevoListUpdatedContactsNode::class,
+            'sendgrid_add_global_unsubscribe' => SendGridAddGlobalUnsubscribeNode::class,
+            'sendgrid_create_list' => SendGridCreateListNode::class,
+            'sendgrid_delete_contact' => SendGridDeleteContactNode::class,
+            'sendgrid_delete_list' => SendGridDeleteListNode::class,
+            'sendgrid_get_account' => SendGridGetAccountNode::class,
+            'sendgrid_get_contact' => SendGridGetContactNode::class,
+            'sendgrid_get_stats' => SendGridGetStatsNode::class,
+            'sendgrid_list_blocks' => SendGridListBlocksNode::class,
+            'sendgrid_list_bounces' => SendGridListBouncesNode::class,
+            'sendgrid_list_invalid_emails' => SendGridListInvalidEmailsNode::class,
+            'sendgrid_list_lists' => SendGridListListsNode::class,
+            'sendgrid_list_senders' => SendGridListSendersNode::class,
+            'sendgrid_list_spam_reports' => SendGridListSpamReportsNode::class,
+            'sendgrid_list_templates' => SendGridListTemplatesNode::class,
+            'sendgrid_list_unsubscribes' => SendGridListUnsubscribesNode::class,
+            'sendgrid_remove_contact_from_list' => SendGridRemoveContactFromListNode::class,
+            'sendgrid_remove_suppression' => SendGridRemoveSuppressionNode::class,
+            'sendgrid_search_contacts' => SendGridSearchContactsNode::class,
+            'sendgrid_send_email' => SendGridSendEmailNode::class,
+            'sendgrid_upsert_contact' => SendGridUpsertContactNode::class,
+            'resend_add_contact' => ResendAddContactNode::class,
+            'resend_cancel_email' => ResendCancelEmailNode::class,
+            'resend_create_audience' => ResendCreateAudienceNode::class,
+            'resend_create_broadcast' => ResendCreateBroadcastNode::class,
+            'resend_delete_audience' => ResendDeleteAudienceNode::class,
+            'resend_delete_broadcast' => ResendDeleteBroadcastNode::class,
+            'resend_delete_contact' => ResendDeleteContactNode::class,
+            'resend_get_contact' => ResendGetContactNode::class,
+            'resend_get_email' => ResendGetEmailNode::class,
+            'resend_list_audiences' => ResendListAudiencesNode::class,
+            'resend_list_broadcasts' => ResendListBroadcastsNode::class,
+            'resend_list_contacts' => ResendListContactsNode::class,
+            'resend_list_domains' => ResendListDomainsNode::class,
+            'resend_list_emails' => ResendListEmailsNode::class,
+            'resend_reschedule_email' => ResendRescheduleEmailNode::class,
+            'resend_send_batch' => ResendSendBatchNode::class,
+            'resend_send_broadcast' => ResendSendBroadcastNode::class,
+            'resend_send_email' => ResendSendEmailNode::class,
+            'resend_verify_domain' => ResendVerifyDomainNode::class,
+            'postmark_activate_bounce' => PostmarkActivateBounceNode::class,
+            'postmark_add_suppressions' => PostmarkAddSuppressionsNode::class,
+            'postmark_delete_suppressions' => PostmarkDeleteSuppressionsNode::class,
+            'postmark_get_bounce' => PostmarkGetBounceNode::class,
+            'postmark_get_delivery_stats' => PostmarkGetDeliveryStatsNode::class,
+            'postmark_get_inbound_message' => PostmarkGetInboundMessageNode::class,
+            'postmark_get_outbound_message' => PostmarkGetOutboundMessageNode::class,
+            'postmark_get_server' => PostmarkGetServerNode::class,
+            'postmark_get_stats' => PostmarkGetStatsNode::class,
+            'postmark_get_template' => PostmarkGetTemplateNode::class,
+            'postmark_list_bounces' => PostmarkListBouncesNode::class,
+            'postmark_list_clicks' => PostmarkListClicksNode::class,
+            'postmark_list_inbound_messages' => PostmarkListInboundMessagesNode::class,
+            'postmark_list_message_streams' => PostmarkListMessageStreamsNode::class,
+            'postmark_list_opens' => PostmarkListOpensNode::class,
+            'postmark_list_outbound_messages' => PostmarkListOutboundMessagesNode::class,
+            'postmark_list_senders' => PostmarkListSendersNode::class,
+            'postmark_list_spam_complaints' => PostmarkListSpamComplaintsNode::class,
+            'postmark_list_suppressions' => PostmarkListSuppressionsNode::class,
+            'postmark_list_templates' => PostmarkListTemplatesNode::class,
+            'postmark_send_batch' => PostmarkSendBatchNode::class,
+            'postmark_send_email' => PostmarkSendEmailNode::class,
+            'postmark_send_template_email' => PostmarkSendTemplateEmailNode::class,
+            'mailgun_add_member' => MailgunAddMemberNode::class,
+            'mailgun_add_suppression' => MailgunAddSuppressionNode::class,
+            'mailgun_create_mailing_list' => MailgunCreateMailingListNode::class,
+            'mailgun_delete_mailing_list' => MailgunDeleteMailingListNode::class,
+            'mailgun_get_domain' => MailgunGetDomainNode::class,
+            'mailgun_get_member' => MailgunGetMemberNode::class,
+            'mailgun_get_stats' => MailgunGetStatsNode::class,
+            'mailgun_get_template' => MailgunGetTemplateNode::class,
+            'mailgun_list_domains' => MailgunListDomainsNode::class,
+            'mailgun_list_events' => MailgunListEventsNode::class,
+            'mailgun_list_mailing_lists' => MailgunListMailingListsNode::class,
+            'mailgun_list_members' => MailgunListMembersNode::class,
+            'mailgun_list_suppressions' => MailgunListSuppressionsNode::class,
+            'mailgun_list_templates' => MailgunListTemplatesNode::class,
+            'mailgun_remove_member' => MailgunRemoveMemberNode::class,
+            'mailgun_remove_suppression' => MailgunRemoveSuppressionNode::class,
+            'mailgun_send_email' => MailgunSendEmailNode::class,
+            'mailgun_update_member' => MailgunUpdateMemberNode::class,
+            'mailgun_validate_email' => MailgunValidateEmailNode::class,
+            'mailgun_verify_domain' => MailgunVerifyDomainNode::class,
+            'gmail_archive_message' => GmailArchiveMessageNode::class,
+            'gmail_batch_modify_messages' => GmailBatchModifyMessagesNode::class,
+            'gmail_delete_draft' => GmailDeleteDraftNode::class,
+            'gmail_delete_label' => GmailDeleteLabelNode::class,
+            'gmail_forward_message' => GmailForwardMessageNode::class,
+            'gmail_get_draft' => GmailGetDraftNode::class,
+            'gmail_get_profile' => GmailGetProfileNode::class,
+            'gmail_list_drafts' => GmailListDraftsNode::class,
+            'gmail_mark_read' => GmailMarkReadNode::class,
+            'gmail_trash_message' => GmailTrashMessageNode::class,
+            'gmail_trash_thread' => GmailTrashThreadNode::class,
+            'gmail_untrash_message' => GmailUntrashMessageNode::class,
+            'gmail_update_draft' => GmailUpdateDraftNode::class,
+            'gmail_update_label' => GmailUpdateLabelNode::class,
+            'outlook_copy_message' => OutlookCopyMessageNode::class,
+            'outlook_create_folder' => OutlookCreateFolderNode::class,
+            'outlook_flag_message' => OutlookFlagMessageNode::class,
+            'outlook_forward_message' => OutlookForwardMessageNode::class,
+            'outlook_get_attachment' => OutlookGetAttachmentNode::class,
+            'outlook_get_auto_reply' => OutlookGetAutoReplyNode::class,
+            'outlook_get_profile' => OutlookGetProfileNode::class,
+            'outlook_list_attachments' => OutlookListAttachmentsNode::class,
+            'outlook_list_folders' => OutlookListFoldersNode::class,
+            'outlook_mark_read' => OutlookMarkReadNode::class,
+            'outlook_reply_all' => OutlookReplyAllNode::class,
+            'outlook_send_draft' => OutlookSendDraftNode::class,
+            'outlook_set_auto_reply' => OutlookSetAutoReplyNode::class,
+            'outlook_set_categories' => OutlookSetCategoriesNode::class,
+            'trello_add_attachment' => TrelloAddAttachmentNode::class,
+            'trello_add_checklist_item' => TrelloAddChecklistItemNode::class,
+            'trello_add_comment' => TrelloAddCommentNode::class,
+            'trello_add_label' => TrelloAddLabelNode::class,
+            'trello_add_member' => TrelloAddMemberNode::class,
+            'trello_archive_all_cards' => TrelloArchiveAllCardsNode::class,
+            'trello_create_board' => TrelloCreateBoardNode::class,
+            'trello_create_card' => TrelloCreateCardNode::class,
+            'trello_create_checklist' => TrelloCreateChecklistNode::class,
+            'trello_create_label' => TrelloCreateLabelNode::class,
+            'trello_create_list' => TrelloCreateListNode::class,
+            'trello_delete_card' => TrelloDeleteCardNode::class,
+            'trello_get_board' => TrelloGetBoardNode::class,
+            'trello_get_card' => TrelloGetCardNode::class,
+            'trello_get_member' => TrelloGetMemberNode::class,
+            'trello_list_activity' => TrelloListActivityNode::class,
+            'trello_list_boards' => TrelloListBoardsNode::class,
+            'trello_list_cards' => TrelloListCardsNode::class,
+            'trello_list_comments' => TrelloListCommentsNode::class,
+            'trello_list_labels' => TrelloListLabelsNode::class,
+            'trello_list_lists' => TrelloListListsNode::class,
+            'trello_list_members' => TrelloListMembersNode::class,
+            'trello_move_card' => TrelloMoveCardNode::class,
+            'trello_remove_label' => TrelloRemoveLabelNode::class,
+            'trello_remove_member' => TrelloRemoveMemberNode::class,
+            'trello_search_cards' => TrelloSearchCardsNode::class,
+            'trello_set_checklist_item' => TrelloSetChecklistItemNode::class,
+            'trello_update_card' => TrelloUpdateCardNode::class,
+            'trello_update_list' => TrelloUpdateListNode::class,
+            'asana_add_comment' => AsanaAddCommentNode::class,
+            'asana_add_tag' => AsanaAddTagNode::class,
+            'asana_add_task_to_project' => AsanaAddTaskToProjectNode::class,
+            'asana_complete_task' => AsanaCompleteTaskNode::class,
+            'asana_create_project' => AsanaCreateProjectNode::class,
+            'asana_create_section' => AsanaCreateSectionNode::class,
+            'asana_create_subtask' => AsanaCreateSubtaskNode::class,
+            'asana_create_tag' => AsanaCreateTagNode::class,
+            'asana_create_task' => AsanaCreateTaskNode::class,
+            'asana_delete_task' => AsanaDeleteTaskNode::class,
+            'asana_get_me' => AsanaGetMeNode::class,
+            'asana_get_project' => AsanaGetProjectNode::class,
+            'asana_get_task' => AsanaGetTaskNode::class,
+            'asana_list_comments' => AsanaListCommentsNode::class,
+            'asana_list_completed_tasks' => AsanaListCompletedTasksNode::class,
+            'asana_list_new_tasks' => AsanaListNewTasksNode::class,
+            'asana_list_projects' => AsanaListProjectsNode::class,
+            'asana_list_sections' => AsanaListSectionsNode::class,
+            'asana_list_subtasks' => AsanaListSubtasksNode::class,
+            'asana_list_tags' => AsanaListTagsNode::class,
+            'asana_list_tasks' => AsanaListTasksNode::class,
+            'asana_list_updated_tasks' => AsanaListUpdatedTasksNode::class,
+            'asana_list_users' => AsanaListUsersNode::class,
+            'asana_list_workspaces' => AsanaListWorkspacesNode::class,
+            'asana_move_task_to_section' => AsanaMoveTaskToSectionNode::class,
+            'asana_remove_tag' => AsanaRemoveTagNode::class,
+            'asana_remove_task_from_project' => AsanaRemoveTaskFromProjectNode::class,
+            'asana_search_tasks' => AsanaSearchTasksNode::class,
+            'asana_update_project' => AsanaUpdateProjectNode::class,
+            'asana_update_task' => AsanaUpdateTaskNode::class,
+            'clickup_add_checklist_item' => ClickUpAddChecklistItemNode::class,
+            'clickup_add_comment' => ClickUpAddCommentNode::class,
+            'clickup_add_tag' => ClickUpAddTagNode::class,
+            'clickup_create_checklist' => ClickUpCreateChecklistNode::class,
+            'clickup_create_list' => ClickUpCreateListNode::class,
+            'clickup_create_task' => ClickUpCreateTaskNode::class,
+            'clickup_create_time_entry' => ClickUpCreateTimeEntryNode::class,
+            'clickup_delete_task' => ClickUpDeleteTaskNode::class,
+            'clickup_filter_tasks' => ClickUpFilterTasksNode::class,
+            'clickup_get_list' => ClickUpGetListNode::class,
+            'clickup_get_me' => ClickUpGetMeNode::class,
+            'clickup_get_task' => ClickUpGetTaskNode::class,
+            'clickup_list_comments' => ClickUpListCommentsNode::class,
+            'clickup_list_custom_fields' => ClickUpListCustomFieldsNode::class,
+            'clickup_list_folders' => ClickUpListFoldersNode::class,
+            'clickup_list_lists' => ClickUpListListsNode::class,
+            'clickup_list_new_tasks' => ClickUpListNewTasksNode::class,
+            'clickup_list_spaces' => ClickUpListSpacesNode::class,
+            'clickup_list_tasks' => ClickUpListTasksNode::class,
+            'clickup_list_time_entries' => ClickUpListTimeEntriesNode::class,
+            'clickup_list_updated_tasks' => ClickUpListUpdatedTasksNode::class,
+            'clickup_list_workspaces' => ClickUpListWorkspacesNode::class,
+            'clickup_remove_tag' => ClickUpRemoveTagNode::class,
+            'clickup_set_custom_field' => ClickUpSetCustomFieldNode::class,
+            'clickup_update_task' => ClickUpUpdateTaskNode::class,
+            'airtable_add_comment' => AirtableAddCommentNode::class,
+            'airtable_create_record' => AirtableCreateRecordNode::class,
+            'airtable_create_records' => AirtableCreateRecordsNode::class,
+            'airtable_delete_record' => AirtableDeleteRecordNode::class,
+            'airtable_find_record' => AirtableFindRecordNode::class,
+            'airtable_get_me' => AirtableGetMeNode::class,
+            'airtable_get_record' => AirtableGetRecordNode::class,
+            'airtable_list_bases' => AirtableListBasesNode::class,
+            'airtable_list_comments' => AirtableListCommentsNode::class,
+            'airtable_list_new_records' => AirtableListNewRecordsNode::class,
+            'airtable_list_records' => AirtableListRecordsNode::class,
+            'airtable_list_tables' => AirtableListTablesNode::class,
+            'airtable_list_updated_records' => AirtableListUpdatedRecordsNode::class,
+            'airtable_update_record' => AirtableUpdateRecordNode::class,
+            'airtable_upsert_record' => AirtableUpsertRecordNode::class,
+            'monday_add_update' => MondayAddUpdateNode::class,
+            'monday_archive_item' => MondayArchiveItemNode::class,
+            'monday_create_board' => MondayCreateBoardNode::class,
+            'monday_create_group' => MondayCreateGroupNode::class,
+            'monday_create_item' => MondayCreateItemNode::class,
+            'monday_create_subitem' => MondayCreateSubitemNode::class,
+            'monday_delete_item' => MondayDeleteItemNode::class,
+            'monday_get_board' => MondayGetBoardNode::class,
+            'monday_get_item' => MondayGetItemNode::class,
+            'monday_get_me' => MondayGetMeNode::class,
+            'monday_list_boards' => MondayListBoardsNode::class,
+            'monday_list_items' => MondayListItemsNode::class,
+            'monday_list_new_items' => MondayListNewItemsNode::class,
+            'monday_list_updated_items' => MondayListUpdatedItemsNode::class,
+            'monday_list_updates' => MondayListUpdatesNode::class,
+            'monday_list_users' => MondayListUsersNode::class,
+            'monday_list_workspaces' => MondayListWorkspacesNode::class,
+            'monday_move_item' => MondayMoveItemNode::class,
+            'monday_set_column' => MondaySetColumnNode::class,
+            'monday_update_item' => MondayUpdateItemNode::class,
+            'hubspot_add_note' => HubSpotAddNoteNode::class,
+            'hubspot_add_contacts_to_list' => HubSpotAddToListNode::class,
+            'hubspot_associate' => HubSpotAssociateNode::class,
+            'hubspot_create_company' => HubSpotCreateCompanyNode::class,
+            'hubspot_create_contact' => HubSpotCreateContactNode::class,
+            'hubspot_create_deal' => HubSpotCreateDealNode::class,
+            'hubspot_create_task' => HubSpotCreateTaskNode::class,
+            'hubspot_create_ticket' => HubSpotCreateTicketNode::class,
+            'hubspot_delete_company' => HubSpotDeleteCompanyNode::class,
+            'hubspot_delete_contact' => HubSpotDeleteContactNode::class,
+            'hubspot_delete_deal' => HubSpotDeleteDealNode::class,
+            'hubspot_delete_ticket' => HubSpotDeleteTicketNode::class,
+            'hubspot_get_account' => HubSpotGetAccountNode::class,
+            'hubspot_get_company' => HubSpotGetCompanyNode::class,
+            'hubspot_get_contact' => HubSpotGetContactNode::class,
+            'hubspot_get_deal' => HubSpotGetDealNode::class,
+            'hubspot_get_ticket' => HubSpotGetTicketNode::class,
+            'hubspot_list_changed_companies' => HubSpotListChangedCompaniesNode::class,
+            'hubspot_list_changed_contacts' => HubSpotListChangedContactsNode::class,
+            'hubspot_list_changed_deals' => HubSpotListChangedDealsNode::class,
+            'hubspot_list_changed_tickets' => HubSpotListChangedTicketsNode::class,
+            'hubspot_list_new_companies' => HubSpotListNewCompaniesNode::class,
+            'hubspot_list_new_contacts' => HubSpotListNewContactsNode::class,
+            'hubspot_list_new_deals' => HubSpotListNewDealsNode::class,
+            'hubspot_list_new_tickets' => HubSpotListNewTicketsNode::class,
+            'hubspot_list_owners' => HubSpotListOwnersNode::class,
+            'hubspot_list_pipelines' => HubSpotListPipelinesNode::class,
+            'hubspot_list_properties' => HubSpotListPropertiesNode::class,
+            'hubspot_remove_contacts_from_list' => HubSpotRemoveFromListNode::class,
+            'hubspot_search_companies' => HubSpotSearchCompaniesNode::class,
+            'hubspot_search_contacts' => HubSpotSearchContactsNode::class,
+            'hubspot_search_deals' => HubSpotSearchDealsNode::class,
+            'hubspot_search_tickets' => HubSpotSearchTicketsNode::class,
+            'hubspot_update_company' => HubSpotUpdateCompanyNode::class,
+            'hubspot_update_contact' => HubSpotUpdateContactNode::class,
+            'hubspot_update_deal' => HubSpotUpdateDealNode::class,
+            'hubspot_update_ticket' => HubSpotUpdateTicketNode::class,
+            'hubspot_upsert_contact' => HubSpotUpsertContactNode::class,
+            'pipedrive_add_note' => PipedriveAddNoteNode::class,
+            'pipedrive_create_activity' => PipedriveCreateActivityNode::class,
+            'pipedrive_create_deal' => PipedriveCreateDealNode::class,
+            'pipedrive_create_lead' => PipedriveCreateLeadNode::class,
+            'pipedrive_create_organization' => PipedriveCreateOrganizationNode::class,
+            'pipedrive_create_person' => PipedriveCreatePersonNode::class,
+            'pipedrive_delete_activity' => PipedriveDeleteActivityNode::class,
+            'pipedrive_delete_deal' => PipedriveDeleteDealNode::class,
+            'pipedrive_delete_lead' => PipedriveDeleteLeadNode::class,
+            'pipedrive_delete_organization' => PipedriveDeleteOrganizationNode::class,
+            'pipedrive_delete_person' => PipedriveDeletePersonNode::class,
+            'pipedrive_get_activity' => PipedriveGetActivityNode::class,
+            'pipedrive_get_deal' => PipedriveGetDealNode::class,
+            'pipedrive_get_lead' => PipedriveGetLeadNode::class,
+            'pipedrive_get_me' => PipedriveGetMeNode::class,
+            'pipedrive_get_organization' => PipedriveGetOrganizationNode::class,
+            'pipedrive_get_person' => PipedriveGetPersonNode::class,
+            'pipedrive_list_activities' => PipedriveListActivitiesNode::class,
+            'pipedrive_list_changed_activities' => PipedriveListChangedActivitiesNode::class,
+            'pipedrive_list_changed_deals' => PipedriveListChangedDealsNode::class,
+            'pipedrive_list_changed_organizations' => PipedriveListChangedOrganizationsNode::class,
+            'pipedrive_list_changed_persons' => PipedriveListChangedPeopleNode::class,
+            'pipedrive_list_deals' => PipedriveListDealsNode::class,
+            'pipedrive_list_leads' => PipedriveListLeadsNode::class,
+            'pipedrive_list_new_activities' => PipedriveListNewActivitiesNode::class,
+            'pipedrive_list_new_deals' => PipedriveListNewDealsNode::class,
+            'pipedrive_list_new_organizations' => PipedriveListNewOrganizationsNode::class,
+            'pipedrive_list_new_persons' => PipedriveListNewPeopleNode::class,
+            'pipedrive_list_notes' => PipedriveListNotesNode::class,
+            'pipedrive_list_organizations' => PipedriveListOrganizationsNode::class,
+            'pipedrive_list_persons' => PipedriveListPeopleNode::class,
+            'pipedrive_list_pipelines' => PipedriveListPipelinesNode::class,
+            'pipedrive_list_users' => PipedriveListUsersNode::class,
+            'pipedrive_mark_deal' => PipedriveMarkDealNode::class,
+            'pipedrive_search_deals' => PipedriveSearchDealsNode::class,
+            'pipedrive_search_leads' => PipedriveSearchLeadsNode::class,
+            'pipedrive_search_organizations' => PipedriveSearchOrganizationsNode::class,
+            'pipedrive_search_persons' => PipedriveSearchPeopleNode::class,
+            'pipedrive_update_activity' => PipedriveUpdateActivityNode::class,
+            'pipedrive_update_deal' => PipedriveUpdateDealNode::class,
+            'pipedrive_update_lead' => PipedriveUpdateLeadNode::class,
+            'pipedrive_update_organization' => PipedriveUpdateOrganizationNode::class,
+            'pipedrive_update_person' => PipedriveUpdatePersonNode::class,
+            'salesforce_create_account' => SalesforceCreateAccountNode::class,
+            'salesforce_create_case' => SalesforceCreateCaseNode::class,
+            'salesforce_create_contact' => SalesforceCreateContactNode::class,
+            'salesforce_create_lead' => SalesforceCreateLeadNode::class,
+            'salesforce_create_opportunity' => SalesforceCreateOpportunityNode::class,
+            'salesforce_create_record' => SalesforceCreateRecordNode::class,
+            'salesforce_create_task' => SalesforceCreateTaskNode::class,
+            'salesforce_delete_record' => SalesforceDeleteRecordNode::class,
+            'salesforce_describe_object' => SalesforceDescribeObjectNode::class,
+            'salesforce_find_record' => SalesforceFindRecordNode::class,
+            'salesforce_get_org' => SalesforceGetOrgNode::class,
+            'salesforce_get_record' => SalesforceGetRecordNode::class,
+            'salesforce_list_changed_accounts' => SalesforceListChangedAccountsNode::class,
+            'salesforce_list_changed_cases' => SalesforceListChangedCasesNode::class,
+            'salesforce_list_changed_contacts' => SalesforceListChangedContactsNode::class,
+            'salesforce_list_changed_leads' => SalesforceListChangedLeadsNode::class,
+            'salesforce_list_changed_opportunities' => SalesforceListChangedOpportunitiesNode::class,
+            'salesforce_list_new_accounts' => SalesforceListNewAccountsNode::class,
+            'salesforce_list_new_cases' => SalesforceListNewCasesNode::class,
+            'salesforce_list_new_contacts' => SalesforceListNewContactsNode::class,
+            'salesforce_list_new_leads' => SalesforceListNewLeadsNode::class,
+            'salesforce_list_new_opportunities' => SalesforceListNewOpportunitiesNode::class,
+            'salesforce_list_objects' => SalesforceListObjectsNode::class,
+            'salesforce_run_query' => SalesforceRunQueryNode::class,
+            'salesforce_search' => SalesforceSearchNode::class,
+            'salesforce_update_account' => SalesforceUpdateAccountNode::class,
+            'salesforce_update_case' => SalesforceUpdateCaseNode::class,
+            'salesforce_update_contact' => SalesforceUpdateContactNode::class,
+            'salesforce_update_lead' => SalesforceUpdateLeadNode::class,
+            'salesforce_update_opportunity' => SalesforceUpdateOpportunityNode::class,
+            'salesforce_update_record' => SalesforceUpdateRecordNode::class,
+            'salesforce_update_task' => SalesforceUpdateTaskNode::class,
+            'salesforce_upsert_record' => SalesforceUpsertRecordNode::class,
+            'zoho_add_note' => ZohoAddNoteNode::class,
+            'zoho_create_account' => ZohoCreateAccountNode::class,
+            'zoho_create_contact' => ZohoCreateContactNode::class,
+            'zoho_create_deal' => ZohoCreateDealNode::class,
+            'zoho_create_lead' => ZohoCreateLeadNode::class,
+            'zoho_create_record' => ZohoCreateRecordNode::class,
+            'zoho_create_task' => ZohoCreateTaskNode::class,
+            'zoho_delete_account' => ZohoDeleteAccountNode::class,
+            'zoho_delete_contact' => ZohoDeleteContactNode::class,
+            'zoho_delete_deal' => ZohoDeleteDealNode::class,
+            'zoho_delete_lead' => ZohoDeleteLeadNode::class,
+            'zoho_delete_task' => ZohoDeleteTaskNode::class,
+            'zoho_get_account' => ZohoGetAccountNode::class,
+            'zoho_get_contact' => ZohoGetContactNode::class,
+            'zoho_get_deal' => ZohoGetDealNode::class,
+            'zoho_get_lead' => ZohoGetLeadNode::class,
+            'zoho_get_me' => ZohoGetMeNode::class,
+            'zoho_get_task' => ZohoGetTaskNode::class,
+            'zoho_list_changed_accounts' => ZohoListChangedAccountsNode::class,
+            'zoho_list_changed_contacts' => ZohoListChangedContactsNode::class,
+            'zoho_list_changed_deals' => ZohoListChangedDealsNode::class,
+            'zoho_list_changed_leads' => ZohoListChangedLeadsNode::class,
+            'zoho_list_changed_tasks' => ZohoListChangedTasksNode::class,
+            'zoho_list_fields' => ZohoListFieldsNode::class,
+            'zoho_list_modules' => ZohoListModulesNode::class,
+            'zoho_list_new_accounts' => ZohoListNewAccountsNode::class,
+            'zoho_list_new_contacts' => ZohoListNewContactsNode::class,
+            'zoho_list_new_deals' => ZohoListNewDealsNode::class,
+            'zoho_list_new_leads' => ZohoListNewLeadsNode::class,
+            'zoho_list_new_tasks' => ZohoListNewTasksNode::class,
+            'zoho_list_notes' => ZohoListNotesNode::class,
+            'zoho_list_users' => ZohoListUsersNode::class,
+            'zoho_run_coql' => ZohoRunCoqlNode::class,
+            'zoho_search_accounts' => ZohoSearchAccountsNode::class,
+            'zoho_search_contacts' => ZohoSearchContactsNode::class,
+            'zoho_search_deals' => ZohoSearchDealsNode::class,
+            'zoho_search_leads' => ZohoSearchLeadsNode::class,
+            'zoho_search_tasks' => ZohoSearchTasksNode::class,
+            'zoho_update_account' => ZohoUpdateAccountNode::class,
+            'zoho_update_contact' => ZohoUpdateContactNode::class,
+            'zoho_update_deal' => ZohoUpdateDealNode::class,
+            'zoho_update_lead' => ZohoUpdateLeadNode::class,
+            'zoho_update_task' => ZohoUpdateTaskNode::class,
+            'zoho_upsert_record' => ZohoUpsertRecordNode::class,
         ];
     }
 }

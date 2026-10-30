@@ -7,8 +7,17 @@ use App\Models\Connectors\Connector;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
+use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
+use App\Services\Workflows\NodeOptions\Sources\AirtableOptions;
+use App\Services\Workflows\NodeOptions\Sources\AsanaOptions;
+use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
+use App\Services\Workflows\NodeOptions\Sources\ClickUpOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
+use App\Services\Workflows\NodeOptions\Sources\HubSpotOptions;
+use App\Services\Workflows\NodeOptions\Sources\KitOptions;
+use App\Services\Workflows\NodeOptions\Sources\KlaviyoOptions;
+use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleCalendarOptions;
@@ -21,12 +30,22 @@ use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
 use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
 use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
+use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
+use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
+use App\Services\Workflows\NodeOptions\Sources\PipedriveOptions;
+use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
+use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
+use App\Services\Workflows\NodeOptions\Sources\SalesforceOptions;
+use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
+use App\Services\Workflows\NodeOptions\Sources\TrelloOptions;
 use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
+use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
 use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoOptions;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -58,6 +77,25 @@ class NodeOptionsService
         SlackOptions::class,
         DiscordOptions::class,
         TwilioOptions::class,
+        TypeformOptions::class,
+        MailchimpOptions::class,
+        KitOptions::class,
+        ActiveCampaignOptions::class,
+        KlaviyoOptions::class,
+        BrevoOptions::class,
+        SendGridOptions::class,
+        ResendOptions::class,
+        PostmarkOptions::class,
+        MailgunOptions::class,
+        TrelloOptions::class,
+        AsanaOptions::class,
+        ClickUpOptions::class,
+        AirtableOptions::class,
+        MondayOptions::class,
+        HubSpotOptions::class,
+        PipedriveOptions::class,
+        SalesforceOptions::class,
+        ZohoOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
