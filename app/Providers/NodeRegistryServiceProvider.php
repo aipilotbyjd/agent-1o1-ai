@@ -1059,6 +1059,15 @@ use App\Nodes\Integrations\ZohoDesk\ZohoDeskSearchTicketsNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskSendReplyNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateContactNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateTicketNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailGetAccountNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailGetMessageNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailListFoldersNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailListMessagesNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailListNewMessagesNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailMarkReadNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailMoveMessageNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailSearchMessagesNode;
+use App\Nodes\Integrations\ZohoMail\ZohoMailSendEmailNode;
 use App\Nodes\Integrations\ZohoProjects\ZohoProjectsAddTaskCommentNode;
 use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateBugNode;
 use App\Nodes\Integrations\ZohoProjects\ZohoProjectsCreateMilestoneNode;
@@ -2193,6 +2202,15 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_campaigns_list_unsubscribes' => ZohoCampaignsListUnsubscribesNode::class,
             'zoho_campaigns_send_campaign' => ZohoCampaignsSendCampaignNode::class,
             'zoho_campaigns_unsubscribe' => ZohoCampaignsUnsubscribeNode::class,
+            'zoho_mail_get_account' => ZohoMailGetAccountNode::class,
+            'zoho_mail_get_message' => ZohoMailGetMessageNode::class,
+            'zoho_mail_list_folders' => ZohoMailListFoldersNode::class,
+            'zoho_mail_list_messages' => ZohoMailListMessagesNode::class,
+            'zoho_mail_list_new_messages' => ZohoMailListNewMessagesNode::class,
+            'zoho_mail_mark_read' => ZohoMailMarkReadNode::class,
+            'zoho_mail_move_message' => ZohoMailMoveMessageNode::class,
+            'zoho_mail_search_messages' => ZohoMailSearchMessagesNode::class,
+            'zoho_mail_send_email' => ZohoMailSendEmailNode::class,
         ];
     }
 }
