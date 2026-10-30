@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
 use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
+use App\Services\Workflows\NodeOptions\Sources\AirtableOptions;
 use App\Services\Workflows\NodeOptions\Sources\AsanaOptions;
 use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
 use App\Services\Workflows\NodeOptions\Sources\ClickUpOptions;
@@ -84,6 +85,7 @@ class NodeOptionsService
         TrelloOptions::class,
         AsanaOptions::class,
         ClickUpOptions::class,
+        AirtableOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

@@ -48,6 +48,21 @@ use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignSyncContactNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUnsubscribeFromListNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateContactNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateDealNode;
+use App\Nodes\Integrations\Airtable\AirtableAddCommentNode;
+use App\Nodes\Integrations\Airtable\AirtableCreateRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableCreateRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableDeleteRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableFindRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableGetMeNode;
+use App\Nodes\Integrations\Airtable\AirtableGetRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableListBasesNode;
+use App\Nodes\Integrations\Airtable\AirtableListCommentsNode;
+use App\Nodes\Integrations\Airtable\AirtableListNewRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableListRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableListTablesNode;
+use App\Nodes\Integrations\Airtable\AirtableListUpdatedRecordsNode;
+use App\Nodes\Integrations\Airtable\AirtableUpdateRecordNode;
+use App\Nodes\Integrations\Airtable\AirtableUpsertRecordNode;
 use App\Nodes\Integrations\Asana\AsanaAddCommentNode;
 use App\Nodes\Integrations\Asana\AsanaAddTagNode;
 use App\Nodes\Integrations\Asana\AsanaAddTaskToProjectNode;
@@ -1665,6 +1680,21 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'clickup_remove_tag' => ClickUpRemoveTagNode::class,
             'clickup_set_custom_field' => ClickUpSetCustomFieldNode::class,
             'clickup_update_task' => ClickUpUpdateTaskNode::class,
+            'airtable_add_comment' => AirtableAddCommentNode::class,
+            'airtable_create_record' => AirtableCreateRecordNode::class,
+            'airtable_create_records' => AirtableCreateRecordsNode::class,
+            'airtable_delete_record' => AirtableDeleteRecordNode::class,
+            'airtable_find_record' => AirtableFindRecordNode::class,
+            'airtable_get_me' => AirtableGetMeNode::class,
+            'airtable_get_record' => AirtableGetRecordNode::class,
+            'airtable_list_bases' => AirtableListBasesNode::class,
+            'airtable_list_comments' => AirtableListCommentsNode::class,
+            'airtable_list_new_records' => AirtableListNewRecordsNode::class,
+            'airtable_list_records' => AirtableListRecordsNode::class,
+            'airtable_list_tables' => AirtableListTablesNode::class,
+            'airtable_list_updated_records' => AirtableListUpdatedRecordsNode::class,
+            'airtable_update_record' => AirtableUpdateRecordNode::class,
+            'airtable_upsert_record' => AirtableUpsertRecordNode::class,
         ];
     }
 }

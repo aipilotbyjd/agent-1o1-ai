@@ -50,8 +50,9 @@ class PushSources
         TrelloSource $trelloSource,
         AsanaSource $asanaSource,
         ClickUpSource $clickUpSource,
+        AirtableSource $airtableSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -82,6 +83,7 @@ class PushSources
             new TrelloIngress,
             new AsanaIngress,
             new ClickUpIngress,
+            new AirtableIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }
