@@ -38,7 +38,7 @@ class StripeCreatePaymentIntentNode extends AbstractStripeNode
                 ...$this->credentialFields(),
                 'amount' => Field::integer('Amount', 'In the smallest unit of the currency: 1999 is 19.99 USD.', null, 1),
                 'currency' => Field::text('Currency', null, 'usd'),
-                'customer_id' => Field::text('Customer ID', null, 'cus_...'),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', null, 'cus_...'),
                 'payment_method' => Field::text('Payment method', 'The saved payment method to use, such as pm_...', 'pm_...'),
                 'confirm' => Field::boolean('Confirm now', 'Charge the payment method straight away. It needs a payment method.'),
                 'description' => Field::advanced(Field::text('Description')),

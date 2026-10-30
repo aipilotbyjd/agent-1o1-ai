@@ -14,10 +14,6 @@ use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
 use App\Services\Workflows\NodeOptions\Sources\ClickUpOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
-use App\Services\Workflows\NodeOptions\Sources\HubSpotOptions;
-use App\Services\Workflows\NodeOptions\Sources\KitOptions;
-use App\Services\Workflows\NodeOptions\Sources\KlaviyoOptions;
-use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleCalendarOptions;
@@ -28,8 +24,12 @@ use App\Services\Workflows\NodeOptions\Sources\GoogleSearchConsoleOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSheetsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
+use App\Services\Workflows\NodeOptions\Sources\HubSpotOptions;
 use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
+use App\Services\Workflows\NodeOptions\Sources\KitOptions;
+use App\Services\Workflows\NodeOptions\Sources\KlaviyoOptions;
 use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
+use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
 use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
@@ -40,6 +40,7 @@ use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
 use App\Services\Workflows\NodeOptions\Sources\SalesforceOptions;
 use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
+use App\Services\Workflows\NodeOptions\Sources\StripeOptions;
 use App\Services\Workflows\NodeOptions\Sources\TrelloOptions;
 use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
 use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
@@ -84,6 +85,7 @@ class NodeOptionsService
         DiscordOptions::class,
         TwilioOptions::class,
         TypeformOptions::class,
+        StripeOptions::class,
         MailchimpOptions::class,
         KitOptions::class,
         ActiveCampaignOptions::class,

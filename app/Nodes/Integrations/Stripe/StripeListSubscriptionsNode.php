@@ -34,8 +34,8 @@ class StripeListSubscriptionsNode extends AbstractStripeNode
             'type' => 'object',
             'properties' => [
                 ...$this->credentialFields(),
-                'customer_id' => Field::text('Customer ID', null, 'cus_...'),
-                'price_id' => Field::advanced(Field::text('Price ID', null, 'price_...')),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', null, 'cus_...'),
+                'price_id' => Field::advanced(Field::dynamic('Price', 'stripe.prices', null, 'price_...')),
                 'status' => Field::select('Status', ['' => 'Not cancelled', 'all' => 'All', 'active' => 'Active', 'trialing' => 'Trialing', 'past_due' => 'Past due', 'unpaid' => 'Unpaid', 'canceled' => 'Cancelled', 'incomplete' => 'Incomplete', 'paused' => 'Paused']),
                 'since' => Field::advanced(Field::datetime('Created after', 'Only records created at or after this time.')),
                 'until' => Field::advanced(Field::datetime('Created before', 'Only records created at or before this time.')),

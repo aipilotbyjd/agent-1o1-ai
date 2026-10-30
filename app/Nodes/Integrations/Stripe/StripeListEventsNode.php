@@ -67,9 +67,20 @@ class StripeListEventsNode extends AbstractStripeNode implements SupportsTrigger
         ], $this->limit($config));
 
         // Stripe filters on its side when it can; this makes the answer the same when it can't.
-        $events = array_values(array_filter($result['items'], fn (array $event): bool => $types === [] || Str::is($types, (string) ($event['type'] ?? ''))));
+        $events = array_values(array_filter($result['items'], fn (array $event): bool => ($types === [] || Str::is($types, (string) ($event['type'] ?? ''))) && $this->acceptsEvent($event)));
 
         return ['events' => array_map(fn (array $event): array => $this->shapeEvent($event), $events), 'count' => count($events), 'has_more' => $result['has_more']];
+    }
+
+    /**
+     * Whether an event of the right type is one the node is about (a trigger
+     * preset narrows it further).
+     *
+     * @param  array<string, mixed>  $event
+     */
+    protected function acceptsEvent(array $event): bool
+    {
+        return true;
     }
 
     /**

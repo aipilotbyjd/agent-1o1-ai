@@ -36,7 +36,7 @@ class StripeCreateInvoiceNode extends AbstractStripeNode
             'required' => ['customer_id'],
             'properties' => [
                 ...$this->credentialFields(),
-                'customer_id' => Field::text('Customer ID', null, 'cus_...'),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', null, 'cus_...'),
                 'collection_method' => Field::select('Collection', ['charge_automatically' => 'Charge automatically', 'send_invoice' => 'Email the customer to pay'], null, 'charge_automatically'),
                 'days_until_due' => Field::integer('Days until due', 'For an emailed invoice.', null, 1, 365),
                 'description' => Field::advanced(Field::text('Description')),

@@ -35,8 +35,8 @@ class StripeCreateSubscriptionNode extends AbstractStripeNode
             'required' => ['customer_id', 'price_id'],
             'properties' => [
                 ...$this->credentialFields(),
-                'customer_id' => Field::text('Customer ID', null, 'cus_...'),
-                'price_id' => Field::text('Price ID', null, 'price_...'),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', null, 'cus_...'),
+                'price_id' => Field::dynamic('Price', 'stripe.prices', null, 'price_...'),
                 'quantity' => Field::integer('Quantity', null, 1, 1),
                 'trial_days' => Field::integer('Trial days', null, null, 1, 730),
                 'default_payment_method' => Field::advanced(Field::text('Payment method', null, 'pm_...')),

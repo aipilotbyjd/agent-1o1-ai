@@ -35,7 +35,7 @@ class StripeUpdateCustomerNode extends AbstractStripeNode
             'required' => ['customer_id'],
             'properties' => [
                 ...$this->credentialFields(),
-                'customer_id' => Field::text('Customer ID', null, 'cus_...'),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', null, 'cus_...'),
                 'email' => Field::text('Email'),
                 'name' => Field::text('Name'),
                 'phone' => Field::advanced(Field::text('Phone')),

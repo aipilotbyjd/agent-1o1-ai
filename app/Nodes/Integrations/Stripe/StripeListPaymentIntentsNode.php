@@ -34,7 +34,7 @@ class StripeListPaymentIntentsNode extends AbstractStripeNode
             'type' => 'object',
             'properties' => [
                 ...$this->credentialFields(),
-                'customer_id' => Field::text('Customer ID', 'Only this customer\'s payments.', 'cus_...'),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', 'Only this customer\'s payments.', 'cus_...'),
                 'since' => Field::advanced(Field::datetime('Created after', 'Only records created at or after this time.')),
                 'until' => Field::advanced(Field::datetime('Created before', 'Only records created at or before this time.')),
                 'limit' => Field::integer('Max results', null, 25, 1, 1000),

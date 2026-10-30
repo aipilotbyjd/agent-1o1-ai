@@ -35,7 +35,7 @@ class StripeDeleteCustomerNode extends AbstractStripeNode
             'required' => ['customer_id'],
             'properties' => [
                 ...$this->credentialFields(),
-                'customer_id' => Field::text('Customer ID', null, 'cus_...'),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', null, 'cus_...'),
             ],
         ];
     }

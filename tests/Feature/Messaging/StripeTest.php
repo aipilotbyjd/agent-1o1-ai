@@ -15,19 +15,31 @@ use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Nodes\Integrations\Stripe\AbstractStripeNode;
 use App\Nodes\Integrations\Stripe\StripeCancelSubscriptionNode;
+use App\Nodes\Integrations\Stripe\StripeCheckoutPaidNode;
+use App\Nodes\Integrations\Stripe\StripeCloseDisputeNode;
 use App\Nodes\Integrations\Stripe\StripeCreateCheckoutSessionNode;
+use App\Nodes\Integrations\Stripe\StripeCreateCouponNode;
 use App\Nodes\Integrations\Stripe\StripeCreateCustomerNode;
 use App\Nodes\Integrations\Stripe\StripeCreatePaymentIntentNode;
+use App\Nodes\Integrations\Stripe\StripeCreatePayoutNode;
 use App\Nodes\Integrations\Stripe\StripeCreatePriceNode;
+use App\Nodes\Integrations\Stripe\StripeCreatePromotionCodeNode;
 use App\Nodes\Integrations\Stripe\StripeCreateRefundNode;
+use App\Nodes\Integrations\Stripe\StripeDeleteCouponNode;
 use App\Nodes\Integrations\Stripe\StripeDeleteCustomerNode;
+use App\Nodes\Integrations\Stripe\StripeDisputeOpenedNode;
 use App\Nodes\Integrations\Stripe\StripeGetCustomerNode;
 use App\Nodes\Integrations\Stripe\StripeGetEventNode;
 use App\Nodes\Integrations\Stripe\StripeListCustomersNode;
 use App\Nodes\Integrations\Stripe\StripeListEventsNode;
+use App\Nodes\Integrations\Stripe\StripeListPromotionCodesNode;
+use App\Nodes\Integrations\Stripe\StripeSearchCustomersNode;
+use App\Nodes\Integrations\Stripe\StripeUpdateDisputeNode;
 use App\Services\Connectors\ConnectorCredentialTester;
 use App\Services\Triggers\Push\StripeSource;
 use App\Services\Triggers\Push\WatchManager;
+use App\Services\Workflows\NodeOptions\NodeOptionsQuery;
+use App\Services\Workflows\NodeOptions\Sources\StripeOptions;
 use App\Services\Workflows\NodeRegistry;
 use App\Services\Workspaces\WorkspaceService;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -105,7 +117,7 @@ describe('stripe nodes', function () {
         $registry = app(NodeRegistry::class);
         $types = array_filter(array_column($registry->placeableTypes(), 'type'), fn (string $type): bool => str_starts_with($type, 'stripe_'));
 
-        expect(count($types))->toBeGreaterThanOrEqual(36);
+        expect(count($types))->toBeGreaterThanOrEqual(51);
 
         foreach ($types as $type) {
             $node = $registry->resolve($type);
@@ -326,7 +338,7 @@ describe('stripe events', function () {
  * @param  array<string, mixed>  $nodeConfig
  * @param  array<string, mixed>  $routes
  */
-function stripeTrigger(array $nodeConfig = ['types' => ['invoice.paid']], array $routes = [], bool $sync = true, ?ConnectorCredential $credential = null): Trigger
+function stripeTrigger(array $nodeConfig = ['types' => ['invoice.paid']], array $routes = [], bool $sync = true, ?ConnectorCredential $credential = null, string $nodeType = 'stripe_list_events'): Trigger
 {
     Queue::fake([FireTriggerEvent::class, PollTrigger::class]);
     fakeStripe($routes + ['POST /v1/webhook_endpoints' => fn () => stripeEndpoint()]);
@@ -340,7 +352,7 @@ function stripeTrigger(array $nodeConfig = ['types' => ['invoice.paid']], array 
 
     $workflow->replaceGraph([
         'nodes' => [
-            ['key' => 'start', 'type' => 'stripe_list_events', 'config' => ['credential_id' => $credential->id, 'activate' => true, ...$nodeConfig]],
+            ['key' => 'start', 'type' => $nodeType, 'config' => ['credential_id' => $credential->id, 'activate' => true, ...$nodeConfig]],
             ['key' => 'next', 'type' => 'transform', 'config' => ['mapping' => []]],
         ],
         'edges' => [['from' => 'start', 'to' => 'next']],
@@ -550,5 +562,302 @@ describe('stripe connection', function () {
 
         fakeStripe(['GET /v1/account' => fn () => Http::response(['error' => ['message' => 'Invalid API Key provided']], 401)]);
         expect(app(ConnectorCredentialTester::class)->test($credential('sk_live_bad'))['ok'])->toBeFalse();
+    });
+});
+
+describe('stripe dropdowns', function () {
+    function stripeOptionsQuery(array $config = [], ?string $search = null, ?string $cursor = null): NodeOptionsQuery
+    {
+        return new NodeOptionsQuery(app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Acme']), User::factory()->create(), $config, 'sk_test_123', $search, $cursor);
+    }
+
+    it('lists customers by name or email, and goes on from the last one', function () {
+        fakeStripe(['GET /v1/customers' => ['has_more' => true, 'data' => [['id' => 'cus_1', 'name' => 'Ada', 'email' => 'ada@example.com'], ['id' => 'cus_2', 'name' => null, 'email' => 'bob@example.com']]]]);
+
+        $page = app(StripeOptions::class)->load('stripe.customers', stripeOptionsQuery());
+
+        expect($page->toArray())->toBe(['options' => [
+            ['value' => 'cus_1', 'label' => 'Ada', 'description' => 'ada@example.com'],
+            ['value' => 'cus_2', 'label' => 'bob@example.com', 'description' => 'bob@example.com'],
+        ], 'next_cursor' => 'cus_2']);
+
+        fakeStripe(['GET /v1/customers' => ['has_more' => false, 'data' => [['id' => 'cus_3', 'name' => 'Cy']]]]);
+        $next = app(StripeOptions::class)->load('stripe.customers', stripeOptionsQuery(cursor: 'cus_2'));
+
+        expect(stripeSent('GET /v1/customers'))->toMatchArray(['starting_after' => 'cus_2', 'limit' => '50'])
+            ->and($next->nextCursor)->toBeNull();
+    });
+
+    it('searches on Stripe once three letters are typed, and filters a short search itself', function () {
+        fakeStripe(['GET /v1/customers/search' => ['has_more' => true, 'next_page' => 'pg_2', 'data' => [['id' => 'cus_1', 'name' => 'Ada']]]]);
+        $page = app(StripeOptions::class)->load('stripe.customers', stripeOptionsQuery(search: 'ad"a'));
+
+        expect(stripeSent('GET /v1/customers/search')['query'])->toBe('name~"ada" OR email~"ada"')
+            ->and($page->nextCursor)->toBe('pg_2');
+
+        fakeStripe(['GET /v1/customers' => ['has_more' => false, 'data' => [['id' => 'cus_1', 'name' => 'Ada'], ['id' => 'cus_2', 'name' => 'Bob']]]]);
+        $short = app(StripeOptions::class)->load('stripe.customers', stripeOptionsQuery(search: 'bo'));
+
+        expect(array_column($short->toArray()['options'], 'value'))->toBe(['cus_2']);
+    });
+
+    it('shows a price as its product and amount, for the chosen product', function () {
+        fakeStripe(['GET /v1/prices' => ['has_more' => false, 'data' => [
+            ['id' => 'price_1', 'unit_amount' => 1999, 'currency' => 'usd', 'recurring' => ['interval' => 'month'], 'product' => ['name' => 'Pro']],
+            ['id' => 'price_2', 'unit_amount' => 500, 'currency' => 'jpy', 'product' => ['name' => 'Pass']],
+        ]]]);
+
+        $page = app(StripeOptions::class)->load('stripe.prices', stripeOptionsQuery(['product_id' => 'prod_1']));
+
+        expect(array_column($page->toArray()['options'], 'label'))->toBe(['Pro · 19.99 USD / month', 'Pass · 500 JPY'])
+            ->and(stripeSent('GET /v1/prices'))->toMatchArray(['active' => 'true', 'product' => 'prod_1', 'expand' => ['data.product']]);
+    });
+
+    it('lists products, subscriptions with their customer, and coupons with what they take off', function () {
+        fakeStripe([
+            'GET /v1/products' => ['has_more' => false, 'data' => [['id' => 'prod_1', 'name' => 'Pro']]],
+            'GET /v1/subscriptions' => ['has_more' => false, 'data' => [['id' => 'sub_1', 'status' => 'active', 'customer' => ['name' => 'Ada']]]],
+            'GET /v1/coupons' => ['has_more' => false, 'data' => [['id' => 'SUMMER20', 'name' => 'Summer', 'percent_off' => 20.0, 'duration' => 'once'], ['id' => 'FIVE', 'amount_off' => 500, 'currency' => 'usd', 'duration' => 'forever']]],
+        ]);
+        $source = app(StripeOptions::class);
+
+        expect($source->load('stripe.products', stripeOptionsQuery())->toArray()['options'][0])->toBe(['value' => 'prod_1', 'label' => 'Pro', 'description' => 'prod_1'])
+            ->and($source->load('stripe.subscriptions', stripeOptionsQuery())->toArray()['options'][0])->toBe(['value' => 'sub_1', 'label' => 'Ada', 'description' => 'active · sub_1'])
+            ->and(array_column($source->load('stripe.coupons', stripeOptionsQuery())->toArray()['options'], 'description'))->toBe(['20% off, once', '5.00 USD off, forever']);
+    });
+
+    it('reads a connected account\'s lists with its header, and ignores an account that isn\'t one', function () {
+        fakeStripe(['GET /v1/customers' => ['has_more' => false, 'data' => []]]);
+        app(StripeOptions::class)->load('stripe.customers', stripeOptionsQuery(['stripe_account' => 'acct_123']));
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Stripe-Account', 'acct_123'));
+
+        fakeStripe(['GET /v1/customers' => ['has_more' => false, 'data' => []]]);
+        app(StripeOptions::class)->load('stripe.customers', stripeOptionsQuery(['stripe_account' => 'acct_1/../x']));
+        Http::assertSent(fn (Request $request): bool => ! $request->hasHeader('Stripe-Account'));
+    });
+
+    it('is offered by the nodes that name a customer, a price, a product, a subscription or a coupon', function () {
+        $registry = app(NodeRegistry::class);
+
+        expect($registry->resolve('stripe_get_customer')->configSchema()['properties']['customer_id']['x-options']['source'])->toBe('stripe.customers')
+            ->and($registry->resolve('stripe_create_subscription')->configSchema()['properties']['price_id']['x-options']['source'])->toBe('stripe.prices')
+            ->and($registry->resolve('stripe_create_price')->configSchema()['properties']['product_id']['x-options']['source'])->toBe('stripe.products')
+            ->and($registry->resolve('stripe_cancel_subscription')->configSchema()['properties']['subscription_id']['x-options']['source'])->toBe('stripe.subscriptions')
+            ->and($registry->resolve('stripe_create_promotion_code')->configSchema()['properties']['coupon_id']['x-options']['source'])->toBe('stripe.coupons');
+    });
+});
+
+describe('stripe more nodes', function () {
+    it('searches customers page by page with Stripe\'s own query', function () {
+        $calls = [];
+        fakeStripe(['GET /v1/customers/search' => function (Request $request) use (&$calls) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $calls[] = $query;
+
+            return isset($query['page'])
+                ? ['has_more' => false, 'data' => [['id' => 'cus_3']]]
+                : ['has_more' => true, 'next_page' => 'pg_2', 'data' => [['id' => 'cus_1'], ['id' => 'cus_2']]];
+        }]);
+
+        $output = (new StripeSearchCustomersNode)->execute(Run::factory()->create(), stripeConfig(['query' => "email:'ada@example.com'", 'limit' => 10]), []);
+
+        expect(array_column($output['customers'], 'id'))->toBe(['cus_1', 'cus_2', 'cus_3'])
+            ->and($calls[0]['query'])->toBe("email:'ada@example.com'")
+            ->and($calls[1]['page'])->toBe('pg_2')
+            ->and(fn () => (new StripeSearchCustomersNode)->execute(Run::factory()->create(), stripeConfig([]), []))->toThrow(InvalidArgumentException::class, 'query');
+    });
+
+    it('creates a coupon for a percent or an amount, and refuses the muddled ones', function () {
+        fakeStripe(['POST /v1/coupons' => ['id' => 'c1']]);
+        $node = new StripeCreateCouponNode;
+        $run = Run::factory()->create();
+
+        $node->execute($run, stripeConfig(['percent_off' => '20', 'duration' => 'repeating', 'duration_in_months' => 3, 'name' => 'Summer']), []);
+        expect(stripeSent('POST /v1/coupons'))->toBe(['percent_off' => '20', 'duration' => 'repeating', 'duration_in_months' => '3', 'name' => 'Summer']);
+
+        fakeStripe(['POST /v1/coupons' => ['id' => 'c2']]);
+        $node->execute($run, stripeConfig(['amount_off' => 500, 'currency' => 'USD', 'duration' => 'forever']), []);
+        expect(stripeSent('POST /v1/coupons'))->toBe(['amount_off' => '500', 'currency' => 'usd', 'duration' => 'forever']);
+
+        expect(fn () => $node->execute($run, stripeConfig(['duration' => 'once']), []))->toThrow(InvalidArgumentException::class, 'either a percent off or an amount')
+            ->and(fn () => $node->execute($run, stripeConfig(['percent_off' => '20', 'amount_off' => 5, 'currency' => 'usd']), []))->toThrow(InvalidArgumentException::class, 'either')
+            ->and(fn () => $node->execute($run, stripeConfig(['percent_off' => '150']), []))->toThrow(InvalidArgumentException::class, 'up to 100')
+            ->and(fn () => $node->execute($run, stripeConfig(['percent_off' => '10', 'duration' => 'repeating']), []))->toThrow(InvalidArgumentException::class, 'months')
+            ->and(fn () => $node->execute($run, stripeConfig(['amount_off' => 500, 'currency' => 'dollars']), []))->toThrow(InvalidArgumentException::class, 'three-letter');
+    });
+
+    it('deletes a coupon by its own id and keeps odd ids out of the path', function () {
+        fakeStripe(['DELETE /v1/coupons/SUMMER20' => ['id' => 'SUMMER20', 'deleted' => true]]);
+        $node = new StripeDeleteCouponNode;
+
+        expect($node->execute(Run::factory()->create(), stripeConfig(['coupon_id' => 'SUMMER20']), []))->toBe(['deleted' => true, 'coupon_id' => 'SUMMER20'])
+            ->and(fn () => $node->execute(Run::factory()->create(), stripeConfig(['coupon_id' => '../account']), []))->toThrow(InvalidArgumentException::class, 'not a Stripe coupon id')
+            ->and($node->effect([]))->toBe(ActionEffect::Destructive);
+    });
+
+    it('makes and lists promotion codes under a pinned API version', function () {
+        fakeStripe(['POST /v1/promotion_codes' => ['id' => 'promo_1', 'code' => 'SUMMER20'], 'GET /v1/promotion_codes' => ['has_more' => false, 'data' => [['id' => 'promo_1']]]]);
+        $run = Run::factory()->create();
+
+        (new StripeCreatePromotionCodeNode)->execute($run, stripeConfig(['coupon_id' => 'SUMMER20', 'code' => 'SUMMER20', 'max_redemptions' => 100, 'expires_at' => '2026-12-31 00:00:00', 'first_time_transaction' => true]), []);
+        (new StripeListPromotionCodesNode)->execute($run, stripeConfig(['code' => 'SUMMER20', 'active' => 'true']), []);
+
+        expect(stripeSent('POST /v1/promotion_codes'))->toBe(['coupon' => 'SUMMER20', 'code' => 'SUMMER20', 'max_redemptions' => '100', 'expires_at' => (string) strtotime('2026-12-31 00:00:00'), 'restrictions' => ['first_time_transaction' => 'true']])
+            ->and(stripeSent('GET /v1/promotion_codes'))->toMatchArray(['code' => 'SUMMER20', 'active' => 'true']);
+        Http::assertSentCount(2);
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Stripe-Version', '2024-06-20'));
+        expect(fn () => (new StripeCreatePromotionCodeNode)->execute($run, stripeConfig(['coupon_id' => 'X', 'code' => 'no spaces!']), []))->toThrow(InvalidArgumentException::class, 'letters and numbers');
+    });
+
+    it('does not pin a version for the other nodes', function () {
+        fakeStripe(['GET /v1/customers/cus_1' => ['id' => 'cus_1']]);
+
+        (new StripeGetCustomerNode)->execute(Run::factory()->create(), stripeConfig(['customer_id' => 'cus_1']), []);
+
+        Http::assertSent(fn (Request $request): bool => ! $request->hasHeader('Stripe-Version'));
+    });
+
+    it('creates a payout, declared as reaching the bank, and checks it first', function () {
+        fakeStripe(['POST /v1/payouts' => ['id' => 'po_1', 'status' => 'pending']]);
+        $node = new StripeCreatePayoutNode;
+
+        $node->execute(Run::factory()->create(), stripeConfig(['amount' => 10000, 'currency' => 'usd', 'idempotency_key' => 'payout-june']), []);
+
+        expect(stripeSent('POST /v1/payouts'))->toBe(['amount' => '10000', 'currency' => 'usd', 'method' => 'standard'])
+            ->and($node->effect([]))->toBe(ActionEffect::External)
+            ->and(fn () => $node->execute(Run::factory()->create(), stripeConfig(['amount' => 100, 'currency' => 'usd', 'method' => 'fast']), []))->toThrow(InvalidArgumentException::class, 'standard or instant');
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Idempotency-Key', 'payout-june'));
+    });
+
+    it('updates a dispute\'s evidence and only submits when told, and closes one', function () {
+        fakeStripe(['POST /v1/disputes/dp_1' => ['id' => 'dp_1', 'status' => 'needs_response'], 'POST /v1/disputes/dp_1/close' => ['id' => 'dp_1', 'status' => 'lost']]);
+        $node = new StripeUpdateDisputeNode;
+        $run = Run::factory()->create();
+
+        $node->execute($run, stripeConfig(['dispute_id' => 'dp_1', 'evidence' => '{"customer_name":"Ada","product_description":"Pro plan"}']), []);
+        expect(stripeSent('POST /v1/disputes/dp_1'))->toBe(['evidence' => ['customer_name' => 'Ada', 'product_description' => 'Pro plan']]);
+
+        fakeStripe(['POST /v1/disputes/dp_1' => ['id' => 'dp_1']]);
+        $node->execute($run, stripeConfig(['dispute_id' => 'dp_1', 'submit' => true]), []);
+        expect(stripeSent('POST /v1/disputes/dp_1'))->toBe(['submit' => 'true']);
+
+        fakeStripe(['POST /v1/disputes/dp_1/close' => ['id' => 'dp_1', 'status' => 'lost']]);
+        (new StripeCloseDisputeNode)->execute($run, stripeConfig(['dispute_id' => 'dp_1']), []);
+
+        expect((new StripeCloseDisputeNode)->effect([]))->toBe(ActionEffect::Destructive)
+            ->and($node->effect([]))->toBe(ActionEffect::External)
+            ->and(fn () => $node->execute($run, stripeConfig(['dispute_id' => 'ch_1']), []))->toThrow(InvalidArgumentException::class, 'not a Stripe dispute id');
+    });
+});
+
+describe('stripe connect', function () {
+    it('acts on a connected account when the node names one', function () {
+        fakeStripe(['GET /v1/customers/cus_1' => ['id' => 'cus_1']]);
+
+        (new StripeGetCustomerNode)->execute(Run::factory()->create(), stripeConfig(['customer_id' => 'cus_1', 'stripe_account' => 'acct_1A2b']), []);
+
+        Http::assertSent(fn (Request $request): bool => $request->hasHeader('Stripe-Account', 'acct_1A2b'));
+    });
+
+    it('sends no account header by default, and refuses one that isn\'t an account id', function () {
+        fakeStripe(['GET /v1/customers/cus_1' => ['id' => 'cus_1']]);
+        $run = Run::factory()->create();
+
+        (new StripeGetCustomerNode)->execute($run, stripeConfig(['customer_id' => 'cus_1']), []);
+        Http::assertSent(fn (Request $request): bool => ! $request->hasHeader('Stripe-Account'));
+
+        expect(fn () => (new StripeGetCustomerNode)->execute($run, stripeConfig(['customer_id' => 'cus_1', 'stripe_account' => 'cus_1']), []))->toThrow(InvalidArgumentException::class, 'connected account id');
+    });
+
+    it('offers the account on every node', function () {
+        $registry = app(NodeRegistry::class);
+
+        foreach (array_filter(array_column($registry->placeableTypes(), 'type'), fn (string $type): bool => str_starts_with($type, 'stripe_')) as $type) {
+            expect($registry->resolve($type)->configSchema()['properties'])->toHaveKey('stripe_account');
+        }
+    });
+
+    it('keeps polling for a trigger that acts on a connected account', function () {
+        $trigger = stripeTrigger(['types' => ['invoice.paid'], 'stripe_account' => 'acct_1A2b']);
+
+        expect($trigger->subscription)->toBeNull()->and(ProviderWatch::query()->count())->toBe(0);
+    });
+});
+
+describe('stripe trigger presets', function () {
+    it('has no event to pick: the dispute and checkout triggers are fixed', function () {
+        expect((new StripeDisputeOpenedNode)->eventTypes(['types' => ['invoice.paid']]))->toBe(['charge.dispute.created'])
+            ->and((new StripeCheckoutPaidNode)->eventTypes([]))->toBe(['checkout.session.completed', 'checkout.session.async_payment_succeeded'])
+            ->and((new StripeDisputeOpenedNode)->configSchema()['properties'])->not->toHaveKey('types')
+            ->and((new StripeCheckoutPaidNode)->triggerName())->toBe('Stripe: Checkout paid');
+    });
+
+    it('lists only the disputes that were opened', function () {
+        fakeStripe(['GET /v1/events' => ['has_more' => false, 'data' => [stripeEvent('evt_1', 'charge.dispute.created', ['data' => ['object' => ['id' => 'dp_1', 'object' => 'dispute', 'amount' => 1999, 'reason' => 'fraudulent']]])]]]);
+
+        $output = (new StripeDisputeOpenedNode)->execute(Run::factory()->create(), stripeConfig(['types' => ['invoice.paid']]), []);
+
+        expect(stripeSent('GET /v1/events')['type'])->toBe('charge.dispute.created')
+            ->and($output['events'][0])->toMatchArray(['id' => 'evt_1', 'object_id' => 'dp_1', 'object_type' => 'dispute']);
+        expect((new StripeDisputeOpenedNode)->expandTriggerItem(Run::factory()->create(), stripeConfig(), $output['events'][0])['dispute'])->toMatchArray(['amount' => 1999, 'reason' => 'fraudulent']);
+    });
+
+    it('lists only paid checkout sessions, not the ones still waiting for a bank', function () {
+        $session = fn (string $status) => ['object' => ['id' => 'cs_test_1', 'object' => 'checkout.session', 'payment_status' => $status]];
+        fakeStripe(['GET /v1/events' => ['has_more' => false, 'data' => [
+            stripeEvent('evt_1', 'checkout.session.completed', ['data' => $session('paid')]),
+            stripeEvent('evt_2', 'checkout.session.completed', ['data' => $session('unpaid')]),
+            stripeEvent('evt_3', 'checkout.session.async_payment_succeeded', ['data' => $session('paid')]),
+            stripeEvent('evt_4', 'checkout.session.expired', ['data' => $session('unpaid')]),
+        ]]]);
+
+        $output = (new StripeCheckoutPaidNode)->execute(Run::factory()->create(), stripeConfig(), []);
+
+        expect(array_column($output['events'], 'id'))->toBe(['evt_1', 'evt_3']);
+        expect(stripeSent('GET /v1/events'))->toMatchArray(['types' => ['checkout.session.completed', 'checkout.session.async_payment_succeeded']]);
+    });
+
+    it('gives a paid session what was bought, and still starts the run when Stripe can\'t say', function () {
+        fakeStripe(['GET /v1/checkout/sessions/cs_test_1/line_items' => ['data' => [['id' => 'li_1', 'description' => 'Pro plan', 'quantity' => 2, 'amount_total' => 3998]]]]);
+        $event = [
+            'id' => 'evt_1', 'type' => 'checkout.session.completed',
+            'object' => ['id' => 'cs_test_1', 'payment_status' => 'paid', 'customer_details' => ['email' => 'ada@example.com'], 'amount_total' => 3998],
+        ];
+
+        $item = (new StripeCheckoutPaidNode)->expandTriggerItem(Run::factory()->create(), stripeConfig(), $event);
+
+        expect($item)->toMatchArray(['id' => 'evt_1', 'customer_email' => 'ada@example.com'])
+            ->and($item['session']['amount_total'])->toBe(3998)
+            ->and($item['line_items'][0])->toMatchArray(['description' => 'Pro plan', 'quantity' => 2]);
+
+        fakeStripe(['GET /v1/checkout/sessions/cs_test_1/line_items' => fn () => Http::response(['error' => ['message' => 'Rate limited']], 429)]);
+        $failed = (new StripeCheckoutPaidNode)->expandTriggerItem(Run::factory()->create(), stripeConfig(), $event);
+
+        expect($failed['line_items'])->toBe([])->and($failed['line_items_error'])->toContain('Rate limited');
+    });
+
+    it('watches only the preset\'s events through the webhook', function () {
+        stripeTrigger([], nodeType: 'stripe_dispute_opened');
+
+        expect(stripeSent('POST /v1/webhook_endpoints')['enabled_events'])->toBe(['charge.dispute.created'])
+            ->and(ProviderWatch::query()->sole()->secret)->toBe('whsec_test_secret');
+    });
+
+    it('starts one run for each new dispute, once', function () {
+        $trigger = stripeTrigger([], sync: false, nodeType: 'stripe_dispute_opened');
+        $dispute = fn (string $id) => stripeEvent($id, 'charge.dispute.created', ['data' => ['object' => ['id' => 'dp_'.$id, 'object' => 'dispute', 'amount' => 500]]]);
+        $poll = fn (array $events) => fakeStripe(['GET /v1/events' => ['has_more' => false, 'data' => $events]]);
+
+        $poll([$dispute('evt_1')]);
+        dispatch_sync(new PollTrigger($trigger));
+        $poll([$dispute('evt_2'), $dispute('evt_1')]);
+        dispatch_sync(new PollTrigger($trigger->fresh()));
+        dispatch_sync(new PollTrigger($trigger->fresh()));
+
+        $events = $trigger->events()->where('status', 'queued')->get();
+
+        expect($events)->toHaveCount(1)
+            ->and($events->first()->payload)->toMatchArray(['id' => 'evt_2', 'type' => 'charge.dispute.created'])
+            ->and($events->first()->payload['dispute'])->toMatchArray(['id' => 'dp_evt_2', 'amount' => 500]);
     });
 });

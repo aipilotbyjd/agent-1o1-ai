@@ -35,7 +35,7 @@ class StripeCreatePriceNode extends AbstractStripeNode
             'required' => ['product_id', 'unit_amount', 'currency'],
             'properties' => [
                 ...$this->credentialFields(),
-                'product_id' => Field::text('Product ID', null, 'prod_...'),
+                'product_id' => Field::dynamic('Product', 'stripe.products', null, 'prod_...'),
                 'unit_amount' => Field::integer('Amount', 'In the smallest unit of the currency: 1999 is 19.99 USD.', null, 1),
                 'currency' => Field::text('Currency', null, 'usd'),
                 'interval' => Field::select('Repeats', ['' => 'Never (one-time)', 'day' => 'Daily', 'week' => 'Weekly', 'month' => 'Monthly', 'year' => 'Yearly']),
