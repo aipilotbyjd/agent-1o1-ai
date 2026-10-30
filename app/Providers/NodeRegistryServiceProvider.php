@@ -796,6 +796,47 @@ use App\Nodes\Integrations\SendGrid\SendGridRemoveSuppressionNode;
 use App\Nodes\Integrations\SendGrid\SendGridSearchContactsNode;
 use App\Nodes\Integrations\SendGrid\SendGridSendEmailNode;
 use App\Nodes\Integrations\SendGrid\SendGridUpsertContactNode;
+use App\Nodes\Integrations\Shopify\ShopifyAdjustInventoryLevelNode;
+use App\Nodes\Integrations\Shopify\ShopifyCancelOrderNode;
+use App\Nodes\Integrations\Shopify\ShopifyCloseOrderNode;
+use App\Nodes\Integrations\Shopify\ShopifyCompleteDraftOrderNode;
+use App\Nodes\Integrations\Shopify\ShopifyCreateCustomerNode;
+use App\Nodes\Integrations\Shopify\ShopifyCreateDraftOrderNode;
+use App\Nodes\Integrations\Shopify\ShopifyCreateFulfillmentNode;
+use App\Nodes\Integrations\Shopify\ShopifyCreateOrderNode;
+use App\Nodes\Integrations\Shopify\ShopifyCreateProductNode;
+use App\Nodes\Integrations\Shopify\ShopifyCreateRefundNode;
+use App\Nodes\Integrations\Shopify\ShopifyCreateWebhookNode;
+use App\Nodes\Integrations\Shopify\ShopifyCustomerUpdatedNode;
+use App\Nodes\Integrations\Shopify\ShopifyDeleteCustomerNode;
+use App\Nodes\Integrations\Shopify\ShopifyDeleteProductNode;
+use App\Nodes\Integrations\Shopify\ShopifyDeleteWebhookNode;
+use App\Nodes\Integrations\Shopify\ShopifyGetCustomerNode;
+use App\Nodes\Integrations\Shopify\ShopifyGetInventoryLevelsNode;
+use App\Nodes\Integrations\Shopify\ShopifyGetOrderNode;
+use App\Nodes\Integrations\Shopify\ShopifyGetProductNode;
+use App\Nodes\Integrations\Shopify\ShopifyGetShopNode;
+use App\Nodes\Integrations\Shopify\ShopifyListAbandonedCheckoutsNode;
+use App\Nodes\Integrations\Shopify\ShopifyListCustomerOrdersNode;
+use App\Nodes\Integrations\Shopify\ShopifyListCustomersNode;
+use App\Nodes\Integrations\Shopify\ShopifyListFulfillmentOrdersNode;
+use App\Nodes\Integrations\Shopify\ShopifyListLocationsNode;
+use App\Nodes\Integrations\Shopify\ShopifyListOrderRefundsNode;
+use App\Nodes\Integrations\Shopify\ShopifyListOrdersNode;
+use App\Nodes\Integrations\Shopify\ShopifyListOrderTransactionsNode;
+use App\Nodes\Integrations\Shopify\ShopifyListProductsNode;
+use App\Nodes\Integrations\Shopify\ShopifyListWebhooksNode;
+use App\Nodes\Integrations\Shopify\ShopifyOrderCancelledNode;
+use App\Nodes\Integrations\Shopify\ShopifyOrderPaidNode;
+use App\Nodes\Integrations\Shopify\ShopifyOrderUpdatedNode;
+use App\Nodes\Integrations\Shopify\ShopifyProductUpdatedNode;
+use App\Nodes\Integrations\Shopify\ShopifySearchCustomersNode;
+use App\Nodes\Integrations\Shopify\ShopifySendDraftOrderInvoiceNode;
+use App\Nodes\Integrations\Shopify\ShopifySetInventoryLevelNode;
+use App\Nodes\Integrations\Shopify\ShopifyUpdateCustomerNode;
+use App\Nodes\Integrations\Shopify\ShopifyUpdateOrderNode;
+use App\Nodes\Integrations\Shopify\ShopifyUpdateProductNode;
+use App\Nodes\Integrations\Shopify\ShopifyUpdateVariantNode;
 use App\Nodes\Integrations\Slack\SlackAddReactionNode;
 use App\Nodes\Integrations\Slack\SlackArchiveChannelNode;
 use App\Nodes\Integrations\Slack\SlackCreateChannelNode;
@@ -1232,6 +1273,47 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'notion_update_block' => NotionUpdateBlockNode::class,
             'notion_update_database' => NotionUpdateDatabaseNode::class,
             'notion_update_page' => NotionUpdatePageNode::class,
+            'shopify_adjust_inventory_level' => ShopifyAdjustInventoryLevelNode::class,
+            'shopify_cancel_order' => ShopifyCancelOrderNode::class,
+            'shopify_close_order' => ShopifyCloseOrderNode::class,
+            'shopify_complete_draft_order' => ShopifyCompleteDraftOrderNode::class,
+            'shopify_create_customer' => ShopifyCreateCustomerNode::class,
+            'shopify_create_draft_order' => ShopifyCreateDraftOrderNode::class,
+            'shopify_create_fulfillment' => ShopifyCreateFulfillmentNode::class,
+            'shopify_create_order' => ShopifyCreateOrderNode::class,
+            'shopify_create_product' => ShopifyCreateProductNode::class,
+            'shopify_create_refund' => ShopifyCreateRefundNode::class,
+            'shopify_create_webhook' => ShopifyCreateWebhookNode::class,
+            'shopify_customer_updated' => ShopifyCustomerUpdatedNode::class,
+            'shopify_delete_customer' => ShopifyDeleteCustomerNode::class,
+            'shopify_delete_product' => ShopifyDeleteProductNode::class,
+            'shopify_delete_webhook' => ShopifyDeleteWebhookNode::class,
+            'shopify_get_customer' => ShopifyGetCustomerNode::class,
+            'shopify_get_inventory_levels' => ShopifyGetInventoryLevelsNode::class,
+            'shopify_get_order' => ShopifyGetOrderNode::class,
+            'shopify_get_product' => ShopifyGetProductNode::class,
+            'shopify_get_shop' => ShopifyGetShopNode::class,
+            'shopify_list_abandoned_checkouts' => ShopifyListAbandonedCheckoutsNode::class,
+            'shopify_list_customer_orders' => ShopifyListCustomerOrdersNode::class,
+            'shopify_list_customers' => ShopifyListCustomersNode::class,
+            'shopify_list_fulfillment_orders' => ShopifyListFulfillmentOrdersNode::class,
+            'shopify_list_locations' => ShopifyListLocationsNode::class,
+            'shopify_list_order_refunds' => ShopifyListOrderRefundsNode::class,
+            'shopify_list_order_transactions' => ShopifyListOrderTransactionsNode::class,
+            'shopify_list_orders' => ShopifyListOrdersNode::class,
+            'shopify_list_products' => ShopifyListProductsNode::class,
+            'shopify_list_webhooks' => ShopifyListWebhooksNode::class,
+            'shopify_order_cancelled' => ShopifyOrderCancelledNode::class,
+            'shopify_order_paid' => ShopifyOrderPaidNode::class,
+            'shopify_order_updated' => ShopifyOrderUpdatedNode::class,
+            'shopify_product_updated' => ShopifyProductUpdatedNode::class,
+            'shopify_search_customers' => ShopifySearchCustomersNode::class,
+            'shopify_send_draft_order_invoice' => ShopifySendDraftOrderInvoiceNode::class,
+            'shopify_set_inventory_level' => ShopifySetInventoryLevelNode::class,
+            'shopify_update_customer' => ShopifyUpdateCustomerNode::class,
+            'shopify_update_order' => ShopifyUpdateOrderNode::class,
+            'shopify_update_product' => ShopifyUpdateProductNode::class,
+            'shopify_update_variant' => ShopifyUpdateVariantNode::class,
             'slack_reaction_removed' => SlackReactionRemovedNode::class,
             'slack_list_new_pins' => SlackListNewPinsNode::class,
             'slack_list_direct_messages' => SlackListDirectMessagesNode::class,

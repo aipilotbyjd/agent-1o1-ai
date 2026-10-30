@@ -56,8 +56,9 @@ class PushSources
         ZohoSource $zohoSource,
         ZohoDeskSource $zohoDeskSource,
         StripeSource $stripeSource,
+        ShopifySource $shopifySource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource, $mondaySource, $pipedriveSource, $zohoSource, $zohoDeskSource, $stripeSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource, $mondaySource, $pipedriveSource, $zohoSource, $zohoDeskSource, $stripeSource, $shopifySource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -94,6 +95,7 @@ class PushSources
             new ZohoIngress,
             new ZohoDeskIngress,
             new StripeIngress,
+            new ShopifyIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

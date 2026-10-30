@@ -926,6 +926,23 @@ class ConnectorSeeder extends Seeder
                 'oauth' => null,
                 'sort_order' => 48,
             ],
+            [
+                'key' => 'shopify',
+                'name' => 'Shopify',
+                'description' => 'Read and manage orders, customers, products, inventory, fulfillment and refunds, and start flows the moment an order is placed or paid, a product or customer changes, or a checkout is abandoned.',
+                'icon' => 'shopify',
+                'color' => '#95BF47',
+                'category' => ConnectorCategory::Other,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::ApiKey,
+                'fields' => [
+                    ['name' => 'shop', 'label' => 'Store address', 'type' => 'string', 'required' => true, 'placeholder' => 'your-store.myshopify.com', 'description' => 'The .myshopify.com address of the store, not its public domain.'],
+                    ['name' => 'api_key', 'label' => 'Admin API access token', 'type' => 'string', 'secret' => true, 'required' => true, 'placeholder' => 'shpat_...', 'description' => 'Shopify admin > Settings > Apps and sales channels > Develop apps > your app > API credentials. Give the app the scopes for what you use (read_orders, write_orders, read_products, write_products, read_customers, write_customers, read_inventory, write_inventory, read_fulfillments, write_fulfillments).'],
+                    ['name' => 'api_secret', 'label' => 'API secret key', 'type' => 'string', 'secret' => true, 'required' => false, 'description' => 'Optional, on the same page. It makes triggers instant: Shopify signs its webhooks with it. Without it triggers check every few minutes.'],
+                ],
+                'oauth' => null,
+                'sort_order' => 49,
+            ],
         ];
     }
 }

@@ -39,6 +39,7 @@ use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
 use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
 use App\Services\Workflows\NodeOptions\Sources\SalesforceOptions;
 use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
+use App\Services\Workflows\NodeOptions\Sources\ShopifyOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\StripeOptions;
 use App\Services\Workflows\NodeOptions\Sources\TrelloOptions;
@@ -86,6 +87,7 @@ class NodeOptionsService
         TwilioOptions::class,
         TypeformOptions::class,
         StripeOptions::class,
+        ShopifyOptions::class,
         MailchimpOptions::class,
         KitOptions::class,
         ActiveCampaignOptions::class,
