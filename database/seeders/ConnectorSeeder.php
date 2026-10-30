@@ -654,7 +654,6 @@ class ConnectorSeeder extends Seeder
                     ['name' => 'api_key', 'label' => 'Private API key', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'Mailgun > Settings > API keys.'],
                     ['name' => 'domain', 'label' => 'Sending domain', 'type' => 'string', 'required' => true, 'placeholder' => 'mg.example.com', 'description' => 'The domain you send from, as shown in Mailgun > Sending > Domains.'],
                     ['name' => 'region', 'label' => 'Region', 'type' => 'string', 'required' => false, 'placeholder' => 'eu', 'description' => 'Leave empty for the US. Type eu if the domain is in the EU region.'],
-                    ['name' => 'signing_key', 'label' => 'HTTP webhook signing key', 'type' => 'string', 'secret' => true, 'required' => false, 'description' => 'Optional. Mailgun > Settings > Webhooks. Lets instant triggers check that deliveries really come from Mailgun.'],
                 ],
                 'oauth' => null,
                 'sort_order' => 32,

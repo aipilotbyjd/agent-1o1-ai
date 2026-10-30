@@ -26,6 +26,7 @@ use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
 use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
 use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
+use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
@@ -76,6 +77,7 @@ class NodeOptionsService
         SendGridOptions::class,
         ResendOptions::class,
         PostmarkOptions::class,
+        MailgunOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

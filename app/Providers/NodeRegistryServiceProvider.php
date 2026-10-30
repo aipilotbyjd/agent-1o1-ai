@@ -438,6 +438,26 @@ use App\Nodes\Integrations\Mailchimp\MailchimpSetCampaignContentNode;
 use App\Nodes\Integrations\Mailchimp\MailchimpUnscheduleCampaignNode;
 use App\Nodes\Integrations\Mailchimp\MailchimpUnsubscribeMemberNode;
 use App\Nodes\Integrations\Mailchimp\MailchimpUpdateMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunAddMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunAddSuppressionNode;
+use App\Nodes\Integrations\Mailgun\MailgunCreateMailingListNode;
+use App\Nodes\Integrations\Mailgun\MailgunDeleteMailingListNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetDomainNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetStatsNode;
+use App\Nodes\Integrations\Mailgun\MailgunGetTemplateNode;
+use App\Nodes\Integrations\Mailgun\MailgunListDomainsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListEventsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListMailingListsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListMembersNode;
+use App\Nodes\Integrations\Mailgun\MailgunListSuppressionsNode;
+use App\Nodes\Integrations\Mailgun\MailgunListTemplatesNode;
+use App\Nodes\Integrations\Mailgun\MailgunRemoveMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunRemoveSuppressionNode;
+use App\Nodes\Integrations\Mailgun\MailgunSendEmailNode;
+use App\Nodes\Integrations\Mailgun\MailgunUpdateMemberNode;
+use App\Nodes\Integrations\Mailgun\MailgunValidateEmailNode;
+use App\Nodes\Integrations\Mailgun\MailgunVerifyDomainNode;
 use App\Nodes\Integrations\Notion\NotionAppendBlocksNode;
 use App\Nodes\Integrations\Notion\NotionArchivePageNode;
 use App\Nodes\Integrations\Notion\NotionCreateCommentNode;
@@ -1401,6 +1421,26 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'postmark_send_batch' => PostmarkSendBatchNode::class,
             'postmark_send_email' => PostmarkSendEmailNode::class,
             'postmark_send_template_email' => PostmarkSendTemplateEmailNode::class,
+            'mailgun_add_member' => MailgunAddMemberNode::class,
+            'mailgun_add_suppression' => MailgunAddSuppressionNode::class,
+            'mailgun_create_mailing_list' => MailgunCreateMailingListNode::class,
+            'mailgun_delete_mailing_list' => MailgunDeleteMailingListNode::class,
+            'mailgun_get_domain' => MailgunGetDomainNode::class,
+            'mailgun_get_member' => MailgunGetMemberNode::class,
+            'mailgun_get_stats' => MailgunGetStatsNode::class,
+            'mailgun_get_template' => MailgunGetTemplateNode::class,
+            'mailgun_list_domains' => MailgunListDomainsNode::class,
+            'mailgun_list_events' => MailgunListEventsNode::class,
+            'mailgun_list_mailing_lists' => MailgunListMailingListsNode::class,
+            'mailgun_list_members' => MailgunListMembersNode::class,
+            'mailgun_list_suppressions' => MailgunListSuppressionsNode::class,
+            'mailgun_list_templates' => MailgunListTemplatesNode::class,
+            'mailgun_remove_member' => MailgunRemoveMemberNode::class,
+            'mailgun_remove_suppression' => MailgunRemoveSuppressionNode::class,
+            'mailgun_send_email' => MailgunSendEmailNode::class,
+            'mailgun_update_member' => MailgunUpdateMemberNode::class,
+            'mailgun_validate_email' => MailgunValidateEmailNode::class,
+            'mailgun_verify_domain' => MailgunVerifyDomainNode::class,
         ];
     }
 }
