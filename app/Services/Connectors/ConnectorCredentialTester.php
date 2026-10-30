@@ -28,7 +28,7 @@ class ConnectorCredentialTester
      *
      * @var list<string>
      */
-    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho', 'zoho_desk', 'zoho_books', 'zoho_projects', 'zoho_campaigns', 'zoho_mail', 'zoho_cliq'];
+    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid', 'resend', 'postmark', 'mailgun', 'trello', 'asana', 'clickup', 'monday', 'airtable', 'hubspot', 'pipedrive', 'salesforce', 'zoho', 'zoho_desk', 'zoho_books', 'zoho_projects', 'zoho_campaigns', 'zoho_mail', 'zoho_cliq', 'stripe'];
 
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
@@ -310,6 +310,16 @@ class ConnectorCredentialTester
                 $response = $request->withToken($key)->get('https://api.hubapi.com/account-info/v3/details');
 
                 return $this->fromResponse($response, $appName, $response->json('portalId') !== null ? 'Portal '.$response->json('portalId') : null);
+
+            case 'stripe':
+                if (preg_match('/^(sk|rk)_(live|test)_/', $key) !== 1) {
+                    return $this->result(false, 'A Stripe secret key starts with sk_ (or rk_ for a restricted key). A publishable key (pk_) can\'t be used.');
+                }
+
+                $response = $request->withToken($key)->get('https://api.stripe.com/v1/account');
+                $name = $response->json('business_profile.name') ?? $response->json('settings.dashboard.display_name') ?? $response->json('email');
+
+                return $this->fromResponse($response, $appName, ($name ?? $response->json('id')).(str_contains($key, '_test_') ? ' (test mode)' : ''));
 
             case 'pipedrive':
                 $response = $request->withHeaders(['x-api-token' => $key])->get('https://api.pipedrive.com/v1/users/me');

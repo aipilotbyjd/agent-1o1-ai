@@ -392,6 +392,14 @@ class AppNodeCategorySeeder extends Seeder
                 'description' => 'Send messages to channels, people and chats, read channels and users, and start flows from new chat messages.',
                 'sort_order' => 47,
             ],
+            [
+                'slug' => 'stripe',
+                'name' => 'Stripe',
+                'icon' => 'stripe',
+                'color' => '#635BFF',
+                'description' => 'Manage customers, payments, refunds, invoices, subscriptions, products and prices, and start flows once for each Stripe event, the moment it happens.',
+                'sort_order' => 48,
+            ],
         ];
 
         foreach ($categories as $category) {

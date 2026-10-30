@@ -832,6 +832,42 @@ use App\Nodes\Integrations\Slack\SlackSetChannelTopicNode;
 use App\Nodes\Integrations\Slack\SlackUnpinMessageNode;
 use App\Nodes\Integrations\Slack\SlackUpdateMessageNode;
 use App\Nodes\Integrations\Slack\SlackUploadFileNode;
+use App\Nodes\Integrations\Stripe\StripeCancelPaymentIntentNode;
+use App\Nodes\Integrations\Stripe\StripeCancelSubscriptionNode;
+use App\Nodes\Integrations\Stripe\StripeCreateCheckoutSessionNode;
+use App\Nodes\Integrations\Stripe\StripeCreateCustomerNode;
+use App\Nodes\Integrations\Stripe\StripeCreateInvoiceNode;
+use App\Nodes\Integrations\Stripe\StripeCreatePaymentIntentNode;
+use App\Nodes\Integrations\Stripe\StripeCreatePaymentLinkNode;
+use App\Nodes\Integrations\Stripe\StripeCreatePriceNode;
+use App\Nodes\Integrations\Stripe\StripeCreateProductNode;
+use App\Nodes\Integrations\Stripe\StripeCreateRefundNode;
+use App\Nodes\Integrations\Stripe\StripeCreateSubscriptionNode;
+use App\Nodes\Integrations\Stripe\StripeCreateWebhookEndpointNode;
+use App\Nodes\Integrations\Stripe\StripeDeleteCustomerNode;
+use App\Nodes\Integrations\Stripe\StripeDeleteWebhookEndpointNode;
+use App\Nodes\Integrations\Stripe\StripeFinalizeInvoiceNode;
+use App\Nodes\Integrations\Stripe\StripeGetBalanceNode;
+use App\Nodes\Integrations\Stripe\StripeGetChargeNode;
+use App\Nodes\Integrations\Stripe\StripeGetCheckoutSessionNode;
+use App\Nodes\Integrations\Stripe\StripeGetCustomerNode;
+use App\Nodes\Integrations\Stripe\StripeGetEventNode;
+use App\Nodes\Integrations\Stripe\StripeGetInvoiceNode;
+use App\Nodes\Integrations\Stripe\StripeGetPaymentIntentNode;
+use App\Nodes\Integrations\Stripe\StripeGetSubscriptionNode;
+use App\Nodes\Integrations\Stripe\StripeListChargesNode;
+use App\Nodes\Integrations\Stripe\StripeListCustomersNode;
+use App\Nodes\Integrations\Stripe\StripeListEventsNode;
+use App\Nodes\Integrations\Stripe\StripeListInvoicesNode;
+use App\Nodes\Integrations\Stripe\StripeListPaymentIntentsNode;
+use App\Nodes\Integrations\Stripe\StripeListPricesNode;
+use App\Nodes\Integrations\Stripe\StripeListProductsNode;
+use App\Nodes\Integrations\Stripe\StripeListRefundsNode;
+use App\Nodes\Integrations\Stripe\StripeListSubscriptionsNode;
+use App\Nodes\Integrations\Stripe\StripeListWebhookEndpointsNode;
+use App\Nodes\Integrations\Stripe\StripeSendInvoiceNode;
+use App\Nodes\Integrations\Stripe\StripeUpdateCustomerNode;
+use App\Nodes\Integrations\Stripe\StripeVoidInvoiceNode;
 use App\Nodes\Integrations\Telegram\TelegramAnswerCallbackQueryNode;
 use App\Nodes\Integrations\Telegram\TelegramApproveChatJoinRequestNode;
 use App\Nodes\Integrations\Telegram\TelegramBanChatMemberNode;
@@ -1458,6 +1494,42 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'email_send' => EmailSendEmailNode::class,
             'email_send_to_many' => EmailSendToManyNode::class,
             'email_validate_address' => EmailValidateAddressNode::class,
+            'stripe_cancel_payment_intent' => StripeCancelPaymentIntentNode::class,
+            'stripe_cancel_subscription' => StripeCancelSubscriptionNode::class,
+            'stripe_create_checkout_session' => StripeCreateCheckoutSessionNode::class,
+            'stripe_create_customer' => StripeCreateCustomerNode::class,
+            'stripe_create_invoice' => StripeCreateInvoiceNode::class,
+            'stripe_create_payment_intent' => StripeCreatePaymentIntentNode::class,
+            'stripe_create_payment_link' => StripeCreatePaymentLinkNode::class,
+            'stripe_create_price' => StripeCreatePriceNode::class,
+            'stripe_create_product' => StripeCreateProductNode::class,
+            'stripe_create_refund' => StripeCreateRefundNode::class,
+            'stripe_create_subscription' => StripeCreateSubscriptionNode::class,
+            'stripe_create_webhook_endpoint' => StripeCreateWebhookEndpointNode::class,
+            'stripe_delete_customer' => StripeDeleteCustomerNode::class,
+            'stripe_delete_webhook_endpoint' => StripeDeleteWebhookEndpointNode::class,
+            'stripe_finalize_invoice' => StripeFinalizeInvoiceNode::class,
+            'stripe_get_balance' => StripeGetBalanceNode::class,
+            'stripe_get_charge' => StripeGetChargeNode::class,
+            'stripe_get_checkout_session' => StripeGetCheckoutSessionNode::class,
+            'stripe_get_customer' => StripeGetCustomerNode::class,
+            'stripe_get_event' => StripeGetEventNode::class,
+            'stripe_get_invoice' => StripeGetInvoiceNode::class,
+            'stripe_get_payment_intent' => StripeGetPaymentIntentNode::class,
+            'stripe_get_subscription' => StripeGetSubscriptionNode::class,
+            'stripe_list_charges' => StripeListChargesNode::class,
+            'stripe_list_customers' => StripeListCustomersNode::class,
+            'stripe_list_events' => StripeListEventsNode::class,
+            'stripe_list_invoices' => StripeListInvoicesNode::class,
+            'stripe_list_payment_intents' => StripeListPaymentIntentsNode::class,
+            'stripe_list_prices' => StripeListPricesNode::class,
+            'stripe_list_products' => StripeListProductsNode::class,
+            'stripe_list_refunds' => StripeListRefundsNode::class,
+            'stripe_list_subscriptions' => StripeListSubscriptionsNode::class,
+            'stripe_list_webhook_endpoints' => StripeListWebhookEndpointsNode::class,
+            'stripe_send_invoice' => StripeSendInvoiceNode::class,
+            'stripe_update_customer' => StripeUpdateCustomerNode::class,
+            'stripe_void_invoice' => StripeVoidInvoiceNode::class,
             'telegram_answer_callback_query' => TelegramAnswerCallbackQueryNode::class,
             'telegram_approve_chat_join_request' => TelegramApproveChatJoinRequestNode::class,
             'telegram_ban_chat_member' => TelegramBanChatMemberNode::class,

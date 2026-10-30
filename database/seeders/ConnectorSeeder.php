@@ -911,6 +911,21 @@ class ConnectorSeeder extends Seeder
                 'oauth' => null,
                 'sort_order' => 47,
             ],
+            [
+                'key' => 'stripe',
+                'name' => 'Stripe',
+                'description' => 'Manage customers, payments, refunds, invoices, subscriptions, products and prices, and start flows once for each Stripe event, the moment it happens.',
+                'icon' => 'stripe',
+                'color' => '#635BFF',
+                'category' => ConnectorCategory::Other,
+                'is_featured' => true,
+                'auth_type' => ConnectorAuthType::ApiKey,
+                'fields' => [
+                    ['name' => 'api_key', 'label' => 'Secret or restricted key', 'type' => 'string', 'secret' => true, 'required' => true, 'placeholder' => 'sk_live_...', 'description' => 'Stripe Dashboard > Developers > API keys. A secret key (sk_) or a restricted key (rk_); test keys work on test data. For triggers it needs read access to Events and write access to Webhook Endpoints.'],
+                ],
+                'oauth' => null,
+                'sort_order' => 48,
+            ],
         ];
     }
 }
