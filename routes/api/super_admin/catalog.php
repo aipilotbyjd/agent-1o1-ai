@@ -15,6 +15,9 @@ Route::middleware([
     Route::post('nodes/{node}/enable', [SuperAdminCatalogController::class, 'enableNode'])->whereUuid('node')->name('nodes.enable');
     Route::post('nodes/{node}/disable', [SuperAdminCatalogController::class, 'disableNode'])->whereUuid('node')->name('nodes.disable');
 
+    Route::get('app-categories', [SuperAdminCatalogController::class, 'appCategories'])->name('app-categories.index');
+    Route::put('app-categories/{category}', [SuperAdminCatalogController::class, 'updateAppCategory'])->whereUuid('category')->name('app-categories.update');
+
     Route::get('templates/{type}', [SuperAdminCatalogController::class, 'templates'])->name('templates.index');
     Route::post('templates/{type}/{template}/publish', [SuperAdminCatalogController::class, 'publishTemplate'])->whereUuid('template')->name('templates.publish');
     Route::post('templates/{type}/{template}/unpublish', [SuperAdminCatalogController::class, 'unpublishTemplate'])->whereUuid('template')->name('templates.unpublish');

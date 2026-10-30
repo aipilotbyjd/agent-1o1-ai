@@ -8,6 +8,7 @@ use App\Enums\Onboarding\JobRole;
 use App\Enums\Onboarding\OnboardingStep;
 use App\Models\Auth\AuthEventLog;
 use App\Models\Credentials\OAuthConnection;
+use App\Models\Nodes\NodeCategory;
 use App\Models\Notifications\NotificationPreference;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralCode;
@@ -120,6 +121,14 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function oauthConnections(): HasMany
     {
         return $this->hasMany(OAuthConnection::class);
+    }
+
+    /**
+     * The apps this user pinned to their "Your apps" in the editor.
+     */
+    public function pinnedNodeCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(NodeCategory::class, 'node_category_pins')->withTimestamps();
     }
 
     public function favoriteWorkflows(): BelongsToMany

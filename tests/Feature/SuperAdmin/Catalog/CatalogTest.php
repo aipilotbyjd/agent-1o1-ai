@@ -1,8 +1,11 @@
 <?php
 
+use App\Enums\NodeCategoryFunction;
+use App\Enums\NodeCategoryVendor;
 use App\Enums\SuperAdmin\SuperAdminRole;
 use App\Models\Connectors\Connector;
 use App\Models\Nodes\CustomNode;
+use App\Models\Nodes\NodeCategory;
 use App\Models\SuperAdmin\SuperAdminAuditLog;
 use App\Models\Templates\AgentTemplate;
 use App\Models\Templates\WorkflowTemplate;
@@ -79,4 +82,67 @@ it('needs a reason and the catalog ability', function () {
     foreach ([SuperAdminRole::Support, SuperAdminRole::Finance, SuperAdminRole::Viewer] as $role) {
         $this->withHeaders(superAdminHeaders(superAdmin($role)))->getJson(saUrl('catalog/connectors'))->assertForbidden();
     }
+});
+
+it('lists app categories with the choices they can be filed under', function () {
+    NodeCategory::factory()->create(['slug' => 'google_analytics', 'name' => 'Google Analytics', 'kind' => 'app', 'functions' => [NodeCategoryFunction::Analytics], 'vendor' => NodeCategoryVendor::Google]);
+    NodeCategory::factory()->create(['slug' => 'flow-logic', 'kind' => 'core']);
+
+    $response = $this->withHeaders($this->headers)->getJson(saUrl('catalog/app-categories'))->assertOk();
+
+    expect($response->json('data.categories'))->toHaveCount(1)
+        ->and($response->json('data.categories.0'))->toMatchArray(['slug' => 'google_analytics', 'functions' => ['analytics'], 'vendor' => 'google'])
+        ->and(collect($response->json('data.functions'))->pluck('slug')->all())->toContain('marketing', 'cloud-hosting')->not->toContain('other')
+        ->and(collect($response->json('data.vendors'))->pluck('slug')->all())->toContain('google', 'zoho');
+
+    $this->withHeaders($this->headers)->getJson(saUrl('catalog/app-categories?q=analytics'))->assertJsonCount(1, 'data.categories');
+    $this->withHeaders($this->headers)->getJson(saUrl('catalog/app-categories?q=nothing'))->assertJsonCount(0, 'data.categories');
+});
+
+it('re-files an app category and records what changed and why', function () {
+    $category = NodeCategory::factory()->create(['slug' => 'google_analytics', 'kind' => 'app', 'functions' => [NodeCategoryFunction::Analytics], 'vendor' => null]);
+
+    $this->withHeaders($this->headers)->putJson(saUrl("catalog/app-categories/{$category->id}"), [
+        'functions' => ['analytics', 'marketing'],
+        'vendor' => 'google',
+        'reason' => 'Used for campaign reporting',
+    ])->assertOk()->assertJsonPath('data.functions', ['analytics', 'marketing'])->assertJsonPath('data.vendor', 'google');
+
+    $fresh = $category->fresh();
+
+    expect($fresh->functions->all())->toBe([NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing])
+        ->and($fresh->vendor)->toBe(NodeCategoryVendor::Google);
+
+    $log = SuperAdminAuditLog::query()->where('action', 'catalog.app_category.updated')->firstOrFail();
+
+    expect($log->before)->toBe(['functions' => ['analytics'], 'vendor' => null])
+        ->and($log->after)->toBe(['functions' => ['analytics', 'marketing'], 'vendor' => 'google'])
+        ->and($log->reason)->toBe('Used for campaign reporting');
+});
+
+it('writes nothing when an app category is filed the way it already is', function () {
+    $category = NodeCategory::factory()->create(['kind' => 'app', 'functions' => [NodeCategoryFunction::Email], 'vendor' => null]);
+
+    $this->withHeaders($this->headers)->putJson(saUrl("catalog/app-categories/{$category->id}"), ['functions' => ['email'], 'vendor' => null, 'reason' => 'No change needed'])->assertOk();
+
+    expect(SuperAdminAuditLog::query()->where('action', 'catalog.app_category.updated')->count())->toBe(0);
+});
+
+it('refuses a bad filing for an app category', function (array $payload) {
+    $category = NodeCategory::factory()->create(['kind' => 'app', 'functions' => [NodeCategoryFunction::Email]]);
+
+    $this->withHeaders($this->headers)->putJson(saUrl("catalog/app-categories/{$category->id}"), ['reason' => 'Because of a good reason', ...$payload])->assertUnprocessable();
+})->with([
+    'no function' => [['functions' => []]],
+    'four functions' => [['functions' => ['email', 'marketing', 'crm-sales', 'support']]],
+    'a repeated function' => [['functions' => ['email', 'email']]],
+    'other' => [['functions' => ['other']]],
+    'an unknown function' => [['functions' => ['telepathy']]],
+    'an unknown vendor' => [['functions' => ['email'], 'vendor' => 'acme']],
+]);
+
+it('only files app categories, not the core ones', function () {
+    $core = NodeCategory::factory()->create(['slug' => 'flow-logic', 'kind' => 'core']);
+
+    $this->withHeaders($this->headers)->putJson(saUrl("catalog/app-categories/{$core->id}"), ['functions' => ['email'], 'reason' => 'Trying it on a core one'])->assertNotFound();
 });

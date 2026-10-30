@@ -2,8 +2,11 @@
 
 namespace App\Services\SuperAdmin\Catalog;
 
+use App\Enums\NodeCategoryFunction;
+use App\Enums\NodeCategoryVendor;
 use App\Models\Connectors\Connector;
 use App\Models\Nodes\CustomNode;
+use App\Models\Nodes\NodeCategory;
 use App\Models\SuperAdmin\SuperAdmin;
 use App\Services\SuperAdmin\Audit\SuperAdminAuditLogger;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +31,44 @@ class SuperAdminCatalogService
     public function setCustomNodeActive(SuperAdmin $actor, CustomNode $node, bool $active, string $reason): CustomNode
     {
         return $this->setActive($actor, $node, 'catalog.node', $active, $reason);
+    }
+
+    /**
+     * Re-files an integration in the editor's Apps panel. Only app categories
+     * can be filed: the core ones are not part of that taxonomy.
+     *
+     * @param  list<NodeCategoryFunction>  $functions  one to three, the first is the primary
+     */
+    public function setAppCategoryTaxonomy(SuperAdmin $actor, NodeCategory $category, array $functions, ?NodeCategoryVendor $vendor, string $reason): NodeCategory
+    {
+        abort_unless($category->kind === 'app', 404, 'Only app categories are filed here.');
+
+        $before = $this->taxonomy($category);
+
+        $category->forceFill(['functions' => $functions, 'vendor' => $vendor]);
+
+        if (! $category->isDirty(['functions', 'vendor'])) {
+            return $category;
+        }
+
+        DB::transaction(function () use ($actor, $category, $before, $reason): void {
+            $category->save();
+
+            $this->audit->record($actor, 'catalog.app_category.updated', $category, $before, $this->taxonomy($category), $reason);
+        });
+
+        return $category;
+    }
+
+    /**
+     * @return array{functions: list<string>, vendor: ?string}
+     */
+    private function taxonomy(NodeCategory $category): array
+    {
+        return [
+            'functions' => ($category->functions ?? collect())->map(fn (NodeCategoryFunction $function): string => $function->value)->values()->all(),
+            'vendor' => $category->vendor?->value,
+        ];
     }
 
     /**

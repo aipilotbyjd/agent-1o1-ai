@@ -33,7 +33,7 @@ class JsonNode extends PureDataNode
 
     public function icon(): string
     {
-        return 'json-02';
+        return 'source-code';
     }
 
     public function description(): string

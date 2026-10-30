@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Api\SuperAdmin\V1\Catalog;
 
+use App\Enums\NodeCategoryFunction;
+use App\Enums\NodeCategoryVendor;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\SuperAdmin\V1\Catalog\UpdateAppCategoryRequest;
 use App\Http\Requests\Api\SuperAdmin\V1\ReasonRequest;
 use App\Http\Responses\ApiResponse;
 use App\Models\Connectors\Connector;
 use App\Models\Nodes\CustomNode;
+use App\Models\Nodes\NodeCategory;
 use App\Models\Templates\AgentTemplate;
 use App\Models\Templates\PageTemplate;
 use App\Models\Templates\WorkflowTemplate;
@@ -77,6 +81,48 @@ class SuperAdminCatalogController extends Controller
         return $this->respondNode($this->catalog->setCustomNodeActive($request->user('super-admin'), $node, false, $request->validated('reason')), 'Node disabled.');
     }
 
+    /**
+     * The integrations as the editor's Apps panel files them, with the choices an admin can file them under.
+     */
+    public function appCategories(Request $request)
+    {
+        $categories = NodeCategory::query()
+            ->where('kind', 'app')
+            ->when($request->filled('q'), fn ($query) => $query->where(function ($inner) use ($request) {
+                $term = '%'.$request->string('q').'%';
+
+                $inner->whereLike('name', $term)->orWhereLike('slug', $term);
+            }))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return ApiResponse::success([
+            'categories' => $categories->map(fn (NodeCategory $category): array => $this->appCategory($category))->all(),
+            'functions' => collect(NodeCategoryFunction::cases())
+                ->reject(fn (NodeCategoryFunction $function): bool => $function === NodeCategoryFunction::Other)
+                ->map(fn (NodeCategoryFunction $function): array => ['slug' => $function->value, 'label' => $function->label()])
+                ->values()
+                ->all(),
+            'vendors' => collect(NodeCategoryVendor::cases())
+                ->map(fn (NodeCategoryVendor $vendor): array => ['slug' => $vendor->value, 'label' => $vendor->label()])
+                ->all(),
+        ]);
+    }
+
+    public function updateAppCategory(UpdateAppCategoryRequest $request, NodeCategory $category)
+    {
+        $category = $this->catalog->setAppCategoryTaxonomy(
+            $request->user('super-admin'),
+            $category,
+            array_map(NodeCategoryFunction::from(...), $request->validated('functions')),
+            NodeCategoryVendor::tryFrom((string) $request->validated('vendor')),
+            $request->validated('reason'),
+        );
+
+        return ApiResponse::success($this->appCategory($category), 'App category updated.');
+    }
+
     public function templates(Request $request, string $type)
     {
         $model = $this->templateModel($type);
@@ -139,6 +185,22 @@ class SuperAdminCatalogController extends Controller
             'name' => $connector->name,
             'is_active' => $connector->is_active,
             'is_featured' => $connector->is_featured,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function appCategory(NodeCategory $category): array
+    {
+        return [
+            'id' => $category->id,
+            'slug' => $category->slug,
+            'name' => $category->name,
+            'icon' => $category->icon,
+            'color' => $category->color,
+            'functions' => ($category->functions ?? collect())->map(fn (NodeCategoryFunction $function): string => $function->value)->values()->all(),
+            'vendor' => $category->vendor?->value,
         ];
     }
 

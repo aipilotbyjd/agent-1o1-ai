@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\NodeCategoryFunction;
+use App\Enums\NodeCategoryVendor;
 use App\Models\Nodes\NodeCategory;
 use Illuminate\Database\Seeder;
 
@@ -13,6 +15,65 @@ use Illuminate\Database\Seeder;
  */
 class AppNodeCategorySeeder extends Seeder
 {
+    /**
+     * What each integration is used for (the first function is its primary,
+     * at most three) and who makes it. Adding an integration means adding a
+     * line here; a test fails for one that is missing.
+     *
+     * @var array<string, array{0: ?NodeCategoryVendor, 1: list<NodeCategoryFunction>}>
+     */
+    private const TAXONOMY = [
+        'slack' => [null, [NodeCategoryFunction::Messaging]],
+        'gmail' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Email, NodeCategoryFunction::Productivity]],
+        'github' => [null, [NodeCategoryFunction::Developer]],
+        'google_drive' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Storage, NodeCategoryFunction::Productivity]],
+        'google_sheets' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
+        'google_docs' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
+        'google_calendar' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
+        'google_tasks' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
+        'google_contacts' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity, NodeCategoryFunction::CrmSales]],
+        'google_forms' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Forms, NodeCategoryFunction::Marketing]],
+        'google_slides' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
+        'google_youtube' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Media, NodeCategoryFunction::Marketing]],
+        'google_analytics' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing]],
+        'google_search_console' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing]],
+        'outlook' => [NodeCategoryVendor::Microsoft, [NodeCategoryFunction::Email, NodeCategoryFunction::Productivity]],
+        'notion' => [null, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Productivity]],
+        'linear' => [null, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Developer]],
+        'jira' => [NodeCategoryVendor::Atlassian, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Developer]],
+        'telegram' => [null, [NodeCategoryFunction::Messaging]],
+        'discord' => [null, [NodeCategoryFunction::Messaging]],
+        'twilio' => [null, [NodeCategoryFunction::Messaging]],
+        'smtp' => [null, [NodeCategoryFunction::Email]],
+        'typeform' => [null, [NodeCategoryFunction::Forms, NodeCategoryFunction::Marketing]],
+        'mailchimp' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
+        'kit' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
+        'activecampaign' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::CrmSales]],
+        'klaviyo' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
+        'brevo' => [null, [NodeCategoryFunction::Email, NodeCategoryFunction::Marketing]],
+        'sendgrid' => [null, [NodeCategoryFunction::Email]],
+        'resend' => [null, [NodeCategoryFunction::Email]],
+        'postmark' => [null, [NodeCategoryFunction::Email]],
+        'mailgun' => [null, [NodeCategoryFunction::Email]],
+        'trello' => [NodeCategoryVendor::Atlassian, [NodeCategoryFunction::ProjectManagement]],
+        'asana' => [null, [NodeCategoryFunction::ProjectManagement]],
+        'clickup' => [null, [NodeCategoryFunction::ProjectManagement]],
+        'monday' => [null, [NodeCategoryFunction::ProjectManagement]],
+        'airtable' => [null, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Productivity]],
+        'hubspot' => [null, [NodeCategoryFunction::CrmSales, NodeCategoryFunction::Marketing]],
+        'pipedrive' => [null, [NodeCategoryFunction::CrmSales]],
+        'salesforce' => [null, [NodeCategoryFunction::CrmSales]],
+        'zoho' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::CrmSales]],
+        'zoho_desk' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Support]],
+        'zoho_books' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::FinancePayments]],
+        'zoho_projects' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::ProjectManagement]],
+        'zoho_campaigns' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
+        'zoho_mail' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Email]],
+        'zoho_cliq' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Messaging]],
+        'stripe' => [null, [NodeCategoryFunction::FinancePayments, NodeCategoryFunction::Commerce]],
+        'shopify' => [null, [NodeCategoryFunction::Commerce, NodeCategoryFunction::FinancePayments]],
+    ];
+
     public function run(): void
     {
         $categories = [
@@ -27,7 +88,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'gmail',
                 'name' => 'Gmail',
-                'icon' => 'mail-01',
+                'icon' => 'gmail',
                 'color' => '#EA4335',
                 'description' => 'Send, read, and organize email in Gmail.',
                 'sort_order' => 2,
@@ -67,7 +128,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_calendar',
                 'name' => 'Google Calendar',
-                'icon' => 'calendar-03',
+                'icon' => 'google-calendar',
                 'color' => '#4285F4',
                 'description' => 'List, create, and delete events on Google Calendar.',
                 'sort_order' => 7,
@@ -75,7 +136,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_tasks',
                 'name' => 'Google Tasks',
-                'icon' => 'task-01',
+                'icon' => 'google-task',
                 'color' => '#4285F4',
                 'description' => 'List, create, update, and complete tasks in Google Tasks.',
                 'sort_order' => 9,
@@ -83,7 +144,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_contacts',
                 'name' => 'Google Contacts',
-                'icon' => 'contact-01',
+                'icon' => 'google-contact',
                 'color' => '#4285F4',
                 'description' => 'Search, create, update, and delete contacts in Google Contacts.',
                 'sort_order' => 10,
@@ -115,7 +176,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_analytics',
                 'name' => 'Google Analytics',
-                'icon' => 'analytics-01',
+                'icon' => 'google-analytics',
                 'color' => '#F9AB00',
                 'description' => 'Run GA4 reports and see who is on your site right now.',
                 'sort_order' => 14,
@@ -123,7 +184,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'google_search_console',
                 'name' => 'Google Search Console',
-                'icon' => 'search-01',
+                'icon' => 'google-search-console',
                 'color' => '#4285F4',
                 'description' => 'Read search performance, sitemaps, and index status for your sites.',
                 'sort_order' => 15,
@@ -131,7 +192,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'outlook',
                 'name' => 'Outlook',
-                'icon' => 'mail-01',
+                'icon' => 'outlook',
                 'color' => '#0078D4',
                 'description' => 'Read, draft and send email, and manage your calendar in Outlook (Microsoft 365).',
                 'sort_order' => 8,
@@ -187,7 +248,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'smtp',
                 'name' => 'Email (SMTP)',
-                'icon' => 'mail',
+                'icon' => 'mail-send-01',
                 'color' => '#475569',
                 'description' => 'Send email through any SMTP server: your own domain, Google Workspace, Microsoft 365, Mailgun, SendGrid, Postmark and the like.',
                 'sort_order' => 22,
@@ -211,7 +272,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'kit',
                 'name' => 'Kit (ConvertKit)',
-                'icon' => 'mail',
+                'icon' => 'kit',
                 'color' => '#FB6970',
                 'description' => 'Add and update subscribers, tag them, put them in forms and sequences, write broadcasts, and start flows from new subscribers, unsubscribes and tags.',
                 'sort_order' => 25,
@@ -219,7 +280,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'activecampaign',
                 'name' => 'ActiveCampaign',
-                'icon' => 'mail',
+                'icon' => 'activecampaign',
                 'color' => '#356AE6',
                 'description' => 'Create and sync contacts, manage lists, tags, automations, deals and notes, and start flows from new contacts, deals and list changes.',
                 'sort_order' => 26,
@@ -227,7 +288,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'klaviyo',
                 'name' => 'Klaviyo',
-                'icon' => 'mail',
+                'icon' => 'klaviyo',
                 'color' => '#232426',
                 'description' => 'Create and update profiles, manage lists and segments, subscribe and unsubscribe, track events, read campaigns and flows, and start flows from new profiles and events.',
                 'sort_order' => 27,
@@ -235,7 +296,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'brevo',
                 'name' => 'Brevo',
-                'icon' => 'mail',
+                'icon' => 'brevo',
                 'color' => '#0B996E',
                 'description' => 'Create and update contacts, manage lists, send transactional email and SMS, send campaigns, and start flows from new and updated contacts.',
                 'sort_order' => 28,
@@ -243,7 +304,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'sendgrid',
                 'name' => 'SendGrid',
-                'icon' => 'mail',
+                'icon' => 'sendgrid',
                 'color' => '#1A82E2',
                 'description' => 'Send email, manage marketing contacts and lists, read stats and suppressions, and start flows from bounces, spam reports and unsubscribes.',
                 'sort_order' => 29,
@@ -251,7 +312,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'resend',
                 'name' => 'Resend',
-                'icon' => 'mail',
+                'icon' => 'resend',
                 'color' => '#000000',
                 'description' => 'Send email and batches, manage audiences, contacts and broadcasts, and start flows from delivered, bounced, opened and clicked email.',
                 'sort_order' => 30,
@@ -259,7 +320,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'postmark',
                 'name' => 'Postmark',
-                'icon' => 'mail',
+                'icon' => 'postmark',
                 'color' => '#FFDE00',
                 'description' => 'Send transactional email, read messages, bounces and stats, manage templates and suppressions, and start flows from bounces, complaints, opens and clicks.',
                 'sort_order' => 31,
@@ -267,7 +328,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'mailgun',
                 'name' => 'Mailgun',
-                'icon' => 'mail',
+                'icon' => 'mailgun',
                 'color' => '#F06B66',
                 'description' => 'Send email, read events and stats, manage mailing lists, templates and suppressions, and start flows from delivered, failed, opened, clicked and unsubscribed email.',
                 'sort_order' => 32,
@@ -347,7 +408,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'zoho_desk',
                 'name' => 'Zoho Desk',
-                'icon' => 'zoho',
+                'icon' => 'zoho-desk',
                 'color' => '#0B8C52',
                 'description' => 'Create, find, update and reply to support tickets, manage contacts, comments and agents, and start flows from new tickets, ticket changes and customer replies.',
                 'sort_order' => 42,
@@ -355,7 +416,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'zoho_books',
                 'name' => 'Zoho Books',
-                'icon' => 'zoho',
+                'icon' => 'zoho-books',
                 'color' => '#2D7BC4',
                 'description' => 'Create and send invoices and estimates, record payments, manage customers, items and bills, and start flows from new invoices, payments and customers.',
                 'sort_order' => 43,
@@ -363,7 +424,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'zoho_projects',
                 'name' => 'Zoho Projects',
-                'icon' => 'zoho',
+                'icon' => 'zoho-projects',
                 'color' => '#E7A32B',
                 'description' => 'Create and update projects, tasks, issues and milestones, log time, add comments, and start flows from new and changed tasks and issues.',
                 'sort_order' => 44,
@@ -371,7 +432,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'zoho_campaigns',
                 'name' => 'Zoho Campaigns',
-                'icon' => 'zoho',
+                'icon' => 'zoho-campaigns',
                 'color' => '#E4485A',
                 'description' => 'Add and remove subscribers, read lists and campaigns, send a campaign, and start flows from new subscribers and sent campaigns.',
                 'sort_order' => 45,
@@ -379,7 +440,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'zoho_mail',
                 'name' => 'Zoho Mail',
-                'icon' => 'zoho',
+                'icon' => 'zoho-mail',
                 'color' => '#F5821F',
                 'description' => 'Send, search and read mail, mark and move messages, list folders, and start flows from new mail.',
                 'sort_order' => 46,
@@ -387,7 +448,7 @@ class AppNodeCategorySeeder extends Seeder
             [
                 'slug' => 'zoho_cliq',
                 'name' => 'Zoho Cliq',
-                'icon' => 'zoho',
+                'icon' => 'zoho-cliq',
                 'color' => '#0E7BCB',
                 'description' => 'Send messages to channels, people and chats, read channels and users, and start flows from new chat messages.',
                 'sort_order' => 47,
@@ -420,6 +481,8 @@ class AppNodeCategorySeeder extends Seeder
                     'color' => $category['color'],
                     'sort_order' => $category['sort_order'],
                     'kind' => 'app',
+                    'vendor' => (self::TAXONOMY[$category['slug']] ?? [null])[0],
+                    'functions' => (self::TAXONOMY[$category['slug']] ?? [null, [NodeCategoryFunction::Other]])[1],
                 ],
             );
         }
