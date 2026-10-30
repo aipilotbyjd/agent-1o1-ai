@@ -47,6 +47,7 @@ use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
 use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoBooksOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoCampaignsOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoCliqOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoDeskOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoMailOptions;
 use App\Services\Workflows\NodeOptions\Sources\ZohoOptions;
@@ -106,6 +107,7 @@ class NodeOptionsService
         ZohoProjectsOptions::class,
         ZohoCampaignsOptions::class,
         ZohoMailOptions::class,
+        ZohoCliqOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

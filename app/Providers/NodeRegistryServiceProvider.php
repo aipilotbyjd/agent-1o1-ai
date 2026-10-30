@@ -1039,6 +1039,12 @@ use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListSubscribersNode;
 use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsListUnsubscribesNode;
 use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsSendCampaignNode;
 use App\Nodes\Integrations\ZohoCampaigns\ZohoCampaignsUnsubscribeNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqListChannelsNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqListMessagesNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqListUsersNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqSendChannelMessageNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqSendChatMessageNode;
+use App\Nodes\Integrations\ZohoCliq\ZohoCliqSendDirectMessageNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskAddCommentNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskCloseTicketNode;
 use App\Nodes\Integrations\ZohoDesk\ZohoDeskCreateContactNode;
@@ -2211,6 +2217,12 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_mail_move_message' => ZohoMailMoveMessageNode::class,
             'zoho_mail_search_messages' => ZohoMailSearchMessagesNode::class,
             'zoho_mail_send_email' => ZohoMailSendEmailNode::class,
+            'zoho_cliq_list_channels' => ZohoCliqListChannelsNode::class,
+            'zoho_cliq_list_messages' => ZohoCliqListMessagesNode::class,
+            'zoho_cliq_list_users' => ZohoCliqListUsersNode::class,
+            'zoho_cliq_send_channel_message' => ZohoCliqSendChannelMessageNode::class,
+            'zoho_cliq_send_chat_message' => ZohoCliqSendChatMessageNode::class,
+            'zoho_cliq_send_direct_message' => ZohoCliqSendDirectMessageNode::class,
         ];
     }
 }
