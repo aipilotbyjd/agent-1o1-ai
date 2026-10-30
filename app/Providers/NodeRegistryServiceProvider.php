@@ -482,6 +482,29 @@ use App\Nodes\Integrations\Outlook\OutlookListUpdatedEventsNode;
 use App\Nodes\Integrations\Outlook\OutlookMoveMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookReplyToMessageNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
+use App\Nodes\Integrations\Postmark\PostmarkActivateBounceNode;
+use App\Nodes\Integrations\Postmark\PostmarkAddSuppressionsNode;
+use App\Nodes\Integrations\Postmark\PostmarkDeleteSuppressionsNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetBounceNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetDeliveryStatsNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetInboundMessageNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetOutboundMessageNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetServerNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetStatsNode;
+use App\Nodes\Integrations\Postmark\PostmarkGetTemplateNode;
+use App\Nodes\Integrations\Postmark\PostmarkListBouncesNode;
+use App\Nodes\Integrations\Postmark\PostmarkListClicksNode;
+use App\Nodes\Integrations\Postmark\PostmarkListInboundMessagesNode;
+use App\Nodes\Integrations\Postmark\PostmarkListMessageStreamsNode;
+use App\Nodes\Integrations\Postmark\PostmarkListOpensNode;
+use App\Nodes\Integrations\Postmark\PostmarkListOutboundMessagesNode;
+use App\Nodes\Integrations\Postmark\PostmarkListSendersNode;
+use App\Nodes\Integrations\Postmark\PostmarkListSpamComplaintsNode;
+use App\Nodes\Integrations\Postmark\PostmarkListSuppressionsNode;
+use App\Nodes\Integrations\Postmark\PostmarkListTemplatesNode;
+use App\Nodes\Integrations\Postmark\PostmarkSendBatchNode;
+use App\Nodes\Integrations\Postmark\PostmarkSendEmailNode;
+use App\Nodes\Integrations\Postmark\PostmarkSendTemplateEmailNode;
 use App\Nodes\Integrations\Resend\ResendAddContactNode;
 use App\Nodes\Integrations\Resend\ResendCancelEmailNode;
 use App\Nodes\Integrations\Resend\ResendCreateAudienceNode;
@@ -1355,6 +1378,29 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'resend_send_broadcast' => ResendSendBroadcastNode::class,
             'resend_send_email' => ResendSendEmailNode::class,
             'resend_verify_domain' => ResendVerifyDomainNode::class,
+            'postmark_activate_bounce' => PostmarkActivateBounceNode::class,
+            'postmark_add_suppressions' => PostmarkAddSuppressionsNode::class,
+            'postmark_delete_suppressions' => PostmarkDeleteSuppressionsNode::class,
+            'postmark_get_bounce' => PostmarkGetBounceNode::class,
+            'postmark_get_delivery_stats' => PostmarkGetDeliveryStatsNode::class,
+            'postmark_get_inbound_message' => PostmarkGetInboundMessageNode::class,
+            'postmark_get_outbound_message' => PostmarkGetOutboundMessageNode::class,
+            'postmark_get_server' => PostmarkGetServerNode::class,
+            'postmark_get_stats' => PostmarkGetStatsNode::class,
+            'postmark_get_template' => PostmarkGetTemplateNode::class,
+            'postmark_list_bounces' => PostmarkListBouncesNode::class,
+            'postmark_list_clicks' => PostmarkListClicksNode::class,
+            'postmark_list_inbound_messages' => PostmarkListInboundMessagesNode::class,
+            'postmark_list_message_streams' => PostmarkListMessageStreamsNode::class,
+            'postmark_list_opens' => PostmarkListOpensNode::class,
+            'postmark_list_outbound_messages' => PostmarkListOutboundMessagesNode::class,
+            'postmark_list_senders' => PostmarkListSendersNode::class,
+            'postmark_list_spam_complaints' => PostmarkListSpamComplaintsNode::class,
+            'postmark_list_suppressions' => PostmarkListSuppressionsNode::class,
+            'postmark_list_templates' => PostmarkListTemplatesNode::class,
+            'postmark_send_batch' => PostmarkSendBatchNode::class,
+            'postmark_send_email' => PostmarkSendEmailNode::class,
+            'postmark_send_template_email' => PostmarkSendTemplateEmailNode::class,
         ];
     }
 }
