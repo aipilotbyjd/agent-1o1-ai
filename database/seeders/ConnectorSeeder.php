@@ -794,7 +794,7 @@ class ConnectorSeeder extends Seeder
                     ['name' => 'region', 'label' => 'Data center', 'type' => 'string', 'required' => false, 'placeholder' => 'us', 'description' => 'us, eu, in, au, jp, ca or sa, as in the address of your Zoho (zoho.eu is eu). Empty is us.'],
                     ['name' => 'client_id', 'label' => 'Client id', 'type' => 'string', 'required' => true, 'description' => 'api-console.zoho.com > Self Client > Client Secret tab.'],
                     ['name' => 'api_key', 'label' => 'Client secret', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'The same tab.'],
-                    ['name' => 'refresh_token', 'label' => 'Refresh token', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'Self Client > Generate Code with scope ZohoCRM.modules.ALL,ZohoCRM.settings.ALL,ZohoCRM.users.READ,ZohoCRM.coql.READ, then exchange the code once for a refresh token.'],
+                    ['name' => 'refresh_token', 'label' => 'Refresh token', 'type' => 'string', 'secret' => true, 'required' => true, 'description' => 'Self Client > Generate Code with scope ZohoCRM.modules.ALL,ZohoCRM.settings.ALL,ZohoCRM.users.READ,ZohoCRM.coql.READ,ZohoCRM.notifications.ALL, then exchange the code once for a refresh token.'],
                 ],
                 'oauth' => null,
                 'sort_order' => 41,

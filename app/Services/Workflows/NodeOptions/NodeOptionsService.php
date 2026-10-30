@@ -45,6 +45,7 @@ use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
 use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
 use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoOptions;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -94,6 +95,7 @@ class NodeOptionsService
         HubSpotOptions::class,
         PipedriveOptions::class,
         SalesforceOptions::class,
+        ZohoOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

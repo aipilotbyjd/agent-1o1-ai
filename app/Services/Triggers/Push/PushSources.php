@@ -53,8 +53,9 @@ class PushSources
         AirtableSource $airtableSource,
         MondaySource $mondaySource,
         PipedriveSource $pipedriveSource,
+        ZohoSource $zohoSource,
     ) {
-        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource, $mondaySource, $pipedriveSource] as $source) {
+        foreach ([$slackSource, $gmailSource, $outlookSource, $driveSource, $calendarSource, $githubSource, $sheetsSource, $docsSource, $formsSource, $youtubeSource, $notionSource, $linearSource, $jiraSource, $telegramSource, $discordSource, $twilioSource, $typeformSource, $mailchimpSource, $kitSource, $activeCampaignSource, $resendSource, $postmarkSource, $mailgunSource, $trelloSource, $asanaSource, $clickUpSource, $airtableSource, $mondaySource, $pipedriveSource, $zohoSource] as $source) {
             $this->sources[$source->provider()] = $source;
         }
 
@@ -88,6 +89,7 @@ class PushSources
             new AirtableIngress,
             new MondayIngress,
             new PipedriveIngress,
+            new ZohoIngress,
         ] as $ingress) {
             $this->ingresses[$ingress->provider()] = $ingress;
         }

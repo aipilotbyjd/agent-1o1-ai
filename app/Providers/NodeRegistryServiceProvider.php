@@ -961,6 +961,50 @@ use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
 use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
 use App\Nodes\Integrations\YouTube\YouTubeListPlaylistVideosNode;
 use App\Nodes\Integrations\YouTube\YouTubeSearchVideosNode;
+use App\Nodes\Integrations\Zoho\ZohoAddNoteNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateContactNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateDealNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateRecordNode;
+use App\Nodes\Integrations\Zoho\ZohoCreateTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteContactNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteDealNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoDeleteTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoGetAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoGetContactNode;
+use App\Nodes\Integrations\Zoho\ZohoGetDealNode;
+use App\Nodes\Integrations\Zoho\ZohoGetLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoGetMeNode;
+use App\Nodes\Integrations\Zoho\ZohoGetTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedAccountsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedContactsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedDealsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedLeadsNode;
+use App\Nodes\Integrations\Zoho\ZohoListChangedTasksNode;
+use App\Nodes\Integrations\Zoho\ZohoListFieldsNode;
+use App\Nodes\Integrations\Zoho\ZohoListModulesNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewAccountsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewContactsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewDealsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewLeadsNode;
+use App\Nodes\Integrations\Zoho\ZohoListNewTasksNode;
+use App\Nodes\Integrations\Zoho\ZohoListNotesNode;
+use App\Nodes\Integrations\Zoho\ZohoListUsersNode;
+use App\Nodes\Integrations\Zoho\ZohoRunCoqlNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchAccountsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchContactsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchDealsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchLeadsNode;
+use App\Nodes\Integrations\Zoho\ZohoSearchTasksNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateAccountNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateContactNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateDealNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateLeadNode;
+use App\Nodes\Integrations\Zoho\ZohoUpdateTaskNode;
+use App\Nodes\Integrations\Zoho\ZohoUpsertRecordNode;
 use App\Nodes\TriggersEvents\ManualTriggerNode;
 use App\Nodes\TriggersEvents\PollingTriggerNode;
 use App\Nodes\TriggersEvents\ScheduleTriggerNode;
@@ -1963,6 +2007,50 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'salesforce_update_record' => SalesforceUpdateRecordNode::class,
             'salesforce_update_task' => SalesforceUpdateTaskNode::class,
             'salesforce_upsert_record' => SalesforceUpsertRecordNode::class,
+            'zoho_add_note' => ZohoAddNoteNode::class,
+            'zoho_create_account' => ZohoCreateAccountNode::class,
+            'zoho_create_contact' => ZohoCreateContactNode::class,
+            'zoho_create_deal' => ZohoCreateDealNode::class,
+            'zoho_create_lead' => ZohoCreateLeadNode::class,
+            'zoho_create_record' => ZohoCreateRecordNode::class,
+            'zoho_create_task' => ZohoCreateTaskNode::class,
+            'zoho_delete_account' => ZohoDeleteAccountNode::class,
+            'zoho_delete_contact' => ZohoDeleteContactNode::class,
+            'zoho_delete_deal' => ZohoDeleteDealNode::class,
+            'zoho_delete_lead' => ZohoDeleteLeadNode::class,
+            'zoho_delete_task' => ZohoDeleteTaskNode::class,
+            'zoho_get_account' => ZohoGetAccountNode::class,
+            'zoho_get_contact' => ZohoGetContactNode::class,
+            'zoho_get_deal' => ZohoGetDealNode::class,
+            'zoho_get_lead' => ZohoGetLeadNode::class,
+            'zoho_get_me' => ZohoGetMeNode::class,
+            'zoho_get_task' => ZohoGetTaskNode::class,
+            'zoho_list_changed_accounts' => ZohoListChangedAccountsNode::class,
+            'zoho_list_changed_contacts' => ZohoListChangedContactsNode::class,
+            'zoho_list_changed_deals' => ZohoListChangedDealsNode::class,
+            'zoho_list_changed_leads' => ZohoListChangedLeadsNode::class,
+            'zoho_list_changed_tasks' => ZohoListChangedTasksNode::class,
+            'zoho_list_fields' => ZohoListFieldsNode::class,
+            'zoho_list_modules' => ZohoListModulesNode::class,
+            'zoho_list_new_accounts' => ZohoListNewAccountsNode::class,
+            'zoho_list_new_contacts' => ZohoListNewContactsNode::class,
+            'zoho_list_new_deals' => ZohoListNewDealsNode::class,
+            'zoho_list_new_leads' => ZohoListNewLeadsNode::class,
+            'zoho_list_new_tasks' => ZohoListNewTasksNode::class,
+            'zoho_list_notes' => ZohoListNotesNode::class,
+            'zoho_list_users' => ZohoListUsersNode::class,
+            'zoho_run_coql' => ZohoRunCoqlNode::class,
+            'zoho_search_accounts' => ZohoSearchAccountsNode::class,
+            'zoho_search_contacts' => ZohoSearchContactsNode::class,
+            'zoho_search_deals' => ZohoSearchDealsNode::class,
+            'zoho_search_leads' => ZohoSearchLeadsNode::class,
+            'zoho_search_tasks' => ZohoSearchTasksNode::class,
+            'zoho_update_account' => ZohoUpdateAccountNode::class,
+            'zoho_update_contact' => ZohoUpdateContactNode::class,
+            'zoho_update_deal' => ZohoUpdateDealNode::class,
+            'zoho_update_lead' => ZohoUpdateLeadNode::class,
+            'zoho_update_task' => ZohoUpdateTaskNode::class,
+            'zoho_upsert_record' => ZohoUpsertRecordNode::class,
         ];
     }
 }

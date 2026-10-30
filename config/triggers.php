@@ -339,6 +339,7 @@ return [
         'monday' => ['enabled' => (bool) env('TRIGGERS_PUSH_MONDAY_ENABLED', true)],
         'airtable' => ['enabled' => (bool) env('TRIGGERS_PUSH_AIRTABLE_ENABLED', true)],
         'pipedrive' => ['enabled' => (bool) env('TRIGGERS_PUSH_PIPEDRIVE_ENABLED', true)],
+        'zoho' => ['enabled' => (bool) env('TRIGGERS_PUSH_ZOHO_ENABLED', true)],
 
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
