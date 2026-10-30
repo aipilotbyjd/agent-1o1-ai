@@ -4,6 +4,7 @@ namespace App\Actions\Billing;
 
 use App\Enums\Billing\BillingInterval;
 use App\Models\Billing\Plan;
+use App\Models\Billing\PricingCoupon;
 use App\Models\Workspaces\Workspace;
 use App\Services\Referrals\ReferralTrialBonus;
 use Laravel\Cashier\Checkout;
@@ -64,6 +65,11 @@ class CheckoutSubscriptionAction
             'success_url' => $this->successUrl($workspace),
             'cancel_url' => $this->cancelUrl($workspace),
         ];
+
+        // Show Stripe's promo-code field only once an admin has created a code.
+        if (PricingCoupon::query()->where('is_active', true)->exists()) {
+            $sessionOptions['allow_promotion_codes'] = true;
+        }
 
         // Referral `trial_extension` rewards lengthen the plan's own trial,
         // or grant one on a plan that has none.

@@ -2,6 +2,8 @@
 
 namespace App\Enums\Billing;
 
+use App\Services\Billing\BillingSettings;
+
 enum BillingInterval: string
 {
     case Monthly = 'monthly';
@@ -21,13 +23,14 @@ enum BillingInterval: string
     }
 
     /**
-     * Whether this window is on sale estate-wide, per
-     * `config('billing.intervals')`. Unknown keys default to enabled so a
-     * newly added interval isn't silently unsellable until config catches up.
+     * Whether this window is on sale estate-wide: the admin-set switch if
+     * there is one, else `config('billing.intervals')`. Unknown keys default
+     * to enabled so a newly added interval isn't silently unsellable until
+     * config catches up.
      */
     public function isEnabledGlobally(): bool
     {
-        return (bool) config("billing.intervals.{$this->value}", true);
+        return app(BillingSettings::class)->intervalEnabled($this);
     }
 
     /**
