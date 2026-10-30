@@ -743,6 +743,39 @@ use App\Nodes\Integrations\Resend\ResendSendBatchNode;
 use App\Nodes\Integrations\Resend\ResendSendBroadcastNode;
 use App\Nodes\Integrations\Resend\ResendSendEmailNode;
 use App\Nodes\Integrations\Resend\ResendVerifyDomainNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateAccountNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateCaseNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateContactNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateLeadNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateOpportunityNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceCreateTaskNode;
+use App\Nodes\Integrations\Salesforce\SalesforceDeleteRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceDescribeObjectNode;
+use App\Nodes\Integrations\Salesforce\SalesforceFindRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceGetOrgNode;
+use App\Nodes\Integrations\Salesforce\SalesforceGetRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedAccountsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedCasesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedContactsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedLeadsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListChangedOpportunitiesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewAccountsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewCasesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewContactsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewLeadsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListNewOpportunitiesNode;
+use App\Nodes\Integrations\Salesforce\SalesforceListObjectsNode;
+use App\Nodes\Integrations\Salesforce\SalesforceRunQueryNode;
+use App\Nodes\Integrations\Salesforce\SalesforceSearchNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateAccountNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateCaseNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateContactNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateLeadNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateOpportunityNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateRecordNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpdateTaskNode;
+use App\Nodes\Integrations\Salesforce\SalesforceUpsertRecordNode;
 use App\Nodes\Integrations\SendGrid\SendGridAddGlobalUnsubscribeNode;
 use App\Nodes\Integrations\SendGrid\SendGridCreateListNode;
 use App\Nodes\Integrations\SendGrid\SendGridDeleteContactNode;
@@ -1897,6 +1930,39 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'pipedrive_update_lead' => PipedriveUpdateLeadNode::class,
             'pipedrive_update_organization' => PipedriveUpdateOrganizationNode::class,
             'pipedrive_update_person' => PipedriveUpdatePersonNode::class,
+            'salesforce_create_account' => SalesforceCreateAccountNode::class,
+            'salesforce_create_case' => SalesforceCreateCaseNode::class,
+            'salesforce_create_contact' => SalesforceCreateContactNode::class,
+            'salesforce_create_lead' => SalesforceCreateLeadNode::class,
+            'salesforce_create_opportunity' => SalesforceCreateOpportunityNode::class,
+            'salesforce_create_record' => SalesforceCreateRecordNode::class,
+            'salesforce_create_task' => SalesforceCreateTaskNode::class,
+            'salesforce_delete_record' => SalesforceDeleteRecordNode::class,
+            'salesforce_describe_object' => SalesforceDescribeObjectNode::class,
+            'salesforce_find_record' => SalesforceFindRecordNode::class,
+            'salesforce_get_org' => SalesforceGetOrgNode::class,
+            'salesforce_get_record' => SalesforceGetRecordNode::class,
+            'salesforce_list_changed_accounts' => SalesforceListChangedAccountsNode::class,
+            'salesforce_list_changed_cases' => SalesforceListChangedCasesNode::class,
+            'salesforce_list_changed_contacts' => SalesforceListChangedContactsNode::class,
+            'salesforce_list_changed_leads' => SalesforceListChangedLeadsNode::class,
+            'salesforce_list_changed_opportunities' => SalesforceListChangedOpportunitiesNode::class,
+            'salesforce_list_new_accounts' => SalesforceListNewAccountsNode::class,
+            'salesforce_list_new_cases' => SalesforceListNewCasesNode::class,
+            'salesforce_list_new_contacts' => SalesforceListNewContactsNode::class,
+            'salesforce_list_new_leads' => SalesforceListNewLeadsNode::class,
+            'salesforce_list_new_opportunities' => SalesforceListNewOpportunitiesNode::class,
+            'salesforce_list_objects' => SalesforceListObjectsNode::class,
+            'salesforce_run_query' => SalesforceRunQueryNode::class,
+            'salesforce_search' => SalesforceSearchNode::class,
+            'salesforce_update_account' => SalesforceUpdateAccountNode::class,
+            'salesforce_update_case' => SalesforceUpdateCaseNode::class,
+            'salesforce_update_contact' => SalesforceUpdateContactNode::class,
+            'salesforce_update_lead' => SalesforceUpdateLeadNode::class,
+            'salesforce_update_opportunity' => SalesforceUpdateOpportunityNode::class,
+            'salesforce_update_record' => SalesforceUpdateRecordNode::class,
+            'salesforce_update_task' => SalesforceUpdateTaskNode::class,
+            'salesforce_upsert_record' => SalesforceUpsertRecordNode::class,
         ];
     }
 }

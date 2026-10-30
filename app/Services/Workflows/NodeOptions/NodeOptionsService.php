@@ -37,6 +37,7 @@ use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\PipedriveOptions;
 use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
 use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
+use App\Services\Workflows\NodeOptions\Sources\SalesforceOptions;
 use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\TrelloOptions;
@@ -92,6 +93,7 @@ class NodeOptionsService
         MondayOptions::class,
         HubSpotOptions::class,
         PipedriveOptions::class,
+        SalesforceOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
