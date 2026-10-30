@@ -25,6 +25,7 @@ use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
+use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
 use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
 use App\Services\Workflows\NodeRegistry;
@@ -58,6 +59,7 @@ class NodeOptionsService
         SlackOptions::class,
         DiscordOptions::class,
         TwilioOptions::class,
+        TypeformOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

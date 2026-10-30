@@ -452,6 +452,23 @@ use App\Nodes\Integrations\Twilio\TwilioSendSmsNode;
 use App\Nodes\Integrations\Twilio\TwilioSendWhatsAppNode;
 use App\Nodes\Integrations\Twilio\TwilioStartVerificationNode;
 use App\Nodes\Integrations\Twilio\TwilioUpdateCallNode;
+use App\Nodes\Integrations\Typeform\TypeformCreateFormNode;
+use App\Nodes\Integrations\Typeform\TypeformCreateWebhookNode;
+use App\Nodes\Integrations\Typeform\TypeformCreateWorkspaceNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteFormNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteResponsesNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteWebhookNode;
+use App\Nodes\Integrations\Typeform\TypeformDeleteWorkspaceNode;
+use App\Nodes\Integrations\Typeform\TypeformGetFormNode;
+use App\Nodes\Integrations\Typeform\TypeformGetMeNode;
+use App\Nodes\Integrations\Typeform\TypeformGetResponseNode;
+use App\Nodes\Integrations\Typeform\TypeformListFormsNode;
+use App\Nodes\Integrations\Typeform\TypeformListResponsesNode;
+use App\Nodes\Integrations\Typeform\TypeformListThemesNode;
+use App\Nodes\Integrations\Typeform\TypeformListWebhooksNode;
+use App\Nodes\Integrations\Typeform\TypeformListWorkspacesNode;
+use App\Nodes\Integrations\Typeform\TypeformRenameWorkspaceNode;
+use App\Nodes\Integrations\Typeform\TypeformUpdateFormNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
 use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
@@ -955,6 +972,23 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'twilio_send_whatsapp' => TwilioSendWhatsAppNode::class,
             'twilio_start_verification' => TwilioStartVerificationNode::class,
             'twilio_update_call' => TwilioUpdateCallNode::class,
+            'typeform_create_form' => TypeformCreateFormNode::class,
+            'typeform_create_webhook' => TypeformCreateWebhookNode::class,
+            'typeform_create_workspace' => TypeformCreateWorkspaceNode::class,
+            'typeform_delete_form' => TypeformDeleteFormNode::class,
+            'typeform_delete_responses' => TypeformDeleteResponsesNode::class,
+            'typeform_delete_webhook' => TypeformDeleteWebhookNode::class,
+            'typeform_delete_workspace' => TypeformDeleteWorkspaceNode::class,
+            'typeform_get_form' => TypeformGetFormNode::class,
+            'typeform_get_me' => TypeformGetMeNode::class,
+            'typeform_get_response' => TypeformGetResponseNode::class,
+            'typeform_list_forms' => TypeformListFormsNode::class,
+            'typeform_list_responses' => TypeformListResponsesNode::class,
+            'typeform_list_themes' => TypeformListThemesNode::class,
+            'typeform_list_webhooks' => TypeformListWebhooksNode::class,
+            'typeform_list_workspaces' => TypeformListWorkspacesNode::class,
+            'typeform_rename_workspace' => TypeformRenameWorkspaceNode::class,
+            'typeform_update_form' => TypeformUpdateFormNode::class,
         ];
     }
 }

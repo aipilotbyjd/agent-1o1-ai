@@ -324,6 +324,11 @@ return [
         'telegram' => ['enabled' => (bool) env('TRIGGERS_PUSH_TELEGRAM_ENABLED', true)],
         'discord' => ['enabled' => (bool) env('TRIGGERS_PUSH_DISCORD_ENABLED', true), 'max_age_seconds' => 300],
         'twilio' => ['enabled' => (bool) env('TRIGGERS_PUSH_TWILIO_ENABLED', true)],
+        // The marketing apps are connected with the member's own key too: each registers its webhook through it.
+        'typeform' => ['enabled' => (bool) env('TRIGGERS_PUSH_TYPEFORM_ENABLED', true)],
+        'mailchimp' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILCHIMP_ENABLED', true)],
+        'kit' => ['enabled' => (bool) env('TRIGGERS_PUSH_KIT_ENABLED', true)],
+        'activecampaign' => ['enabled' => (bool) env('TRIGGERS_PUSH_ACTIVECAMPAIGN_ENABLED', true)],
 
         'slack' => [
             'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),

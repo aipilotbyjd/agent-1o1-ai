@@ -20,6 +20,13 @@ class ConnectorCredentialTester
 {
     private const int TIMEOUT_SECONDS = 10;
 
+    /**
+     * Apps connected with several fields, or a key that must be sent their own way.
+     *
+     * @var list<string>
+     */
+    private const array MANUAL = ['telegram', 'discord', 'twilio', 'smtp', 'typeform', 'mailchimp', 'kit', 'activecampaign', 'klaviyo', 'brevo', 'sendgrid'];
+
     public function __construct(private readonly ConnectorTokens $tokens) {}
 
     /**
@@ -51,7 +58,7 @@ class ConnectorCredentialTester
         $appName = $credential->connector?->name ?? 'This app';
 
         // These log in with several fields, so there is no one token to check.
-        if (in_array($credential->connector?->key, ['telegram', 'discord', 'twilio', 'smtp'], true)) {
+        if (in_array($credential->connector?->key, self::MANUAL, true)) {
             try {
                 return $this->checkManual($credential->connector->key, (array) $credential->data, $appName);
             } catch (ConnectionException) {
@@ -191,7 +198,81 @@ class ConnectorCredentialTester
             return $this->fromResponse($response, $appName, $response->json('friendly_name'));
         }
 
-        return $this->checkSmtp($data, $appName);
+        if ($connectorKey === 'smtp') {
+            return $this->checkSmtp($data, $appName);
+        }
+
+        return $this->checkMarketing($connectorKey, $data, $appName);
+    }
+
+    /**
+     * The marketing apps: each is asked for its own account, the cheapest call
+     * that needs a valid key.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{ok: bool, message: string, account: ?string, tested_at: string}
+     *
+     * @throws ConnectionException
+     */
+    private function checkMarketing(string $connectorKey, array $data, string $appName): array
+    {
+        $key = trim((string) ($data['api_key'] ?? ''));
+        $request = Http::acceptJson()->timeout(self::TIMEOUT_SECONDS);
+
+        if ($key === '') {
+            return $this->result(false, "{$appName} needs an API key.");
+        }
+
+        switch ($connectorKey) {
+            case 'typeform':
+                $host = strtolower((string) ($data['region'] ?? '')) === 'eu' ? 'api.eu.typeform.com' : 'api.typeform.com';
+                $response = $request->withToken($key)->get("https://{$host}/me");
+
+                return $this->fromResponse($response, $appName, $response->json('email') ?? $response->json('alias'));
+
+            case 'mailchimp':
+                $datacenter = str_contains($key, '-') ? substr(strrchr($key, '-'), 1) : '';
+
+                if (preg_match('/^[a-z]{2,4}\d{1,3}$/', $datacenter) !== 1) {
+                    return $this->result(false, 'A Mailchimp API key ends with its data center, like -us21. Copy the whole key.');
+                }
+
+                $response = $request->withBasicAuth('flows', $key)->get("https://{$datacenter}.api.mailchimp.com/3.0/");
+
+                return $this->fromResponse($response, $appName, $response->json('account_name'));
+
+            case 'kit':
+                $response = $request->withHeaders(['X-Kit-Api-Key' => $key])->get('https://api.kit.com/v4/account');
+
+                return $this->fromResponse($response, $appName, $response->json('account.name') ?? $response->json('user.email'));
+
+            case 'activecampaign':
+                $url = rtrim((string) ($data['api_url'] ?? ''), '/');
+
+                if (preg_match('#^https://[\w.-]+\.(?:api-us1\.com|activehosted\.com|api-[\w]+\.com)$#i', $url) !== 1) {
+                    return $this->result(false, 'The ActiveCampaign account URL looks like https://youraccount.api-us1.com (Settings > Developer).');
+                }
+
+                $response = $request->withHeaders(['Api-Token' => $key])->get("{$url}/api/3/users/me");
+
+                return $this->fromResponse($response, $appName, $response->json('user.email') ?? $url);
+
+            case 'klaviyo':
+                $response = $request->withHeaders(['Authorization' => 'Klaviyo-API-Key '.$key, 'revision' => '2024-10-15'])->get('https://a.klaviyo.com/api/accounts/');
+
+                return $this->fromResponse($response, $appName, $response->json('data.0.attributes.contact_information.organization_name'));
+
+            case 'brevo':
+                $response = $request->withHeaders(['api-key' => $key])->get('https://api.brevo.com/v3/account');
+
+                return $this->fromResponse($response, $appName, $response->json('email'));
+
+            default:
+                $response = $request->withToken($key)->get('https://api.sendgrid.com/v3/user/account');
+
+                // A key without the "user account" scope still works for what it was made for: only a refusal of the key itself is a failure.
+                return $response->status() === 403 ? $this->result(true, "Connected to {$appName} (the key can't read the account name).") : $this->fromResponse($response, $appName, $response->json('type'));
+        }
     }
 
     /**
