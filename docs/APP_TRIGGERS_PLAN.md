@@ -49,7 +49,7 @@ Built (code written; tests written but run by the team, not yet verified in CI):
 
 Not built:
 
-- Teams, Stripe, Typeform, Shopify, Monday, HubSpot, Airtable, Salesforce, Zendesk (no connector or reader node yet).
+- Teams, Shopify, HubSpot, Salesforce, Zendesk (no connector or reader node yet). Stripe and Typeform are built.
 - Event quotas (a per-plan cap on events per month), the admin console, canaries, provider simulators and load tests.
 
 **Verify against the providers before relying on these** (written from the public docs, not exercised against live accounts): Telegram's `setWebhook` (`secret_token`, `allowed_updates`), Discord's `PATCH /applications/@me` for `interactions_endpoint_url` and its PING check, Twilio's `IncomingPhoneNumbers` update of `SmsUrl`, Linear's `webhookCreate` (the `admin` requirement, `allPublicTeams`, the delivery fields `webhookId` and `webhookTimestamp`) and Jira's `/webhook` and `/webhook/refresh` calls (the scope, the `jqlFilter` limits, the `X-Atlassian-Webhook-Identifier` header), the Drive `changes.list` fields and the wording of its expired-token error (the reset matches "page token"), Notion's `page.deleted` event name and its `parent` data, and Tasks returning only the due day.
