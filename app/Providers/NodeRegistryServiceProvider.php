@@ -1005,6 +1005,26 @@ use App\Nodes\Integrations\Zoho\ZohoUpdateDealNode;
 use App\Nodes\Integrations\Zoho\ZohoUpdateLeadNode;
 use App\Nodes\Integrations\Zoho\ZohoUpdateTaskNode;
 use App\Nodes\Integrations\Zoho\ZohoUpsertRecordNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskAddCommentNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskCloseTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskCreateContactNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskCreateTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskDeleteTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskFindContactNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskGetMeNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskGetTicketNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListAgentsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListChangedTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListContactsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListCustomerRepliesNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListDepartmentsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListNewTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListThreadsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskListTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskSearchTicketsNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskSendReplyNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateContactNode;
+use App\Nodes\Integrations\ZohoDesk\ZohoDeskUpdateTicketNode;
 use App\Nodes\TriggersEvents\ManualTriggerNode;
 use App\Nodes\TriggersEvents\PollingTriggerNode;
 use App\Nodes\TriggersEvents\ScheduleTriggerNode;
@@ -2051,6 +2071,26 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'zoho_update_lead' => ZohoUpdateLeadNode::class,
             'zoho_update_task' => ZohoUpdateTaskNode::class,
             'zoho_upsert_record' => ZohoUpsertRecordNode::class,
+            'zoho_desk_add_comment' => ZohoDeskAddCommentNode::class,
+            'zoho_desk_close_ticket' => ZohoDeskCloseTicketNode::class,
+            'zoho_desk_create_contact' => ZohoDeskCreateContactNode::class,
+            'zoho_desk_create_ticket' => ZohoDeskCreateTicketNode::class,
+            'zoho_desk_delete_ticket' => ZohoDeskDeleteTicketNode::class,
+            'zoho_desk_find_contact' => ZohoDeskFindContactNode::class,
+            'zoho_desk_get_me' => ZohoDeskGetMeNode::class,
+            'zoho_desk_get_ticket' => ZohoDeskGetTicketNode::class,
+            'zoho_desk_list_agents' => ZohoDeskListAgentsNode::class,
+            'zoho_desk_list_changed_tickets' => ZohoDeskListChangedTicketsNode::class,
+            'zoho_desk_list_contacts' => ZohoDeskListContactsNode::class,
+            'zoho_desk_list_customer_replies' => ZohoDeskListCustomerRepliesNode::class,
+            'zoho_desk_list_departments' => ZohoDeskListDepartmentsNode::class,
+            'zoho_desk_list_new_tickets' => ZohoDeskListNewTicketsNode::class,
+            'zoho_desk_list_threads' => ZohoDeskListThreadsNode::class,
+            'zoho_desk_list_tickets' => ZohoDeskListTicketsNode::class,
+            'zoho_desk_search_tickets' => ZohoDeskSearchTicketsNode::class,
+            'zoho_desk_send_reply' => ZohoDeskSendReplyNode::class,
+            'zoho_desk_update_contact' => ZohoDeskUpdateContactNode::class,
+            'zoho_desk_update_ticket' => ZohoDeskUpdateTicketNode::class,
         ];
     }
 }
