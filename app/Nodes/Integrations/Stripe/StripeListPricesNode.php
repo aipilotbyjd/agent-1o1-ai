@@ -34,7 +34,7 @@ class StripeListPricesNode extends AbstractStripeNode
             'type' => 'object',
             'properties' => [
                 ...$this->credentialFields(),
-                'product_id' => Field::text('Product ID', null, 'prod_...'),
+                'product_id' => Field::dynamic('Product', 'stripe.products', null, 'prod_...'),
                 'active' => Field::select('Status', ['' => 'Any', 'true' => 'Active', 'false' => 'Archived']),
                 'limit' => Field::integer('Max results', null, 25, 1, 1000),
             ],

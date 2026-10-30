@@ -35,7 +35,7 @@ class StripeCancelSubscriptionNode extends AbstractStripeNode
             'required' => ['subscription_id'],
             'properties' => [
                 ...$this->credentialFields(),
-                'subscription_id' => Field::text('Subscription ID', null, 'sub_...'),
+                'subscription_id' => Field::dynamic('Subscription', 'stripe.subscriptions', null, 'sub_...'),
                 'when' => Field::select('When', ['period_end' => 'At the end of the period', 'now' => 'Right now'], null, 'period_end'),
             ],
         ];

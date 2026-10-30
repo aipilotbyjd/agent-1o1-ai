@@ -40,7 +40,7 @@ class StripeCreateCheckoutSessionNode extends AbstractStripeNode
                 'line_items' => Field::json('Line items', 'A list of {"price": "price_...", "quantity": 1}.', 'array'),
                 'success_url' => Field::text('Success link', 'Where the customer goes after paying.', 'https://example.com/thanks'),
                 'cancel_url' => Field::text('Cancel link', null, 'https://example.com/cart'),
-                'customer_id' => Field::text('Customer ID', null, 'cus_...'),
+                'customer_id' => Field::dynamic('Customer', 'stripe.customers', null, 'cus_...'),
                 'customer_email' => Field::text('Customer email', 'Fills in the email when there is no customer.'),
                 'metadata' => Field::advanced(Field::keyValue('Metadata', 'Your own notes on the record, such as an order id.')),
                 'idempotency_key' => $this->idempotencyField(),

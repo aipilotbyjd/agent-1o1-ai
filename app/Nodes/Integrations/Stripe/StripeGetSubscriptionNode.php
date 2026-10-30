@@ -35,7 +35,7 @@ class StripeGetSubscriptionNode extends AbstractStripeNode
             'required' => ['subscription_id'],
             'properties' => [
                 ...$this->credentialFields(),
-                'subscription_id' => Field::text('Subscription ID', null, 'sub_...'),
+                'subscription_id' => Field::dynamic('Subscription', 'stripe.subscriptions', null, 'sub_...'),
             ],
         ];
     }

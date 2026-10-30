@@ -25,7 +25,9 @@ use RuntimeException;
  */
 abstract class AbstractStripeNode implements DeclaresEffect, NodeContract
 {
-    use ResolvesConnectorCredential;
+    use ResolvesConnectorCredential {
+        credentialFields as private baseCredentialFields;
+    }
 
     protected const string API = 'https://api.stripe.com/v1';
 
@@ -54,9 +56,14 @@ abstract class AbstractStripeNode implements DeclaresEffect, NodeContract
         $request = Http::withToken($this->resolveAccessToken($run, $config))->acceptJson()->timeout(30);
         $params = $this->encode($params);
         $url = self::API.$path;
+        $headers = array_filter([
+            'Stripe-Account' => $this->connectedAccount($config),
+            'Stripe-Version' => $this->apiVersion(),
+            'Idempotency-Key' => $idempotencyKey !== '' ? $idempotencyKey : null,
+        ]);
 
-        if ($idempotencyKey !== null && $idempotencyKey !== '') {
-            $request = $request->withHeaders(['Idempotency-Key' => $idempotencyKey]);
+        if ($headers !== []) {
+            $request = $request->withHeaders($headers);
         }
 
         $response = match (strtoupper($method)) {
@@ -66,6 +73,41 @@ abstract class AbstractStripeNode implements DeclaresEffect, NodeContract
         };
 
         return $this->decode($response);
+    }
+
+    /**
+     * The API version a node needs to be called with, when it can't rely on the
+     * account's own (null leaves the account's version in charge).
+     */
+    protected function apiVersion(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * The connected account a Stripe Connect platform acts on, or null for the
+     * account the key belongs to.
+     *
+     * @param  array<string, mixed>  $config
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function connectedAccount(array $config): ?string
+    {
+        return $this->optionalId($config, 'stripe_account', 'acct', 'connected account id');
+    }
+
+    /**
+     * The account picker, and the Connect account to act on.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    protected function credentialFields(): array
+    {
+        return [
+            ...$this->baseCredentialFields(),
+            'stripe_account' => Field::advanced(Field::text('Connected account', 'For a Stripe Connect platform: act on this connected account instead of your own. Leave empty otherwise.', 'acct_...')),
+        ];
     }
 
     /**

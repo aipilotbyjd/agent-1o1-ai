@@ -5,6 +5,7 @@ namespace App\Services\Triggers\Push;
 use App\Models\Triggers\ProviderWatch;
 use App\Models\Triggers\Trigger;
 use App\Nodes\Integrations\Stripe\StripeListEventsNode;
+use App\Services\Workflows\NodeRegistry;
 use Illuminate\Http\Client\RequestException;
 
 /**
@@ -32,7 +33,16 @@ class StripeSource extends AbstractWatchedSource
 
     protected function nodeTypes(): array
     {
-        return ['stripe_list_events'];
+        return ['stripe_list_events', 'stripe_dispute_opened', 'stripe_checkout_paid'];
+    }
+
+    /**
+     * Events of a connected account arrive on a Connect endpoint, which this
+     * doesn't make: a trigger that acts on one keeps polling.
+     */
+    public function supports(Trigger $trigger): bool
+    {
+        return parent::supports($trigger) && blank($this->nodeConfig($trigger)['stripe_account'] ?? null);
     }
 
     public function watchKeyFor(Trigger $trigger): ?string
@@ -123,6 +133,8 @@ class StripeSource extends AbstractWatchedSource
      */
     private function typesOf(Trigger $trigger): array
     {
-        return (new StripeListEventsNode)->eventTypes($this->nodeConfig($trigger));
+        $node = app(NodeRegistry::class)->resolve((string) $trigger->config['node_type']);
+
+        return ($node instanceof StripeListEventsNode ? $node : new StripeListEventsNode)->eventTypes($this->nodeConfig($trigger));
     }
 }
