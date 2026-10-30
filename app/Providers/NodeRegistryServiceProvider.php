@@ -257,6 +257,36 @@ use App\Nodes\Integrations\Jira\JiraTransitionIssueNode;
 use App\Nodes\Integrations\Jira\JiraUpdateCommentNode;
 use App\Nodes\Integrations\Jira\JiraUpdateIssueNode;
 use App\Nodes\Integrations\Jira\JiraUpdateProjectNode;
+use App\Nodes\Integrations\Kit\KitAddSubscriberToFormNode;
+use App\Nodes\Integrations\Kit\KitAddSubscriberToSequenceNode;
+use App\Nodes\Integrations\Kit\KitCreateBroadcastNode;
+use App\Nodes\Integrations\Kit\KitCreateCustomFieldNode;
+use App\Nodes\Integrations\Kit\KitCreateOrUpdateSubscriberNode;
+use App\Nodes\Integrations\Kit\KitCreatePurchaseNode;
+use App\Nodes\Integrations\Kit\KitCreateTagNode;
+use App\Nodes\Integrations\Kit\KitDeleteBroadcastNode;
+use App\Nodes\Integrations\Kit\KitGetAccountNode;
+use App\Nodes\Integrations\Kit\KitGetBroadcastNode;
+use App\Nodes\Integrations\Kit\KitGetBroadcastStatsNode;
+use App\Nodes\Integrations\Kit\KitGetSubscriberNode;
+use App\Nodes\Integrations\Kit\KitListBouncedSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListBroadcastsNode;
+use App\Nodes\Integrations\Kit\KitListCustomFieldsNode;
+use App\Nodes\Integrations\Kit\KitListEmailTemplatesNode;
+use App\Nodes\Integrations\Kit\KitListFormsNode;
+use App\Nodes\Integrations\Kit\KitListFormSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListPurchasesNode;
+use App\Nodes\Integrations\Kit\KitListSequencesNode;
+use App\Nodes\Integrations\Kit\KitListSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListSubscriberTagsNode;
+use App\Nodes\Integrations\Kit\KitListTaggedSubscribersNode;
+use App\Nodes\Integrations\Kit\KitListTagsNode;
+use App\Nodes\Integrations\Kit\KitListUnsubscribesNode;
+use App\Nodes\Integrations\Kit\KitTagSubscriberNode;
+use App\Nodes\Integrations\Kit\KitUnsubscribeSubscriberNode;
+use App\Nodes\Integrations\Kit\KitUntagSubscriberNode;
+use App\Nodes\Integrations\Kit\KitUpdateBroadcastNode;
+use App\Nodes\Integrations\Kit\KitUpdateSubscriberNode;
 use App\Nodes\Integrations\Linear\LinearCreateCommentNode;
 use App\Nodes\Integrations\Linear\LinearCreateInitiativeNode;
 use App\Nodes\Integrations\Linear\LinearCreateIssueNode;
@@ -1069,6 +1099,36 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'mailchimp_unschedule_campaign' => MailchimpUnscheduleCampaignNode::class,
             'mailchimp_unsubscribe_member' => MailchimpUnsubscribeMemberNode::class,
             'mailchimp_update_member' => MailchimpUpdateMemberNode::class,
+            'kit_add_subscriber_to_form' => KitAddSubscriberToFormNode::class,
+            'kit_add_subscriber_to_sequence' => KitAddSubscriberToSequenceNode::class,
+            'kit_create_broadcast' => KitCreateBroadcastNode::class,
+            'kit_create_custom_field' => KitCreateCustomFieldNode::class,
+            'kit_create_or_update_subscriber' => KitCreateOrUpdateSubscriberNode::class,
+            'kit_create_purchase' => KitCreatePurchaseNode::class,
+            'kit_create_tag' => KitCreateTagNode::class,
+            'kit_delete_broadcast' => KitDeleteBroadcastNode::class,
+            'kit_get_account' => KitGetAccountNode::class,
+            'kit_get_broadcast' => KitGetBroadcastNode::class,
+            'kit_get_broadcast_stats' => KitGetBroadcastStatsNode::class,
+            'kit_get_subscriber' => KitGetSubscriberNode::class,
+            'kit_list_bounced_subscribers' => KitListBouncedSubscribersNode::class,
+            'kit_list_broadcasts' => KitListBroadcastsNode::class,
+            'kit_list_custom_fields' => KitListCustomFieldsNode::class,
+            'kit_list_email_templates' => KitListEmailTemplatesNode::class,
+            'kit_list_form_subscribers' => KitListFormSubscribersNode::class,
+            'kit_list_forms' => KitListFormsNode::class,
+            'kit_list_purchases' => KitListPurchasesNode::class,
+            'kit_list_sequences' => KitListSequencesNode::class,
+            'kit_list_subscriber_tags' => KitListSubscriberTagsNode::class,
+            'kit_list_subscribers' => KitListSubscribersNode::class,
+            'kit_list_tagged_subscribers' => KitListTaggedSubscribersNode::class,
+            'kit_list_tags' => KitListTagsNode::class,
+            'kit_list_unsubscribes' => KitListUnsubscribesNode::class,
+            'kit_tag_subscriber' => KitTagSubscriberNode::class,
+            'kit_unsubscribe_subscriber' => KitUnsubscribeSubscriberNode::class,
+            'kit_untag_subscriber' => KitUntagSubscriberNode::class,
+            'kit_update_broadcast' => KitUpdateBroadcastNode::class,
+            'kit_update_subscriber' => KitUpdateSubscriberNode::class,
         ];
     }
 }
