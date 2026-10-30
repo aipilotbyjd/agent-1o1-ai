@@ -48,6 +48,36 @@ use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignSyncContactNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUnsubscribeFromListNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateContactNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateDealNode;
+use App\Nodes\Integrations\Asana\AsanaAddCommentNode;
+use App\Nodes\Integrations\Asana\AsanaAddTagNode;
+use App\Nodes\Integrations\Asana\AsanaAddTaskToProjectNode;
+use App\Nodes\Integrations\Asana\AsanaCompleteTaskNode;
+use App\Nodes\Integrations\Asana\AsanaCreateProjectNode;
+use App\Nodes\Integrations\Asana\AsanaCreateSectionNode;
+use App\Nodes\Integrations\Asana\AsanaCreateSubtaskNode;
+use App\Nodes\Integrations\Asana\AsanaCreateTagNode;
+use App\Nodes\Integrations\Asana\AsanaCreateTaskNode;
+use App\Nodes\Integrations\Asana\AsanaDeleteTaskNode;
+use App\Nodes\Integrations\Asana\AsanaGetMeNode;
+use App\Nodes\Integrations\Asana\AsanaGetProjectNode;
+use App\Nodes\Integrations\Asana\AsanaGetTaskNode;
+use App\Nodes\Integrations\Asana\AsanaListCommentsNode;
+use App\Nodes\Integrations\Asana\AsanaListCompletedTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListNewTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListProjectsNode;
+use App\Nodes\Integrations\Asana\AsanaListSectionsNode;
+use App\Nodes\Integrations\Asana\AsanaListSubtasksNode;
+use App\Nodes\Integrations\Asana\AsanaListTagsNode;
+use App\Nodes\Integrations\Asana\AsanaListTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListUpdatedTasksNode;
+use App\Nodes\Integrations\Asana\AsanaListUsersNode;
+use App\Nodes\Integrations\Asana\AsanaListWorkspacesNode;
+use App\Nodes\Integrations\Asana\AsanaMoveTaskToSectionNode;
+use App\Nodes\Integrations\Asana\AsanaRemoveTagNode;
+use App\Nodes\Integrations\Asana\AsanaRemoveTaskFromProjectNode;
+use App\Nodes\Integrations\Asana\AsanaSearchTasksNode;
+use App\Nodes\Integrations\Asana\AsanaUpdateProjectNode;
+use App\Nodes\Integrations\Asana\AsanaUpdateTaskNode;
 use App\Nodes\Integrations\Brevo\BrevoAddContactsToListNode;
 use App\Nodes\Integrations\Brevo\BrevoCreateListNode;
 use App\Nodes\Integrations\Brevo\BrevoCreateOrUpdateContactNode;
@@ -1555,6 +1585,36 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'trello_set_checklist_item' => TrelloSetChecklistItemNode::class,
             'trello_update_card' => TrelloUpdateCardNode::class,
             'trello_update_list' => TrelloUpdateListNode::class,
+            'asana_add_comment' => AsanaAddCommentNode::class,
+            'asana_add_tag' => AsanaAddTagNode::class,
+            'asana_add_task_to_project' => AsanaAddTaskToProjectNode::class,
+            'asana_complete_task' => AsanaCompleteTaskNode::class,
+            'asana_create_project' => AsanaCreateProjectNode::class,
+            'asana_create_section' => AsanaCreateSectionNode::class,
+            'asana_create_subtask' => AsanaCreateSubtaskNode::class,
+            'asana_create_tag' => AsanaCreateTagNode::class,
+            'asana_create_task' => AsanaCreateTaskNode::class,
+            'asana_delete_task' => AsanaDeleteTaskNode::class,
+            'asana_get_me' => AsanaGetMeNode::class,
+            'asana_get_project' => AsanaGetProjectNode::class,
+            'asana_get_task' => AsanaGetTaskNode::class,
+            'asana_list_comments' => AsanaListCommentsNode::class,
+            'asana_list_completed_tasks' => AsanaListCompletedTasksNode::class,
+            'asana_list_new_tasks' => AsanaListNewTasksNode::class,
+            'asana_list_projects' => AsanaListProjectsNode::class,
+            'asana_list_sections' => AsanaListSectionsNode::class,
+            'asana_list_subtasks' => AsanaListSubtasksNode::class,
+            'asana_list_tags' => AsanaListTagsNode::class,
+            'asana_list_tasks' => AsanaListTasksNode::class,
+            'asana_list_updated_tasks' => AsanaListUpdatedTasksNode::class,
+            'asana_list_users' => AsanaListUsersNode::class,
+            'asana_list_workspaces' => AsanaListWorkspacesNode::class,
+            'asana_move_task_to_section' => AsanaMoveTaskToSectionNode::class,
+            'asana_remove_tag' => AsanaRemoveTagNode::class,
+            'asana_remove_task_from_project' => AsanaRemoveTaskFromProjectNode::class,
+            'asana_search_tasks' => AsanaSearchTasksNode::class,
+            'asana_update_project' => AsanaUpdateProjectNode::class,
+            'asana_update_task' => AsanaUpdateTaskNode::class,
         ];
     }
 }
