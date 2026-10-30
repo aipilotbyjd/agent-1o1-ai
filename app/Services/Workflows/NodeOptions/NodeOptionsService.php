@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
 use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
+use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\KitOptions;
@@ -68,6 +69,7 @@ class NodeOptionsService
         KitOptions::class,
         ActiveCampaignOptions::class,
         KlaviyoOptions::class,
+        BrevoOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,

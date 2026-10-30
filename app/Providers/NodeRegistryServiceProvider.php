@@ -48,6 +48,26 @@ use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignSyncContactNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUnsubscribeFromListNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateContactNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignUpdateDealNode;
+use App\Nodes\Integrations\Brevo\BrevoAddContactsToListNode;
+use App\Nodes\Integrations\Brevo\BrevoCreateListNode;
+use App\Nodes\Integrations\Brevo\BrevoCreateOrUpdateContactNode;
+use App\Nodes\Integrations\Brevo\BrevoDeleteContactNode;
+use App\Nodes\Integrations\Brevo\BrevoGetAccountNode;
+use App\Nodes\Integrations\Brevo\BrevoGetCampaignNode;
+use App\Nodes\Integrations\Brevo\BrevoGetContactNode;
+use App\Nodes\Integrations\Brevo\BrevoListAttributesNode;
+use App\Nodes\Integrations\Brevo\BrevoListCampaignsNode;
+use App\Nodes\Integrations\Brevo\BrevoListContactsNode;
+use App\Nodes\Integrations\Brevo\BrevoListListsNode;
+use App\Nodes\Integrations\Brevo\BrevoListSendersNode;
+use App\Nodes\Integrations\Brevo\BrevoListTemplatesNode;
+use App\Nodes\Integrations\Brevo\BrevoListUpdatedContactsNode;
+use App\Nodes\Integrations\Brevo\BrevoRemoveContactsFromListNode;
+use App\Nodes\Integrations\Brevo\BrevoSendCampaignNode;
+use App\Nodes\Integrations\Brevo\BrevoSendEmailNode;
+use App\Nodes\Integrations\Brevo\BrevoSendSmsNode;
+use App\Nodes\Integrations\Brevo\BrevoTrackEventNode;
+use App\Nodes\Integrations\Brevo\BrevoUpdateContactNode;
 use App\Nodes\Integrations\Discord\DiscordAddReactionNode;
 use App\Nodes\Integrations\Discord\DiscordAddRoleNode;
 use App\Nodes\Integrations\Discord\DiscordAddThreadMemberNode;
@@ -1231,6 +1251,26 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'klaviyo_unsubscribe_profile' => KlaviyoUnsubscribeProfileNode::class,
             'klaviyo_update_profile' => KlaviyoUpdateProfileNode::class,
             'klaviyo_upsert_profile' => KlaviyoUpsertProfileNode::class,
+            'brevo_add_contacts_to_list' => BrevoAddContactsToListNode::class,
+            'brevo_create_list' => BrevoCreateListNode::class,
+            'brevo_create_or_update_contact' => BrevoCreateOrUpdateContactNode::class,
+            'brevo_delete_contact' => BrevoDeleteContactNode::class,
+            'brevo_get_account' => BrevoGetAccountNode::class,
+            'brevo_get_campaign' => BrevoGetCampaignNode::class,
+            'brevo_get_contact' => BrevoGetContactNode::class,
+            'brevo_list_attributes' => BrevoListAttributesNode::class,
+            'brevo_list_campaigns' => BrevoListCampaignsNode::class,
+            'brevo_list_contacts' => BrevoListContactsNode::class,
+            'brevo_list_lists' => BrevoListListsNode::class,
+            'brevo_list_senders' => BrevoListSendersNode::class,
+            'brevo_list_templates' => BrevoListTemplatesNode::class,
+            'brevo_remove_contacts_from_list' => BrevoRemoveContactsFromListNode::class,
+            'brevo_send_campaign' => BrevoSendCampaignNode::class,
+            'brevo_send_email' => BrevoSendEmailNode::class,
+            'brevo_send_sms' => BrevoSendSmsNode::class,
+            'brevo_track_event' => BrevoTrackEventNode::class,
+            'brevo_update_contact' => BrevoUpdateContactNode::class,
+            'brevo_list_updated_contacts' => BrevoListUpdatedContactsNode::class,
         ];
     }
 }
