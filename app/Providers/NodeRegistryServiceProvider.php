@@ -658,6 +658,49 @@ use App\Nodes\Integrations\Outlook\OutlookSendDraftNode;
 use App\Nodes\Integrations\Outlook\OutlookSendEmailNode;
 use App\Nodes\Integrations\Outlook\OutlookSetAutoReplyNode;
 use App\Nodes\Integrations\Outlook\OutlookSetCategoriesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveAddNoteNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreateOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveCreatePersonNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeleteOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveDeletePersonNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetMeNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveGetPersonNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListActivitiesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedActivitiesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListChangedPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListLeadsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewActivitiesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNewPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListNotesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListPipelinesNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveListUsersNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveMarkDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchDealsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchLeadsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchOrganizationsNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveSearchPeopleNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateActivityNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateDealNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateLeadNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdateOrganizationNode;
+use App\Nodes\Integrations\Pipedrive\PipedriveUpdatePersonNode;
 use App\Nodes\Integrations\Postmark\PostmarkActivateBounceNode;
 use App\Nodes\Integrations\Postmark\PostmarkAddSuppressionsNode;
 use App\Nodes\Integrations\Postmark\PostmarkDeleteSuppressionsNode;
@@ -1811,6 +1854,49 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'hubspot_update_deal' => HubSpotUpdateDealNode::class,
             'hubspot_update_ticket' => HubSpotUpdateTicketNode::class,
             'hubspot_upsert_contact' => HubSpotUpsertContactNode::class,
+            'pipedrive_add_note' => PipedriveAddNoteNode::class,
+            'pipedrive_create_activity' => PipedriveCreateActivityNode::class,
+            'pipedrive_create_deal' => PipedriveCreateDealNode::class,
+            'pipedrive_create_lead' => PipedriveCreateLeadNode::class,
+            'pipedrive_create_organization' => PipedriveCreateOrganizationNode::class,
+            'pipedrive_create_person' => PipedriveCreatePersonNode::class,
+            'pipedrive_delete_activity' => PipedriveDeleteActivityNode::class,
+            'pipedrive_delete_deal' => PipedriveDeleteDealNode::class,
+            'pipedrive_delete_lead' => PipedriveDeleteLeadNode::class,
+            'pipedrive_delete_organization' => PipedriveDeleteOrganizationNode::class,
+            'pipedrive_delete_person' => PipedriveDeletePersonNode::class,
+            'pipedrive_get_activity' => PipedriveGetActivityNode::class,
+            'pipedrive_get_deal' => PipedriveGetDealNode::class,
+            'pipedrive_get_lead' => PipedriveGetLeadNode::class,
+            'pipedrive_get_me' => PipedriveGetMeNode::class,
+            'pipedrive_get_organization' => PipedriveGetOrganizationNode::class,
+            'pipedrive_get_person' => PipedriveGetPersonNode::class,
+            'pipedrive_list_activities' => PipedriveListActivitiesNode::class,
+            'pipedrive_list_changed_activities' => PipedriveListChangedActivitiesNode::class,
+            'pipedrive_list_changed_deals' => PipedriveListChangedDealsNode::class,
+            'pipedrive_list_changed_organizations' => PipedriveListChangedOrganizationsNode::class,
+            'pipedrive_list_changed_persons' => PipedriveListChangedPeopleNode::class,
+            'pipedrive_list_deals' => PipedriveListDealsNode::class,
+            'pipedrive_list_leads' => PipedriveListLeadsNode::class,
+            'pipedrive_list_new_activities' => PipedriveListNewActivitiesNode::class,
+            'pipedrive_list_new_deals' => PipedriveListNewDealsNode::class,
+            'pipedrive_list_new_organizations' => PipedriveListNewOrganizationsNode::class,
+            'pipedrive_list_new_persons' => PipedriveListNewPeopleNode::class,
+            'pipedrive_list_notes' => PipedriveListNotesNode::class,
+            'pipedrive_list_organizations' => PipedriveListOrganizationsNode::class,
+            'pipedrive_list_persons' => PipedriveListPeopleNode::class,
+            'pipedrive_list_pipelines' => PipedriveListPipelinesNode::class,
+            'pipedrive_list_users' => PipedriveListUsersNode::class,
+            'pipedrive_mark_deal' => PipedriveMarkDealNode::class,
+            'pipedrive_search_deals' => PipedriveSearchDealsNode::class,
+            'pipedrive_search_leads' => PipedriveSearchLeadsNode::class,
+            'pipedrive_search_organizations' => PipedriveSearchOrganizationsNode::class,
+            'pipedrive_search_persons' => PipedriveSearchPeopleNode::class,
+            'pipedrive_update_activity' => PipedriveUpdateActivityNode::class,
+            'pipedrive_update_deal' => PipedriveUpdateDealNode::class,
+            'pipedrive_update_lead' => PipedriveUpdateLeadNode::class,
+            'pipedrive_update_organization' => PipedriveUpdateOrganizationNode::class,
+            'pipedrive_update_person' => PipedriveUpdatePersonNode::class,
         ];
     }
 }

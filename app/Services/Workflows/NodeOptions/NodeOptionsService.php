@@ -34,6 +34,7 @@ use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
 use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
 use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
+use App\Services\Workflows\NodeOptions\Sources\PipedriveOptions;
 use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
 use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
 use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
@@ -90,6 +91,7 @@ class NodeOptionsService
         AirtableOptions::class,
         MondayOptions::class,
         HubSpotOptions::class,
+        PipedriveOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
