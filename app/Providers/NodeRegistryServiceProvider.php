@@ -316,6 +316,28 @@ use App\Nodes\Integrations\Kit\KitUnsubscribeSubscriberNode;
 use App\Nodes\Integrations\Kit\KitUntagSubscriberNode;
 use App\Nodes\Integrations\Kit\KitUpdateBroadcastNode;
 use App\Nodes\Integrations\Kit\KitUpdateSubscriberNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoAddProfileToListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoCreateListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoDeleteListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoGetAccountNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoGetProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListCampaignsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListEventsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListFlowsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListListProfilesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListListsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListMetricsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListProfilesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListSegmentProfilesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListSegmentsNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoListTemplatesNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoRemoveProfileFromListNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoSetFlowStatusNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoSubscribeProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoTrackEventNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoUnsubscribeProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoUpdateProfileNode;
+use App\Nodes\Integrations\Klaviyo\KlaviyoUpsertProfileNode;
 use App\Nodes\Integrations\Linear\LinearCreateCommentNode;
 use App\Nodes\Integrations\Linear\LinearCreateInitiativeNode;
 use App\Nodes\Integrations\Linear\LinearCreateIssueNode;
@@ -1187,6 +1209,28 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'activecampaign_unsubscribe_from_list' => ActiveCampaignUnsubscribeFromListNode::class,
             'activecampaign_update_contact' => ActiveCampaignUpdateContactNode::class,
             'activecampaign_update_deal' => ActiveCampaignUpdateDealNode::class,
+            'klaviyo_add_profile_to_list' => KlaviyoAddProfileToListNode::class,
+            'klaviyo_create_list' => KlaviyoCreateListNode::class,
+            'klaviyo_delete_list' => KlaviyoDeleteListNode::class,
+            'klaviyo_get_account' => KlaviyoGetAccountNode::class,
+            'klaviyo_get_profile' => KlaviyoGetProfileNode::class,
+            'klaviyo_list_campaigns' => KlaviyoListCampaignsNode::class,
+            'klaviyo_list_events' => KlaviyoListEventsNode::class,
+            'klaviyo_list_flows' => KlaviyoListFlowsNode::class,
+            'klaviyo_list_list_profiles' => KlaviyoListListProfilesNode::class,
+            'klaviyo_list_lists' => KlaviyoListListsNode::class,
+            'klaviyo_list_metrics' => KlaviyoListMetricsNode::class,
+            'klaviyo_list_profiles' => KlaviyoListProfilesNode::class,
+            'klaviyo_list_segment_profiles' => KlaviyoListSegmentProfilesNode::class,
+            'klaviyo_list_segments' => KlaviyoListSegmentsNode::class,
+            'klaviyo_list_templates' => KlaviyoListTemplatesNode::class,
+            'klaviyo_remove_profile_from_list' => KlaviyoRemoveProfileFromListNode::class,
+            'klaviyo_set_flow_status' => KlaviyoSetFlowStatusNode::class,
+            'klaviyo_subscribe_profile' => KlaviyoSubscribeProfileNode::class,
+            'klaviyo_track_event' => KlaviyoTrackEventNode::class,
+            'klaviyo_unsubscribe_profile' => KlaviyoUnsubscribeProfileNode::class,
+            'klaviyo_update_profile' => KlaviyoUpdateProfileNode::class,
+            'klaviyo_upsert_profile' => KlaviyoUpsertProfileNode::class,
         ];
     }
 }

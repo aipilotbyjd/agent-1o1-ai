@@ -11,6 +11,7 @@ use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
 use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\KitOptions;
+use App\Services\Workflows\NodeOptions\Sources\KlaviyoOptions;
 use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
@@ -66,6 +67,7 @@ class NodeOptionsService
         MailchimpOptions::class,
         KitOptions::class,
         ActiveCampaignOptions::class,
+        KlaviyoOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
