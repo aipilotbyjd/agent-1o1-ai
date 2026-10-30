@@ -198,6 +198,24 @@ Behaviour worth knowing:
 - **Not built**: Desk's tasks, calls, events and knowledge base; Books' credit notes, expenses, bank feeds and recurring documents; Projects' forums, documents and phases; Campaigns' campaign creation and reports; Mail's attachments and drafts; Cliq's bot and slash-command handlers.
 - **To verify against the providers** (written from the public docs, not run against live accounts): the Projects v3 base address (`projectsapi`), its task owner body (`owners_and_work`), the `sort_by` form, `timelogs` body and the portal-wide `/issues` list; Campaigns' `list_of_details` and `recent_campaigns` keys and the `sort` parameter; Cliq's channel lookup (`chat_id` on `/channelsbyname/{name}`) and `/chats/{id}/messages` shape; Mail's `searchKey` syntax and `updatemessage` modes; Books' `send=true` on invoice create; Desk's webhook body (`subscriptions`) and `isEnabled` flag.
 
+### Social: LinkedIn (12) and Pinterest (14)
+
+Both connect with an access token the member generates in the provider's developer portal (the connection has one field). Neither token refreshes itself: LinkedIn tokens last 60 days, so a failing node says to reconnect.
+
+| App | Scopes the token needs | Nodes | Triggers |
+|---|---|---|---|
+| **LinkedIn** | `openid profile w_member_social`; for pages `w_organization_social rw_organization_admin`; to read posts `r_member_social` or `r_organization_social` | Get Me, List My Pages; Text, Link and Image posts as the member or a page; Get, List and Delete Post; Comment, List Comments, Like or react; Page Follower Count | New post, New comment (polled) |
+| **Pinterest** | `user_accounts:read boards:read boards:write pins:read pins:write` (analytics also needs `pins:read`) | Get Account; Boards: List, Get, Create, Update, Delete; Sections: List, Create; Pins: List, Get, Create, Update, Delete; Pin Analytics | New pin, New board (polled) |
+
+Behaviour worth knowing:
+
+- **Polled, no push.** Neither provider lets an app register a webhook for posts or pins, so the triggers check every few minutes. The first poll is a baseline; later polls run the flow for each id not seen before.
+- **LinkedIn post text is escaped.** LinkedIn treats `( ) [ ] { } < > @ # * _ ~ | \` as markup and cuts a post off at an unescaped one, so plain text is escaped unless the node's "already LinkedIn markup" switch is on. Posts are limited to 3000 characters, and a page can only post publicly.
+- **LinkedIn images are fetched through the SSRF guard** (`GuardedHttp`), must be JPEG, PNG or GIF of at most 8 MB, and are uploaded in two steps before the post is made. A post's id comes from the `x-restli-id` response header.
+- **Ids are checked before they go in a URL**: LinkedIn posts must be `urn:li:share|ugcPost|activity:<digits>`, authors a person or organization URN; Pinterest ids are numbers. Pinterest titles (100), descriptions (800), alt text (500) and links are length- and scheme-checked.
+- **Not built.** LinkedIn: video, polls, documents, reshares, scheduled posts and ads. Pinterest: video pins, carousels, ad accounts, catalogs and board collaborators.
+- **To verify against the providers** (written from the public docs, not run against live accounts): the LinkedIn API version header (`202506`, which LinkedIn retires after about a year), the `organizationAcls` and `networkSizes` calls, the reactions body, and which of the read scopes your app is approved for; Pinterest's `/pins` list order, the analytics `all.summary_metrics` shape, and that the token is not a Trial (sandbox-only) token.
+
 ### Triggers that keep state (`KeepsTriggerState`)
 
 A reader node can start a flow by listing what's new (`SupportsTriggerMode`). When the event is something that *stopped* being there (a row deleted, a file trashed), the node also implements `KeepsTriggerState`: `pollSince($run, $config, $state)` returns the items and the state to keep, `triggerSampleItems()` gives example items for the editor. Use `ActsAsRemovalTrigger` plus `PresenceTracker` for "this id was there and now isn't"; use a provider's own change token (Drive) when it has one. Built: `google_sheets_list_deleted_rows`, `notion_list_deleted_database_items`, `google_drive_list_trashed_files`. Details and limits: `docs/APP_TRIGGERS_PLAN.md`.

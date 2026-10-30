@@ -86,6 +86,7 @@ Setup outside the app, per provider (each is off until its `TRIGGERS_PUSH_*_ENAB
 | Zoho CRM | Nothing beyond the connection (client id, secret, refresh token, data center). The refresh token needs the `ZohoCRM.notifications.ALL` scope as well for instant triggers; without it they keep polling. |
 | Zoho Desk | Nothing beyond the connection (client id, secret, refresh token with the `Desk.settings.ALL` scope as well, data center, organization id). Creating a webhook needs a Desk admin; without it the trigger keeps polling. |
 | Zoho Books, Projects, Campaigns, Mail, Cliq | Nothing: these triggers poll every few minutes. |
+| LinkedIn, Pinterest | Nothing: these triggers poll every few minutes (neither provider has a webhook for posts or pins). |
 | Resend | Nothing beyond the connection (API key; a sending-only key can send but cannot create the webhook, so use a full-access key for triggers). |
 | Postmark | Nothing beyond the connection (server token). For "Email received", the server's inbound webhook must be empty; the app sets and clears it. |
 | Mailgun | Nothing beyond the connection (private key, sending domain, region). The key needs access to the domain's webhooks. |
