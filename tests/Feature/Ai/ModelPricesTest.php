@@ -4,7 +4,6 @@ use App\Enums\Ai\ModelPriceSource;
 use App\Models\Ai\ModelPrice;
 use App\Services\Ai\ModelPrices;
 use App\Services\Billing\CreditMeter;
-use Database\Seeders\ModelPriceSeeder;
 
 /**
  * @return array<string, mixed>
@@ -107,7 +106,7 @@ it('imports the older config prices once and never overwrites a stored one', fun
 it('seeds the table from config through the seeder', function () {
     config(['billing.model_prices' => ['openai:gpt-seeded' => ['input' => 1.0, 'output' => 2.0]]]);
 
-    $this->seed(ModelPriceSeeder::class);
+    $this->syncSetup('model-prices');
 
     expect(ModelPrice::query()->where('model_id', 'gpt-seeded')->exists())->toBeTrue();
 });

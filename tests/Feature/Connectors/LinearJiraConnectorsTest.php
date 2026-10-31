@@ -6,18 +6,17 @@ use App\Models\Connectors\ConnectorCredential;
 use App\Models\Connectors\OAuthConnectorState;
 use App\Models\Nodes\NodeCategory;
 use App\Models\User;
+use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialTester;
 use App\Services\Connectors\OAuthConnectorFlowService;
 use App\Services\Workflows\NodeRegistry;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\AppNodeCategorySeeder;
-use Database\Seeders\ConnectorSeeder;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 /**
- * @return array{0: User, 1: App\Models\Workspaces\Workspace}
+ * @return array{0: User, 1: Workspace}
  */
 function connectorOwner(): array
 {
@@ -34,12 +33,12 @@ function testAccount(string $key, string $name): ConnectorCredential
     [$owner, $workspace] = connectorOwner();
 
     return ConnectorCredential::factory()->forWorkspace($workspace)
-        ->forConnector(Connector::factory()->create(['key' => $key, 'name' => $name]))
+        ->forConnector(Connector::query()->firstWhere('key', $key) ?? Connector::factory()->create(['key' => $key, 'name' => $name]))
         ->create(['data' => ['access_token' => 'tok'], 'created_by' => $owner->id]);
 }
 
 it('seeds the linear and jira connectors and node categories', function () {
-    $this->seed([ConnectorSeeder::class, AppNodeCategorySeeder::class]);
+    $this->syncSetup('connectors', 'app-node-categories');
 
     $linear = Connector::query()->where('key', 'linear')->firstOrFail();
     $jira = Connector::query()->where('key', 'jira')->firstOrFail();
@@ -63,7 +62,7 @@ it('seeds the linear and jira connectors and node categories', function () {
 });
 
 it('has a connector and a category for every connected node of both families', function () {
-    $this->seed([ConnectorSeeder::class, AppNodeCategorySeeder::class]);
+    $this->syncSetup('connectors', 'app-node-categories');
 
     $registry = app(NodeRegistry::class);
     $categories = collect(array_keys($registry->connectors()))
@@ -78,7 +77,7 @@ it('has a connector and a category for every connected node of both families', f
 });
 
 it('is off until its client credentials are set', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
 
     config(['services.linear.client_id' => null, 'services.jira.client_id' => 'x', 'services.jira.client_secret' => 'y']);
 
@@ -87,7 +86,7 @@ it('is off until its client credentials are set', function () {
 });
 
 it('sends the person to linear with comma-separated scopes', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
     config(['services.linear.client_id' => 'lin-id', 'services.linear.client_secret' => 'lin-secret']);
     [$owner, $workspace] = connectorOwner();
 
@@ -99,7 +98,7 @@ it('sends the person to linear with comma-separated scopes', function () {
 });
 
 it('sends the person to atlassian with the audience and a consent screen', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
     config(['services.jira.client_id' => 'atl-id', 'services.jira.client_secret' => 'atl-secret']);
     [$owner, $workspace] = connectorOwner();
 
@@ -112,7 +111,7 @@ it('sends the person to atlassian with the audience and a consent screen', funct
 });
 
 it('trades the code for atlassian tokens with a JSON body, and refreshes the same way', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
     config(['services.jira.client_id' => 'atl-id', 'services.jira.client_secret' => 'atl-secret']);
     $connector = Connector::query()->where('key', 'jira')->firstOrFail();
     [$owner, $workspace] = connectorOwner();
@@ -127,9 +126,10 @@ it('trades the code for atlassian tokens with a JSON body, and refreshes the sam
     ]);
 
     $credential = app(OAuthConnectorFlowService::class)->handleCallback('st', 'code-1');
+    $firstTokens = $credential->data;
     $refreshed = app(OAuthConnectorFlowService::class)->refresh($credential);
 
-    expect($credential->data)->toMatchArray(['access_token' => 'atl-1', 'refresh_token' => 'rt-1'])
+    expect($firstTokens)->toMatchArray(['access_token' => 'atl-1', 'refresh_token' => 'rt-1'])
         ->and($refreshed->data)->toMatchArray(['access_token' => 'atl-2', 'refresh_token' => 'rt-2']);
 
     $sent = collect(Http::recorded()->all())->map(fn (array $pair): Request => $pair[0])->values();
@@ -140,7 +140,7 @@ it('trades the code for atlassian tokens with a JSON body, and refreshes the sam
 });
 
 it('still trades the other connectors\' codes in a form body', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
     config(['services.linear.client_id' => 'lin-id', 'services.linear.client_secret' => 'lin-secret']);
     $connector = Connector::query()->where('key', 'linear')->firstOrFail();
     [$owner, $workspace] = connectorOwner();

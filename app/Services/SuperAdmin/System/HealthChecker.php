@@ -12,6 +12,7 @@ use App\Services\SuperAdmin\System\Checks\QueueCheck;
 use App\Services\SuperAdmin\System\Checks\RedisCheck;
 use App\Services\SuperAdmin\System\Checks\ReverbCheck;
 use App\Services\SuperAdmin\System\Checks\SchedulerCheck;
+use App\Services\SuperAdmin\System\Checks\SetupDataCheck;
 use App\Services\SuperAdmin\System\Checks\StorageCheck;
 use App\Services\SuperAdmin\System\Checks\StripeCheck;
 use App\Services\SuperAdmin\System\Checks\StuckWorkCheck;
@@ -40,6 +41,7 @@ class HealthChecker
         StorageCheck::class,
         DiskCheck::class,
         StuckWorkCheck::class,
+        SetupDataCheck::class,
     ];
 
     /**

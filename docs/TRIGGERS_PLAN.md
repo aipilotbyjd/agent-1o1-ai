@@ -113,7 +113,7 @@ database/
       TriggerEventFactory.php
       TriggerPresetFactory.php
   seeders/
-    TriggerPresetSeeder.php
+    TriggerPresetsDataset.php
 
 routes/
   webhooks.php               # Route::post('hooks/{token}', WebhookController::class)

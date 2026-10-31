@@ -35,7 +35,7 @@ npm install --ignore-scripts
 npm run build
 ```
 
-`composer run setup` runs the install, env copy, key generation, migrations and build in one go. It runs `migrate --force` against whatever database `.env` points at, so do sections 3 to 5 first if you want it to use PostgreSQL.
+`composer run setup` runs the install, env copy, key generation, migrations, setup data sync and build in one go. It runs `migrate --force` against whatever database `.env` points at, so do sections 3 to 5 first if you want it to use PostgreSQL.
 
 ## 3. Environment file
 
@@ -127,6 +127,24 @@ Things to know:
 - **Four foreign keys are added at the end.** `add_deferred_foreign_keys` adds them because the tables point at each other or at themselves: `users.current_workspace_id`, `workflows.current_version_id`, `runs.parent_node_id` and `agent_sessions.parent_session_id`.
 - **Existing databases need a rebuild.** Several create migrations were renamed. A database that already ran the old file names sees the renamed ones as new, so run `migrate:fresh` on it.
 
+### 6.1 Setup data and first admin
+
+A migrated database is empty, and the editor shows no nodes, triggers or connectors until the setup data is loaded. It holds plans, node and app categories, trigger presets, connectors, the model catalog and prices, and the agent and page templates. There are no fake users or workspaces.
+
+```bash
+php artisan setup:catalog:sync
+php artisan setup:catalog:status
+php artisan super-admin:create you@example.com --name="Your Name" --role=owner
+```
+
+- `setup:catalog:sync` is safe to repeat. A dataset whose code has not changed is skipped without any writes. Add `--only=connectors` for one dataset (its dependencies come along), `--force` to re-apply, or `--dry-run` to see what would run.
+- `setup:catalog:status` shows each dataset's owner, row count and state. It exits non-zero if anything is out of date, empty or failed.
+- The data lives in `database/setup/*.php` (plain arrays) and the rules for writing it in `app/Services/Setup/Datasets/`. Change a file and the next sync re-applies just that dataset.
+- Before writing anything, each dataset checks its own definitions (duplicate keys, a connector with no app category, a model with no routes). A problem stops that dataset, and anything depending on it, with a message saying what is wrong. `setup:catalog:sync --dry-run` runs the same checks without writing.
+- Nothing runs this for you on deploy or at container start. When you are ready, run `php artisan migrate --force` and then `php artisan setup:catalog:sync` yourself, and check the result with `setup:catalog:status`. Use `setup:catalog:sync --dry-run` first to see what would change without writing.
+- The super-admin health check `setup_data` (in `GET /system/health`) is `down` while a dataset is missing or failed, and `degraded` when the code changed since the last sync.
+- Plans, the referral program and model prices are created once and then belong to the admin. A sync never overwrites their edits.
+
 ## 7. Passport (API authentication)
 
 The `api` guard uses Passport. The migrations create the `oauth_*` tables. Two things remain: the encryption keys and a password client.
@@ -205,6 +223,7 @@ The test suite runs on SQLite, so it does not touch your PostgreSQL database. Ru
 | The wrong database is in use after editing `.env` | Cached config. Run `php artisan config:clear`. |
 | `migrate:fresh` fails with an `oauth_clients` or uuid error | Fixed in the `social_exchange` migration, which now skips a blank `PASSPORT_PASSWORD_CLIENT_ID`. Pull the latest code. |
 | `relation "..." does not exist` while migrating | A create migration sorts before the table it points at. See the order notes in [Migrations](#6-migrations). |
+| The editor shows no nodes, categories or trigger presets | The setup data was never loaded. Run `php artisan setup:catalog:sync`, then `setup:catalog:status`. In the admin app, the `setup_data` health check shows the same thing. |
 | Connects to MySQL instead of Postgres | `DB_PORT` is `3306`. Set `DB_CONNECTION=pgsql` and `DB_PORT=5432`. |
 | Search over embeddings is slow | `document_embeddings.embedding` is a `json` column, and the `pgvector` extension is not installed, so there is no vector index. |
 

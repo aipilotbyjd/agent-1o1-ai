@@ -79,7 +79,7 @@ Write the answer to each in one line at the top of your launch notes. They chang
 - [ ] **Hard monthly spend limits and usage alerts set on every provider account.** This is your only backstop against a runaway loop.
 - [ ] Provider tier/rate limits checked against expected beta concurrency; request limit increases ahead of time.
 - [ ] `AI_EMBEDDINGS_PROVIDER` chosen and **fixed** before any knowledge source is synced (changing it requires re-syncing every source).
-- [ ] `ModelCatalogSeeder` content matches the models you actually have access to; run `ai-credentials:check`-style checks (scheduled hourly) and confirm they pass in production.
+- [ ] `ModelCatalogDataset` content matches the models you actually have access to; run `ai-credentials:check`-style checks (scheduled hourly) and confirm they pass in production.
 - [ ] Fallback model/provider configured for each critical path (workflow builder, agent turns, assistant).
 - [ ] Decide and document what user data is sent to which provider, and whether any provider trains on it (needed for your privacy policy and customer questionnaires).
 
@@ -154,7 +154,7 @@ Write the answer to each in one line at the top of your launch notes. They chang
 ### 3.3 Admin and operational dashboards
 - [ ] Spend guard: set `MODEL_DAILY_BUDGET_USD` and `MODEL_WORKSPACE_DAILY_USD`, set `SUPER_ADMIN_ALERT_EMAILS` to a mailbox someone reads, and confirm the scheduler runs `model-usage:rollup` and `model-spend:check` hourly.
 - [ ] Audit log: run `php artisan super-admin:audit-verify` and write down the `head` it prints somewhere outside the database; re-check with `--expect-hash=<head>` now and then. Know the incident commands: `super-admin:lockdown` (every session out) and the `POST /models/providers/{provider}/pause` kill switch for a leaked AI key.
-- [ ] Models: run `php artisan db:seed --class=ModelPriceSeeder` (or `model-prices:import-config`), then `php artisan model-catalog:doctor` and clear every error; price every model you pay for (`Super Admin → Models → Margins` shows which are unpriced or losing money).
+- [ ] Models: run `php artisan setup:catalog:sync --only=model-prices` (or `model-prices:import-config`), then `php artisan model-catalog:doctor` and clear every error; price every model you pay for (`Super Admin → Models → Margins` shows which are unpriced or losing money).
 - [ ] Horizon gate (`viewHorizon`) restricted to `SUPER_ADMIN_DASHBOARD_IPS`: test an allowed and a disallowed address in production.
 - [ ] Pulse dashboard gate (`viewPulse`) restricted to `SUPER_ADMIN_DASHBOARD_IPS`: test an allowed address gets in while an unauthenticated and a non-listed request return 403.
 - [ ] Any other admin UI/route (artifacts, debug, telescope-like tools, `/docs`, OpenAPI, Boost/MCP endpoints) is disabled or gated in production. `laravel/boost` is a dev dependency: confirm it is **not installed** in the production image and its MCP routes are not exposed.
@@ -207,8 +207,8 @@ Write the answer to each in one line at the top of your launch notes. They chang
 
 ### 4.1 Stripe configuration
 - [ ] Live-mode `STRIPE_KEY`, `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET` set. Test keys do not exist in production env.
-- [ ] Live products/prices created for every plan and interval; IDs set via `STRIPE_PLAN_<PLAN>_*_PRODUCT_ID/PRICE_ID` (starter, pro, … monthly/quarterly/yearly/lifetime) and match `PlanSeeder` and `plans` rows.
-- [ ] `PlanSeeder` run in production; prices, credits and limits in the DB are the intended launch numbers.
+- [ ] Live products/prices created for every plan and interval; IDs set via `STRIPE_PLAN_<PLAN>_*_PRODUCT_ID/PRICE_ID` (starter, pro, … monthly/quarterly/yearly/lifetime) and match `PlansDataset` and `plans` rows.
+- [ ] `PlansDataset` run in production; prices, credits and limits in the DB are the intended launch numbers.
 - [ ] Webhook endpoint registered in live mode with only the events you handle; failed-delivery email alerts on.
 - [ ] Customer Portal configured (payment methods, invoices, cancel/pause rules).
 - [ ] Tax: Stripe Tax or manual VAT/GST/sales tax decision made; business address, tax IDs and invoice footer set; `CASHIER_CURRENCY` and locale confirmed.
@@ -278,7 +278,7 @@ Write the answer to each in one line at the top of your launch notes. They chang
 
 ### 6.2 Migrations and data
 - [ ] `php artisan migrate --force` on a **copy of production-sized data** completes without long locks. Large-table changes use online patterns.
-- [ ] Seeders to run in production are listed and **idempotent**: `PlanSeeder`, `NodeCategorySeeder`, `AppNodeCategorySeeder`, `ConnectorSeeder`, `ModelCatalogSeeder`, `TriggerPresetSeeder`, `AgentTemplateSeeder`, `PageTemplateSeeder`, `ReferralProgramSeeder`. Running twice must not duplicate or overwrite user-modified rows. `DatabaseSeeder` must **not** create demo users in production.
+- [ ] Seeders to run in production are listed and **idempotent**: `PlansDataset`, `NodeCategoriesDataset`, `AppNodeCategoriesDataset`, `ConnectorsDataset`, `ModelCatalogDataset`, `TriggerPresetsDataset`, `AgentTemplatesDataset`, `PageTemplatesDataset`, `ReferralProgramDataset`. Running twice must not duplicate or overwrite user-modified rows. `DatabaseSeeder` must **not** create demo users in production.
 - [ ] Indexes reviewed for hot paths: runs by workspace/status/created_at, node_runs by run, trigger_events by trigger/status/created_at, agent_messages by session, credit_transactions by workspace, document_embeddings (vector index), processed_webhook_events (unique key). Run `EXPLAIN` on the main list endpoints with realistic row counts.
 - [ ] Foreign keys and cascades checked: deleting a workspace/user removes or anonymizes dependent data deliberately.
 

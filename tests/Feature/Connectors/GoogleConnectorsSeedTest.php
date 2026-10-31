@@ -4,11 +4,9 @@ use App\Enums\Connectors\ConnectorAuthType;
 use App\Models\Connectors\Connector;
 use App\Models\Nodes\NodeCategory;
 use App\Services\Workflows\NodeRegistry;
-use Database\Seeders\AppNodeCategorySeeder;
-use Database\Seeders\ConnectorSeeder;
 
 it('seeds a connector and a node category for every google node family', function () {
-    $this->seed([ConnectorSeeder::class, AppNodeCategorySeeder::class]);
+    $this->syncSetup('connectors', 'app-node-categories');
 
     $registry = app(NodeRegistry::class);
 
@@ -39,7 +37,7 @@ it('seeds a connector and a node category for every google node family', functio
 });
 
 it('asks each new google app only for the scopes it needs', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
 
     $scopes = fn (string $key): array => Connector::query()->where('key', $key)->firstOrFail()->oauth['scopes'];
 
@@ -53,7 +51,7 @@ it('asks each new google app only for the scopes it needs', function () {
 });
 
 it('asks Sheets and Docs for Drive file metadata, which their instant triggers need', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
 
     foreach (['google_sheets', 'google_docs'] as $key) {
         expect(Connector::query()->where('key', $key)->firstOrFail()->oauth['scopes'])->toContain('https://www.googleapis.com/auth/drive.metadata.readonly');
@@ -78,20 +76,23 @@ it('offers every Google trigger in the Triggers & Events catalog', function () {
         'Google Contacts: Contact added or updated',
         'Google Contacts: New contact',
         'Google Docs: Document updated',
+        'Google Drive: File trashed',
         'Google Drive: File updated',
         'Google Drive: New file',
         'Google Forms: New response',
         'Google Sheets: New row',
         'Google Sheets: Row added or updated',
+        'Google Sheets: Row deleted',
         'Google Tasks: New task',
         'Google Tasks: Task completed',
+        'Google Tasks: Task due soon',
         'YouTube: New comment',
         'YouTube: New video',
     ]);
 });
 
 it('asks Slack and GitHub for every permission their nodes and triggers use', function () {
-    $this->seed(ConnectorSeeder::class);
+    $this->syncSetup('connectors');
     $scopes = fn (string $key): array => Connector::query()->where('key', $key)->firstOrFail()->oauth['scopes'];
 
     expect($scopes('slack'))->toContain('chat:write', 'im:write', 'reactions:write', 'pins:write', 'files:write', 'users:read.email', 'channels:manage', 'channels:join', 'app_mentions:read')

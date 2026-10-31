@@ -5,20 +5,7 @@ use App\Enums\Workspaces\Role;
 use App\Models\Connectors\Connector;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\User;
-use App\Models\Workspaces\Workspace;
-use App\Services\Workspaces\WorkspaceService;
 use Laravel\Passport\Passport;
-
-/**
- * @return array{0: Workspace, 1: User}
- */
-function ownerWorkspaceForConnectors(): array
-{
-    $owner = User::factory()->create();
-    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-
-    return [$workspace, $owner];
-}
 
 it('lists the connector catalog', function () {
     Connector::factory()->create(['key' => 'slack', 'name' => 'Slack']);

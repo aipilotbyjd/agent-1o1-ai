@@ -1,15 +1,16 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Services\Setup\Datasets;
 
 use App\Enums\Referrals\AlreadyOnPlanBehavior;
 use App\Enums\Referrals\ReferralRecipient;
 use App\Enums\Referrals\ReferralRewardType;
 use App\Enums\Referrals\ReferralTrigger;
+use App\Enums\Setup\Ownership;
 use App\Models\Billing\Plan;
 use App\Models\Referrals\ReferralBlockedDomain;
 use App\Models\Referrals\ReferralProgram;
-use Illuminate\Database\Seeder;
+use App\Services\Setup\AbstractSetupDataset;
 
 /**
  * A starting point for the referral program, not its source of truth: it
@@ -17,8 +18,33 @@ use Illuminate\Database\Seeder;
  * that slug exists yet, so re-running it never overwrites what an admin has
  * since changed from the admin API.
  */
-class ReferralProgramSeeder extends Seeder
+class ReferralProgramDataset extends AbstractSetupDataset
 {
+    public function key(): string
+    {
+        return 'referral-program';
+    }
+
+    public function label(): string
+    {
+        return 'Referral program';
+    }
+
+    public function ownership(): Ownership
+    {
+        return Ownership::AdminOwned;
+    }
+
+    public function dependencies(): array
+    {
+        return ['plans'];
+    }
+
+    public function rows(): int
+    {
+        return ReferralProgram::query()->count();
+    }
+
     /**
      * Common disposable-mail services. Maintained from the admin API after
      * this.
@@ -31,7 +57,7 @@ class ReferralProgramSeeder extends Seeder
         'getnada.com', 'dispostable.com', 'maildrop.cc', 'throwawaymail.com',
     ];
 
-    public function run(): void
+    public function apply(): void
     {
         foreach (self::BLOCKED_DOMAINS as $domain) {
             ReferralBlockedDomain::query()->firstOrCreate(['domain' => $domain], ['reason' => 'Disposable email service']);

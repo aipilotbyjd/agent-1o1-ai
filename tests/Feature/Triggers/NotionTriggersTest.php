@@ -14,8 +14,6 @@ use App\Models\Workflows\Workflow;
 use App\Services\Connectors\ConnectorCredentialTester;
 use App\Services\Connectors\OAuthConnectorFlowService;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\AppNodeCategorySeeder;
-use Database\Seeders\ConnectorSeeder;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -74,7 +72,7 @@ function notionWebhook(string $type, array $overrides = [], string $id = 'evt-1'
 
 describe('connecting', function () {
     it('seeds the notion connector and node category', function () {
-        $this->seed([ConnectorSeeder::class, AppNodeCategorySeeder::class]);
+        $this->syncSetup('connectors', 'app-node-categories');
 
         $connector = Connector::query()->where('key', 'notion')->firstOrFail();
 
@@ -88,7 +86,7 @@ describe('connecting', function () {
     });
 
     it('sends the person to notion as the owner, with no scope', function () {
-        $this->seed(ConnectorSeeder::class);
+        $this->syncSetup('connectors');
         config(['services.notion.client_id' => 'cid', 'services.notion.client_secret' => 'csecret']);
         $owner = User::factory()->create();
         $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
@@ -102,7 +100,7 @@ describe('connecting', function () {
     });
 
     it('trades the code with basic auth and keeps the workspace id for webhooks', function () {
-        $this->seed(ConnectorSeeder::class);
+        $this->syncSetup('connectors');
         config(['services.notion.client_id' => 'cid', 'services.notion.client_secret' => 'csecret']);
         $connector = Connector::query()->where('key', 'notion')->firstOrFail();
         $owner = User::factory()->create();

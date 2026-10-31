@@ -355,3 +355,16 @@ function subscribeWorkspaceTo(Plan $plan, string $status = 'active', ?string $pr
 
     return $workspace;
 }
+
+/**
+ * A fresh owner and their workspace, for connector tests.
+ *
+ * @return array{0: Workspace, 1: User}
+ */
+function ownerWorkspaceForConnectors(): array
+{
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    return [$workspace, $owner];
+}

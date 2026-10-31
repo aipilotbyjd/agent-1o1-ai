@@ -10,8 +10,6 @@ use App\Services\Connectors\ConnectorCredentialTester;
 use App\Services\Connectors\SmtpMailer;
 use App\Services\Workflows\NodeRegistry;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\AppNodeCategorySeeder;
-use Database\Seeders\ConnectorSeeder;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -24,7 +22,7 @@ use Laravel\Passport\Passport;
  */
 function messagingAccount(string $key, array $data): ConnectorCredential
 {
-    test()->seed([ConnectorSeeder::class]);
+    test()->syncSetup('connectors');
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
 
@@ -35,7 +33,7 @@ function messagingAccount(string $key, array $data): ConnectorCredential
 
 describe('messaging connectors', function () {
     it('seeds the four connectors with the form a member fills in, and a node category each', function () {
-        $this->seed([ConnectorSeeder::class, AppNodeCategorySeeder::class]);
+        $this->syncSetup('connectors', 'app-node-categories');
 
         $fields = fn (string $key): array => collect(Connector::query()->where('key', $key)->firstOrFail()->fields)->keyBy('name')->all();
 
@@ -58,7 +56,7 @@ describe('messaging connectors', function () {
     });
 
     it('has a connector and a category for every connected node of the four families', function () {
-        $this->seed([ConnectorSeeder::class, AppNodeCategorySeeder::class]);
+        $this->syncSetup('connectors', 'app-node-categories');
 
         $registry = app(NodeRegistry::class);
         $categories = collect(array_keys($registry->connectors()))
@@ -87,7 +85,7 @@ describe('messaging connectors', function () {
 describe('saving a messaging connection', function () {
     it('refuses one that is missing a field its form requires, and says which', function () {
         [$workspace, $owner] = ownerWorkspaceForConnectors();
-        $this->seed([ConnectorSeeder::class]);
+        $this->syncSetup('connectors');
         $twilio = Connector::query()->where('key', 'twilio')->firstOrFail();
         $smtp = Connector::query()->where('key', 'smtp')->firstOrFail();
         Passport::actingAs($owner);

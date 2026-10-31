@@ -10,8 +10,6 @@ use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Services\Workflows\NodeRegistry;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\AppNodeCategorySeeder;
-use Database\Seeders\ConnectorSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -133,7 +131,7 @@ it('will not switch or feature an app that has no connector, and never touches a
 });
 
 it('keeps what an admin changed when the seeders run again, and refreshes the rest', function () {
-    $this->seed([AppNodeCategorySeeder::class, ConnectorSeeder::class]);
+    $this->syncSetup('app-node-categories', 'connectors');
     $slack = NodeCategory::query()->where('slug', 'slack')->firstOrFail();
     $connector = Connector::query()->where('key', 'slack')->firstOrFail();
     $seededColor = $slack->color;
@@ -144,7 +142,7 @@ it('keeps what an admin changed when the seeders run again, and refreshes the re
     $slack->forceFill(['color' => '#000000'])->save();
     $connector->forceFill(['description' => 'stale'])->save();
 
-    $this->seed([AppNodeCategorySeeder::class, ConnectorSeeder::class]);
+    $this->syncSetup('app-node-categories', 'connectors');
 
     expect($slack->fresh()->name)->toBe('Slack (ours)')
         ->and($slack->fresh()->functions)->toBe(['messaging', 'developer'])

@@ -10,7 +10,7 @@ return new class extends Migration
     /**
      * Plans that may share pages outside the workspace, and how many pages
      * each plan allows. Merged into existing rows rather than re-running
-     * `PlanSeeder`, which would overwrite anything edited since it last ran.
+     * `PlansDataset`, which would overwrite anything edited since it last ran.
      *
      * @var array<string, array{public: bool, limit: int}>
      */

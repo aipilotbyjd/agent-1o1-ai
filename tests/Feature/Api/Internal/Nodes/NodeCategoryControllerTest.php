@@ -3,7 +3,6 @@
 use App\Models\Nodes\CatalogFunction;
 use App\Models\Nodes\NodeCategory;
 use App\Models\User;
-use Database\Seeders\AppNodeCategorySeeder;
 use Illuminate\Support\Facades\DB;
 use Laravel\Passport\Passport;
 
@@ -103,7 +102,7 @@ it('shows an app with no function under Other apps and leaves core categories ou
 });
 
 it('seeds every integration with one to three real functions', function () {
-    $this->seed(AppNodeCategorySeeder::class);
+    $this->syncSetup('app-node-categories');
 
     $apps = NodeCategory::query()->where('kind', 'app')->get();
 
@@ -115,7 +114,7 @@ it('seeds every integration with one to three real functions', function () {
 });
 
 it('cross-lists Google Analytics under Marketing and gathers a vendor family', function () {
-    $this->seed(AppNodeCategorySeeder::class);
+    $this->syncSetup('app-node-categories');
 
     $analytics = NodeCategory::query()->where('slug', 'google_analytics')->firstOrFail();
 

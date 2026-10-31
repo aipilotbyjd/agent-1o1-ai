@@ -6,6 +6,7 @@ use App\Jobs\Triggers\PollTrigger;
 use App\Jobs\Triggers\SyncTriggerSubscription;
 use App\Models\Connectors\Connector;
 use App\Models\Connectors\ConnectorCredential;
+use App\Models\Triggers\ProviderEvent;
 use App\Models\Triggers\ProviderWatch;
 use App\Models\Triggers\Trigger;
 use App\Models\User;
@@ -14,6 +15,7 @@ use App\Services\Triggers\Push\JiraSource;
 use App\Services\Triggers\Push\LinearSource;
 use App\Services\Triggers\Push\WatchManager;
 use App\Services\Workspaces\WorkspaceService;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -68,7 +70,7 @@ function fakeLinearPush(array $handlers): void
             if (str_contains((string) $request['query'], $needle)) {
                 $answer = value($answer, $request);
 
-                return $answer instanceof GuzzleHttp\Promise\PromiseInterface ? $answer : Http::response(['data' => $answer]);
+                return $answer instanceof PromiseInterface ? $answer : Http::response(['data' => $answer]);
             }
         }
 
@@ -331,7 +333,7 @@ describe('jira: a webhook wakes the trigger\'s own poll', function () {
         Queue::assertPushed(PollTrigger::class, fn (PollTrigger $job): bool => $job->trigger->is($trigger));
     });
 
-    it('pokes once for a delivery Jira repeats, and tells deliveries apart by their identifier', function () {
+    it('records a delivery Jira repeats once, tells deliveries apart by their identifier, and shares one queued poll', function () {
         jiraPushTrigger();
         $token = (string) ProviderWatch::query()->sole()->secret;
 
@@ -339,7 +341,12 @@ describe('jira: a webhook wakes the trigger\'s own poll', function () {
         jiraDelivery($token, identifier: 'one')->assertOk();
         jiraDelivery($token, identifier: 'two')->assertOk();
 
-        Queue::assertPushed(PollTrigger::class, 2);
+        // Jira repeating "one" is recorded once; "two" is a second delivery.
+        expect(ProviderEvent::query()->where('provider', 'jira')->pluck('event_id')->sort()->values()->all())->toBe(['one', 'two']);
+
+        // A poll is unique per trigger, so deliveries that arrive while one is
+        // already queued share it instead of queuing another.
+        Queue::assertPushed(PollTrigger::class, 1);
     });
 
     it('refuses a delivery without the token, or with another one', function () {
@@ -431,7 +438,7 @@ it('keeps the push switch for linear and jira off by default, and asks for the e
         ->and(config('triggers.push.jira.enabled'))->toBeFalse();
 
     $scopes = function (string $key): array {
-        (new Database\Seeders\ConnectorSeeder)->run();
+        test()->syncSetup('connectors');
 
         return Connector::query()->where('key', $key)->firstOrFail()->oauth['scopes'];
     };

@@ -5,7 +5,6 @@ use App\Models\Billing\Plan;
 use App\Models\Billing\PlanPriceHistory;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\PlanSeeder;
 use Laravel\Passport\Passport;
 
 /*
@@ -40,11 +39,11 @@ it('hides hidden and archived plans from the customer plan list', function () {
 });
 
 it('leaves a plan alone when the seeder runs again after an admin edited it', function () {
-    (new PlanSeeder)->run();
+    test()->syncSetup('plans');
 
     Plan::query()->where('slug', 'starter')->update(['price_monthly' => 3500, 'credits_monthly' => 9000, 'is_active' => false]);
 
-    (new PlanSeeder)->run();
+    test()->syncSetup('plans');
 
     $starter = Plan::query()->where('slug', 'starter')->sole();
 

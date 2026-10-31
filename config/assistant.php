@@ -59,7 +59,7 @@ return [
 
     'runtime' => [
         // The model when the owner hasn't picked one: this internal catalog
-        // entry's routes (see ModelCatalogSeeder), or (if it has none)
+        // entry's routes (see ModelCatalogDataset), or (if it has none)
         // the raw provider/model below.
         'catalog' => env('ASSISTANT_MODEL_CATALOG', 'personal-assistant'),
         'provider' => env('ASSISTANT_PROVIDER', 'anthropic'),

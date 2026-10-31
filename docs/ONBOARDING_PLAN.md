@@ -84,7 +84,7 @@ sort_order (usmallint, default 0), timestamps
 
 `app/Models/Billing/Plan.php` — port `hasFeature()`, `getLimit()`, `stripePriceId()` helpers from old backend.
 
-`PlanSeeder` — 3 rows (`free`, `pro`, `business`) matching the FE's hardcoded `PLANS` constant pricing/features. `stripe_price_id_*` left `null` for `pro`/`business` until real Stripe products exist.
+`PlansDataset` — 3 rows (`free`, `pro`, `business`) matching the FE's hardcoded `PLANS` constant pricing/features. `stripe_price_id_*` left `null` for `pro`/`business` until real Stripe products exist.
 
 `app/Enums/Billing/BillingInterval.php` — `Monthly`/`Yearly` (needed even for the free path since the request shape includes `interval`).
 

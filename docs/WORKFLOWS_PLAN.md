@@ -140,7 +140,7 @@ This is what makes "an invalid graph is a compile error, not a run that hangs" t
 
 ## Build order
 
-1. Models + migrations above (`workflows`, `workflow_versions`, `workflow_nodes`, `workflow_edges`, `runs`, `node_runs`, `node_categories`, `custom_nodes`) + `NodeCategorySeeder` (core categories only — `flow-logic`, `data-transform`, `ai-automation`, `custom`, `triggers-events`).
+1. Models + migrations above (`workflows`, `workflow_versions`, `workflow_nodes`, `workflow_edges`, `runs`, `node_runs`, `node_categories`, `custom_nodes`) + `NodeCategoriesDataset` (core categories only — `flow-logic`, `data-transform`, `ai-automation`, `custom`, `triggers-events`).
 2. `NodeContract`, `NodeRegistry`, `NodeRegistryServiceProvider`, and a minimal node set to prove the engine: `Input`/`Output` (implicit via `runs.input`/`.output`), `Transform`, `Filter`, `Router`(condition), `CallApi` (HTTP), `AskAi` (LLM call via `laravel/ai`), `RunCode`.
 3. `WorkflowGraph`, `GraphValidator`, `ConfigSchemaValidator`, `Workflow::replaceGraph()`/`publishVersion()` — draft editing + publish-time validation working end-to-end via the Internal API's `WorkflowBuilderController`.
 4. `StartWorkflowRunAction`, `WorkflowRunner`, `GraphAdvancer`, `StepFailureHandler`, node execution `Jobs/Workflows/{ExecuteNodeJob,DispatchNextNodesJob,ResumeWorkflowJob}` — manual-trigger runs complete end-to-end, Run Log queryable on both API surfaces.
