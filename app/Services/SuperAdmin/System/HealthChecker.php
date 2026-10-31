@@ -5,6 +5,7 @@ namespace App\Services\SuperAdmin\System;
 use App\Services\SuperAdmin\System\Checks\CacheCheck;
 use App\Services\SuperAdmin\System\Checks\DatabaseCheck;
 use App\Services\SuperAdmin\System\Checks\DiskCheck;
+use App\Services\SuperAdmin\System\Checks\EnvironmentCheck;
 use App\Services\SuperAdmin\System\Checks\HealthCheck;
 use App\Services\SuperAdmin\System\Checks\HorizonCheck;
 use App\Services\SuperAdmin\System\Checks\MailCheck;
@@ -42,6 +43,7 @@ class HealthChecker
         DiskCheck::class,
         StuckWorkCheck::class,
         SetupDataCheck::class,
+        EnvironmentCheck::class,
     ];
 
     /**

@@ -20,6 +20,7 @@ use App\Notifications\Billing\PaymentFailedNotification;
 use App\Notifications\Billing\PaymentRecoveredNotification;
 use App\Notifications\Billing\SubscriptionCanceledNotification;
 use App\Notifications\Billing\SubscriptionRenewedNotification;
+use App\Services\Http\LocalDevelopmentRequest;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Referrals\ReferralPaymentData;
 use Carbon\Carbon;
@@ -39,10 +40,13 @@ class StripeWebhookController extends CashierWebhookController
 
         // Cashier only verifies the signature when a secret is configured, so
         // a missing one would let anyone forge events that grant credits or
-        // plans. Refuse to serve the endpoint at all rather than fail open.
+        // plans. Refuse to serve the endpoint at all rather than fail open,
+        // except for tests and a developer's own machine.
         $this->middleware(function (Request $request, Closure $next) {
             abort_if(
-                blank(config('cashier.webhook.secret')) && ! app()->environment(['local', 'testing']),
+                blank(config('cashier.webhook.secret'))
+                && ! app()->environment('testing')
+                && ! app(LocalDevelopmentRequest::class)->matches($request),
                 503,
                 'The Stripe webhook signing secret is not configured.',
             );
