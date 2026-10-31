@@ -292,24 +292,31 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     }
 
     /**
-     * Falls back to `laravel/ai`'s own default provider (`config('ai.default')`)
-     * when the `workflow-builder-assistant` catalog entry hasn't been seeded
-     * or has no enabled route, so a fresh install isn't broken by this.
-     * Runs on the workspace's own provider key where the member sending the
-     * message has one: see `ByokProviderRegistrar`.
+     * Runs on the model the member picked for this turn, else on the
+     * `workflow-builder-assistant` entry. Falls back to `laravel/ai`'s own
+     * default provider (`config('ai.default')`) when neither resolves (the
+     * entry hasn't been seeded or has no enabled route), so a fresh install
+     * isn't broken by this. Runs on the workspace's own provider key where
+     * the member sending the message has one: see `ByokProviderRegistrar`.
      *
      * @return array<string, string>|null
      */
     private function provider(ModelCatalogResolver $modelCatalog, ByokProviderRegistrar $byok, WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage): ?array
     {
-        try {
-            $chain = $modelCatalog->providerChain(self::MODEL_CATALOG_SLUG);
-        } catch (RuntimeException) {
-            return null;
+        $slugs = array_filter([$userMessage->modelCatalog?->slug, self::MODEL_CATALOG_SLUG]);
+
+        foreach ($slugs as $slug) {
+            try {
+                $chain = $modelCatalog->providerChain($slug);
+            } catch (RuntimeException) {
+                continue;
+            }
+
+            [$provider] = $byok->apply($chain, null, $session->workspace_id, $userMessage->user_id);
+
+            return $provider;
         }
 
-        [$provider] = $byok->apply($chain, null, $session->workspace_id, $userMessage->user_id);
-
-        return $provider;
+        return null;
     }
 }

@@ -29,6 +29,8 @@ return new class extends Migration
             $table->foreignUuid('user_id')->nullable()->constrained()->nullOnDelete();
             $table->json('context')->nullable();
             $table->string('mode', 16)->default('build');
+            // The catalog model the member picked for this turn; null runs the assistant's own default.
+            $table->foreignUuid('model_catalog_id')->nullable()->constrained('model_catalog')->nullOnDelete();
             $table->timestamps();
 
             $table->index(['session_id', 'created_at']);

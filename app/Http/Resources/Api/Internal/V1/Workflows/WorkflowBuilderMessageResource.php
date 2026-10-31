@@ -25,6 +25,7 @@ class WorkflowBuilderMessageResource extends JsonResource
             'role' => $this->role,
             'mode' => $this->mode,
             'context' => $this->context,
+            'model_catalog_id' => $this->model_catalog_id,
             'content' => $this->content,
             'actions' => $this->actions,
             'processing_status' => $this->processing_status,
