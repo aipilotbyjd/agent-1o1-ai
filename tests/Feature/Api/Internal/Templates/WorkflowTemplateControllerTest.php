@@ -127,3 +127,18 @@ it('lets a viewer read templates but not manage them', function () {
         'graph' => ['nodes' => [], 'edges' => []],
     ])->assertForbidden();
 });
+
+it('lists featured templates first, then by their order, then the newest', function () {
+    [$workspace, $owner] = ownerWorkspaceForWorkflowTemplate();
+
+    WorkflowTemplate::factory()->global()->create(['name' => 'Plain', 'is_featured' => false, 'sort_order' => 0]);
+    WorkflowTemplate::factory()->global()->create(['name' => 'Featured second', 'is_featured' => true, 'sort_order' => 2]);
+    WorkflowTemplate::factory()->global()->create(['name' => 'Featured first', 'is_featured' => true, 'sort_order' => 1]);
+    WorkflowTemplate::factory()->forWorkspace($workspace)->create(['name' => 'Mine', 'is_featured' => false, 'sort_order' => 0]);
+    Passport::actingAs($owner);
+
+    $names = collect($this->getJson("/api/v1/workspaces/{$workspace->id}/workflow-templates")->json('data.workflow_templates'))->pluck('name')->all();
+
+    expect(array_slice($names, 0, 2))->toBe(['Featured first', 'Featured second'])
+        ->and($names)->toContain('Plain', 'Mine');
+});

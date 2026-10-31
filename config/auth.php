@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\User;
 
 return [
@@ -47,6 +48,13 @@ return [
             'driver' => 'passport',
             'provider' => 'users',
         ],
+
+        // The Super Admin panel: its own accounts and opaque tokens, no
+        // Passport. See `SuperAdminServiceProvider`.
+        'super-admin' => [
+            'driver' => 'super-admin-token',
+            'provider' => 'super_admins',
+        ],
     ],
 
     /*
@@ -70,6 +78,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'super_admins' => [
+            'driver' => 'eloquent',
+            'model' => SuperAdmin::class,
         ],
 
         // 'users' => [

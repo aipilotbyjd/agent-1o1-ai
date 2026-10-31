@@ -1,15 +1,24 @@
 <?php
 
 use App\Actions\Referrals\AttributeReferralAction;
+use App\Enums\Billing\BillingInterval;
+use App\Enums\SuperAdmin\SuperAdminRole;
+use App\Models\Billing\Plan;
+use App\Models\Billing\Subscription;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralProgram;
+use App\Models\SuperAdmin\SuperAdmin;
+use App\Models\SuperAdmin\SuperAdminToken;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\StripeCustomerBalance;
 use App\Services\Referrals\ReferralCodes;
+use App\Services\SuperAdmin\Auth\SuperAdminTokenService;
+use App\Services\SuperAdmin\Pricing\PricingStripe;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\Client;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 /*
@@ -104,14 +113,6 @@ function referUser(User $referrer, ?User $referred = null, ?ReferralProgram $pro
     return app(AttributeReferralAction::class)->execute($referred ?? referralUser(['email_verified_at' => null]), $code->code);
 }
 
-function platformAdmin(): User
-{
-    $admin = User::factory()->create();
-    $admin->forceFill(['is_platform_admin' => true, 'two_factor_confirmed_at' => now()])->save();
-
-    return $admin;
-}
-
 /**
  * Swaps Stripe customer-balance calls for an in-memory record.
  */
@@ -180,4 +181,190 @@ function referralInvoicePaidPayload(string $eventId, string $customerId, int $am
 function unwrapUntrusted(string $wrapped): string
 {
     return preg_replace('#^<untrusted_content[^>]*>\n|\n</untrusted_content>$#', '', $wrapped);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Super Admin helpers
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * A URL under the Super Admin API.
+ */
+function saUrl(string $path): string
+{
+    return '/api/'.config('super_admin.prefix').'/'.ltrim($path, '/');
+}
+
+/**
+ * A fully provisioned super admin: password already changed, two-factor
+ * authentication confirmed (an owner unless a role is given).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function superAdmin(SuperAdminRole $role = SuperAdminRole::Owner, array $attributes = []): SuperAdmin
+{
+    return SuperAdmin::factory()->role($role)->withTwoFactor()->create($attributes);
+}
+
+/**
+ * An `Authorization` header carrying a fresh token for `$admin`.
+ *
+ * @return array<string, string>
+ */
+function superAdminHeaders(SuperAdmin $admin, string $scope = SuperAdminToken::SCOPE_FULL): array
+{
+    $issued = app(SuperAdminTokenService::class)->issue($admin, $scope);
+
+    return ['Authorization' => 'Bearer '.$issued['access_token']];
+}
+
+/**
+ * The code an authenticator app would show right now.
+ */
+function superAdminTotp(SuperAdmin $admin): string
+{
+    return app(Google2FA::class)->getCurrentOtp($admin->two_factor_secret);
+}
+
+/**
+ * The reason and fresh authenticator code every sensitive write requires.
+ *
+ * @param  array<string, mixed>  $payload
+ * @return array<string, mixed>
+ */
+function stepUp(SuperAdmin $admin, array $payload = []): array
+{
+    return ['reason' => 'Verified request from the account owner', 'totp_code' => superAdminTotp($admin), ...$payload];
+}
+
+/**
+ * Swaps the pricing manager's Stripe gateway for one that records its calls
+ * and hands back predictable ids, so nothing reaches the network. Set
+ * `$fake->failPriceAt` to the 1-based price call that should throw.
+ */
+function fakePricingStripe(): PricingStripe
+{
+    $fake = new class extends PricingStripe
+    {
+        /** @var list<array<string, mixed>> */
+        public array $calls = [];
+
+        public ?int $failPriceAt = null;
+
+        /** @var array<string, array{exists: bool, active: bool, amount_cents: int|null}> */
+        public array $inspections = [];
+
+        private int $sequence = 0;
+
+        public function createProduct(string $name, string $planSlug, string $idempotencyKey): string
+        {
+            $this->calls[] = ['createProduct', $name];
+
+            return 'prod_fake_'.++$this->sequence;
+        }
+
+        public function renameProduct(string $productId, string $name): void
+        {
+            $this->calls[] = ['renameProduct', $productId, $name];
+        }
+
+        public function createPrice(string $productId, BillingInterval $interval, int $amountCents, string $idempotencyKey): string
+        {
+            $this->calls[] = ['createPrice', $interval->value, $amountCents, $idempotencyKey];
+
+            if ($this->failPriceAt !== null && count($this->prices()) === $this->failPriceAt) {
+                throw new RuntimeException('Stripe is down.');
+            }
+
+            return 'price_fake_'.++$this->sequence;
+        }
+
+        public function archivePrice(string $priceId): void
+        {
+            $this->calls[] = ['archivePrice', $priceId];
+        }
+
+        public function inspectPrice(string $priceId): array
+        {
+            return $this->inspections[$priceId] ?? ['exists' => true, 'active' => true, 'amount_cents' => null];
+        }
+
+        public function createCoupon(array $params, string $idempotencyKey): string
+        {
+            $this->calls[] = ['createCoupon', $params];
+
+            return 'coupon_fake_'.++$this->sequence;
+        }
+
+        public function createPromotionCode(array $params, string $idempotencyKey): string
+        {
+            $this->calls[] = ['createPromotionCode', $params];
+
+            return 'promo_fake_'.++$this->sequence;
+        }
+
+        public function setPromotionCodeActive(string $promotionCodeId, bool $active): void
+        {
+            $this->calls[] = ['setPromotionCodeActive', $promotionCodeId, $active];
+        }
+
+        public function timesRedeemed(string $promotionCodeId): int
+        {
+            return 7;
+        }
+
+        /**
+         * @return list<array<string, mixed>>
+         */
+        public function prices(): array
+        {
+            return array_values(array_filter($this->calls, fn (array $call): bool => $call[0] === 'createPrice'));
+        }
+
+        /**
+         * @return list<array<string, mixed>>
+         */
+        public function callsTo(string $method): array
+        {
+            return array_values(array_filter($this->calls, fn (array $call): bool => $call[0] === $method));
+        }
+    };
+
+    app()->instance(PricingStripe::class, $fake);
+
+    return $fake;
+}
+
+/**
+ * A fresh workspace with a live subscription on `$plan`, optionally at a given Stripe price.
+ */
+function subscribeWorkspaceTo(Plan $plan, string $status = 'active', ?string $price = null): Workspace
+{
+    $workspace = app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Acme '.fake()->unique()->word()]);
+
+    Subscription::query()->create([
+        'workspace_id' => $workspace->id,
+        'plan_id' => $plan->id,
+        'type' => 'default',
+        'stripe_id' => 'sub_'.fake()->unique()->uuid(),
+        'stripe_status' => $status,
+        'stripe_price' => $price ?? $plan->stripe_price_id_monthly,
+    ]);
+
+    return $workspace;
+}
+
+/**
+ * A fresh owner and their workspace, for connector tests.
+ *
+ * @return array{0: Workspace, 1: User}
+ */
+function ownerWorkspaceForConnectors(): array
+{
+    $owner = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    return [$workspace, $owner];
 }

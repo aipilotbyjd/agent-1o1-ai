@@ -8,6 +8,7 @@ use App\Enums\Referrals\ReferralRewardType;
 use App\Enums\Referrals\ReferralTrigger;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
+use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use Database\Factories\Referrals\ReferralRewardFactory;
@@ -120,7 +121,7 @@ class ReferralReward extends Model
 
     public function grantedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'granted_by');
+        return $this->belongsTo(SuperAdmin::class, 'granted_by');
     }
 
     /**

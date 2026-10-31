@@ -19,6 +19,12 @@ use App\Nodes\Support\Field;
  */
 class DelayNode implements DeclaresEffect, HasIcon, NodeContract
 {
+    /**
+     * The longest a step may pause: seven days. Longer waits belong to the
+     * Wait node, which resumes on a callback instead of holding a queued job.
+     */
+    public const int MAX_SECONDS = 604800;
+
     public function type(): string
     {
         return 'delay';
@@ -55,13 +61,13 @@ class DelayNode implements DeclaresEffect, HasIcon, NodeContract
             'type' => 'object',
             'required' => ['seconds'],
             'properties' => [
-                'seconds' => Field::integer('Wait for (seconds)', null, 60, 0),
+                'seconds' => Field::integer('Wait for (seconds)', 'Up to 7 days (604800 seconds).', 60, 0, self::MAX_SECONDS),
             ],
         ];
     }
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return ['seconds' => max(0, (int) $config['seconds'])];
+        return ['seconds' => min(self::MAX_SECONDS, max(0, (int) ($config['seconds'] ?? 0)))];
     }
 }

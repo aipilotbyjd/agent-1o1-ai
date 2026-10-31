@@ -21,7 +21,7 @@ The model catalog abstraction (`model_catalog`/`model_routes`, `Services\Ai\Mode
 
 ## Why not `connector_credentials`
 
-`app/Models/Connectors/Connector.php` / `ConnectorCredential.php` exist specifically for **workflow integration nodes** — Slack, Gmail, GitHub, Google Sheets/Docs/Drive/Calendar (see `database/seeders/ConnectorSeeder.php`). `Connector.auth_type` + `fields`/`oauth` config drive an OAuth flow or a manual-credential form that `Nodes\Integrations\Concerns\ResolvesConnectorCredential` resolves before a node acts on a workflow's behalf. Reusing that table for AI provider keys would mean:
+`app/Models/Connectors/Connector.php` / `ConnectorCredential.php` exist specifically for **workflow integration nodes** — Slack, Gmail, GitHub, Google Sheets/Docs/Drive/Calendar (see `database/seeders/ConnectorsDataset.php`). `Connector.auth_type` + `fields`/`oauth` config drive an OAuth flow or a manual-credential form that `Nodes\Integrations\Concerns\ResolvesConnectorCredential` resolves before a node acts on a workflow's behalf. Reusing that table for AI provider keys would mean:
 
 - Seeding fake `Connector` rows (`key: 'openai'`, `key: 'anthropic'`) with no integration node behind them, purely to satisfy the FK — a `Connector.fields`/`oauth` shape built for arbitrary third-party APIs, unused for what's really just one API key per provider.
 - "OpenAI"/"Anthropic" showing up in the same connector list as Slack/Gmail in any future UI, which is not how a user thinks about their LLM provider relative to a workflow integration.

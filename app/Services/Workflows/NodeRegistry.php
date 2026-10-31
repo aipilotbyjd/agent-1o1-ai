@@ -4,6 +4,7 @@ namespace App\Services\Workflows;
 
 use App\Contracts\NodeContract;
 use App\Enums\Workflows\FlowControlNodeType;
+use App\Models\Nodes\CatalogNodeOverride;
 use App\Models\Nodes\NodeCategory;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -211,9 +212,11 @@ class NodeRegistry
         $categories = $this->categories();
         $triggersEnabled = $this->triggersEnabled();
 
+        $overrides = $this->nodeOverrides();
+
         return $this->allDescriptors()
             ->reject(fn (NodeDescriptor $descriptor): bool => $descriptor->isTriggerNode && ! $triggersEnabled)
-            ->map(fn (NodeDescriptor $descriptor): array => $descriptor->toCatalogEntry($categories->get($descriptor->category), $triggersEnabled))
+            ->map(fn (NodeDescriptor $descriptor): array => $this->withOverride($descriptor->toCatalogEntry($categories->get($descriptor->category), $triggersEnabled), $overrides))
             ->values()
             ->all();
     }
@@ -235,10 +238,11 @@ class NodeRegistry
         }
 
         $categories = $this->categories();
+        $overrides = $this->nodeOverrides();
 
         return $this->allDescriptors()
-            ->filter(fn (NodeDescriptor $descriptor): bool => $descriptor->supportsTriggerMode && $descriptor->listed)
-            ->map(fn (NodeDescriptor $descriptor): array => $descriptor->toTriggerCatalogEntry($categories->get($descriptor->category)))
+            ->filter(fn (NodeDescriptor $descriptor): bool => $descriptor->supportsTriggerMode && $descriptor->listed && $overrides->get($descriptor->type)?->status !== 'hidden')
+            ->map(fn (NodeDescriptor $descriptor): array => $this->withOverride($descriptor->toTriggerCatalogEntry($categories->get($descriptor->category)), $overrides))
             ->sortBy('name')
             ->values()
             ->all();
@@ -271,6 +275,38 @@ class NodeRegistry
     private function categories(): Collection
     {
         return NodeCategory::query()->get()->keyBy('slug');
+    }
+
+    /**
+     * What an admin flagged on individual nodes. Read on every call, not kept,
+     * because a queue worker holds this registry for a long time.
+     *
+     * @return Collection<string, CatalogNodeOverride>
+     */
+    private function nodeOverrides(): Collection
+    {
+        return CatalogNodeOverride::query()->get()->keyBy('node_type');
+    }
+
+    /**
+     * Adds an admin's flag to a catalog entry: `status` (beta, deprecated or
+     * hidden) and its note. A hidden node is no longer offered, but graphs that
+     * already hold one still resolve it, as with a retired type.
+     *
+     * @param  array<string, mixed>  $entry
+     * @param  Collection<string, CatalogNodeOverride>  $overrides
+     * @return array<string, mixed>
+     */
+    private function withOverride(array $entry, Collection $overrides): array
+    {
+        $override = $overrides->get($entry['type']);
+
+        return [
+            ...$entry,
+            'status' => $override?->status,
+            'status_note' => $override?->note,
+            'listed' => $entry['listed'] && $override?->status !== 'hidden',
+        ];
     }
 
     /**

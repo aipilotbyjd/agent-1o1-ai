@@ -18,6 +18,9 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
     // Workflow triggers
     Schedule::command('triggers:run-due')->everyMinute();
     Schedule::command('triggers:retry-stuck')->everyFiveMinutes();
+    Schedule::command('triggers:flush-batches')->everyMinute();
+    Schedule::command('triggers:renew-watches')->everyTenMinutes();
+    Schedule::command('triggers:collect-watches')->hourly();
     Schedule::command('triggers:prune-events')->dailyAt((string) config('triggers.prune_at'));
 
     // Agents
@@ -38,6 +41,25 @@ Schedule::onOneServer()->withoutOverlapping()->group(function (): void {
     Schedule::command('ai-credentials:check')->hourly();
     Schedule::command('knowledge:sync-sources')->everyFifteenMinutes();
     Schedule::command('skills:sync-sources')->everyFifteenMinutes();
+
+    // Super Admin
+    Schedule::command('super-admin:audit-verify')->dailyAt('05:00')->when(fn (): bool => (bool) config('super_admin.enabled'));
+
+    // System health, alerts & revenue
+    Schedule::command('system:heartbeat')->everyMinute();
+    Schedule::command('system:health-snapshot')->everyFiveMinutes()->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('alerts:evaluate')->everyMinute()->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('alerts:digest')->dailyAt('07:30')->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('alerts:prune')->dailyAt('05:30')->when(fn (): bool => (bool) config('super_admin.enabled'));
+    Schedule::command('revenue:snapshot')->dailyAt('00:10')->when(fn (): bool => (bool) config('super_admin.enabled'));
+
+    // Broadcasts
+    Schedule::command('broadcasts:dispatch-due')->everyMinute();
+
+    // Models
+    Schedule::command('model-catalog:retire-due')->dailyAt('04:00');
+    Schedule::command('model-usage:rollup')->hourlyAt(5);
+    Schedule::command('model-spend:check')->hourlyAt(15);
 
     // Workflow builder
     Schedule::command('workflow-builder:archive-idle')->dailyAt('03:00');

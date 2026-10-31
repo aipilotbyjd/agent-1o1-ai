@@ -28,7 +28,7 @@ class ModelCatalogController extends Controller
             : WorkspaceModelView::platform();
 
         $catalog = ModelCatalog::query()
-            ->with(['routes' => fn ($query) => $query->where('is_enabled', true)])
+            ->with(['routes' => fn ($query) => $query->where('is_enabled', true), 'minPlan'])
             ->where('is_active', true)
             ->where('is_internal', false)
             ->orderBy('sort_order')

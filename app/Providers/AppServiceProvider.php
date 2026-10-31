@@ -37,7 +37,9 @@ use App\Observers\AgentObserver;
 use App\Observers\AuditObserver;
 use App\Observers\NodeRunObserver;
 use App\Observers\RunObserver;
+use App\Observers\WorkflowObserver;
 use App\Observers\WorkspaceMemberObserver;
+use App\Services\Ai\OperatorEndpoints;
 use App\Services\Assistant\Branding\BrandRepository;
 use App\Services\Assistant\Branding\ConfigBrandRepository;
 use App\Services\Assistant\Computer\ComputerToolProvider;
@@ -47,6 +49,7 @@ use App\Services\Assistant\Tools\ConnectorToolProvider;
 use App\Services\Assistant\Tools\KnowledgeToolProvider;
 use App\Services\Assistant\Tools\ToolCatalog;
 use App\Services\Auth\Grants\SocialExchangeGrant;
+use App\Services\SuperAdmin\System\ScheduledCommandRecorder;
 use App\Services\Triggers\TargetRunStarter;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -71,6 +74,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(RunStarter::class, TargetRunStarter::class);
+        $this->app->singleton(OperatorEndpoints::class);
         $this->app->bind(BrandRepository::class, ConfigBrandRepository::class);
         $this->app->bind(SandboxDriver::class, E2BSandboxDriver::class);
         $this->app->tag([ConnectorToolProvider::class, KnowledgeToolProvider::class, ComputerToolProvider::class], ToolCatalog::TAG);
@@ -94,6 +98,18 @@ class AppServiceProvider extends ServiceProvider
         $this->configureObservers();
         $this->configureMorphMap();
         $this->configureCashier();
+        $this->configureSchedulerRecording();
+    }
+
+    /**
+     * Records every scheduled command's runs for System Health. A singleton,
+     * because it matches each run's start to its finish by task object.
+     */
+    private function configureSchedulerRecording(): void
+    {
+        $this->app->singleton(ScheduledCommandRecorder::class);
+
+        $this->app->make(ScheduledCommandRecorder::class)->subscribe($this->app->make('events'));
     }
 
     private function configurePassport(): void
@@ -200,6 +216,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('workflow-builder-assist', fn (Request $request): Limit => Limit::perMinute(20)
             ->by($request->user()?->id ?? $request->ip()));
 
+        // Super Admin email campaigns: one platform-wide budget for the mail provider.
+        RateLimiter::for('broadcast-emails', fn (): Limit => Limit::perSecond(max(1, (int) config('broadcasts.rate_per_second'))));
+
         // Unauthenticated, so keyed by IP: a landing page may legitimately
         // record a few visits, but nothing should be spraying them.
         RateLimiter::for('referral-visits', fn (Request $request): Limit => Limit::perMinute(30)->by($request->ip()));
@@ -278,6 +297,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Behavioral history for agents: see `AgentVersioner`.
         Agent::observe(AgentObserver::class);
+
+        // Triggers follow their workflow into and out of the trash.
+        Workflow::observe(WorkflowObserver::class);
 
         // Live run/chat streaming: see `App\Broadcasting\Channels`.
         Run::observe(RunObserver::class);

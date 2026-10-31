@@ -14,18 +14,19 @@ use App\Models\Referrals\ReferralCode;
 use App\Models\Referrals\ReferralProgram;
 use App\Models\Referrals\ReferralReward;
 use App\Models\Referrals\ReferralRewardRule;
+use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
-use App\Services\Admin\AdminAuditLogger;
+use App\Services\SuperAdmin\Audit\SuperAdminAuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Every change a platform admin can make to the referral program, shared by
+ * Every change a super admin can make to the referral program, shared by
  * the admin API and the `referrals:*` artisan commands so both behave (and
  * are audited) identically. `$admin` is null when the change comes from
- * the command line; the audit log shows that as "Command line".
+ * the command line; the audit log then names the command line as the actor.
  *
  * Input is expected to be validated already (see the admin Form Requests'
  * static `rulesFor()` methods); refusals that depend on state rather than
@@ -34,7 +35,7 @@ use Illuminate\Validation\ValidationException;
 class ReferralAdmin
 {
     public function __construct(
-        private readonly AdminAuditLogger $audit,
+        private readonly SuperAdminAuditLogger $audit,
         private readonly ReferralLifecycle $lifecycle,
         private readonly GrantReferralRewardAction $grant,
         private readonly RevokeReferralRewardAction $revoke,
@@ -46,7 +47,7 @@ class ReferralAdmin
     /**
      * @param  array<string, mixed>  $data
      */
-    public function createProgram(array $data, ?User $admin): ReferralProgram
+    public function createProgram(array $data, ?SuperAdmin $admin): ReferralProgram
     {
         $data['slug'] ??= $this->uniqueSlug($data['name']);
 
@@ -63,7 +64,7 @@ class ReferralAdmin
      *
      * @param  array<string, mixed>  $data
      */
-    public function updateProgram(ReferralProgram $program, array $data, ?User $admin): ReferralProgram
+    public function updateProgram(ReferralProgram $program, array $data, ?SuperAdmin $admin): ReferralProgram
     {
         $original = $program->getAttributes();
 
@@ -78,7 +79,7 @@ class ReferralAdmin
         return $program;
     }
 
-    public function deleteProgram(ReferralProgram $program, ?User $admin): void
+    public function deleteProgram(ReferralProgram $program, ?SuperAdmin $admin): void
     {
         if ($program->is_default) {
             throw ValidationException::withMessages(['program' => 'Make another program the default before deleting this one.']);
@@ -89,7 +90,7 @@ class ReferralAdmin
         $this->audit->record($admin, 'referral_program.deleted', $program);
     }
 
-    public function makeDefault(ReferralProgram $program, ?User $admin): ReferralProgram
+    public function makeDefault(ReferralProgram $program, ?SuperAdmin $admin): ReferralProgram
     {
         if (! $program->is_active) {
             throw ValidationException::withMessages(['program' => 'Only an active program can be the default.']);
@@ -108,7 +109,7 @@ class ReferralAdmin
      * Copies a program and its rules. The copy starts inactive and not the
      * default, so nothing changes until it is switched on.
      */
-    public function duplicateProgram(ReferralProgram $program, ?User $admin, ?string $name = null): ReferralProgram
+    public function duplicateProgram(ReferralProgram $program, ?SuperAdmin $admin, ?string $name = null): ReferralProgram
     {
         $copy = DB::transaction(function () use ($program, $name): ReferralProgram {
             $copy = $program->replicate(['is_default', 'is_active']);
@@ -135,7 +136,7 @@ class ReferralAdmin
     /**
      * @param  array<string, mixed>  $data
      */
-    public function createRule(ReferralProgram $program, array $data, ?User $admin): ReferralRewardRule
+    public function createRule(ReferralProgram $program, array $data, ?SuperAdmin $admin): ReferralRewardRule
     {
         $data['sort_order'] ??= (int) $program->rules()->max('sort_order') + 1;
 
@@ -149,7 +150,7 @@ class ReferralAdmin
     /**
      * @param  array<string, mixed>  $data
      */
-    public function updateRule(ReferralRewardRule $rule, array $data, ?User $admin): ReferralRewardRule
+    public function updateRule(ReferralRewardRule $rule, array $data, ?SuperAdmin $admin): ReferralRewardRule
     {
         $original = $rule->getAttributes();
 
@@ -160,14 +161,14 @@ class ReferralAdmin
         return $rule;
     }
 
-    public function deleteRule(ReferralRewardRule $rule, ?User $admin): void
+    public function deleteRule(ReferralRewardRule $rule, ?SuperAdmin $admin): void
     {
         $rule->delete();
 
         $this->audit->record($admin, 'referral_rule.deleted', $rule, $rule->attributesToArray());
     }
 
-    public function toggleRule(ReferralRewardRule $rule, ?User $admin): ReferralRewardRule
+    public function toggleRule(ReferralRewardRule $rule, ?SuperAdmin $admin): ReferralRewardRule
     {
         $rule->update(['is_active' => ! $rule->is_active]);
 
@@ -179,7 +180,7 @@ class ReferralAdmin
     /**
      * @param  list<string>  $ruleIds
      */
-    public function reorderRules(ReferralProgram $program, array $ruleIds, ?User $admin): void
+    public function reorderRules(ReferralProgram $program, array $ruleIds, ?SuperAdmin $admin): void
     {
         if ($program->rules()->whereIn('id', $ruleIds)->count() !== count($ruleIds)) {
             throw ValidationException::withMessages(['rule_ids' => 'Every rule must belong to this program.']);
@@ -199,7 +200,7 @@ class ReferralAdmin
     /**
      * @param  array<string, mixed>  $data
      */
-    public function updateCode(ReferralCode $code, array $data, ?User $admin): ReferralCode
+    public function updateCode(ReferralCode $code, array $data, ?SuperAdmin $admin): ReferralCode
     {
         $original = $code->getAttributes();
 
@@ -220,7 +221,7 @@ class ReferralAdmin
      * Marks a referral fraudulent (or otherwise ineligible) and withdraws
      * every reward it produced.
      */
-    public function rejectReferral(Referral $referral, string $reason, ?User $admin): Referral
+    public function rejectReferral(Referral $referral, string $reason, ?SuperAdmin $admin): Referral
     {
         if ($referral->isRejected()) {
             throw ValidationException::withMessages(['referral' => 'This referral is already rejected.']);
@@ -235,7 +236,7 @@ class ReferralAdmin
         return $referral;
     }
 
-    public function restoreReferral(Referral $referral, ?User $admin): Referral
+    public function restoreReferral(Referral $referral, ?SuperAdmin $admin): Referral
     {
         if (! $referral->isRejected()) {
             throw ValidationException::withMessages(['referral' => 'Only a rejected referral can be restored.']);
@@ -257,7 +258,7 @@ class ReferralAdmin
      * hold: granted now if the hold has passed, else by
      * `referrals:grant-pending` when it does.
      */
-    public function approveReward(ReferralReward $reward, ?User $admin): ReferralReward
+    public function approveReward(ReferralReward $reward, ?SuperAdmin $admin): ReferralReward
     {
         if ($reward->status !== ReferralRewardStatus::AwaitingApproval) {
             throw ValidationException::withMessages(['reward' => 'Only a reward awaiting approval can be approved.']);
@@ -274,7 +275,7 @@ class ReferralAdmin
         return $reward;
     }
 
-    public function grantRewardNow(ReferralReward $reward, ?User $admin): ReferralReward
+    public function grantRewardNow(ReferralReward $reward, ?SuperAdmin $admin): ReferralReward
     {
         if (! $reward->status->isOpen()) {
             throw ValidationException::withMessages(['reward' => 'Only a pending or awaiting reward can be granted.']);
@@ -289,7 +290,7 @@ class ReferralAdmin
         return $reward;
     }
 
-    public function revokeReward(ReferralReward $reward, string $reason, ?User $admin): ReferralReward
+    public function revokeReward(ReferralReward $reward, string $reason, ?SuperAdmin $admin): ReferralReward
     {
         if ($reward->status === ReferralRewardStatus::Revoked) {
             throw ValidationException::withMessages(['reward' => 'This reward is already revoked.']);
@@ -309,7 +310,7 @@ class ReferralAdmin
      *
      * @param  array{reward_type: ReferralRewardType, credits?: ?int, plan_id?: ?string, duration_days?: ?int, amount_cents?: ?int, trial_days?: ?int}  $values
      */
-    public function grantManualReward(User $recipient, ?Workspace $workspace, array $values, ?string $notes, ?User $admin): ReferralReward
+    public function grantManualReward(User $recipient, ?Workspace $workspace, array $values, ?string $notes, ?SuperAdmin $admin): ReferralReward
     {
         $reward = $this->grantManual->execute($recipient, $workspace, $values, $admin, $notes);
 
@@ -320,7 +321,7 @@ class ReferralAdmin
 
     // ─── Blocked domains ──────────────────────────────────────
 
-    public function blockDomain(string $domain, ?string $reason, ?User $admin): ReferralBlockedDomain
+    public function blockDomain(string $domain, ?string $reason, ?SuperAdmin $admin): ReferralBlockedDomain
     {
         $blocked = ReferralBlockedDomain::query()->create(['domain' => $domain, 'reason' => $reason]);
 
@@ -329,7 +330,7 @@ class ReferralAdmin
         return $blocked;
     }
 
-    public function unblockDomain(ReferralBlockedDomain $domain, ?User $admin): void
+    public function unblockDomain(ReferralBlockedDomain $domain, ?SuperAdmin $admin): void
     {
         $domain->delete();
 

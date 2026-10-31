@@ -78,7 +78,17 @@ class Workspace extends Model
             'credit_usage_notification_thresholds' => 'array',
             'out_of_credits_notification_enabled' => 'boolean',
             'require_publish_approval' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Locked by a super admin (see `SuperAdminWorkspaceService`): members are
+     * refused and no run starts.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
     }
 
     public function owner(): BelongsTo

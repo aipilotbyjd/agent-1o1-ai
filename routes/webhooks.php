@@ -6,6 +6,7 @@ use App\Http\Controllers\Webhooks\AssistantSlackEventsController;
 use App\Http\Controllers\Webhooks\AssistantSlackOAuthController;
 use App\Http\Controllers\Webhooks\AssistantSmsWebhookController;
 use App\Http\Controllers\Webhooks\AssistantWebhookController;
+use App\Http\Controllers\Webhooks\ProviderIngressController;
 use App\Http\Controllers\Webhooks\SlackAgentActionController;
 use App\Http\Controllers\Webhooks\StripeWebhookController;
 use App\Http\Controllers\Webhooks\WaitCallbackController;
@@ -29,6 +30,24 @@ Route::prefix('hooks')->name('hooks.')->group(function (): void {
     Route::post('{token}', WebhookController::class)
         ->middleware('throttle:trigger-hooks')
         ->name('trigger');
+
+    // Events a provider pushes for every connected account (Slack's Events
+    // API): checked by the provider's own signature, not a URL token.
+    Route::post('apps/{provider}', ProviderIngressController::class)
+        ->middleware('throttle:1200,1')
+        ->name('apps');
+
+    // A provider confirming a subscription with a GET (YouTube's WebSub hub):
+    // answered only for a channel we are watching, by the provider's ingress.
+    Route::get('apps/{provider}', ProviderIngressController::class)
+        ->middleware('throttle:1200,1')
+        ->name('apps.verify');
+
+    // A provider confirming it has the right URL with a GET (Meta's
+    // hub.challenge). Answered only for a webhook with a secret set.
+    Route::get('{token}', WebhookController::class)
+        ->middleware('throttle:trigger-hooks')
+        ->name('trigger.verify');
 
     // A Wait node's one-time callback token. Reuses the 'trigger-hooks'
     // limiter, which is keyed generically by the {token} route param.

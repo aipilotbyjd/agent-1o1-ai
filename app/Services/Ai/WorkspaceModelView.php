@@ -28,6 +28,7 @@ class WorkspaceModelView
         private readonly PlatformKeyUsage $platformUsage,
         private readonly ?WorkspaceModelSettings $settings,
         private readonly CreditMeter $meter,
+        private readonly ?int $planCredits = null,
     ) {}
 
     public static function forMember(string $workspaceId, string $userId): self
@@ -37,11 +38,12 @@ class WorkspaceModelView
             WorkspaceAiKeyPolicy::forWorkspace($workspaceId)->platform_usage,
             WorkspaceModelSettings::forWorkspace($workspaceId),
             app(CreditMeter::class),
+            WorkspaceModels::planCredits($workspaceId),
         );
     }
 
     /**
-     * Outside any workspace: the platform's keys only.
+     * Outside any workspace: the platform's keys only, and no plan to limit by.
      */
     public static function platform(): self
     {
@@ -59,6 +61,7 @@ class WorkspaceModelView
      *     is_allowed: bool,
      *     is_default: bool,
      *     credits_per_message: ?int,
+     *     required_plan: ?array{slug: string, name: string},
      * }
      */
     public function describe(ModelCatalog $entry): array
@@ -75,6 +78,8 @@ class WorkspaceModelView
             || ($platformAllowed && ModelCatalogResolver::providerIsConfigured($route->execution_provider)));
 
         $isAllowed = $this->settings?->allows($entry->id) ?? true;
+        $requiredPlan = $entry->minPlan;
+        $planBlocked = $requiredPlan !== null && $this->planCredits !== null && $this->planCredits < $requiredPlan->creditsMonthly();
 
         $connectable = $routes
             ->pluck('execution_provider')
@@ -86,6 +91,7 @@ class WorkspaceModelView
 
         $reason = match (true) {
             ! $isAllowed => 'not_allowed',
+            $planBlocked => 'plan_required',
             $serving !== null => null,
             $this->platformUsage === PlatformKeyUsage::Never && $connectable !== [] => 'policy_needs_key',
             $connectable !== [] => 'needs_key',
@@ -105,6 +111,7 @@ class WorkspaceModelView
                 $this->ownsKeyFor($serving) ? ByokProviderRegistrar::PREFIX.'estimate' : $serving->execution_provider,
                 $serving->execution_model_id,
             ),
+            'required_plan' => $requiredPlan === null ? null : ['slug' => $requiredPlan->slug, 'name' => $requiredPlan->name],
         ];
     }
 

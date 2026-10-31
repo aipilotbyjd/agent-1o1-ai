@@ -132,7 +132,7 @@ it('filters the listing by category slug', function () {
     $nodes = collect($response->json('data.nodes'));
     expect($nodes->pluck('name'))->toContain('Slack helper');
     expect($nodes->where('is_custom', false)->pluck('category')->unique()->all())->toBe(['slack']);
-    expect($nodes)->toHaveCount(8); // 7 builtin slack nodes + 1 custom
+    expect($nodes)->toHaveCount(count(glob(app_path('Nodes/Integrations/Slack/Slack*Node.php'))) + 1); // every builtin slack node + 1 custom
 });
 
 it('lists only custom nodes on the dedicated endpoint', function () {

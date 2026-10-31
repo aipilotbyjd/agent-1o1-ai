@@ -46,7 +46,7 @@ it('rejects a provider the app does not support', function () {
     $this->getJson('/api/v1/auth/social/myspace/redirect')->assertNotFound();
 });
 
-it('creates an account and workspace on a first social sign-in, then exchanges the code for tokens', function () {
+it('creates an account without a workspace on a first social sign-in, then exchanges the code for tokens', function () {
     fakeSocialiteDriver(fakeSocialiteUser('google-1', 'jane@example.com'));
 
     $redirect = $this->get('/api/v1/auth/social/google/callback');
@@ -67,7 +67,7 @@ it('creates an account and workspace on a first social sign-in, then exchanges t
     $user = User::query()->where('email', 'jane@example.com')->firstOrFail();
 
     expect($user->hasVerifiedEmail())->toBeTrue()
-        ->and($user->ownedWorkspaces()->count())->toBe(1)
+        ->and($user->workspaces()->count())->toBe(0)
         ->and(OAuthConnection::query()->where('user_id', $user->id)->where('provider', 'google')->exists())->toBeTrue();
 
     $this->withToken($response->json('data.tokens.access_token'))

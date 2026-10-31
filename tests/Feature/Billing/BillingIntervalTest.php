@@ -4,7 +4,6 @@ use App\Enums\Billing\BillingInterval;
 use App\Models\Billing\Plan;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\PlanSeeder;
 use Laravel\Passport\Passport;
 
 /**
@@ -61,14 +60,14 @@ it('reports only the intervals the plan has a stripe price for', function () {
 
 it('sells the free plan on no interval at all', function () {
     Plan::query()->delete();
-    (new PlanSeeder)->run();
+    test()->syncSetup('plans');
 
     expect(Plan::query()->where('slug', 'free')->sole()->availableIntervals())->toBe([]);
 });
 
 it('prices every paid seeded plan on all four intervals', function () {
     Plan::query()->delete();
-    (new PlanSeeder)->run();
+    test()->syncSetup('plans');
 
     $paid = Plan::query()->where('price_monthly', '>', 0)->get();
 

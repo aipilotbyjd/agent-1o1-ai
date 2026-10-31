@@ -46,7 +46,7 @@ class GitHubCreatePullRequestNode extends AbstractGitHubNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $data = $this->post($run, "/repos/{$config['repo']}/pulls", $config, [
+        $data = $this->post($run, "/repos/{$this->repo($config)}/pulls", $config, [
             'title' => $config['title'],
             'head' => $config['head'],
             'base' => $config['base'],

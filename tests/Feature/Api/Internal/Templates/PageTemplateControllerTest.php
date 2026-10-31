@@ -7,7 +7,6 @@ use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowPage;
 use App\Services\Workflows\Pages\PageSchema;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\PageTemplateSeeder;
 use Laravel\Passport\Passport;
 
 beforeEach(function () {
@@ -204,7 +203,7 @@ it('lets a viewer read page templates but not manage them', function () {
 });
 
 it('seeds built-in layouts that every workflow can use', function () {
-    $this->seed(PageTemplateSeeder::class);
+    $this->syncSetup('page-templates');
 
     foreach (PageTemplate::query()->whereNull('workspace_id')->get() as $template) {
         $page = pageFromTemplate($template);

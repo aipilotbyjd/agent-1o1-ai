@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('status')->default('active');
             $table->timestamp('last_activity_at')->nullable();
             $table->foreignUuid('agent_version_id')->nullable()->constrained('agent_versions')->nullOnDelete();
+            $table->foreignUuid('parent_session_id')->nullable();
             $table->string('autonomy_mode')->nullable();
             $table->boolean('test_mode')->nullable();
             $table->timestamps();

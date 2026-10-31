@@ -30,6 +30,7 @@ class PlanResource extends JsonResource
             'limits' => $this->limits,
             'features' => $this->features,
             'trial_days' => $this->trial_days,
+            'badge' => $this->badge,
             'is_active' => $this->is_active,
             // The intervals actually on sale: a plan can have a price for one
             // and still have it withdrawn. Render the buy options from this,

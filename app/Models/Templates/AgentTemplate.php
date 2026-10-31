@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * meant to carry, materialized into a new `Agent` when used. `workspace_id`
  * null means a global/system template visible to every workspace.
  */
-#[Fillable(['workspace_id', 'source_agent_id', 'created_by', 'name', 'slug', 'description', 'category', 'icon', 'color', 'config', 'visibility'])]
+#[Fillable(['workspace_id', 'source_agent_id', 'created_by', 'name', 'slug', 'description', 'category', 'icon', 'color', 'config', 'visibility', 'is_featured', 'sort_order'])]
 class AgentTemplate extends Model
 {
     /** @use HasFactory<AgentTemplateFactory> */
@@ -42,6 +42,8 @@ class AgentTemplate extends Model
     {
         return [
             'config' => 'array',
+            'is_featured' => 'boolean',
+            'sort_order' => 'integer',
             'usage_count' => 'integer',
         ];
     }

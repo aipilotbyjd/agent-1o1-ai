@@ -72,7 +72,7 @@ it('labels fixed choices', function () {
     $operator = app(NodeRegistry::class)->configSchemaFor('filter')['properties']['operator'];
 
     expect($operator['enum'])->toContain('not_equals')
-        ->and($operator['x-enum-labels']['not_equals'])->toBe('Not Equals');
+        ->and($operator['x-enum-labels']['not_equals'])->toBe('Does not equal');
 });
 
 it('has a node field for every registered options source', function () {

@@ -21,6 +21,12 @@ class ModelCatalogResolver
     private const int CACHE_TTL_SECONDS = 300;
 
     /**
+     * How many replacements deep a retired model is followed (A retired for
+     * B, B retired for C), so a cycle can never loop.
+     */
+    private const int MAX_REPLACEMENT_HOPS = 3;
+
+    /**
      * The provider/model to prompt `$agent` with: its `provider`/`model`
      * columns, or its catalog entry's failover chain (which carries its own
      * model ids, so `model` is null). Anything prompting on an agent's behalf
@@ -58,15 +64,25 @@ class ModelCatalogResolver
 
         $chain = Cache::remember($this->cacheKey($judgeModel), self::CACHE_TTL_SECONDS, fn () => $this->resolve($judgeModel));
 
+        $this->registerEndpoints($chain);
+
         return $chain !== [] ? [$chain, null] : [$agent->provider, $judgeModel];
     }
 
     /**
      * Whether `$provider` can actually serve requests here: it's defined in
-     * `config/ai.php` and has an API key (Ollama runs locally without one).
+     * `config/ai.php` (or is one of the operator's endpoints), has an API key
+     * (Ollama runs locally without one), and the operator has not paused it.
+     * `$ignoringPause` answers the first part only: whether it *would* run.
      */
-    public static function providerIsConfigured(string $provider): bool
+    public static function providerIsConfigured(string $provider, bool $ignoringPause = false): bool
     {
+        if (! $ignoringPause && app(ProviderPauses::class)->isPaused($provider)) {
+            return false;
+        }
+
+        app(OperatorEndpoints::class)->ensureRegistered($provider);
+
         $config = config("ai.providers.{$provider}");
 
         return is_array($config) && (filled($config['key'] ?? null) || ($config['driver'] ?? null) === 'ollama');
@@ -88,6 +104,8 @@ class ModelCatalogResolver
             throw new RuntimeException("Model catalog entry [{$catalogSlug}] has no enabled execution route.");
         }
 
+        $this->registerEndpoints($chain);
+
         return $chain;
     }
 
@@ -103,16 +121,56 @@ class ModelCatalogResolver
     }
 
     /**
+     * `forget()` for a model and everything whose chain runs through it: its
+     * own replacement, and every model that names it as one. Call after any
+     * change to the model or its routes.
+     */
+    public function forgetAll(ModelCatalog $model): void
+    {
+        $this->forget($model->slug);
+
+        if ($model->replacement_slug !== null) {
+            $this->forget($model->replacement_slug);
+        }
+
+        ModelCatalog::query()->where('replacement_slug', $model->slug)->pluck('slug')
+            ->each(fn (string $slug) => $this->forget($slug));
+    }
+
+    /**
+     * A chain may name one of the operator's own endpoints, which has to be
+     * a registered provider before the SDK is asked to use it.
+     *
+     * @param  array<string, string>  $chain
+     */
+    private function registerEndpoints(array $chain): void
+    {
+        foreach (array_keys($chain) as $provider) {
+            app(OperatorEndpoints::class)->ensureRegistered($provider);
+        }
+    }
+
+    /**
+     * The enabled routes of an active entry. A retired entry (switched off, or
+     * past its `retires_at`) that names a replacement hands over to it, so
+     * anything still holding the old slug (a workflow's Ask AI node, a judge
+     * setting) keeps working instead of failing the day a model is retired.
+     *
      * @return array<string, string>
      */
-    private function resolve(string $catalogSlug): array
+    private function resolve(string $catalogSlug, int $depth = 0): array
     {
-        $catalog = ModelCatalog::query()
-            ->where('slug', $catalogSlug)
-            ->where('is_active', true)
-            ->first();
+        $catalog = ModelCatalog::query()->where('slug', $catalogSlug)->first();
 
         if ($catalog === null) {
+            return [];
+        }
+
+        if ($catalog->hasHandedOver() && $depth < self::MAX_REPLACEMENT_HOPS) {
+            return $this->resolve($catalog->replacement_slug, $depth + 1);
+        }
+
+        if (! $catalog->is_active) {
             return [];
         }
 

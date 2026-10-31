@@ -37,6 +37,11 @@ class GoogleCalendarDeleteEventNode extends AbstractGoogleCalendarNode
                 ...$this->credentialFields(),
                 'calendar_id' => Field::dynamic('Calendar', 'google_calendar.calendars', 'Defaults to your primary calendar.', 'primary'),
                 'event_id' => Field::dynamic('Event', 'google_calendar.events', 'Pick an upcoming event, or map an event ID.', uses: ['calendar_id']),
+                'send_updates' => Field::advanced(Field::select('Tell guests', [
+                    'all' => 'Everyone',
+                    'externalOnly' => 'Guests outside your organisation',
+                    'none' => 'Nobody',
+                ], null, 'none')),
             ],
         ];
     }
@@ -49,6 +54,7 @@ class GoogleCalendarDeleteEventNode extends AbstractGoogleCalendarNode
             $run,
             '/calendars/'.rawurlencode($calendarId).'/events/'.rawurlencode($config['event_id']),
             $config,
+            ['sendUpdates' => (string) ($config['send_updates'] ?? 'none')],
         );
     }
 }

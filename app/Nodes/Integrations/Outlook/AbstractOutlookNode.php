@@ -8,6 +8,7 @@ use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
 use RuntimeException;
 
 /**
@@ -48,6 +49,44 @@ abstract class AbstractOutlookNode implements DeclaresEffect, NodeContract
 
     /**
      * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    protected function patch(Run $run, string $endpoint, array $config, array $body = []): array
+    {
+        return $this->call($run, 'patch', $endpoint, $config, $body);
+    }
+
+    /**
+     * An id from a setting, ready to sit in a URL.
+     *
+     * @param  array<string, mixed>  $config
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function pathId(array $config, string $key, string $label): string
+    {
+        $value = trim((string) ($config[$key] ?? ''));
+
+        return $value !== '' ? rawurlencode($value) : throw new InvalidArgumentException("{$label} is required.");
+    }
+
+    /**
+     * A required text setting, trimmed.
+     *
+     * @param  array<string, mixed>  $config
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function requiredText(array $config, string $key, string $label): string
+    {
+        $value = trim((string) ($config[$key] ?? ''));
+
+        return $value !== '' ? $value : throw new InvalidArgumentException("{$label} is required.");
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
      * @return array<string, mixed>
      */
     protected function delete(Run $run, string $endpoint, array $config): array
@@ -70,6 +109,7 @@ abstract class AbstractOutlookNode implements DeclaresEffect, NodeContract
         $response = match ($method) {
             'get' => $request->get(self::BASE_URL.$endpoint, $params),
             'delete' => $request->delete(self::BASE_URL.$endpoint),
+            'patch' => $request->asJson()->patch(self::BASE_URL.$endpoint, $params),
             default => $request->asJson()->post(self::BASE_URL.$endpoint, $params),
         };
 

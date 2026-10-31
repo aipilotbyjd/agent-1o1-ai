@@ -368,8 +368,8 @@ database/
     ApiKeyFactory.php
   seeders/
     DatabaseSeeder.php
-    PlanSeeder.php
-    NodeCategorySeeder.php
+    PlansDataset.php
+    NodeCategoriesDataset.php
 
 routes/
   api/
@@ -522,7 +522,7 @@ Every queue name is a typed `Queue` enum case (`Enums/Queue.php`), never a raw s
 
 ## How node folders tie to `NodeCategory`
 
-`NodeCategory` is a DB table (seeded via `NodeCategorySeeder`) — it's the **product-facing taxonomy**: what shows up in the node picker, with `icon`, `color`, `description`, `sort_order`, and a `kind` of `core` (built-in categories) or `app` (one per integration). Every `NodeContract::category()` returns a string that must match a `NodeCategory.slug` row — that's the single source of truth the frontend node picker groups by. The `Nodes/` PHP folders exist purely so the codebase mirrors that same taxonomy 1:1, so "which folder is this node in" and "which category does it render under" are never two different answers:
+`NodeCategory` is a DB table (seeded via `NodeCategoriesDataset`) — it's the **product-facing taxonomy**: what shows up in the node picker, with `icon`, `color`, `description`, `sort_order`, and a `kind` of `core` (built-in categories) or `app` (one per integration). Every `NodeContract::category()` returns a string that must match a `NodeCategory.slug` row — that's the single source of truth the frontend node picker groups by. The `Nodes/` PHP folders exist purely so the codebase mirrors that same taxonomy 1:1, so "which folder is this node in" and "which category does it render under" are never two different answers:
 
 | `NodeCategory.slug` | `kind` | `Nodes/` folder |
 |---|---|---|

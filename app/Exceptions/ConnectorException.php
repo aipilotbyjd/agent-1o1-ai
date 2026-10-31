@@ -14,6 +14,16 @@ use RuntimeException;
  */
 class ConnectorException extends RuntimeException
 {
+    /**
+     * A manual connection saved without a field its form requires.
+     *
+     * @param  list<string>  $labels
+     */
+    public static function missingFields(Connector $connector, array $labels): self
+    {
+        return new self("{$connector->name} needs: ".implode(', ', $labels).'.');
+    }
+
     public static function notConfigured(Connector $connector): self
     {
         return new self("{$connector->name} isn't set up on this server yet, so it can't be connected.");

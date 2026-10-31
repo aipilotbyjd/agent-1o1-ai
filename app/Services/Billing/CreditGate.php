@@ -4,6 +4,7 @@ namespace App\Services\Billing;
 
 use App\Enums\Notifications\AlertSeverity;
 use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\WorkspaceSuspendedException;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Billing\CreditsExhaustedNotification;
 use App\Notifications\Billing\OverageCapReachedNotification;
@@ -58,6 +59,10 @@ class CreditGate
      */
     public function assertCanStartRun(Workspace $workspace): void
     {
+        if ($workspace->isSuspended()) {
+            throw new WorkspaceSuspendedException;
+        }
+
         $available = $workspace->availableCredits();
 
         if ($available === null || $available >= self::MINIMUM_CREDITS_TO_START) {

@@ -4,18 +4,27 @@ use App\Exceptions\BillingAccountNotFoundException;
 use App\Exceptions\ConnectorException;
 use App\Exceptions\FeatureNotAvailableException;
 use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\ModelBusyException;
 use App\Exceptions\ModelSubmissionException;
 use App\Exceptions\OwnAiKeyRequiredException;
 use App\Exceptions\PlanLimitExceededException;
+use App\Exceptions\ProviderPausedException;
 use App\Exceptions\PublishApprovalRequiredException;
 use App\Exceptions\RunStateException;
 use App\Exceptions\WorkflowBuilderConflictException;
 use App\Exceptions\WorkflowValidationException;
+use App\Exceptions\WorkspaceSuspendedException;
 use App\Http\Middleware\AllowLongAgentTurn;
+use App\Http\Middleware\BlockWritesDuringMaintenance;
 use App\Http\Middleware\EnsureApiKeyIsValid;
-use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureWorkspaceScope;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SuperAdmin\AuditSuperAdminRequest;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminAbility;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminIpAllowed;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminIsActive;
+use App\Http\Middleware\SuperAdmin\EnsureSuperAdminTwoFactor;
+use App\Http\Middleware\SuperAdmin\IdempotentSuperAdminRequest;
 use App\Http\Middleware\TouchAccessTokenUsage;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -39,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
             __DIR__.'/../routes/api/public/index.php',
             __DIR__.'/../routes/webhooks.php',
             __DIR__.'/../routes/api/pages.php',
+            __DIR__.'/../routes/api/super_admin/index.php',
         ],
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
@@ -56,12 +66,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.context' => EnsureWorkspaceScope::class,
             'api-key' => EnsureApiKeyIsValid::class,
             'long-agent-turn' => AllowLongAgentTurn::class,
-            'platform.admin' => EnsurePlatformAdmin::class,
+            'super-admin.ip' => EnsureSuperAdminIpAllowed::class,
+            'super-admin.active' => EnsureSuperAdminIsActive::class,
+            'super-admin.two-factor' => EnsureSuperAdminTwoFactor::class,
+            'super-admin.can' => EnsureSuperAdminAbility::class,
+            'super-admin.audit' => AuditSuperAdminRequest::class,
+            'super-admin.idempotent' => IdempotentSuperAdminRequest::class,
         ]);
 
         $middleware->append(SecurityHeaders::class);
 
-        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class]);
+        $middleware->api(append: [AddQueuedCookiesToResponse::class, TouchAccessTokenUsage::class, BlockWritesDuringMaintenance::class]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
     })
@@ -126,6 +141,12 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        $exceptions->render(function (WorkspaceSuspendedException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::forbidden($e->getMessage());
+            }
+        });
+
         $exceptions->render(function (BillingAccountNotFoundException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 409);
@@ -135,6 +156,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (PlanLimitExceededException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 402);
+            }
+        });
+
+        $exceptions->render(function (ModelBusyException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::tooManyRequests($e->getMessage())->header('Retry-After', (string) $e->retryAfter);
+            }
+        });
+
+        $exceptions->render(function (ProviderPausedException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 503);
             }
         });
 

@@ -7,6 +7,7 @@ use App\Contracts\NodeContract;
 use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ResolvesConnectorCredential;
 use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
 use RuntimeException;
 
 /**
@@ -48,6 +49,51 @@ abstract class AbstractGmailNode implements DeclaresEffect, NodeContract
     }
 
     /**
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    protected function put(Run $run, string $endpoint, array $config, array $params = []): array
+    {
+        return $this->call($run, 'put', $endpoint, $config, $params);
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    protected function patch(Run $run, string $endpoint, array $config, array $params = []): array
+    {
+        return $this->call($run, 'patch', $endpoint, $config, $params);
+    }
+
+    /**
+     * Gmail answers a delete with an empty 204, so it comes back as an empty array.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    protected function delete(Run $run, string $endpoint, array $config): array
+    {
+        return $this->call($run, 'delete', $endpoint, $config, []);
+    }
+
+    /**
+     * An id from a setting, ready to sit in a URL.
+     *
+     * @param  array<string, mixed>  $config
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function pathId(array $config, string $key, string $label): string
+    {
+        $value = trim((string) ($config[$key] ?? ''));
+
+        return $value !== '' ? rawurlencode($value) : throw new InvalidArgumentException("{$label} is required.");
+    }
+
+    /**
      * Unlike Slack, Gmail signals failure via a normal HTTP status code, with
      * the error detail under `error.message` in the JSON body.
      *
@@ -60,9 +106,14 @@ abstract class AbstractGmailNode implements DeclaresEffect, NodeContract
         $token = $this->resolveAccessToken($run, $config);
 
         $request = Http::withToken($token);
-        $response = $method === 'get'
-            ? $request->get(self::BASE_URL.$endpoint, $params)
-            : $request->asJson()->post(self::BASE_URL.$endpoint, $params);
+        // An empty `query` array would replace a query string already in the endpoint.
+        $response = match ($method) {
+            'get' => $params === [] ? $request->get(self::BASE_URL.$endpoint) : $request->get(self::BASE_URL.$endpoint, $params),
+            'delete' => $request->delete(self::BASE_URL.$endpoint),
+            'put' => $request->asJson()->put(self::BASE_URL.$endpoint, $params),
+            'patch' => $request->asJson()->patch(self::BASE_URL.$endpoint, $params),
+            default => $request->asJson()->post(self::BASE_URL.$endpoint, $params),
+        };
 
         if ($response->failed()) {
             $message = $response->json('error.message') ?? $response->body();

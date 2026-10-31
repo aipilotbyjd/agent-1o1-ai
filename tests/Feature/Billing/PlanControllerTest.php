@@ -4,7 +4,6 @@ use App\Enums\Billing\Feature;
 use App\Models\Billing\Plan;
 use App\Models\User;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\PlanSeeder;
 
 function billingLoginTokens(string $email, string $password): array
 {
@@ -35,7 +34,7 @@ it('lists only active plans ordered by sort_order', function () {
 
 it('unlocks credit packs on every seeded paid plan', function () {
     Plan::query()->delete();
-    (new PlanSeeder)->run();
+    test()->syncSetup('plans');
 
     $paid = Plan::query()->where('price_monthly', '>', 0)->get();
 
@@ -48,14 +47,14 @@ it('unlocks credit packs on every seeded paid plan', function () {
 
 it('leaves credit packs locked on the free plan', function () {
     Plan::query()->delete();
-    (new PlanSeeder)->run();
+    test()->syncSetup('plans');
 
     expect(Plan::query()->where('slug', 'free')->sole()->hasFeature(Feature::CreditPacks))->toBeFalse();
 });
 
 it('seeds a default plan that config(billing.default_plan) resolves', function () {
     Plan::query()->delete();
-    (new PlanSeeder)->run();
+    test()->syncSetup('plans');
 
     expect(Plan::default())->not->toBeNull();
     expect(Plan::default()->slug)->toBe(config('billing.default_plan'));

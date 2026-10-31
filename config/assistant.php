@@ -34,7 +34,7 @@ return [
 
         'email_local_part' => env('ASSISTANT_EMAIL', 'orb'),
         'email_aliases' => array_values(array_filter(array_map('trim', explode(',', (string) env('ASSISTANT_EMAIL_ALIASES', ''))))),
-        'inbound_domain' => env('ASSISTANT_INBOUND_DOMAIN', 'agent1o1.ai'),
+        'inbound_domain' => env('ASSISTANT_INBOUND_DOMAIN', 'agent1o1.com'),
         'sms_signature' => env('ASSISTANT_SMS_SIGNATURE', '- :name'),
     ],
 
@@ -59,7 +59,7 @@ return [
 
     'runtime' => [
         // The model when the owner hasn't picked one: this internal catalog
-        // entry's routes (see ModelCatalogSeeder), or (if it has none)
+        // entry's routes (see ModelCatalogDataset), or (if it has none)
         // the raw provider/model below.
         'catalog' => env('ASSISTANT_MODEL_CATALOG', 'personal-assistant'),
         'provider' => env('ASSISTANT_PROVIDER', 'anthropic'),

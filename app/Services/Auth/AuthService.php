@@ -7,7 +7,6 @@ use App\Models\Credentials\OAuthConnection;
 use App\Models\User;
 use App\Notifications\Auth\ConfirmEmailChangeNotification;
 use App\Notifications\Auth\SecurityAlertNotification;
-use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -38,7 +37,6 @@ class AuthService
     private const TWO_FACTOR_CHALLENGE_MINUTES = 5;
 
     public function __construct(
-        private readonly WorkspaceService $workspaces,
         private readonly TwoFactorAuthService $twoFactor,
         private readonly AuthEventRecorder $events,
         private readonly LoginThrottle $throttle,
@@ -55,8 +53,6 @@ class AuthService
             'email' => $data['email'],
             'password' => $data['password'],
         ]);
-
-        $this->workspaces->create($user, ['name' => "{$user->name}'s Workspace"]);
 
         $user->sendEmailVerificationNotification();
 
@@ -84,6 +80,8 @@ class AuthService
                 'email' => 'These credentials do not match our records.',
             ]);
         }
+
+        $this->assertNotSuspended($user);
 
         if ($user->hasTwoFactorEnabled()) {
             return ['two_factor_challenge' => $this->createTwoFactorChallenge($user, $password)];
@@ -120,6 +118,8 @@ class AuthService
         }
 
         $user = User::query()->findOrFail($challenge['user_id']);
+
+        $this->assertNotSuspended($user);
 
         if (! $this->twoFactor->verifyCode($user, $code)) {
             $this->recordFailedTwoFactorAttempt($challengeToken, $challenge, $user);
@@ -367,8 +367,6 @@ class AuthService
                 // already proven the address, so there is nothing to verify.
                 $user->markEmailAsVerified();
 
-                $this->workspaces->create($user, ['name' => "{$user->name}'s Workspace"]);
-
                 $this->events->record(AuthEvent::Registered, $user, context: ['provider' => $provider]);
             }
 
@@ -426,6 +424,10 @@ class AuthService
             ]);
         }
 
+        $user = User::query()->findOrFail($payload['user_id']);
+
+        $this->assertNotSuspended($user);
+
         $tokens = $this->dispatchTokenRequest([
             'grant_type' => 'social_exchange',
             'client_id' => config('passport.password_client_id'),
@@ -433,8 +435,6 @@ class AuthService
             'code' => $code,
             'scope' => '',
         ], 'This sign-in link has expired. Please try again.');
-
-        $user = User::query()->findOrFail($payload['user_id']);
 
         $this->stampDeviceOnToken($tokens['access_token']);
 
@@ -468,6 +468,19 @@ class AuthService
         $token->revoke();
 
         $this->events->record(AuthEvent::SessionRevoked, $user, context: ['token_id' => $tokenId]);
+    }
+
+    /**
+     * A suspended account (see `SuperAdminUserService`) cannot start a session;
+     * its existing ones were revoked when it was suspended.
+     */
+    private function assertNotSuspended(User $user): void
+    {
+        if ($user->isSuspended()) {
+            throw ValidationException::withMessages([
+                'email' => 'This account has been suspended. Contact support.',
+            ]);
+        }
     }
 
     private function revokeAllTokens(User $user): void

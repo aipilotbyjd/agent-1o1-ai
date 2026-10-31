@@ -21,10 +21,11 @@ return new class extends Migration
             $table->string('token', 64)->nullable()->unique();
             $table->text('signing_secret')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->string('disabled_reason', 20)->nullable();
 
             // No FK yet: connector_credentials doesn't exist until Connectors ship
             // (docs/NODES_CATALOG.md build order). Column is real; constraint follows.
-            $table->uuid('credential_id')->nullable();
+            $table->foreignUuid('credential_id')->nullable()->constrained('connector_credentials')->nullOnDelete();
 
             $table->json('poll_cursor')->nullable();
             $table->unsignedInteger('consecutive_failure_count')->default(0);

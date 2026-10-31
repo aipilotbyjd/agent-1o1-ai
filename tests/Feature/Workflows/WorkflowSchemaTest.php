@@ -8,11 +8,10 @@ use App\Models\Runs\Run;
 use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowEdge;
 use App\Models\Workflows\WorkflowNode;
-use Database\Seeders\NodeCategorySeeder;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 it('seeds the core node categories', function () {
-    $this->seed(NodeCategorySeeder::class);
+    $this->syncSetup('node-categories');
 
     expect(NodeCategory::query()->pluck('slug')->sort()->values()->all())->toBe([
         'ai-automation', 'custom', 'data-transform', 'flow-logic', 'inputs-outputs', 'triggers-events',

@@ -4,6 +4,7 @@ namespace App\Models\Connectors;
 
 use App\Enums\Connectors\ConnectorAuthType;
 use App\Enums\Connectors\ConnectorCategory;
+use App\Models\Concerns\TracksAdminEdits;
 use Database\Factories\Connectors\ConnectorFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,11 +19,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * `data` must satisfy; `oauth` carries the authorize/token URLs and default
  * scopes for `auth_type = oauth2` connectors. See docs/PLAN.md Phase 6.
  */
-#[Fillable(['key', 'name', 'description', 'icon', 'color', 'category', 'is_featured', 'auth_type', 'fields', 'oauth', 'is_active', 'sort_order'])]
+#[Fillable(['key', 'name', 'description', 'icon', 'color', 'category', 'is_featured', 'auth_type', 'fields', 'oauth', 'is_active', 'sort_order', 'admin_edited_fields'])]
 class Connector extends Model
 {
     /** @use HasFactory<ConnectorFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, TracksAdminEdits;
 
     /**
      * @var array<string, mixed>
@@ -53,6 +54,24 @@ class Connector extends Model
     public function isOAuth(): bool
     {
         return $this->auth_type === ConnectorAuthType::OAuth2;
+    }
+
+    /**
+     * The labels of the fields its form marks required that `$data` leaves
+     * empty, so a connection can't be saved half-filled (a Twilio account with
+     * no SID, a mail server with no host).
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<string>
+     */
+    public function missingFields(array $data): array
+    {
+        return collect((array) $this->fields)
+            ->filter(fn (mixed $field): bool => is_array($field) && ($field['required'] ?? false) === true && isset($field['name']))
+            ->filter(fn (array $field): bool => ! is_scalar($data[$field['name']] ?? null) || trim((string) $data[$field['name']]) === '')
+            ->map(fn (array $field): string => (string) ($field['label'] ?? $field['name']))
+            ->values()
+            ->all();
     }
 
     /**

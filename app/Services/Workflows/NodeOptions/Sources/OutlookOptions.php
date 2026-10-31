@@ -24,7 +24,7 @@ class OutlookOptions extends HttpOptionsSource
 
     public function sources(): array
     {
-        return ['outlook.folders', 'outlook.messages', 'outlook.events'];
+        return ['outlook.folders', 'outlook.messages', 'outlook.events', 'outlook.calendars'];
     }
 
     protected function appName(): string
@@ -42,6 +42,7 @@ class OutlookOptions extends HttpOptionsSource
         return match ($source) {
             'outlook.messages' => $this->messages($query),
             'outlook.events' => $this->events($query),
+            'outlook.calendars' => $this->calendars($query),
             default => $this->folders($query),
         };
     }
@@ -93,6 +94,26 @@ class OutlookOptions extends HttpOptionsSource
         ));
 
         return new NodeOptionsPage($options, ! $searching && count($messages) === self::PAGE_SIZE ? $skip + self::PAGE_SIZE : null);
+    }
+
+    private function calendars(NodeOptionsQuery $query): NodeOptionsPage
+    {
+        $skip = $this->intCursor($query, 0);
+        $calendars = $this->values($this->getJson($query, self::BASE_URL.'/me/calendars', [
+            '$top' => self::FOLDERS_PAGE_SIZE,
+            '$skip' => $skip,
+            '$select' => 'id,name,isDefaultCalendar,owner',
+        ]));
+
+        $options = collect($calendars)
+            ->filter(fn (array $calendar): bool => $query->matches((string) ($calendar['name'] ?? '')))
+            ->map(fn (array $calendar): NodeOption => new NodeOption(
+                (string) $calendar['id'],
+                ($calendar['name'] ?? '') ?: '(no name)',
+                ($calendar['isDefaultCalendar'] ?? false) ? 'Main calendar' : ($calendar['owner']['address'] ?? null),
+            ));
+
+        return new NodeOptionsPage($options, count($calendars) === self::FOLDERS_PAGE_SIZE ? $skip + self::FOLDERS_PAGE_SIZE : null);
     }
 
     private function events(NodeOptionsQuery $query): NodeOptionsPage

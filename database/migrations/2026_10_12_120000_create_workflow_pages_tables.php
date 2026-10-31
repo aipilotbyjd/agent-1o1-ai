@@ -10,7 +10,7 @@ return new class extends Migration
     /**
      * Plans that may share pages outside the workspace, and how many pages
      * each plan allows. Merged into existing rows rather than re-running
-     * `PlanSeeder`, which would overwrite anything edited since it last ran.
+     * `PlansDataset`, which would overwrite anything edited since it last ran.
      *
      * @var array<string, array{public: bool, limit: int}>
      */
@@ -34,6 +34,9 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->json('content');
             $table->json('published_content')->nullable();
+            $table->json('variant_content')->nullable();
+            $table->json('published_variant_content')->nullable();
+            $table->unsignedTinyInteger('variant_split')->default(50);
             $table->timestamp('published_at')->nullable();
             $table->foreignUuid('published_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('access')->default('workspace');
@@ -64,9 +67,24 @@ return new class extends Migration
             $table->string('visitor_hash', 64)->nullable();
             $table->string('secret_hash', 64);
             $table->boolean('is_test')->default(false);
+            $table->char('variant', 1)->default('a');
+            $table->json('input')->nullable();
             $table->timestamps();
 
             $table->index(['workflow_page_id', 'created_at']);
+        });
+
+        Schema::create('workflow_page_events', function (Blueprint $table) {
+            $table->id();
+            $table->foreignUuid('workflow_page_id')->constrained('workflow_pages')->cascadeOnDelete();
+            $table->char('variant', 1)->default('a');
+            $table->string('type', 16);
+            $table->string('visitor_hash', 64);
+            $table->date('day');
+            $table->timestamp('created_at')->nullable();
+
+            $table->unique(['workflow_page_id', 'type', 'variant', 'visitor_hash', 'day'], 'workflow_page_events_unique_visit');
+            $table->index(['workflow_page_id', 'day']);
         });
 
         foreach (self::PLAN_GRANTS as $slug => $grant) {
@@ -97,6 +115,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('workflow_page_events');
         Schema::dropIfExists('workflow_page_submissions');
         Schema::dropIfExists('workflow_pages');
     }

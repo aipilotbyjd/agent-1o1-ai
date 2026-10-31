@@ -205,6 +205,12 @@ return [
     | Model Prices
     |--------------------------------------------------------------------------
     |
+    | These prices are now maintained in the `model_prices` table (see
+    | `ModelPrices`, and the Super Admin API under /models/prices); a price
+    | there wins over the same key here. This map is the fallback for any
+    | model not in the table yet: `php artisan model-prices:import-config`
+    | copies it across, after which it can be emptied.
+    |
     | Real $ per 1M tokens, keyed by "{provider}:{model}": the same
     | provider/model strings `laravel/ai` reports back on a response's
     | `Meta` (and that match `model_routes.execution_provider`/
@@ -212,7 +218,7 @@ return [
     | its real cost (`credit_value_usd` above), the same way Gumloop's
     | "Model calls bill at cost" works.
     |
-    | This app's `ModelCatalogSeeder` lists a mostly fictional, future-dated
+    | This app's `ModelCatalogDataset` lists a mostly fictional, future-dated
     | model lineup (Claude Opus 5, GPT-5.6 *, Gemini 3.x, Grok 4.6, DeepSeek
     | V4, Kimi K3, GLM-5.2, MiniMax M3, Qwen3.6, Mistral Medium 3.5, ...):
     | none of those exist yet, so there's no real price to put here, and this
@@ -224,7 +230,7 @@ return [
     | The rates below are best-effort, not independently verified this
     | session against each vendor's current pricing page: treat them as a
     | starting point and confirm against the vendor before relying on them
-    | for real billing, the same way `ModelCatalogSeeder` flags its own
+    | for real billing, the same way `ModelCatalogDataset` flags its own
     | best-effort aggregator model ids. Add a row here once a model's price
     | is confirmed.
     |
@@ -245,7 +251,7 @@ return [
 
         // Anthropic: unverified, confirm against Anthropic's current
         // pricing. Keyed to Claude Haiku 4.5's primary route
-        // (`ModelCatalogSeeder`'s enabled anthropic route).
+        // (`ModelCatalogDataset`'s enabled anthropic route).
         'anthropic:claude-haiku-4-5-20251001' => ['input' => 1.00, 'output' => 5.00],
 
         // Fireworks: unverified, confirm against Fireworks' current
@@ -255,6 +261,28 @@ return [
         // priority-0 route: re-key this if a different route (e.g.
         // Together) becomes primary instead.
         'fireworks:accounts/fireworks/models/llama-v3p1-405b-instruct' => ['input' => 3.00, 'output' => 3.00],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stripe IDs for the starting plans
+    |--------------------------------------------------------------------------
+    |
+    | Read by the `plans` setup dataset when it first creates a plan. They live
+    | here because `env()` returns null once the config is cached.
+    */
+
+    'stripe_plan_ids' => [
+        'STRIPE_PLAN_PRO_LIFETIME_PRICE_ID' => env('STRIPE_PLAN_PRO_LIFETIME_PRICE_ID'),
+        'STRIPE_PLAN_PRO_MONTHLY_PRICE_ID' => env('STRIPE_PLAN_PRO_MONTHLY_PRICE_ID'),
+        'STRIPE_PLAN_PRO_PRODUCT_ID' => env('STRIPE_PLAN_PRO_PRODUCT_ID'),
+        'STRIPE_PLAN_PRO_QUARTERLY_PRICE_ID' => env('STRIPE_PLAN_PRO_QUARTERLY_PRICE_ID'),
+        'STRIPE_PLAN_PRO_YEARLY_PRICE_ID' => env('STRIPE_PLAN_PRO_YEARLY_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_LIFETIME_PRICE_ID' => env('STRIPE_PLAN_STARTER_LIFETIME_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_MONTHLY_PRICE_ID' => env('STRIPE_PLAN_STARTER_MONTHLY_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_PRODUCT_ID' => env('STRIPE_PLAN_STARTER_PRODUCT_ID'),
+        'STRIPE_PLAN_STARTER_QUARTERLY_PRICE_ID' => env('STRIPE_PLAN_STARTER_QUARTERLY_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_YEARLY_PRICE_ID' => env('STRIPE_PLAN_STARTER_YEARLY_PRICE_ID'),
     ],
 
 ];

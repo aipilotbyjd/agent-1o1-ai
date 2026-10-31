@@ -48,10 +48,27 @@ class GitHubListPullRequestsNode extends AbstractGitHubNode implements SupportsT
 
     public function execute(Run $run, array $config, array $context): array
     {
-        return ['pull_requests' => $this->get($run, "/repos/{$config['repo']}/pulls", $config, [
+        return ['pull_requests' => $this->get($run, "/repos/{$this->repo($config)}/pulls", $config, [
             'state' => $config['state'] ?? 'open',
             'per_page' => $config['per_page'] ?? 30,
         ])];
+    }
+
+    /**
+     * Read a wider page than the node's default, so a burst between two polls
+     * isn't cut off.
+     */
+    public function triggerReadConfig(array $config): array
+    {
+        return [...$config, 'per_page' => 100];
+    }
+
+    /**
+     * Newest first.
+     */
+    public function triggerListsNewestFirst(): bool
+    {
+        return true;
     }
 
     /**

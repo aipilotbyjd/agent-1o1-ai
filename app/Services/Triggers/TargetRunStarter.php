@@ -14,6 +14,7 @@ use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
 use App\Models\Workflows\Workflow;
 use App\Services\Workflows\TemplateResolver;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
@@ -58,17 +59,33 @@ class TargetRunStarter implements RunStarter
      */
     public function isAlreadyRunning(Trigger $trigger): bool
     {
+        return $this->runsFor($trigger)?->whereIn('status', RunStatus::inFlight())->exists() ?? false;
+    }
+
+    /**
+     * Pending and running runs of the target.
+     */
+    public function activeRuns(Trigger $trigger): int
+    {
+        return $this->runsFor($trigger)?->whereIn('status', [RunStatus::Pending, RunStatus::Running])->count() ?? 0;
+    }
+
+    /**
+     * Every run of the trigger's target, or null when it has none to run.
+     *
+     * @return Builder<Run>|null
+     */
+    private function runsFor(Trigger $trigger): ?Builder
+    {
         $target = $this->targetFor($trigger);
 
-        $runs = match (true) {
+        return match (true) {
             $target instanceof Workflow => Run::query()->where('workflow_id', $target->id),
             $target instanceof Agent => Run::query()
                 ->where('runnable_type', (new AgentSession)->getMorphClass())
                 ->whereIn('runnable_id', $target->sessions()->select('id')),
             default => null,
         };
-
-        return $runs?->whereIn('status', RunStatus::inFlight())->exists() ?? false;
     }
 
     /**
@@ -102,8 +119,9 @@ class TargetRunStarter implements RunStarter
             $workflow,
             $payload,
             // The trigger's creator stands in for the person who ran it: run
-            // history and per-user skills attribute the run to them.
-            $trigger->creator,
+            // history and per-user skills attribute the run to them. Someone
+            // who has left the workspace is replaced by its owner.
+            $trigger->actingUser(),
             $trigger->type->value,
             entryNodeKey: $trigger->trigger_node_key,
         )->id;
@@ -121,7 +139,7 @@ class TargetRunStarter implements RunStarter
     {
         $session = $this->createAgentSession->execute(
             $agent,
-            $trigger->creator,
+            $trigger->actingUser(),
             "{$trigger->type->value} trigger #{$trigger->id}",
         );
 

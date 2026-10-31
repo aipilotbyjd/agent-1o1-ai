@@ -23,6 +23,10 @@ This system is implemented in full against this plan — migrations, models, `Tr
 - **`trigger_events.run_id`** was migrated as `workflow_run_id` before `runs` existed; it is renamed and FK-constrained (`nullOnDelete`) now that the id it stores is polymorphic — a workflow run *or* an agent turn. **`triggers.credential_id`** is still a bare column pending its own constraint.
 - **Routes are nested under `workspaces/{workspace}/triggers`**, not `{agent|workflow}/{id}/triggers` as the old plan's routes section has it — see the folder structure below for why.
 
+## Trigger conditions ("Only run when")
+
+Webhook and Polling triggers take a `filters` list; all conditions must match. Each is `{path, operator, value, source}`: `source` is `payload` (default) or `header`. Evaluation uses `Services\Workflows\ConditionEvaluator`, the same engine as the Filter and Router nodes (operator list and comparison rules: `docs/NODES_CATALOG.md`, "Core node behaviour notes"). Runtime: an unevaluable condition makes the event `ignored`, never `fired`. Publish: `GraphValidator` rejects unknown operators, missing paths, bad sources and invalid regex patterns, so mistakes surface in the editor.
+
 ## Folder structure
 
 Every path below already follows `docs/STRUCTURE.md`'s existing conventions (`Models/{Domain}/`, `Enums/{Domain}/`, routes-as-folders, `Api/Internal` vs `Api/Public` split) — nothing new is introduced, this is just where the pieces from the sections above land.
@@ -109,7 +113,7 @@ database/
       TriggerEventFactory.php
       TriggerPresetFactory.php
   seeders/
-    TriggerPresetSeeder.php
+    TriggerPresetsDataset.php
 
 routes/
   webhooks.php               # Route::post('hooks/{token}', WebhookController::class)

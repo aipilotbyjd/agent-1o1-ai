@@ -8,6 +8,7 @@ use App\Enums\Onboarding\JobRole;
 use App\Enums\Onboarding\OnboardingStep;
 use App\Models\Auth\AuthEventLog;
 use App\Models\Credentials\OAuthConnection;
+use App\Models\Nodes\NodeCategory;
 use App\Models\Notifications\NotificationPreference;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralCode;
@@ -32,7 +33,7 @@ use Laravel\Cashier\Billable;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'avatar', 'timezone', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
+#[Fillable(['name', 'email', 'password', 'avatar', 'timezone', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_skipped_steps', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
 {
@@ -55,11 +56,13 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
             'onboarding_current_step' => OnboardingStep::class,
+            'onboarding_skipped_steps' => 'array',
             'onboarding_completed_at' => 'datetime',
             'onboarding_dismissed_at' => 'datetime',
             'job_role' => JobRole::class,
             'discovery_source' => DiscoverySource::class,
-            'is_platform_admin' => 'boolean',
+            'suspended_at' => 'datetime',
+            'marketing_opted_out_at' => 'datetime',
         ];
     }
 
@@ -69,12 +72,20 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     }
 
     /**
-     * One of the people running the platform, allowed through the
-     * `/v1/admin/*` routes. Set only by `php artisan admin:grant`.
+     * Locked out by a super admin (see `SuperAdminUserService`).
      */
-    public function isPlatformAdmin(): bool
+    public function isSuspended(): bool
     {
-        return $this->is_platform_admin === true;
+        return $this->suspended_at !== null;
+    }
+
+    /**
+     * Unsubscribed from marketing email. Service messages (an incident, a
+     * policy change) are sent regardless: see `BroadcastCategory`.
+     */
+    public function hasOptedOutOfMarketing(): bool
+    {
+        return $this->marketing_opted_out_at !== null;
     }
 
     /**
@@ -111,6 +122,14 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
     public function oauthConnections(): HasMany
     {
         return $this->hasMany(OAuthConnection::class);
+    }
+
+    /**
+     * The apps this user pinned to their "Your apps" in the editor.
+     */
+    public function pinnedNodeCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(NodeCategory::class, 'node_category_pins')->withTimestamps();
     }
 
     public function favoriteWorkflows(): BelongsToMany
