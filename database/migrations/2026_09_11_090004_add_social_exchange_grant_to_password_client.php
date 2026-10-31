@@ -35,7 +35,7 @@ return new class extends Migration
     {
         $clientId = config('passport.password_client_id');
 
-        if ($clientId === null) {
+        if (blank($clientId)) {
             return;
         }
 
