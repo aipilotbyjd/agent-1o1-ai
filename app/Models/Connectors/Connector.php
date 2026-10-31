@@ -4,6 +4,7 @@ namespace App\Models\Connectors;
 
 use App\Enums\Connectors\ConnectorAuthType;
 use App\Enums\Connectors\ConnectorCategory;
+use App\Models\Concerns\TracksAdminEdits;
 use Database\Factories\Connectors\ConnectorFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,11 +19,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * `data` must satisfy; `oauth` carries the authorize/token URLs and default
  * scopes for `auth_type = oauth2` connectors. See docs/PLAN.md Phase 6.
  */
-#[Fillable(['key', 'name', 'description', 'icon', 'color', 'category', 'is_featured', 'auth_type', 'fields', 'oauth', 'is_active', 'sort_order'])]
+#[Fillable(['key', 'name', 'description', 'icon', 'color', 'category', 'is_featured', 'auth_type', 'fields', 'oauth', 'is_active', 'sort_order', 'admin_edited_fields'])]
 class Connector extends Model
 {
     /** @use HasFactory<ConnectorFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, TracksAdminEdits;
 
     /**
      * @var array<string, mixed>

@@ -36,21 +36,22 @@ class ConnectorSeeder extends Seeder
     public function run(): void
     {
         foreach ($this->connectors() as $connector) {
-            Connector::query()->updateOrCreate(
-                ['key' => $connector['key']],
-                [
-                    'name' => $connector['name'],
-                    'description' => $connector['description'],
-                    'icon' => $connector['icon'],
-                    'color' => $connector['color'],
-                    'category' => $connector['category'],
-                    'is_featured' => $connector['is_featured'],
-                    'auth_type' => $connector['auth_type'],
-                    'fields' => $connector['fields'],
-                    'oauth' => $connector['oauth'],
-                    'sort_order' => $connector['sort_order'],
-                ],
-            );
+            $values = [
+                'name' => $connector['name'],
+                'description' => $connector['description'],
+                'icon' => $connector['icon'],
+                'color' => $connector['color'],
+                'category' => $connector['category'],
+                'is_featured' => $connector['is_featured'],
+                'auth_type' => $connector['auth_type'],
+                'fields' => $connector['fields'],
+                'oauth' => $connector['oauth'],
+                'sort_order' => $connector['sort_order'],
+            ];
+
+            // What an admin changed in the catalog stays as they left it.
+            $row = Connector::query()->firstOrNew(['key' => $connector['key']]);
+            $row->fill($row->exists ? $row->withoutAdminEdited($values) : $values)->save();
         }
     }
 

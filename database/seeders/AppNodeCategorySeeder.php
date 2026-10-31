@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\NodeCategoryFunction;
-use App\Enums\NodeCategoryVendor;
 use App\Models\Nodes\NodeCategory;
 use Illuminate\Database\Seeder;
 
@@ -20,58 +18,58 @@ class AppNodeCategorySeeder extends Seeder
      * at most three) and who makes it. Adding an integration means adding a
      * line here; a test fails for one that is missing.
      *
-     * @var array<string, array{0: ?NodeCategoryVendor, 1: list<NodeCategoryFunction>}>
+     * @var array<string, array{0: ?string, 1: list<string>}>
      */
     private const TAXONOMY = [
-        'slack' => [null, [NodeCategoryFunction::Messaging]],
-        'gmail' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Email, NodeCategoryFunction::Productivity]],
-        'github' => [null, [NodeCategoryFunction::Developer]],
-        'google_drive' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Storage, NodeCategoryFunction::Productivity]],
-        'google_sheets' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
-        'google_docs' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
-        'google_calendar' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
-        'google_tasks' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
-        'google_contacts' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity, NodeCategoryFunction::CrmSales]],
-        'google_forms' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Forms, NodeCategoryFunction::Marketing]],
-        'google_slides' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Productivity]],
-        'google_youtube' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Media, NodeCategoryFunction::Marketing]],
-        'google_analytics' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing]],
-        'google_search_console' => [NodeCategoryVendor::Google, [NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing]],
-        'outlook' => [NodeCategoryVendor::Microsoft, [NodeCategoryFunction::Email, NodeCategoryFunction::Productivity]],
-        'notion' => [null, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Productivity]],
-        'linear' => [null, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Developer]],
-        'jira' => [NodeCategoryVendor::Atlassian, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Developer]],
-        'telegram' => [null, [NodeCategoryFunction::Messaging]],
-        'discord' => [null, [NodeCategoryFunction::Messaging]],
-        'twilio' => [null, [NodeCategoryFunction::Messaging]],
-        'smtp' => [null, [NodeCategoryFunction::Email]],
-        'typeform' => [null, [NodeCategoryFunction::Forms, NodeCategoryFunction::Marketing]],
-        'mailchimp' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
-        'kit' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
-        'activecampaign' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::CrmSales]],
-        'klaviyo' => [null, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
-        'brevo' => [null, [NodeCategoryFunction::Email, NodeCategoryFunction::Marketing]],
-        'sendgrid' => [null, [NodeCategoryFunction::Email]],
-        'resend' => [null, [NodeCategoryFunction::Email]],
-        'postmark' => [null, [NodeCategoryFunction::Email]],
-        'mailgun' => [null, [NodeCategoryFunction::Email]],
-        'trello' => [NodeCategoryVendor::Atlassian, [NodeCategoryFunction::ProjectManagement]],
-        'asana' => [null, [NodeCategoryFunction::ProjectManagement]],
-        'clickup' => [null, [NodeCategoryFunction::ProjectManagement]],
-        'monday' => [null, [NodeCategoryFunction::ProjectManagement]],
-        'airtable' => [null, [NodeCategoryFunction::ProjectManagement, NodeCategoryFunction::Productivity]],
-        'hubspot' => [null, [NodeCategoryFunction::CrmSales, NodeCategoryFunction::Marketing]],
-        'pipedrive' => [null, [NodeCategoryFunction::CrmSales]],
-        'salesforce' => [null, [NodeCategoryFunction::CrmSales]],
-        'zoho' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::CrmSales]],
-        'zoho_desk' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Support]],
-        'zoho_books' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::FinancePayments]],
-        'zoho_projects' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::ProjectManagement]],
-        'zoho_campaigns' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Marketing, NodeCategoryFunction::Email]],
-        'zoho_mail' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Email]],
-        'zoho_cliq' => [NodeCategoryVendor::Zoho, [NodeCategoryFunction::Messaging]],
-        'stripe' => [null, [NodeCategoryFunction::FinancePayments, NodeCategoryFunction::Commerce]],
-        'shopify' => [null, [NodeCategoryFunction::Commerce, NodeCategoryFunction::FinancePayments]],
+        'slack' => [null, ['messaging']],
+        'gmail' => ['google', ['email', 'productivity']],
+        'github' => [null, ['developer']],
+        'google_drive' => ['google', ['storage', 'productivity']],
+        'google_sheets' => ['google', ['productivity']],
+        'google_docs' => ['google', ['productivity']],
+        'google_calendar' => ['google', ['productivity']],
+        'google_tasks' => ['google', ['productivity']],
+        'google_contacts' => ['google', ['productivity', 'crm-sales']],
+        'google_forms' => ['google', ['forms', 'marketing']],
+        'google_slides' => ['google', ['productivity']],
+        'google_youtube' => ['google', ['media', 'marketing']],
+        'google_analytics' => ['google', ['analytics', 'marketing']],
+        'google_search_console' => ['google', ['analytics', 'marketing']],
+        'outlook' => ['microsoft', ['email', 'productivity']],
+        'notion' => [null, ['project-management', 'productivity']],
+        'linear' => [null, ['project-management', 'developer']],
+        'jira' => ['atlassian', ['project-management', 'developer']],
+        'telegram' => [null, ['messaging']],
+        'discord' => [null, ['messaging']],
+        'twilio' => [null, ['messaging']],
+        'smtp' => [null, ['email']],
+        'typeform' => [null, ['forms', 'marketing']],
+        'mailchimp' => [null, ['marketing', 'email']],
+        'kit' => [null, ['marketing', 'email']],
+        'activecampaign' => [null, ['marketing', 'crm-sales']],
+        'klaviyo' => [null, ['marketing', 'email']],
+        'brevo' => [null, ['email', 'marketing']],
+        'sendgrid' => [null, ['email']],
+        'resend' => [null, ['email']],
+        'postmark' => [null, ['email']],
+        'mailgun' => [null, ['email']],
+        'trello' => ['atlassian', ['project-management']],
+        'asana' => [null, ['project-management']],
+        'clickup' => [null, ['project-management']],
+        'monday' => [null, ['project-management']],
+        'airtable' => [null, ['project-management', 'productivity']],
+        'hubspot' => [null, ['crm-sales', 'marketing']],
+        'pipedrive' => [null, ['crm-sales']],
+        'salesforce' => [null, ['crm-sales']],
+        'zoho' => ['zoho', ['crm-sales']],
+        'zoho_desk' => ['zoho', ['support']],
+        'zoho_books' => ['zoho', ['finance-payments']],
+        'zoho_projects' => ['zoho', ['project-management']],
+        'zoho_campaigns' => ['zoho', ['marketing', 'email']],
+        'zoho_mail' => ['zoho', ['email']],
+        'zoho_cliq' => ['zoho', ['messaging']],
+        'stripe' => [null, ['finance-payments', 'commerce']],
+        'shopify' => [null, ['commerce', 'finance-payments']],
     ];
 
     public function run(): void
@@ -472,19 +470,22 @@ class AppNodeCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            NodeCategory::query()->updateOrCreate(
-                ['slug' => $category['slug']],
-                [
-                    'name' => $category['name'],
-                    'description' => $category['description'],
-                    'icon' => $category['icon'],
-                    'color' => $category['color'],
-                    'sort_order' => $category['sort_order'],
-                    'kind' => 'app',
-                    'vendor' => (self::TAXONOMY[$category['slug']] ?? [null])[0],
-                    'functions' => (self::TAXONOMY[$category['slug']] ?? [null, [NodeCategoryFunction::Other]])[1],
-                ],
-            );
+            [$vendor, $functions] = self::TAXONOMY[$category['slug']] ?? [null, ['other']];
+
+            $values = [
+                'name' => $category['name'],
+                'description' => $category['description'],
+                'icon' => $category['icon'],
+                'color' => $category['color'],
+                'sort_order' => $category['sort_order'],
+                'kind' => 'app',
+                'vendor' => $vendor,
+                'functions' => $functions,
+            ];
+
+            // What an admin changed in the catalog stays as they left it.
+            $row = NodeCategory::query()->firstOrNew(['slug' => $category['slug']]);
+            $row->fill($row->exists ? $row->withoutAdminEdited($values) : $values)->save();
         }
     }
 }

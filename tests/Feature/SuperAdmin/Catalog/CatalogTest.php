@@ -1,7 +1,5 @@
 <?php
 
-use App\Enums\NodeCategoryFunction;
-use App\Enums\NodeCategoryVendor;
 use App\Enums\SuperAdmin\SuperAdminRole;
 use App\Models\Connectors\Connector;
 use App\Models\Nodes\CustomNode;
@@ -85,7 +83,7 @@ it('needs a reason and the catalog ability', function () {
 });
 
 it('lists app categories with the choices they can be filed under', function () {
-    NodeCategory::factory()->create(['slug' => 'google_analytics', 'name' => 'Google Analytics', 'kind' => 'app', 'functions' => [NodeCategoryFunction::Analytics], 'vendor' => NodeCategoryVendor::Google]);
+    NodeCategory::factory()->create(['slug' => 'google_analytics', 'name' => 'Google Analytics', 'kind' => 'app', 'functions' => ['analytics'], 'vendor' => 'google']);
     NodeCategory::factory()->create(['slug' => 'flow-logic', 'kind' => 'core']);
 
     $response = $this->withHeaders($this->headers)->getJson(saUrl('catalog/app-categories'))->assertOk();
@@ -100,7 +98,7 @@ it('lists app categories with the choices they can be filed under', function () 
 });
 
 it('re-files an app category and records what changed and why', function () {
-    $category = NodeCategory::factory()->create(['slug' => 'google_analytics', 'kind' => 'app', 'functions' => [NodeCategoryFunction::Analytics], 'vendor' => null]);
+    $category = NodeCategory::factory()->create(['slug' => 'google_analytics', 'kind' => 'app', 'functions' => ['analytics'], 'vendor' => null]);
 
     $this->withHeaders($this->headers)->putJson(saUrl("catalog/app-categories/{$category->id}"), [
         'functions' => ['analytics', 'marketing'],
@@ -110,8 +108,8 @@ it('re-files an app category and records what changed and why', function () {
 
     $fresh = $category->fresh();
 
-    expect($fresh->functions->all())->toBe([NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing])
-        ->and($fresh->vendor)->toBe(NodeCategoryVendor::Google);
+    expect($fresh->functions)->toBe(['analytics', 'marketing'])
+        ->and($fresh->vendor)->toBe('google');
 
     $log = SuperAdminAuditLog::query()->where('action', 'catalog.app_category.updated')->firstOrFail();
 
@@ -121,7 +119,7 @@ it('re-files an app category and records what changed and why', function () {
 });
 
 it('writes nothing when an app category is filed the way it already is', function () {
-    $category = NodeCategory::factory()->create(['kind' => 'app', 'functions' => [NodeCategoryFunction::Email], 'vendor' => null]);
+    $category = NodeCategory::factory()->create(['kind' => 'app', 'functions' => ['email'], 'vendor' => null]);
 
     $this->withHeaders($this->headers)->putJson(saUrl("catalog/app-categories/{$category->id}"), ['functions' => ['email'], 'vendor' => null, 'reason' => 'No change needed'])->assertOk();
 
@@ -129,7 +127,7 @@ it('writes nothing when an app category is filed the way it already is', functio
 });
 
 it('refuses a bad filing for an app category', function (array $payload) {
-    $category = NodeCategory::factory()->create(['kind' => 'app', 'functions' => [NodeCategoryFunction::Email]]);
+    $category = NodeCategory::factory()->create(['kind' => 'app', 'functions' => ['email']]);
 
     $this->withHeaders($this->headers)->putJson(saUrl("catalog/app-categories/{$category->id}"), ['reason' => 'Because of a good reason', ...$payload])->assertUnprocessable();
 })->with([

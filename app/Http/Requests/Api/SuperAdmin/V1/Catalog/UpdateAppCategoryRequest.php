@@ -2,8 +2,6 @@
 
 namespace App\Http\Requests\Api\SuperAdmin\V1\Catalog;
 
-use App\Enums\NodeCategoryFunction;
-use App\Enums\NodeCategoryVendor;
 use App\Http\Requests\Api\SuperAdmin\V1\ReasonRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,8 +19,8 @@ class UpdateAppCategoryRequest extends ReasonRequest
         return [
             ...parent::rules(),
             'functions' => ['required', 'array', 'min:1', 'max:3'],
-            'functions.*' => ['required', 'distinct', Rule::enum(NodeCategoryFunction::class)->except(NodeCategoryFunction::Other)],
-            'vendor' => ['nullable', Rule::enum(NodeCategoryVendor::class)],
+            'functions.*' => ['required', 'distinct', Rule::exists('catalog_functions', 'slug')->using(fn ($query) => $query->where('is_system', false))],
+            'vendor' => ['nullable', Rule::exists('catalog_vendors', 'slug')],
         ];
     }
 }

@@ -26,6 +26,8 @@ class PageTemplateController extends Controller
         $templates = PageTemplate::query()
             ->visibleTo($workspace)
             ->when(request('category'), fn ($query, $category) => $query->where('category', $category))
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
             ->latest()
             ->get();
 

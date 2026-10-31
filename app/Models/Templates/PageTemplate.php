@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * by `PageSchema::fromTemplate()`. `workspace_id` null means a global/system
  * template visible to every workspace.
  */
-#[Fillable(['workspace_id', 'source_page_id', 'created_by', 'name', 'slug', 'description', 'category', 'icon', 'color', 'content', 'visibility'])]
+#[Fillable(['workspace_id', 'source_page_id', 'created_by', 'name', 'slug', 'description', 'category', 'icon', 'color', 'content', 'visibility', 'is_featured', 'sort_order'])]
 class PageTemplate extends Model
 {
     /** @use HasFactory<PageTemplateFactory> */
@@ -41,6 +41,8 @@ class PageTemplate extends Model
     {
         return [
             'content' => 'array',
+            'is_featured' => 'boolean',
+            'sort_order' => 'integer',
             'usage_count' => 'integer',
         ];
     }

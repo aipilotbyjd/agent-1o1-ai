@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers\Api\SuperAdmin\V1\Catalog;
 
-use App\Enums\NodeCategoryFunction;
-use App\Enums\NodeCategoryVendor;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\SuperAdmin\V1\Catalog\BulkTemplatesRequest;
+use App\Http\Requests\Api\SuperAdmin\V1\Catalog\CurateTemplateRequest;
 use App\Http\Requests\Api\SuperAdmin\V1\Catalog\UpdateAppCategoryRequest;
 use App\Http\Requests\Api\SuperAdmin\V1\ReasonRequest;
 use App\Http\Responses\ApiResponse;
 use App\Models\Connectors\Connector;
+use App\Models\Nodes\CatalogFunction;
+use App\Models\Nodes\CatalogVendor;
 use App\Models\Nodes\CustomNode;
 use App\Models\Nodes\NodeCategory;
 use App\Models\Templates\AgentTemplate;
@@ -99,14 +101,8 @@ class SuperAdminCatalogController extends Controller
 
         return ApiResponse::success([
             'categories' => $categories->map(fn (NodeCategory $category): array => $this->appCategory($category))->all(),
-            'functions' => collect(NodeCategoryFunction::cases())
-                ->reject(fn (NodeCategoryFunction $function): bool => $function === NodeCategoryFunction::Other)
-                ->map(fn (NodeCategoryFunction $function): array => ['slug' => $function->value, 'label' => $function->label()])
-                ->values()
-                ->all(),
-            'vendors' => collect(NodeCategoryVendor::cases())
-                ->map(fn (NodeCategoryVendor $vendor): array => ['slug' => $vendor->value, 'label' => $vendor->label()])
-                ->all(),
+            'functions' => CatalogFunction::query()->where('is_system', false)->orderBy('sort_order')->get(['slug', 'label'])->map->only(['slug', 'label'])->all(),
+            'vendors' => CatalogVendor::query()->orderBy('sort_order')->get(['slug', 'label'])->map->only(['slug', 'label'])->all(),
         ]);
     }
 
@@ -115,8 +111,8 @@ class SuperAdminCatalogController extends Controller
         $category = $this->catalog->setAppCategoryTaxonomy(
             $request->user('super-admin'),
             $category,
-            array_map(NodeCategoryFunction::from(...), $request->validated('functions')),
-            NodeCategoryVendor::tryFrom((string) $request->validated('vendor')),
+            $request->validated('functions'),
+            $request->validated('vendor') ?: null,
             $request->validated('reason'),
         );
 
@@ -130,6 +126,8 @@ class SuperAdminCatalogController extends Controller
         $templates = $model::query()
             ->when($request->filled('visibility'), fn ($query) => $query->where('visibility', $request->string('visibility')))
             ->when($request->boolean('platform'), fn ($query) => $query->whereNull('workspace_id'))
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
             ->latest()
             ->limit(200)
             ->get();
@@ -145,6 +143,23 @@ class SuperAdminCatalogController extends Controller
     public function unpublishTemplate(ReasonRequest $request, string $type, string $template)
     {
         return $this->respondTemplate($request, $type, $template, 'private', 'Template unpublished.');
+    }
+
+    public function curateTemplate(CurateTemplateRequest $request, string $type, string $template)
+    {
+        $template = $this->templateModel($type)::query()->findOrFail($template);
+
+        $template = $this->catalog->setTemplateCuration($request->user('super-admin'), $template, $request->changes(), $request->validated('reason'));
+
+        return ApiResponse::success($this->template($template, $type), 'Template updated.');
+    }
+
+    public function bulkTemplates(BulkTemplatesRequest $request, string $type)
+    {
+        return ApiResponse::success(
+            $this->catalog->bulkTemplates($request->user('super-admin'), $this->templateModel($type), $request->validated('ids'), $request->validated('action'), $request->validated('reason')),
+            'Templates updated.',
+        );
     }
 
     private function respondTemplate(ReasonRequest $request, string $type, string $id, string $visibility, string $message)
@@ -199,8 +214,8 @@ class SuperAdminCatalogController extends Controller
             'name' => $category->name,
             'icon' => $category->icon,
             'color' => $category->color,
-            'functions' => ($category->functions ?? collect())->map(fn (NodeCategoryFunction $function): string => $function->value)->values()->all(),
-            'vendor' => $category->vendor?->value,
+            'functions' => array_values($category->functions ?? []),
+            'vendor' => $category->vendor,
         ];
     }
 
@@ -230,6 +245,9 @@ class SuperAdminCatalogController extends Controller
             'slug' => $template->slug,
             'category' => $template->category,
             'visibility' => $template->visibility,
+            'is_featured' => (bool) $template->is_featured,
+            'sort_order' => (int) $template->sort_order,
+            'usage_count' => (int) $template->usage_count,
             'workspace_id' => $template->workspace_id,
             'created_at' => $template->created_at,
         ];

@@ -1,7 +1,6 @@
 <?php
 
-use App\Enums\NodeCategoryFunction;
-use App\Enums\NodeCategoryVendor;
+use App\Models\Nodes\CatalogFunction;
 use App\Models\Nodes\NodeCategory;
 use App\Models\User;
 use Database\Seeders\AppNodeCategorySeeder;
@@ -78,15 +77,15 @@ it('lists the functions an app is used for, the primary first, and who makes it'
     NodeCategory::factory()->create([
         'slug' => 'google_analytics',
         'kind' => 'app',
-        'functions' => [NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing],
-        'vendor' => NodeCategoryVendor::Google,
+        'functions' => ['analytics', 'marketing'],
+        'vendor' => 'google',
     ]);
 
     $category = collect($this->getJson('/api/v1/node-categories')->assertOk()->json('data.categories'))->firstWhere('slug', 'google_analytics');
 
     expect($category['function'])->toBe('analytics')
         ->and(collect($category['functions'])->pluck('slug')->all())->toBe(['analytics', 'marketing'])
-        ->and($category['functions'][1])->toMatchArray(['label' => 'Marketing', 'order' => NodeCategoryFunction::Marketing->sortOrder()])
+        ->and($category['functions'][1])->toMatchArray(['label' => 'Marketing', 'order' => CatalogFunction::query()->where('slug', 'marketing')->value('sort_order')])
         ->and($category['vendor'])->toBe(['slug' => 'google', 'label' => 'Google']);
 });
 
@@ -108,9 +107,11 @@ it('seeds every integration with one to three real functions', function () {
 
     $apps = NodeCategory::query()->where('kind', 'app')->get();
 
+    $known = CatalogFunction::query()->where('is_system', false)->pluck('slug')->all();
+
     expect($apps)->not->toBeEmpty()
-        ->and($apps->filter(fn (NodeCategory $app): bool => $app->functions === null || $app->functions->isEmpty() || $app->functions->count() > 3 || $app->functions->contains(NodeCategoryFunction::Other))->pluck('slug')->all())->toBe([])
-        ->and($apps->filter(fn (NodeCategory $app): bool => $app->functions->unique()->count() !== $app->functions->count())->pluck('slug')->all())->toBe([]);
+        ->and($apps->filter(fn (NodeCategory $app): bool => ($app->functions ?? []) === [] || count($app->functions) > 3 || array_diff($app->functions, $known) !== [])->pluck('slug')->all())->toBe([])
+        ->and($apps->filter(fn (NodeCategory $app): bool => count(array_unique($app->functions)) !== count($app->functions))->pluck('slug')->all())->toBe([]);
 });
 
 it('cross-lists Google Analytics under Marketing and gathers a vendor family', function () {
@@ -118,8 +119,8 @@ it('cross-lists Google Analytics under Marketing and gathers a vendor family', f
 
     $analytics = NodeCategory::query()->where('slug', 'google_analytics')->firstOrFail();
 
-    expect($analytics->functions->all())->toBe([NodeCategoryFunction::Analytics, NodeCategoryFunction::Marketing])
-        ->and(NodeCategory::query()->where('vendor', NodeCategoryVendor::Google)->count())->toBeGreaterThan(1);
+    expect($analytics->functions)->toBe(['analytics', 'marketing'])
+        ->and(NodeCategory::query()->where('vendor', 'google')->count())->toBeGreaterThan(1);
 });
 
 it('pins an app for the signed-in user and shows it as pinned in the list', function () {
