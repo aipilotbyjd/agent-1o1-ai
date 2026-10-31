@@ -25,6 +25,7 @@ return new class extends Migration
             $table->unsignedInteger('sort_order')->default(0);
             $table->string('category')->default('other');
             $table->boolean('is_featured')->default(false);
+            $table->json('admin_edited_fields')->nullable();
             $table->timestamps();
         });
     }

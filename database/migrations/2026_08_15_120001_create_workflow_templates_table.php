@@ -25,6 +25,8 @@ return new class extends Migration
             $table->string('color', 7)->nullable();
             $table->json('graph');
             $table->string('visibility')->default('private');
+            $table->boolean('is_featured')->default(false);
+            $table->unsignedInteger('sort_order')->default(0);
             $table->unsignedInteger('usage_count')->default(0);
             $table->timestamps();
             $table->softDeletes();

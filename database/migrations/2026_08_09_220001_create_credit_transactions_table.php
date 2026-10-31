@@ -21,15 +21,17 @@ return new class extends Migration
         Schema::create('credit_transactions', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('usage_period_id')->nullable()->constrained()->nullOnDelete();
             $table->string('source_type');
             $table->uuid('source_id');
             $table->unsignedInteger('credits');
+            $table->unsignedInteger('topup_credits')->default(0);
             $table->string('reason')->nullable();
             $table->unsignedInteger('overage_credits')->default(0);
             $table->timestamps();
 
             $table->index(['workspace_id', 'created_at']);
-            $table->index(['source_type', 'source_id']);
+            $table->unique(['source_type', 'source_id']);
         });
     }
 

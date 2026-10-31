@@ -20,6 +20,8 @@ return new class extends Migration
         Schema::create('skills', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('skill_source_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('source_path')->nullable();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
             $table->string('slug');
@@ -38,6 +40,7 @@ return new class extends Migration
             $table->unique(['workspace_id', 'slug']);
             $table->index(['workspace_id', 'is_shared']);
             $table->index(['workspace_id', 'category']);
+            $table->index(['skill_source_id', 'source_path']);
         });
     }
 

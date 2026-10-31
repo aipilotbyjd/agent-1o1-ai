@@ -32,6 +32,10 @@ return new class extends Migration
             $table->string('stripe_price_id_quarterly')->nullable();
             $table->string('stripe_price_id_lifetime')->nullable();
             $table->json('enabled_intervals')->nullable();
+            $table->timestamp('archived_at')->nullable();
+            $table->boolean('is_public')->default(true);
+            $table->string('badge', 40)->nullable();
+            $table->uuid('updated_by')->nullable();
             $table->timestamps();
         });
     }

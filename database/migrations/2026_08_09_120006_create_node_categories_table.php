@@ -20,6 +20,11 @@ return new class extends Migration
             $table->string('color')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->string('kind')->default('core');
+            $table->json('functions')->nullable();
+            $table->string('vendor')->nullable();
+            $table->json('admin_edited_fields')->nullable();
+            $table->string('status')->default('operational');
+            $table->string('status_note', 300)->nullable();
             $table->timestamps();
         });
     }

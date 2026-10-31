@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('agent_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignUuid('agent_session_id')->nullable()->constrained('agent_sessions')->nullOnDelete();
+            $table->foreignUuid('assistant_session_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignUuid('run_id')->nullable()->constrained('runs')->nullOnDelete();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->uuid('group_id');

@@ -23,7 +23,10 @@ return new class extends Migration
         Schema::create('document_embeddings', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('owner_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->string('collection')->default('default');
+            $table->foreignUuid('knowledge_source_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->string('external_id')->nullable();
             $table->string('source')->nullable();
             $table->longText('chunk_text');
             $table->json('embedding');
@@ -35,6 +38,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['workspace_id', 'collection']);
+            $table->index(['workspace_id', 'owner_id']);
+            $table->index(['knowledge_source_id', 'external_id']);
         });
     }
 

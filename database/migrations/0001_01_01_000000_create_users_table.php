@@ -33,6 +33,7 @@ return new class extends Migration
             $table->string('pending_email')->nullable();
             $table->timestamp('pending_email_requested_at')->nullable();
             $table->string('timezone', 64)->nullable();
+            $table->uuid('current_workspace_id')->nullable();
             // Set by a super admin: blocks sign-in and ends every session.
             $table->timestamp('suspended_at')->nullable();
             $table->string('suspended_reason')->nullable();
