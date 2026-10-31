@@ -118,3 +118,14 @@ it('rejects an unknown step', function () {
 it('requires authentication to continue a step', function () {
     $this->postJson('/api/v1/onboarding/continue', ['step' => 'connect_apps'])->assertUnauthorized();
 });
+
+it('does not let the plan step continue before a plan is chosen', function () {
+    $user = onboardingContinueUser(['onboarding_current_step' => OnboardingStep::ChoosePlan]);
+    $tokens = onboardingContinueTokens($user->email, 'Password1!');
+
+    $this->withToken($tokens['access_token'])
+        ->postJson('/api/v1/onboarding/continue', ['step' => 'choose_plan'])
+        ->assertUnprocessable();
+
+    expect($user->fresh()->onboarding_current_step)->toBe(OnboardingStep::ChoosePlan);
+});
