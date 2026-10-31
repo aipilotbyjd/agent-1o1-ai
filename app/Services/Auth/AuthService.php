@@ -7,7 +7,6 @@ use App\Models\Credentials\OAuthConnection;
 use App\Models\User;
 use App\Notifications\Auth\ConfirmEmailChangeNotification;
 use App\Notifications\Auth\SecurityAlertNotification;
-use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -38,7 +37,6 @@ class AuthService
     private const TWO_FACTOR_CHALLENGE_MINUTES = 5;
 
     public function __construct(
-        private readonly WorkspaceService $workspaces,
         private readonly TwoFactorAuthService $twoFactor,
         private readonly AuthEventRecorder $events,
         private readonly LoginThrottle $throttle,
@@ -55,8 +53,6 @@ class AuthService
             'email' => $data['email'],
             'password' => $data['password'],
         ]);
-
-        $this->workspaces->create($user, ['name' => "{$user->name}'s Workspace"]);
 
         $user->sendEmailVerificationNotification();
 
@@ -370,8 +366,6 @@ class AuthService
                 // mass-assignable, so it has to be set explicitly. The provider has
                 // already proven the address, so there is nothing to verify.
                 $user->markEmailAsVerified();
-
-                $this->workspaces->create($user, ['name' => "{$user->name}'s Workspace"]);
 
                 $this->events->record(AuthEvent::Registered, $user, context: ['provider' => $provider]);
             }

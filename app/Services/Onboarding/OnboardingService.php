@@ -138,6 +138,8 @@ class OnboardingService
 
     public function complete(User $user): array
     {
+        $this->requireWorkspace($user);
+
         $user->update(['onboarding_completed_at' => now()]);
 
         return $this->state($user->fresh());
@@ -145,7 +147,18 @@ class OnboardingService
 
     public function dismiss(User $user): void
     {
+        $this->requireWorkspace($user);
+
         $user->update(['onboarding_dismissed_at' => now()]);
+    }
+
+    /**
+     * Signup creates no workspace, so onboarding is where every user gets one.
+     * It cannot be closed, by finishing or by dismissing it, before then.
+     */
+    private function requireWorkspace(User $user): void
+    {
+        abort_if($user->current_workspace_id === null, 422, 'Create a workspace to finish onboarding.');
     }
 
     private function isStepCompleted(User $user, OnboardingStep $step, OnboardingStep $currentStep): bool
