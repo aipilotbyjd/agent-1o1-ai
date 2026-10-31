@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Broadcasts\Announcement;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Passport\Passport;
 
 it('turns away a write while a blocking window is open, with Retry-After', function () {
@@ -56,4 +57,17 @@ it('never blocks the Super Admin API, so an operator can always end the window',
     Passport::actingAs(referralUser());
 
     $this->postJson('/api/v1/workspaces', ['name' => 'Another'])->assertCreated();
+});
+
+it('keeps turning writes away once the window is cached', function () {
+    config(['cache.default' => 'array', 'cache.stores.array.serialize' => true]);
+    Cache::forgetDriver('array');
+
+    Announcement::factory()->maintenance()->create(['title' => 'Database upgrade']);
+
+    Passport::actingAs(referralUser());
+
+    foreach (range(1, 3) as $attempt) {
+        $this->postJson('/api/v1/workspaces', ['name' => 'Another'])->assertStatus(503);
+    }
 });

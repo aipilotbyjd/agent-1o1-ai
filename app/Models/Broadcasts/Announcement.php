@@ -182,15 +182,23 @@ class Announcement extends Model
      * Every live announcement, newest first, cached for a minute per version.
      * Callers still apply the audience and the member's dismissals.
      *
+     * The cache holds plain attribute arrays and the models are rebuilt from
+     * them: `cache.serializable_classes` is off, so a cached model would come
+     * back as an incomplete class.
+     *
      * @return Collection<int, Announcement>
      */
     public static function liveCached(): Collection
     {
-        return Cache::remember(
+        $rows = Cache::remember(
             'announcements:live:'.self::cacheVersion(),
             now()->addMinute(),
-            fn () => self::query()->live()->latest('published_at')->get(),
+            fn (): array => self::query()->live()->latest('published_at')->get()
+                ->map(fn (self $announcement): array => $announcement->getAttributes())
+                ->all(),
         );
+
+        return self::hydrate($rows);
     }
 
     /**

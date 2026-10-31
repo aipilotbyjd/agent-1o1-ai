@@ -5,6 +5,7 @@ use App\Models\Billing\PlanGrant;
 use App\Models\Broadcasts\Announcement;
 use App\Models\Broadcasts\AnnouncementDismissal;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Passport\Passport;
 
 it('shows a live announcement and hides drafts, scheduled banners and ended ones', function () {
@@ -145,4 +146,22 @@ it('stops showing a cached announcement the moment it ends', function () {
     $this->getJson('/api/v1/announcements')->assertJsonCount(0, 'data.announcements');
 
     expect($announcement->fresh()->status())->toBe('ended');
+});
+
+it('serves the live list again from a warm cache that really serializes', function () {
+    // The array store keeps objects as they are; production stores serialize,
+    // and `cache.serializable_classes` is false, so a cached model would come
+    // back as an incomplete class.
+    config(['cache.default' => 'array', 'cache.stores.array.serialize' => true]);
+    Cache::forgetDriver('array');
+
+    Announcement::factory()->live()->create(['title' => 'Live']);
+
+    Passport::actingAs(User::factory()->create());
+
+    foreach (range(1, 3) as $attempt) {
+        $this->getJson('/api/v1/announcements')
+            ->assertOk()
+            ->assertJsonPath('data.announcements.0.title', 'Live');
+    }
 });
