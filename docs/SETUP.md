@@ -21,7 +21,7 @@ How to set the project up from scratch on a local machine. Work through the sect
 
 | Tool | Version | Notes |
 |---|---|---|
-| PHP | 8.4 | `composer.json` allows `^8.3` |
+| PHP | 8.5 | `composer.json` requires `^8.5` |
 | Composer | 2.x | |
 | Node.js and npm | current LTS | Vite and the frontend build |
 | PostgreSQL | 16 or newer | The real database. Tests use SQLite instead |

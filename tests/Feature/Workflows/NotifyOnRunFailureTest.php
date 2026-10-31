@@ -47,7 +47,7 @@ it('names what failed instead of the raw run id', function () {
     $agent = Agent::factory()->forWorkspace($workspace)->create(['name' => 'Support Bot']);
     $session = AgentSession::factory()->forAgent($agent)->create();
 
-    $workflowRun = Run::factory()->create(['runnable_type' => Workflow::class, 'runnable_id' => $workflow->id, 'error' => 'Timed out.']);
+    $workflowRun = Run::factory()->create(['runnable_type' => (new Workflow)->getMorphClass(), 'runnable_id' => $workflow->id, 'error' => 'Timed out.']);
     $chatRun = $session->runs()->create(['workspace_id' => $workspace->id, 'trigger_type' => 'manual']);
     $chatRun->forceFill(['error' => null])->save();
 
@@ -74,7 +74,7 @@ it('rewords failed-run notifications that were stored with the old text', functi
     $owner = User::factory()->create();
     $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
     $workflow = Workflow::factory()->forWorkspace($workspace)->create(['name' => 'Lead sync']);
-    $run = Run::factory()->create(['workspace_id' => $workspace->id, 'workflow_id' => $workflow->id, 'runnable_type' => Workflow::class, 'runnable_id' => $workflow->id, 'error' => 'Timed out.']);
+    $run = Run::factory()->create(['workspace_id' => $workspace->id, 'workflow_id' => $workflow->id, 'runnable_type' => (new Workflow)->getMorphClass(), 'runnable_id' => $workflow->id, 'error' => 'Timed out.']);
 
     $stored = fn (string $runId) => [
         'id' => (string) Str::uuid(),
