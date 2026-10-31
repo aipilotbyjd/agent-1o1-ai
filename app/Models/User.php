@@ -33,7 +33,7 @@ use Laravel\Cashier\Billable;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'avatar', 'timezone', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
+#[Fillable(['name', 'email', 'password', 'avatar', 'timezone', 'pending_email', 'pending_email_requested_at', 'current_workspace_id', 'onboarding_current_step', 'onboarding_skipped_steps', 'onboarding_completed_at', 'onboarding_dismissed_at', 'job_role', 'discovery_source'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
 {
@@ -56,6 +56,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
             'onboarding_current_step' => OnboardingStep::class,
+            'onboarding_skipped_steps' => 'array',
             'onboarding_completed_at' => 'datetime',
             'onboarding_dismissed_at' => 'datetime',
             'job_role' => JobRole::class,

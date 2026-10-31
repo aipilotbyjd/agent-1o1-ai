@@ -14,6 +14,8 @@ Route::middleware('auth:api')->group(function () {
         Route::post('role', [OnboardingController::class, 'selectRole']);
         Route::post('plan', [OnboardingController::class, 'selectPlan']);
         Route::post('discovery', [OnboardingController::class, 'submitDiscovery']);
+        Route::post('continue', [OnboardingController::class, 'continue']);
+        Route::post('skip', [OnboardingController::class, 'skip']);
         Route::post('complete', [OnboardingController::class, 'complete']);
     });
 });

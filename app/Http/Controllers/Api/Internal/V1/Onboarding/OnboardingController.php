@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Internal\V1\Onboarding;
 
 use App\Enums\Onboarding\DiscoverySource;
 use App\Enums\Onboarding\JobRole;
+use App\Enums\Onboarding\OnboardingStep;
 use App\Enums\Workspaces\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Internal\V1\Onboarding\ContinueStepRequest;
 use App\Http\Requests\Api\Internal\V1\Onboarding\InviteTeamRequest;
 use App\Http\Requests\Api\Internal\V1\Onboarding\SelectPlanRequest;
 use App\Http\Requests\Api\Internal\V1\Onboarding\SelectRoleRequest;
+use App\Http\Requests\Api\Internal\V1\Onboarding\SkipStepRequest;
 use App\Http\Requests\Api\Internal\V1\Onboarding\SubmitDiscoveryRequest;
 use App\Http\Responses\ApiResponse;
 use App\Services\Onboarding\OnboardingService;
@@ -56,6 +59,20 @@ class OnboardingController extends Controller
         $state = $this->onboarding->submitDiscovery($request->user(), DiscoverySource::from($request->validated('discovery_source')));
 
         return ApiResponse::success($state, 'Thanks for letting us know.');
+    }
+
+    public function continue(ContinueStepRequest $request)
+    {
+        $state = $this->onboarding->continue($request->user(), OnboardingStep::from($request->validated('step')));
+
+        return ApiResponse::success($state, 'Progress saved.');
+    }
+
+    public function skip(SkipStepRequest $request)
+    {
+        $state = $this->onboarding->skip($request->user(), OnboardingStep::from($request->validated('step')));
+
+        return ApiResponse::success($state, 'Step skipped.');
     }
 
     public function complete(Request $request)

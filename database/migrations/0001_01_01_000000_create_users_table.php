@@ -25,6 +25,7 @@ return new class extends Migration
             $table->text('two_factor_recovery_codes')->nullable();
             $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->string('onboarding_current_step')->nullable()->default('profile_picture');
+            $table->json('onboarding_skipped_steps')->nullable();
             $table->timestamp('onboarding_completed_at')->nullable();
             $table->timestamp('onboarding_dismissed_at')->nullable();
             $table->string('job_role')->nullable();
