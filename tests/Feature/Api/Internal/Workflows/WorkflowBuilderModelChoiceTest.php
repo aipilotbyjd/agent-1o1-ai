@@ -10,6 +10,8 @@ use App\Models\Workflows\Builder\WorkflowBuilderMessage;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Ai\ModelCatalogResolver;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
@@ -92,4 +94,92 @@ it('refuses a model the workspace has not allowed', function () {
         ->assertJsonValidationErrors('model_catalog_id');
 
     $this->postJson($this->url, ['message' => 'Hi', 'model_catalog_id' => $allowed->id])->assertAccepted();
+});
+
+/**
+ * Sends a message with the given resolver behaviour and returns the assistant's reply as the API shows it.
+ *
+ * @param  array<string, array<string, string>|null>  $chains  catalog slug => provider chain, or null for "no enabled route"
+ * @return array<string, mixed>
+ */
+function builderReplyWith(array $chains, ?string $pickedModelId): array
+{
+    WorkflowBuilderAgent::fake(['Done.']);
+    WorkflowBuilderTitleAgent::fake([]);
+
+    $resolver = Mockery::mock(ModelCatalogResolver::class)->makePartial();
+    $resolver->shouldReceive('providerChain')->andReturnUsing(fn (string $slug): array => ($chains[$slug] ?? null) ?? throw new RuntimeException("Model catalog entry [{$slug}] has no enabled execution route."));
+    app()->instance(ModelCatalogResolver::class, $resolver);
+
+    test()->postJson(test()->url, ['message' => 'Add a Slack step.', 'model_catalog_id' => $pickedModelId])->assertAccepted();
+
+    return collect(test()->getJson(test()->url)->assertOk()->json('data.messages'))->firstWhere('role', 'assistant');
+}
+
+function builderDefaultModel(): ModelCatalog
+{
+    return ModelCatalog::factory()->create(['slug' => ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG, 'display_name' => 'Workflow Builder Assistant', 'brand' => 'internal', 'is_internal' => true]);
+}
+
+it('shows the model that answered when it is the one the member picked', function () {
+    $reply = builderReplyWith(['claude-fast' => ['openai' => 'gpt-4o']], $this->model->id);
+
+    expect($reply['model_catalog_id'])->toBe($this->model->id)
+        ->and($reply['model'])->toMatchArray(['id' => $this->model->id, 'slug' => 'claude-fast', 'display_name' => 'Claude Fast', 'is_default' => false]);
+});
+
+it('shows the builder default, not the model picked, when the pick had no working route and the default answered', function () {
+    $default = builderDefaultModel();
+
+    $reply = builderReplyWith([ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG => ['openai' => 'gpt-4o']], $this->model->id);
+
+    expect($reply['model_catalog_id'])->toBe($default->id)
+        ->and($reply['model'])->toMatchArray(['display_name' => 'Builder default', 'is_default' => true, 'brand' => null])
+        ->and(WorkflowBuilderMessage::query()->where('role', 'user')->value('model_catalog_id'))->toBe($this->model->id);
+});
+
+it('shows the builder default when no model was picked, without naming the internal model', function () {
+    builderDefaultModel();
+
+    $reply = builderReplyWith([ProcessWorkflowBuilderMessageJob::MODEL_CATALOG_SLUG => ['openai' => 'gpt-4o']], null);
+
+    expect($reply['model'])->toMatchArray(['display_name' => 'Builder default', 'is_default' => true])
+        ->and(json_encode($reply['model']))->not->toContain('Workflow Builder Assistant');
+});
+
+it('shows no model when the default provider answered with no catalog entry behind it', function () {
+    $reply = builderReplyWith([], null);
+
+    expect($reply['model_catalog_id'])->toBeNull()
+        ->and($reply['model'])->toBeNull();
+});
+
+it('still shows which model was picked on the member\'s own message', function () {
+    builderReplyWith(['claude-fast' => ['openai' => 'gpt-4o']], $this->model->id);
+
+    $messages = collect($this->getJson($this->url)->assertOk()->json('data.messages'));
+
+    expect($messages->firstWhere('role', 'user')['model']['display_name'])->toBe('Claude Fast');
+});
+
+it('loads every message\'s model in one query, not one per message', function () {
+    builderReplyWith(['claude-fast' => ['openai' => 'gpt-4o']], $this->model->id);
+    builderReplyWith(['claude-fast' => ['openai' => 'gpt-4o']], $this->model->id);
+
+    $queries = 0;
+    DB::listen(function (QueryExecuted $query) use (&$queries): void {
+        $queries += str_contains($query->sql, 'model_catalog') ? 1 : 0;
+    });
+
+    $this->getJson($this->url)->assertOk();
+
+    expect($queries)->toBeLessThanOrEqual(1);
+});
+
+it('shows the model that answered when the editor reads the whole session', function () {
+    builderReplyWith(['claude-fast' => ['openai' => 'gpt-4o']], $this->model->id);
+
+    $messages = collect($this->getJson("/api/v1/workspaces/{$this->workspace->id}/workflow-builder-sessions/{$this->session->id}")->assertOk()->json('data.session.messages'));
+
+    expect($messages->firstWhere('role', 'assistant')['model'])->toMatchArray(['display_name' => 'Claude Fast', 'is_default' => false]);
 });

@@ -102,7 +102,7 @@ class WorkflowBuilderSessionController extends Controller
         $this->ensureBelongsToWorkspace($workspace, $session);
 
         return ApiResponse::success([
-            'session' => WorkflowBuilderSessionResource::make($session->load(['messages' => fn ($query) => $query->oldest()->oldest('id')->with('attachments')])),
+            'session' => WorkflowBuilderSessionResource::make($session->load(['messages' => fn ($query) => $query->oldest()->oldest('id')->with(['attachments', 'modelCatalog'])])),
         ]);
     }
 
