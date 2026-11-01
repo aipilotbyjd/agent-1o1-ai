@@ -133,6 +133,94 @@ class Plan extends Model
         return max(1, (int) ($this->limits['min_poll_interval_minutes'] ?? 1));
     }
 
+    /**
+     * Keys in `limits` that bound usage and cost rather than how many of
+     * something a workspace may own. The admin plan editor accepts these
+     * alongside the `PlanLimit` keys; the dollar caps take decimals.
+     *
+     * @var list<string>
+     */
+    public const array USAGE_LIMIT_KEYS = [
+        'trial_credits',
+        'max_run_credits',
+        'max_concurrent_runs',
+        'credit_rollover_percent',
+        'ai_cost_daily_usd',
+        'ai_cost_weekly_usd',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    public const array DOLLAR_LIMIT_KEYS = ['ai_cost_daily_usd', 'ai_cost_weekly_usd'];
+
+    /**
+     * Credits a trialing subscription gets before its first payment. Falls
+     * back to the full monthly allowance when the plan does not set one, so
+     * a plan row that predates this key keeps behaving as it did.
+     */
+    public function trialCredits(): int
+    {
+        $value = $this->limits['trial_credits'] ?? null;
+
+        return is_numeric($value) && $value >= 0 ? (int) $value : $this->creditsMonthly();
+    }
+
+    /**
+     * The most one run or agent turn may charge before it is stopped.
+     * `null` = no cap.
+     */
+    public function maxRunCredits(): ?int
+    {
+        return $this->positiveIntLimit('max_run_credits');
+    }
+
+    /**
+     * How many runs and agent turns may be in flight at once. `null` = no cap.
+     */
+    public function maxConcurrentRuns(): ?int
+    {
+        return $this->positiveIntLimit('max_concurrent_runs');
+    }
+
+    /**
+     * Model cost (USD, on platform keys) a workspace may spend per UTC day.
+     */
+    public function aiCostDailyUsd(): ?float
+    {
+        return $this->positiveFloatLimit('ai_cost_daily_usd');
+    }
+
+    /**
+     * Model cost (USD, on platform keys) a workspace may spend in 7 days.
+     */
+    public function aiCostWeeklyUsd(): ?float
+    {
+        return $this->positiveFloatLimit('ai_cost_weekly_usd');
+    }
+
+    /**
+     * Share of unused allowance (0-100) carried into the next period.
+     */
+    public function creditRolloverPercent(): int
+    {
+        return min(100, max(0, (int) ($this->limits['credit_rollover_percent'] ?? 0)));
+    }
+
+    private function positiveIntLimit(string $key): ?int
+    {
+        $value = $this->limits[$key] ?? null;
+
+        return is_numeric($value) && $value > 0 ? (int) $value : null;
+    }
+
+    private function positiveFloatLimit(string $key): ?float
+    {
+        $value = $this->limits[$key] ?? null;
+
+        return is_numeric($value) && $value > 0 ? (float) $value : null;
+    }
+
     public function stripePriceId(BillingInterval $interval): ?string
     {
         return $this->{$interval->stripePriceColumn()};

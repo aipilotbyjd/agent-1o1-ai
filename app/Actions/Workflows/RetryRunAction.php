@@ -58,7 +58,7 @@ class RetryRunAction
             throw RunStateException::unknownNodeKey($fromNodeKey);
         }
 
-        $this->creditGate->assertCanStartRun($run->workspace);
+        $this->creditGate->assertCanStartWorkflowRun($run->workspace);
 
         $retry = DB::transaction(function () use ($run, $graph, $fromNodeKey, $triggeredBy): Run {
             $retry = Run::create([

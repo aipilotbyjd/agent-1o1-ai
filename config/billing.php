@@ -21,6 +21,61 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Free Credits, Trials and Abuse Checks
+    |--------------------------------------------------------------------------
+    |
+    | Who receives free and trial credits. Every key here can be overridden
+    | from Super Admin (`BillingSettings::POLICY_KEYS`) without a deploy.
+    |
+    | `free_credits.one_per_owner`: only the owner's first workspace
+    | (`users.free_workspace_id`) gets the free plan's monthly credits; any
+    | other free workspace starts at 0 and works on top-ups or a paid plan.
+    |
+    | `abuse.enforcement`: `enforce` applies the checks below; `shadow` runs
+    | them and records what they would have denied without denying it, so
+    | they can be tuned on real traffic first; `off` skips them.
+    |
+    */
+
+    'free_credits' => [
+        'one_per_owner' => (bool) env('BILLING_FREE_CREDITS_ONE_PER_OWNER', true),
+        'require_verified_email' => (bool) env('BILLING_FREE_CREDITS_REQUIRE_VERIFIED_EMAIL', true),
+    ],
+
+    'trials' => [
+        'one_per_user' => (bool) env('BILLING_TRIALS_ONE_PER_USER', true),
+        'one_per_card' => (bool) env('BILLING_TRIALS_ONE_PER_CARD', true),
+        'block_prepaid_cards' => (bool) env('BILLING_TRIALS_BLOCK_PREPAID_CARDS', true),
+    ],
+
+    'abuse' => [
+        'enforcement' => env('FREE_CREDIT_ENFORCEMENT', 'enforce'),
+        'max_free_claims_per_network_per_day' => (int) env('BILLING_MAX_FREE_CLAIMS_PER_NETWORK_PER_DAY', 3),
+        'block_disposable_email' => (bool) env('BILLING_BLOCK_DISPOSABLE_EMAIL', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | AI Cost Guardrails
+    |--------------------------------------------------------------------------
+    |
+    | Dollar limits on model cost paid on platform keys. Per-plan limits live
+    | on the plan (`limits.ai_cost_daily_usd`, `ai_cost_weekly_usd`,
+    | `max_run_credits`, `max_concurrent_runs`, `features.model_tiers`); this
+    | is the platform-wide breaker: once free and trial workspaces together
+    | pass `free_tier_daily_budget_usd` in a UTC day, their new runs pause
+    | until the next day. Paying workspaces are never paused by it. `null`
+    | turns the breaker off.
+    |
+    */
+
+    'guardrails' => [
+        'enabled' => (bool) env('BILLING_GUARDRAILS_ENABLED', true),
+        'free_tier_daily_budget_usd' => env('FREE_TIER_DAILY_BUDGET_USD') === null ? null : (float) env('FREE_TIER_DAILY_BUDGET_USD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Trial Ending Warning
     |--------------------------------------------------------------------------
     |

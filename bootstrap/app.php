@@ -2,6 +2,7 @@
 
 use App\Exceptions\BillingAccountNotFoundException;
 use App\Exceptions\ConnectorException;
+use App\Exceptions\CostLimitReachedException;
 use App\Exceptions\FeatureNotAvailableException;
 use App\Exceptions\InsufficientCreditsException;
 use App\Exceptions\ModelBusyException;
@@ -138,6 +139,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (InsufficientCreditsException $e, Request $request) {
             if ($request->is('api/*')) {
                 return ApiResponse::error($e->getMessage(), 402);
+            }
+        });
+
+        $exceptions->render(function (CostLimitReachedException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 429);
             }
         });
 

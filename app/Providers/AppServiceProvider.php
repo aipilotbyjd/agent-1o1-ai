@@ -18,10 +18,12 @@ use App\Models\Ai\WorkspaceAiKeyPolicy;
 use App\Models\Ai\WorkspaceModelSettings;
 use App\Models\Auth\ApiKey;
 use App\Models\Auth\PassportToken;
+use App\Models\Billing\CreditPack;
 use App\Models\Billing\Subscription as BillingSubscription;
 use App\Models\Billing\SubscriptionItem as BillingSubscriptionItem;
 use App\Models\Connectors\ConnectorCredential;
 use App\Models\Notifications\NotificationChannel;
+use App\Models\Referrals\ReferralReward;
 use App\Models\Runs\NodeRun;
 use App\Models\Runs\Run;
 use App\Models\Secrets\Secret;
@@ -335,6 +337,9 @@ class AppServiceProvider extends ServiceProvider
             // (WorkflowBuilderAgent): the conversations table's
             // participant_type column stores this alias.
             'user' => User::class,
+            // `credit_grants.reference_type`: what paid for or earned a grant.
+            'credit_pack' => CreditPack::class,
+            'referral_reward' => ReferralReward::class,
         ]);
     }
 

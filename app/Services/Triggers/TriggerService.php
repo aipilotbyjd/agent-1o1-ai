@@ -8,8 +8,8 @@ use App\Enums\RunStatus;
 use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
-use App\Exceptions\InsufficientCreditsException;
 use App\Exceptions\PlanLimitExceededException;
+use App\Exceptions\UsageBlockedException;
 use App\Jobs\Triggers\FireTriggerEvent;
 use App\Models\Runs\Run;
 use App\Models\Triggers\Trigger;
@@ -475,7 +475,7 @@ class TriggerService
     {
         try {
             $this->creditGate->assertCanStartRun($trigger->workspace);
-        } catch (InsufficientCreditsException) {
+        } catch (UsageBlockedException) {
             return false;
         }
 

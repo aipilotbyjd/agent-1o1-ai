@@ -51,7 +51,7 @@ class StartWorkflowRunAction
         // of work the parent already passed the gate for, and refusing it
         // mid-flight would strand the parent run rather than save any spend.
         if ($parentNode === null) {
-            $this->creditGate->assertCanStartRun($workflow->workspace);
+            $this->creditGate->assertCanStartWorkflowRun($workflow->workspace);
         }
 
         // `status`/`started_at` aren't in Run's #[Fillable] list (engine-

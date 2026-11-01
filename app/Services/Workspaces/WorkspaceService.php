@@ -7,6 +7,7 @@ use App\Enums\Workspaces\Role;
 use App\Models\Triggers\Trigger;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\Policies\FreeCreditPolicy;
 use App\Services\Timezones\Timezones;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,8 @@ class WorkspaceService
             ]);
 
             $owner->update(['current_workspace_id' => $workspace->id]);
+
+            app(FreeCreditPolicy::class)->claimFreeWorkspace($owner, $workspace);
 
             return $workspace;
         });

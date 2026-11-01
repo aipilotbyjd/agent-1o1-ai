@@ -63,7 +63,7 @@ class SubscriptionController extends Controller
             ], 'Checkout session created.');
         }
 
-        $checkoutUrl = $checkout->execute($workspace, $plan, $interval);
+        $checkoutUrl = $checkout->execute($workspace, $plan, $interval, $request->user());
 
         if ($checkoutUrl === null) {
             return ApiResponse::success(['subscription' => SubscriptionResource::make($workspace->subscription('default')?->load('plan'))], 'Subscription updated.');

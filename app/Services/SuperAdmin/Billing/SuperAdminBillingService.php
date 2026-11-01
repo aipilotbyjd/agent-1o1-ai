@@ -4,12 +4,14 @@ namespace App\Services\SuperAdmin\Billing;
 
 use App\Actions\Billing\ActivatePlanGrantAction;
 use App\Actions\Billing\RevokePlanGrantAction;
+use App\Enums\Billing\CreditGrantSource;
 use App\Enums\Billing\PlanGrantSource;
 use App\Enums\Billing\PlanGrantStatus;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
 use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\CreditWallet;
 use App\Services\SuperAdmin\Audit\SuperAdminAuditLogger;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -29,35 +31,44 @@ class SuperAdminBillingService
         private readonly ActivatePlanGrantAction $activateGrant,
         private readonly RevokePlanGrantAction $revokeGrant,
         private readonly SuperAdminRefunds $refunds,
+        private readonly CreditWallet $wallet,
     ) {}
 
     /**
-     * Adds to the non-expiring top-up pool, the same one credit packs land in.
+     * Adds an `admin` grant to the workspace's wallet. It never expires unless
+     * `$expiresAt` is given, and carries over between periods.
      */
-    public function grantCredits(SuperAdmin $actor, Workspace $workspace, int $credits, string $reason): Workspace
+    public function grantCredits(SuperAdmin $actor, Workspace $workspace, int $credits, string $reason, ?CarbonInterface $expiresAt = null): Workspace
     {
-        return DB::transaction(function () use ($actor, $workspace, $credits, $reason): Workspace {
+        return DB::transaction(function () use ($actor, $workspace, $credits, $reason, $expiresAt): Workspace {
             $locked = Workspace::query()->whereKey($workspace->getKey())->lockForUpdate()->firstOrFail();
             $before = (int) $locked->topup_credits;
 
-            $locked->increment('topup_credits', $credits);
+            $grant = $this->wallet->grant($locked, CreditGrantSource::Admin, $credits, [
+                'granted_by' => (string) $actor->getKey(),
+                'expires_at' => $expiresAt,
+                'reason' => $reason,
+            ]);
+
+            $locked->refresh();
 
             $this->audit->record(
                 $actor,
                 'billing.credits.granted',
                 $locked,
                 ['topup_credits' => $before],
-                ['topup_credits' => $before + $credits],
+                ['topup_credits' => (int) $locked->topup_credits, 'credit_grant_id' => $grant->id, 'expires_at' => $expiresAt?->toIso8601String()],
                 $reason,
             );
 
-            return $locked->refresh();
+            return $locked;
         });
     }
 
     /**
-     * Takes credits back out of the top-up pool, stopping at what is left:
-     * credits already spent cannot be recovered.
+     * Takes credits back out of the workspace's carry-over grants (top-ups,
+     * promo, referral, admin), stopping at what is left: credits already
+     * spent cannot be recovered.
      *
      * @return array{workspace: Workspace, recovered: int}
      */
@@ -66,22 +77,25 @@ class SuperAdminBillingService
         return DB::transaction(function () use ($actor, $workspace, $credits, $reason): array {
             $locked = Workspace::query()->whereKey($workspace->getKey())->lockForUpdate()->firstOrFail();
             $before = (int) $locked->topup_credits;
-            $recovered = min($credits, $before);
+
+            abort_if($before === 0, 409, 'This workspace has no top-up credits to take back.');
+
+            $recovered = $this->wallet->revokeCredits($locked, $credits, $reason);
 
             abort_if($recovered === 0, 409, 'This workspace has no top-up credits to take back.');
 
-            $locked->decrement('topup_credits', $recovered);
+            $locked->refresh();
 
             $this->audit->record(
                 $actor,
                 'billing.credits.revoked',
                 $locked,
                 ['topup_credits' => $before],
-                ['topup_credits' => $before - $recovered, 'requested' => $credits],
+                ['topup_credits' => (int) $locked->topup_credits, 'requested' => $credits],
                 $reason,
             );
 
-            return ['workspace' => $locked->refresh(), 'recovered' => $recovered];
+            return ['workspace' => $locked, 'recovered' => $recovered];
         });
     }
 
