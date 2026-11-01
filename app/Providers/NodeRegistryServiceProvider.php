@@ -4,6 +4,13 @@ namespace App\Providers;
 
 use App\Contracts\NodeContract;
 use App\Nodes\AiAutomation\AgentNode;
+use App\Nodes\AiAutomation\AiClassifyNode;
+use App\Nodes\AiAutomation\AiExtractNode;
+use App\Nodes\AiAutomation\AiRewriteNode;
+use App\Nodes\AiAutomation\AiScoreNode;
+use App\Nodes\AiAutomation\AiSentimentNode;
+use App\Nodes\AiAutomation\AiSummarizeNode;
+use App\Nodes\AiAutomation\AiTranslateNode;
 use App\Nodes\AiAutomation\AskAiNode;
 use App\Nodes\DataTransform\ArrayNode;
 use App\Nodes\DataTransform\CallApiNode;
@@ -1259,6 +1266,13 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'router' => RouterNode::class,
             'filter' => FilterNode::class,
             'ask_ai' => AskAiNode::class,
+            'ai_classify' => AiClassifyNode::class,
+            'ai_extract' => AiExtractNode::class,
+            'ai_summarize' => AiSummarizeNode::class,
+            'ai_translate' => AiTranslateNode::class,
+            'ai_sentiment' => AiSentimentNode::class,
+            'ai_rewrite' => AiRewriteNode::class,
+            'ai_score' => AiScoreNode::class,
             'delay' => DelayNode::class,
             'agent' => AgentNode::class,
             'notion_append_blocks' => NotionAppendBlocksNode::class,
