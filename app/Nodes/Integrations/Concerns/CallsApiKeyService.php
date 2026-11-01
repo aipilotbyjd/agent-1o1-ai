@@ -3,6 +3,7 @@
 namespace App\Nodes\Integrations\Concerns;
 
 use App\Models\Runs\Run;
+use App\Nodes\Support\FilePayload;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -56,6 +57,38 @@ trait CallsApiKeyService
         $this->assertSuccessful($response);
 
         return (array) ($response->json() ?? []);
+    }
+
+    /**
+     * Download a file from the service (a signed document, an export) as raw
+     * bytes, within the size limit a step may hold.
+     *
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $query  null values are dropped
+     * @param  array<string, string>  $headers
+     * @return array{content: string, mime_type: string}
+     *
+     * @throws RuntimeException
+     */
+    protected function download(Run $run, array $config, string $url, array $query = [], array $headers = []): array
+    {
+        [$headers, $query] = $this->authenticate($this->resolveAccessToken($run, $config), $headers, array_filter($query, fn (mixed $value): bool => $value !== null && $value !== ''));
+
+        try {
+            $response = Http::withHeaders($headers)->timeout(60)->get($url, $query);
+        } catch (ConnectionException) {
+            throw new RuntimeException("{$this->serviceName()} could not be reached. Try again in a moment.");
+        }
+
+        $this->assertSuccessful($response);
+
+        $body = $response->body();
+
+        if (strlen($body) > FilePayload::MAX_BYTES) {
+            throw new RuntimeException('The document is too large to bring into a workflow ('.round(strlen($body) / 1048576, 1).' MB; the limit is '.(FilePayload::MAX_BYTES / 1048576).' MB).');
+        }
+
+        return ['content' => $body, 'mime_type' => trim(explode(';', (string) $response->header('Content-Type'))[0]) ?: 'application/pdf'];
     }
 
     /**

@@ -106,6 +106,12 @@ class AppNodeCategoriesDataset extends AbstractSetupDataset
         'hunter' => [null, ['crm-sales', 'marketing']],
         'apollo' => [null, ['crm-sales', 'marketing']],
         'maps_platform' => [null, ['developer', 'productivity']],
+        'docusign' => [null, ['crm-sales', 'productivity']],
+        'dropbox_sign' => [null, ['crm-sales', 'productivity']],
+        'zoom' => [null, ['productivity', 'messaging']],
+        'calendly' => [null, ['productivity', 'crm-sales']],
+        'cal_com' => [null, ['productivity', 'crm-sales']],
+        'microsoft_teams' => ['microsoft', ['productivity', 'messaging']],
     ];
 
     public function apply(): void

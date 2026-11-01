@@ -14,7 +14,7 @@ class HunterFindCompanyNode extends AbstractHunterNode
 
     public function name(): string
     {
-        return 'Hunter: Look Up a Company';
+        return 'Hunter: Find Company';
     }
 
     public function description(): string

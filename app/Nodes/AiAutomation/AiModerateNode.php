@@ -31,7 +31,7 @@ class AiModerateNode extends AbstractAiNode
 
     public function description(): string
     {
-        return 'Checks text against a content policy, such as abuse, personal data, spam or anything you define, and says whether to let it through.';
+        return 'Checks text against a content policy, such as abuse, personal data or spam, and says whether to let it through.';
     }
 
     public function configSchema(): array

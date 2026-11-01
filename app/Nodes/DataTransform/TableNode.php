@@ -43,7 +43,7 @@ class TableNode extends PureDataNode
 
     public function description(): string
     {
-        return 'Works on rows: remove duplicates, group and total (count, sum, average, min, max), sort, filter, keep or rename columns, take the first few.';
+        return 'Works on rows: remove duplicates, group and total, sort, filter, keep or rename columns, or take the first few.';
     }
 
     public function configSchema(): array

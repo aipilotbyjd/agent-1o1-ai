@@ -27,6 +27,7 @@ class WorkflowApprovalController extends Controller
             $request->validated('decision') === 'approve',
             $request->user(),
             $request->validated('message'),
+            $request->approvalInputs(),
         );
 
         return ApiResponse::success(['approval' => WorkflowApprovalResource::make($approval->fresh())]);

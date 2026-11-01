@@ -212,6 +212,25 @@ function runNodeStep(string $type, array $config, array $input = [], ?Workspace 
 }
 
 /**
+ * Runs a whole graph as a real, published workflow and returns the finished
+ * run with its steps loaded, keyed by step key where a test reads them.
+ *
+ * @param  array{nodes: array<int, array<string, mixed>>, edges?: array<int, array<string, mixed>>}  $graph
+ * @param  array<string, mixed>  $input
+ */
+function runGraph(array $graph, array $input = [], ?Workspace $workspace = null): Run
+{
+    $owner = $workspace?->owner ?? User::factory()->create();
+    $workspace ??= app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph(['edges' => [], ...$graph]);
+    $workflow->publishVersion(publisher: $owner);
+
+    return app(StartWorkflowRunAction::class)->execute($workflow->fresh(), $input)->fresh(['nodeRuns']);
+}
+
+/**
  * Calls a node's `execute()` directly, skipping the engine. The engine checks
  * a step's settings before it runs (a blank required value never reaches the
  * node, and a list setting is coerced), so a node's own guards can only be

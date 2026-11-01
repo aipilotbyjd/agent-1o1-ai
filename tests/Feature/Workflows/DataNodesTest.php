@@ -8,9 +8,15 @@ use App\Nodes\DataTransform\DataStoreNode;
 use App\Services\Web\HtmlDocument;
 use App\Services\Web\SelectorToXPath;
 use App\Services\Workspaces\WorkspaceService;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+beforeEach(function () {
+    // Nothing here may reach an outside service for real: an unfaked call fails the test.
+    Http::preventStrayRequests();
+});
 
 function dataWorkspace(): Workspace
 {

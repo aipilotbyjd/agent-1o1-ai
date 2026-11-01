@@ -15,7 +15,7 @@ class ApolloEnrichCompanyNode extends AbstractApolloNode
 
     public function name(): string
     {
-        return 'Apollo: Enrich a Company';
+        return 'Apollo: Enrich Company';
     }
 
     public function description(): string

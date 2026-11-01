@@ -23,6 +23,7 @@ use App\Nodes\AiAutomation\AskAiNode;
 use App\Nodes\AiAutomation\KnowledgeSaveNode;
 use App\Nodes\AiAutomation\KnowledgeSearchNode;
 use App\Nodes\DataTransform\ArrayNode;
+use App\Nodes\DataTransform\BatchNode;
 use App\Nodes\DataTransform\CallApiNode;
 use App\Nodes\DataTransform\CsvParseNode;
 use App\Nodes\DataTransform\DataStoreNode;
@@ -45,6 +46,7 @@ use App\Nodes\DataTransform\WebScrapeNode;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
+use App\Nodes\FlowLogic\SwitchNode;
 use App\Nodes\InputsOutputs\WorkflowInputNode;
 use App\Nodes\InputsOutputs\WorkflowOutputNode;
 use App\Nodes\Integrations\ActiveCampaign\ActiveCampaignAddNoteNode;
@@ -145,6 +147,19 @@ use App\Nodes\Integrations\Brevo\BrevoSendEmailNode;
 use App\Nodes\Integrations\Brevo\BrevoSendSmsNode;
 use App\Nodes\Integrations\Brevo\BrevoTrackEventNode;
 use App\Nodes\Integrations\Brevo\BrevoUpdateContactNode;
+use App\Nodes\Integrations\CalCom\CalComCancelBookingNode;
+use App\Nodes\Integrations\CalCom\CalComCreateBookingNode;
+use App\Nodes\Integrations\CalCom\CalComListBookingsNode;
+use App\Nodes\Integrations\CalCom\CalComListEventTypesNode;
+use App\Nodes\Integrations\CalCom\CalComListSlotsNode;
+use App\Nodes\Integrations\Calendly\CalendlyCancelEventNode;
+use App\Nodes\Integrations\Calendly\CalendlyCreateSchedulingLinkNode;
+use App\Nodes\Integrations\Calendly\CalendlyGetCurrentUserNode;
+use App\Nodes\Integrations\Calendly\CalendlyGetEventNode;
+use App\Nodes\Integrations\Calendly\CalendlyListAvailableTimesNode;
+use App\Nodes\Integrations\Calendly\CalendlyListEventTypesNode;
+use App\Nodes\Integrations\Calendly\CalendlyListInviteesNode;
+use App\Nodes\Integrations\Calendly\CalendlyListScheduledEventsNode;
 use App\Nodes\Integrations\ClickUp\ClickUpAddChecklistItemNode;
 use App\Nodes\Integrations\ClickUp\ClickUpAddCommentNode;
 use App\Nodes\Integrations\ClickUp\ClickUpAddTagNode;
@@ -226,6 +241,21 @@ use App\Nodes\Integrations\Discord\DiscordSetNicknameNode;
 use App\Nodes\Integrations\Discord\DiscordTimeoutMemberNode;
 use App\Nodes\Integrations\Discord\DiscordUnbanMemberNode;
 use App\Nodes\Integrations\Discord\DiscordUnpinMessageNode;
+use App\Nodes\Integrations\DocuSign\DocuSignDownloadDocumentNode;
+use App\Nodes\Integrations\DocuSign\DocuSignGetEnvelopeNode;
+use App\Nodes\Integrations\DocuSign\DocuSignListEnvelopesNode;
+use App\Nodes\Integrations\DocuSign\DocuSignListTemplatesNode;
+use App\Nodes\Integrations\DocuSign\DocuSignSendDocumentNode;
+use App\Nodes\Integrations\DocuSign\DocuSignSendFromTemplateNode;
+use App\Nodes\Integrations\DocuSign\DocuSignVoidEnvelopeNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignCancelRequestNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignDownloadFilesNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignGetRequestNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignListRequestsNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignListTemplatesNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignRemindNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignSendFromTemplateNode;
+use App\Nodes\Integrations\DropboxSign\DropboxSignSendRequestNode;
 use App\Nodes\Integrations\Email\EmailParseInboundNode;
 use App\Nodes\Integrations\Email\EmailSendEmailNode;
 use App\Nodes\Integrations\Email\EmailSendToManyNode;
@@ -619,6 +649,10 @@ use App\Nodes\Integrations\Mailgun\MailgunSendEmailNode;
 use App\Nodes\Integrations\Mailgun\MailgunUpdateMemberNode;
 use App\Nodes\Integrations\Mailgun\MailgunValidateEmailNode;
 use App\Nodes\Integrations\Mailgun\MailgunVerifyDomainNode;
+use App\Nodes\Integrations\MicrosoftTeams\MicrosoftTeamsCancelMeetingNode;
+use App\Nodes\Integrations\MicrosoftTeams\MicrosoftTeamsCreateMeetingNode;
+use App\Nodes\Integrations\MicrosoftTeams\MicrosoftTeamsGetMeetingNode;
+use App\Nodes\Integrations\MicrosoftTeams\MicrosoftTeamsListMeetingsNode;
 use App\Nodes\Integrations\Monday\MondayAddUpdateNode;
 use App\Nodes\Integrations\Monday\MondayArchiveItemNode;
 use App\Nodes\Integrations\Monday\MondayCreateBoardNode;
@@ -1242,6 +1276,15 @@ use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListTasksNode;
 use App\Nodes\Integrations\ZohoProjects\ZohoProjectsListUsersNode;
 use App\Nodes\Integrations\ZohoProjects\ZohoProjectsLogTimeNode;
 use App\Nodes\Integrations\ZohoProjects\ZohoProjectsUpdateTaskNode;
+use App\Nodes\Integrations\Zoom\ZoomAddRegistrantNode;
+use App\Nodes\Integrations\Zoom\ZoomCreateMeetingNode;
+use App\Nodes\Integrations\Zoom\ZoomDeleteMeetingNode;
+use App\Nodes\Integrations\Zoom\ZoomGetMeetingNode;
+use App\Nodes\Integrations\Zoom\ZoomGetTranscriptNode;
+use App\Nodes\Integrations\Zoom\ZoomListMeetingsNode;
+use App\Nodes\Integrations\Zoom\ZoomListRecordingsNode;
+use App\Nodes\Integrations\Zoom\ZoomListRegistrantsNode;
+use App\Nodes\Integrations\Zoom\ZoomUpdateMeetingNode;
 use App\Nodes\TriggersEvents\ManualTriggerNode;
 use App\Nodes\TriggersEvents\PollingTriggerNode;
 use App\Nodes\TriggersEvents\ScheduleTriggerNode;
@@ -1309,6 +1352,8 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'table' => TableNode::class,
             'table_format' => TableFormatNode::class,
             'router' => RouterNode::class,
+            'switch' => SwitchNode::class,
+            'batch' => BatchNode::class,
             'filter' => FilterNode::class,
             'ask_ai' => AskAiNode::class,
             'ai_classify' => AiClassifyNode::class,
@@ -1331,6 +1376,47 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'hunter_verify_email' => HunterVerifyEmailNode::class,
             'tavily_extract' => TavilyExtractNode::class,
             'tavily_search' => TavilySearchNode::class,
+            'docusign_download_document' => DocuSignDownloadDocumentNode::class,
+            'docusign_get_envelope' => DocuSignGetEnvelopeNode::class,
+            'docusign_list_envelopes' => DocuSignListEnvelopesNode::class,
+            'docusign_list_templates' => DocuSignListTemplatesNode::class,
+            'docusign_send_document' => DocuSignSendDocumentNode::class,
+            'docusign_send_from_template' => DocuSignSendFromTemplateNode::class,
+            'docusign_void_envelope' => DocuSignVoidEnvelopeNode::class,
+            'dropbox_sign_cancel_request' => DropboxSignCancelRequestNode::class,
+            'dropbox_sign_download_files' => DropboxSignDownloadFilesNode::class,
+            'dropbox_sign_get_request' => DropboxSignGetRequestNode::class,
+            'dropbox_sign_list_requests' => DropboxSignListRequestsNode::class,
+            'dropbox_sign_list_templates' => DropboxSignListTemplatesNode::class,
+            'dropbox_sign_remind' => DropboxSignRemindNode::class,
+            'dropbox_sign_send_from_template' => DropboxSignSendFromTemplateNode::class,
+            'dropbox_sign_send_request' => DropboxSignSendRequestNode::class,
+            'zoom_add_registrant' => ZoomAddRegistrantNode::class,
+            'zoom_create_meeting' => ZoomCreateMeetingNode::class,
+            'zoom_delete_meeting' => ZoomDeleteMeetingNode::class,
+            'zoom_get_meeting' => ZoomGetMeetingNode::class,
+            'zoom_get_transcript' => ZoomGetTranscriptNode::class,
+            'zoom_list_meetings' => ZoomListMeetingsNode::class,
+            'zoom_list_recordings' => ZoomListRecordingsNode::class,
+            'zoom_list_registrants' => ZoomListRegistrantsNode::class,
+            'zoom_update_meeting' => ZoomUpdateMeetingNode::class,
+            'calendly_cancel_event' => CalendlyCancelEventNode::class,
+            'calendly_create_scheduling_link' => CalendlyCreateSchedulingLinkNode::class,
+            'calendly_get_current_user' => CalendlyGetCurrentUserNode::class,
+            'calendly_get_event' => CalendlyGetEventNode::class,
+            'calendly_list_available_times' => CalendlyListAvailableTimesNode::class,
+            'calendly_list_event_types' => CalendlyListEventTypesNode::class,
+            'calendly_list_invitees' => CalendlyListInviteesNode::class,
+            'calendly_list_scheduled_events' => CalendlyListScheduledEventsNode::class,
+            'cal_com_cancel_booking' => CalComCancelBookingNode::class,
+            'cal_com_create_booking' => CalComCreateBookingNode::class,
+            'cal_com_list_bookings' => CalComListBookingsNode::class,
+            'cal_com_list_event_types' => CalComListEventTypesNode::class,
+            'cal_com_list_slots' => CalComListSlotsNode::class,
+            'microsoft_teams_cancel_meeting' => MicrosoftTeamsCancelMeetingNode::class,
+            'microsoft_teams_create_meeting' => MicrosoftTeamsCreateMeetingNode::class,
+            'microsoft_teams_get_meeting' => MicrosoftTeamsGetMeetingNode::class,
+            'microsoft_teams_list_meetings' => MicrosoftTeamsListMeetingsNode::class,
             'ai_answer' => AiAnswerNode::class,
             'ai_compare' => AiCompareNode::class,
             'ai_image' => AiImageNode::class,

@@ -14,7 +14,7 @@ class HunterDomainSearchNode extends AbstractHunterNode
 
     public function name(): string
     {
-        return 'Hunter: Find Emails at a Company';
+        return 'Hunter: Search Company Emails';
     }
 
     public function description(): string

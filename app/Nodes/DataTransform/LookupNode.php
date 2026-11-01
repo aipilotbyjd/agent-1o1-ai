@@ -29,7 +29,7 @@ class LookupNode extends PureDataNode
 
     public function description(): string
     {
-        return 'Maps a value to another through a table you write, such as a country to a sales region or a plan to a price, with a fallback when it is not listed.';
+        return 'Maps a value to another through a table you write, such as a country to a region, with a fallback.';
     }
 
     public function configSchema(): array

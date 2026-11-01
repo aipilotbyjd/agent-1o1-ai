@@ -33,7 +33,7 @@ class AiExtractNode extends AbstractAiNode implements HasIcon
 
     public function description(): string
     {
-        return 'Pulls the fields you name, such as email, company or total, out of an email, invoice or any text. Anything the text does not say comes back empty.';
+        return 'Pulls the fields you name, such as email or total, out of any text. Anything the text does not say comes back empty.';
     }
 
     public function configSchema(): array

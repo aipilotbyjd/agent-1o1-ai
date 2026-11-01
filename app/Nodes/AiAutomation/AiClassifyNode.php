@@ -31,7 +31,7 @@ class AiClassifyNode extends AbstractAiNode implements HasIcon
 
     public function description(): string
     {
-        return 'Sorts text into one of your categories, such as urgent or normal, and says how sure it is. Connect each category to its own next step.';
+        return 'Sorts text into one of your categories and says how sure it is. Connect each category to its own next step.';
     }
 
     public function configSchema(): array

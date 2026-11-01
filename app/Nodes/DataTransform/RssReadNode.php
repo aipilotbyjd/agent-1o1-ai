@@ -55,7 +55,7 @@ class RssReadNode implements DeclaresEffect, DeclaresOutputSchema, HasIcon, Node
 
     public function description(): string
     {
-        return 'Reads an RSS or Atom feed, such as a blog, news site or changelog, and returns its entries, newest first. As a trigger it starts the flow for each new entry.';
+        return 'Reads an RSS or Atom feed and returns its entries, newest first. As a trigger, it starts the flow for each new entry.';
     }
 
     public function effect(array $config): ActionEffect

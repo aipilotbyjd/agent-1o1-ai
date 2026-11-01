@@ -34,7 +34,7 @@ class AiReadFileNode extends AbstractAiNode
 
     public function description(): string
     {
-        return 'Reads a PDF or an image, such as an invoice, receipt, scan or screenshot, and answers about it or pulls out the fields you name.';
+        return 'Reads a PDF or an image, such as an invoice or screenshot, and answers about it or pulls out the fields you name.';
     }
 
     public function configSchema(): array

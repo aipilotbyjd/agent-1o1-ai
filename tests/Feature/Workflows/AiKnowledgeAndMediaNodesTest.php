@@ -14,6 +14,11 @@ use Laravel\Ai\Image;
 use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Transcription;
 
+beforeEach(function () {
+    // Nothing here may reach an outside service for real: an unfaked call fails the test.
+    Http::preventStrayRequests();
+});
+
 function aiWorkspace(): Workspace
 {
     return app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Acme']);

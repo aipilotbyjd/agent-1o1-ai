@@ -5,6 +5,11 @@ use App\Services\Workflows\NodeRegistry;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
+beforeEach(function () {
+    // Nothing here may reach an outside service for real: an unfaked call fails the test.
+    Http::preventStrayRequests();
+});
+
 /**
  * Runs a node with an API key given directly (the way a run with a connected
  * account resolves to one), and returns its output.

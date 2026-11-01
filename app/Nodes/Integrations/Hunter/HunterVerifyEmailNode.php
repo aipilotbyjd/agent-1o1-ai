@@ -15,7 +15,7 @@ class HunterVerifyEmailNode extends AbstractHunterNode
 
     public function name(): string
     {
-        return 'Hunter: Verify an Email';
+        return 'Hunter: Verify Email';
     }
 
     public function description(): string

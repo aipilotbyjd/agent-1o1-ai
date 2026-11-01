@@ -31,7 +31,7 @@ class AiSentimentNode extends AbstractAiNode implements HasIcon
 
     public function description(): string
     {
-        return 'Reads how a customer, reviewer or sender feels: positive, neutral, negative or mixed, with a score and the emotions behind it.';
+        return 'Reads how a sender feels: positive, neutral, negative or mixed, with a score and the emotions behind it.';
     }
 
     public function configSchema(): array

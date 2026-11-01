@@ -15,7 +15,7 @@ class HunterFindEmailNode extends AbstractHunterNode
 
     public function name(): string
     {
-        return 'Hunter: Find Someone’s Email';
+        return 'Hunter: Find Email';
     }
 
     public function description(): string

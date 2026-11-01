@@ -30,7 +30,7 @@ class AiScoreNode extends AbstractAiNode implements HasIcon
 
     public function description(): string
     {
-        return 'Rates text against your criteria, such as a lead against your ideal customer or a resume against a job, with a score, a verdict and the reasons.';
+        return 'Rates text against your criteria, such as a lead or a resume, with a score, a verdict and the reasons.';
     }
 
     public function configSchema(): array

@@ -122,6 +122,24 @@ return [
         'client_secret' => env('JIRA_CLIENT_SECRET'),
     ],
 
+    'docusign' => [
+        'client_id' => env('DOCUSIGN_CLIENT_ID'),
+        'client_secret' => env('DOCUSIGN_CLIENT_SECRET'),
+        // Where DocuSign signs people in: account.docusign.com, or account-d.docusign.com for its developer sandbox.
+        'auth_host' => env('DOCUSIGN_AUTH_HOST', 'account.docusign.com'),
+    ],
+
+    'zoom' => [
+        'client_id' => env('ZOOM_CLIENT_ID'),
+        'client_secret' => env('ZOOM_CLIENT_SECRET'),
+    ],
+
+    // Microsoft Teams signs in with the same Microsoft app as Outlook.
+    'microsoft_teams' => [
+        'client_id' => env('MICROSOFT_CONNECTORS_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_CONNECTORS_CLIENT_SECRET'),
+    ],
+
     'outlook' => [
         'client_id' => env('MICROSOFT_CONNECTORS_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_CONNECTORS_CLIENT_SECRET'),

@@ -13,7 +13,7 @@ class BraveSearchWebNode extends AbstractBraveSearchNode
 
     public function name(): string
     {
-        return 'Brave Search: Search the Web';
+        return 'Brave Search: Search Web';
     }
 
     public function description(): string

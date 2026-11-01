@@ -45,7 +45,7 @@ class AiAnswerNode extends AbstractAiNode
 
     public function description(): string
     {
-        return 'Answers a question using only your sources (text you pass in and/or your knowledge base), cites which ones, and says so when the answer is not there.';
+        return 'Answers a question using only your sources, cites them, and says so when the answer is not there.';
     }
 
     public function configSchema(): array

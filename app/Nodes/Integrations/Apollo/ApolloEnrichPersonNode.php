@@ -15,12 +15,12 @@ class ApolloEnrichPersonNode extends AbstractApolloNode
 
     public function name(): string
     {
-        return 'Apollo: Enrich a Person';
+        return 'Apollo: Enrich Person';
     }
 
     public function description(): string
     {
-        return 'Looks a person up from their email, LinkedIn page, or name and company, and returns their title, company, location and profile.';
+        return 'Looks a person up from their email, LinkedIn page or name and company: title, employer, location and profile.';
     }
 
     public function configSchema(): array

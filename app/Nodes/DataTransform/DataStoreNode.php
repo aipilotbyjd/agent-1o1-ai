@@ -66,7 +66,7 @@ class DataStoreNode implements DeclaresEffect, DeclaresOutputSchema, HasIcon, No
 
     public function description(): string
     {
-        return 'Remembers values between runs: the last item seen, a running total, or a list of what you have already handled. Use “check if new” to avoid doing the same thing twice.';
+        return 'Remembers values between runs: the last item seen, a running total, or what you have already handled.';
     }
 
     public function effect(array $config): ActionEffect

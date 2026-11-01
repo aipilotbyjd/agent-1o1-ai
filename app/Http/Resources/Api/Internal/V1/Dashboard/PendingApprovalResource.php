@@ -35,6 +35,8 @@ class PendingApprovalResource extends JsonResource
                 'key' => $this->nodeRun->key,
                 'type' => $this->nodeRun->type,
             ]),
+            // What the person deciding is asked, so a card can show the form.
+            'form' => $this->whenLoaded('nodeRun', fn (): ?array => $this->nodeRun->output['approval_form'] ?? null),
             'run' => $this->whenLoaded('run', fn (): array => [
                 'id' => $this->run->id,
                 'status' => $this->run->status->value,

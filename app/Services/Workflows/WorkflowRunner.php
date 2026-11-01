@@ -23,6 +23,7 @@ use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Secrets\ResolvedSecrets;
 use App\Services\Secrets\SecretRedactor;
 use App\Services\Secrets\SecretResolver;
+use App\Services\Workflows\Engine\JoinResults;
 use App\Services\Workflows\Engine\LoopCoordinator;
 use App\Services\Workflows\Engine\RunCanceller;
 use App\Services\Workflows\Engine\StepFailureHandler;
@@ -96,7 +97,7 @@ class WorkflowRunner
         }
 
         match ($nodeRun->type) {
-            FlowControlNodeType::HumanApproval->value => $this->pauseForApproval($run, $nodeRun),
+            FlowControlNodeType::HumanApproval->value => $this->pauseForApproval($run, $nodeRun, $nodeDefinition),
             FlowControlNodeType::Wait->value => $this->pauseForWait($nodeRun, $nodeDefinition),
             // The child run stores its input and every output built from it,
             // so a secret is never passed down: the sub-workflow references
@@ -111,7 +112,7 @@ class WorkflowRunner
             // join_paths node once it's genuinely ready, by the time
             // WorkflowRunner sees it, there's nothing left to do but settle
             // it immediately and let traversal continue.
-            FlowControlNodeType::JoinPaths->value => $this->completeJoin($run, $nodeRun),
+            FlowControlNodeType::JoinPaths->value => $this->completeJoin($run, $nodeRun, $nodeDefinition, $graph),
             default => $this->executeNodeContract($run, $nodeRun, $nodeDefinition, $graph, $context, $secrets),
         };
     }
@@ -238,12 +239,18 @@ class WorkflowRunner
         }
     }
 
-    private function completeJoin(Run $run, NodeRun $nodeRun): void
+    /**
+     * @param  array{key: string, type: string, config: array<string, mixed>}  $nodeDefinition
+     * @param  array<string, mixed>  $graph
+     */
+    private function completeJoin(Run $run, NodeRun $nodeRun, array $nodeDefinition, array $graph): void
     {
+        $output = (new JoinResults)->combine($run, $nodeRun->key, $graph, JoinResults::mode($nodeDefinition['config'] ?? []));
+
         $nodeRun->forceFill([
             'status' => NodeRunStatus::Completed,
             'started_at' => now(),
-            'output' => [],
+            'output' => $output,
             'finished_at' => now(),
         ])->save();
 
@@ -332,9 +339,28 @@ class WorkflowRunner
         }
     }
 
-    private function pauseForApproval(Run $run, NodeRun $nodeRun): void
+    /**
+     * @param  array{key: string, type: string, config: array<string, mixed>}  $nodeDefinition
+     */
+    private function pauseForApproval(Run $run, NodeRun $nodeRun, array $nodeDefinition): void
     {
-        $nodeRun->forceFill(['status' => NodeRunStatus::AwaitingApproval, 'started_at' => now()])->save();
+        $config = $nodeDefinition['config'] ?? [];
+
+        // What the person deciding is shown, fixed as it stood when the run
+        // paused: the title and instructions with their details filled in, and
+        // the questions as they were, so editing the workflow later cannot
+        // change a decision already waiting.
+        $form = [
+            'title' => filled($config['title'] ?? null) ? mb_substr(trim((string) $config['title']), 0, 300) : null,
+            'instructions' => filled($config['instructions'] ?? null) ? mb_substr(trim((string) $config['instructions']), 0, 5000) : null,
+            'fields' => ApprovalForm::fields($config),
+        ];
+
+        $nodeRun->forceFill([
+            'status' => NodeRunStatus::AwaitingApproval,
+            'started_at' => now(),
+            'output' => $form['title'] === null && $form['instructions'] === null && $form['fields'] === [] ? null : ['approval_form' => $form],
+        ])->save();
 
         $approval = $nodeRun->approval()->create([
             'run_id' => $run->id,
@@ -369,7 +395,10 @@ class WorkflowRunner
      * silent no-op rather than an error, so a double-submitted click can't
      * fail loudly.
      */
-    public function resolveApproval(WorkflowApproval $approval, bool $approved, ?User $decidedBy = null, ?string $message = null): void
+    /**
+     * @param  array<string, mixed>  $inputs  the answers to the step's questions, already checked with `ApprovalForm::check()`
+     */
+    public function resolveApproval(WorkflowApproval $approval, bool $approved, ?User $decidedBy = null, ?string $message = null, array $inputs = []): void
     {
         if ($approval->isDecided()) {
             return;
@@ -386,7 +415,17 @@ class WorkflowRunner
         $run = $nodeRun->run;
 
         if ($approved) {
-            $nodeRun->forceFill(['status' => NodeRunStatus::Completed, 'output' => ['approved' => true], 'finished_at' => now()])->save();
+            $hasForm = ($nodeRun->output['approval_form']['fields'] ?? []) !== [];
+
+            $nodeRun->forceFill([
+                'status' => NodeRunStatus::Completed,
+                'output' => [
+                    'approved' => true,
+                    ...($hasForm ? ['inputs' => $inputs] : []),
+                    ...($message !== null && $message !== '' ? ['message' => $message] : []),
+                ],
+                'finished_at' => now(),
+            ])->save();
             DispatchNextNodesJob::afterSettling($run->id, $nodeRun->id);
 
             return;

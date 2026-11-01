@@ -15,7 +15,7 @@ class GoogleMapsGetPlaceNode extends AbstractGoogleMapsNode
 
     public function name(): string
     {
-        return 'Google Maps: Get a Place';
+        return 'Google Maps: Get Place';
     }
 
     public function description(): string

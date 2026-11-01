@@ -44,7 +44,7 @@ class PiiRedactNode extends PureDataNode
 
     public function description(): string
     {
-        return 'Masks emails, phone numbers, card numbers, ID numbers, IP addresses and API keys in text, before it goes to an AI model or a message.';
+        return 'Masks emails, phone numbers, card numbers, IDs, IP addresses and API keys in text before it goes anywhere.';
     }
 
     public function configSchema(): array

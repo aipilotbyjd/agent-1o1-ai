@@ -3,6 +3,7 @@
 namespace App\Services\Workflows;
 
 use App\Enums\Triggers\TriggerNodeType;
+use App\Enums\Workflows\FlowControlNodeType;
 use App\Models\Triggers\Trigger;
 use App\Models\Workflows\WorkflowEdge;
 use App\Rules\SafeOutboundUrl;
@@ -549,6 +550,12 @@ class GraphValidator
 
             foreach ($this->configValidator->issues($schema, $node['config']) as $issue) {
                 $errors[] = ValidationIssue::forNodeConfig($node['key'], $issue);
+            }
+
+            if ($node['type'] === FlowControlNodeType::HumanApproval->value) {
+                foreach (ApprovalForm::problems($node['config'] ?? []) as $problem) {
+                    $errors[] = new ValidationIssue($problem, $node['key'], 'fields', "Node '{$node['key']}': {$problem}");
+                }
             }
         }
 

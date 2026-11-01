@@ -5,6 +5,11 @@ use App\Enums\NodeRunStatus;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Facades\Http;
 
+beforeEach(function () {
+    // Nothing here may reach an outside service for real: an unfaked call fails the test.
+    Http::preventStrayRequests();
+});
+
 const WEB_PAGE = <<<'HTML'
 <!doctype html><html><head><title>Shop — Acme</title><meta name="description" content="Everything we sell."></head>
 <body><nav><a href="/">Home</a></nav>

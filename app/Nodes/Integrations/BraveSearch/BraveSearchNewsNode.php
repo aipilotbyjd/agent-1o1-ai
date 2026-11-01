@@ -13,7 +13,7 @@ class BraveSearchNewsNode extends AbstractBraveSearchNode
 
     public function name(): string
     {
-        return 'Brave Search: Search the News';
+        return 'Brave Search: Search News';
     }
 
     public function description(): string

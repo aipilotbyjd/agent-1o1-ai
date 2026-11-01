@@ -15,7 +15,7 @@ class GoogleMapsGeocodeNode extends AbstractGoogleMapsNode
 
     public function name(): string
     {
-        return 'Google Maps: Geocode';
+        return 'Google Maps: Geocode Address';
     }
 
     public function description(): string
