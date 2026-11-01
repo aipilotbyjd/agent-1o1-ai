@@ -142,7 +142,7 @@ it('seeds global starter templates every workspace can see', function () {
 
     $templates = $this->getJson("/api/v1/workspaces/{$workspace->id}/agent-templates")->assertOk()->json('data.agent_templates');
 
-    expect($templates)->toHaveCount(6);
+    expect($templates)->toHaveCount(count(require database_path('setup/agent-templates.php')));
     expect(collect($templates)->every(fn (array $template): bool => in_array($template['icon'], Agent::ICONS, true)
         && in_array($template['color'], Agent::COLORS, true)
         && filled($template['config']['instructions'])))->toBeTrue();

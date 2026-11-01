@@ -3,6 +3,7 @@
 namespace App\Services\Setup\Datasets;
 
 use App\Enums\Setup\Ownership;
+use App\Models\Agents\Agent;
 use App\Models\Templates\AgentTemplate;
 use App\Services\Setup\AbstractSetupDataset;
 
@@ -61,6 +62,14 @@ class AgentTemplatesDataset extends AbstractSetupDataset
         foreach (require database_path('setup/agent-templates.php') as $slug => $template) {
             foreach ($this->missing($template, ['name', 'description', 'category']) as $field) {
                 $problems[] = "Agent template [{$slug}] has no {$field}.";
+            }
+
+            if (! in_array($template['icon'] ?? null, Agent::ICONS, true)) {
+                $problems[] = "Agent template [{$slug}] has an icon an agent cannot use.";
+            }
+
+            if (! in_array($template['color'] ?? null, Agent::COLORS, true)) {
+                $problems[] = "Agent template [{$slug}] has a color an agent cannot use.";
             }
 
             if (blank($template['config']['instructions'] ?? null)) {

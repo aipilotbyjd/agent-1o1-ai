@@ -208,7 +208,10 @@ it('seeds built-in layouts that every workflow can use', function () {
     foreach (PageTemplate::query()->whereNull('workspace_id')->get() as $template) {
         $page = pageFromTemplate($template);
 
-        expect(collect($page['content']['blocks'])->where('type', 'field')->pluck('props.field_key')->all())->toBe(['topic', 'tone']);
+        $blocks = collect(PageSchema::flatten($page['content']['blocks']));
+
+        expect($blocks->where('type', 'field')->pluck('props.field_key')->all())->toBe(['topic', 'tone'], "[{$template->slug}] fields");
+        expect($blocks->where('type', 'submit'))->toHaveCount(1, "[{$template->slug}] run button");
         expect($page['issues'])->toBe([]);
     }
 });

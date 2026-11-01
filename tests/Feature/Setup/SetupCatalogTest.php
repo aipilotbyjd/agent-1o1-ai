@@ -8,12 +8,14 @@ use App\Models\Billing\Plan;
 use App\Models\Connectors\Connector;
 use App\Models\Nodes\NodeCategory;
 use App\Models\System\SetupSync;
+use App\Models\Templates\WorkflowTemplate;
 use App\Models\Triggers\TriggerPreset;
 use App\Models\User;
 use App\Services\Setup\Datasets\ConnectorsDataset;
 use App\Services\Setup\SetupDataset;
 use App\Services\Setup\SetupRegistry;
 use App\Services\Setup\SetupSyncer;
+use App\Services\Workflows\GraphValidator;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Support\Facades\DB;
 
@@ -276,7 +278,44 @@ it('catches a connector with no app category and a duplicate key', function () {
 });
 
 it('keeps all setup data in database/setup, not in the dataset classes', function () {
-    foreach (['plans', 'node-categories', 'app-node-categories', 'trigger-presets', 'connectors', 'model-catalog', 'agent-templates', 'page-templates'] as $name) {
+    foreach (['plans', 'node-categories', 'app-node-categories', 'trigger-presets', 'connectors', 'model-catalog', 'agent-templates', 'workflow-templates', 'page-templates'] as $name) {
         expect(is_file(database_path("setup/{$name}.php")))->toBeTrue("database/setup/{$name}.php is missing");
+    }
+});
+
+it('ships real workflow templates in every business domain, each a valid graph', function () {
+    $this->syncSetup('workflow-templates');
+
+    $templates = WorkflowTemplate::query()->whereNull('workspace_id')->get();
+
+    expect($templates)->not->toBeEmpty()
+        ->and($templates->every(fn (WorkflowTemplate $template): bool => $template->isPublic()))->toBeTrue()
+        ->and($templates->pluck('category')->unique()->count())->toBeGreaterThanOrEqual(10);
+
+    foreach ($templates as $template) {
+        expect(app(GraphValidator::class)->validate($template->graph['nodes'], $template->graph['edges']))
+            ->toBe([], "Workflow template [{$template->slug}] has an invalid graph");
+    }
+});
+
+it('keeps workflow templates idempotent across syncs', function () {
+    $this->syncSetup('workflow-templates');
+    $first = WorkflowTemplate::query()->whereNull('workspace_id')->count();
+
+    $this->syncSetup('workflow-templates');
+
+    expect(WorkflowTemplate::query()->whereNull('workspace_id')->count())->toBe($first);
+});
+
+it('gives automatic workflow templates settings instead of run-form inputs', function () {
+    $templates = require database_path('setup/workflow-templates.php');
+
+    $automatic = collect($templates)->filter(fn (array $template): bool => collect($template['graph']['nodes'])
+        ->contains(fn (array $node): bool => str_ends_with($node['type'], '_trigger')));
+
+    expect($automatic)->not->toBeEmpty();
+
+    foreach ($automatic as $slug => $template) {
+        expect(collect($template['graph']['nodes'])->pluck('type'))->not->toContain('workflow_input', "[{$slug}] starts on its own, so nobody can fill in a run form");
     }
 });

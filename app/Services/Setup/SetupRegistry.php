@@ -12,6 +12,7 @@ use App\Services\Setup\Datasets\PageTemplatesDataset;
 use App\Services\Setup\Datasets\PlansDataset;
 use App\Services\Setup\Datasets\ReferralProgramDataset;
 use App\Services\Setup\Datasets\TriggerPresetsDataset;
+use App\Services\Setup\Datasets\WorkflowTemplatesDataset;
 use InvalidArgumentException;
 use LogicException;
 
@@ -33,6 +34,7 @@ class SetupRegistry
         ModelCatalogDataset::class,
         ModelPricesDataset::class,
         AgentTemplatesDataset::class,
+        WorkflowTemplatesDataset::class,
         PageTemplatesDataset::class,
     ];
 
