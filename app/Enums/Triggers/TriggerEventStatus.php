@@ -57,6 +57,17 @@ enum TriggerEventStatus: string
     case Duplicate = 'duplicate';
 
     /**
+     * Kept back to be run together with the others that arrive in the
+     * trigger's "group events" window (`config.batch_seconds`).
+     */
+    case Held = 'held';
+
+    /**
+     * Was run as part of a group: the group's own event started the run.
+     */
+    case Batched = 'batched';
+
+    /**
      * Whether the event has reached a status it will never leave on its own.
      */
     public function isTerminal(): bool

@@ -46,7 +46,7 @@ class GitHubCreateIssueNode extends AbstractGitHubNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $data = $this->post($run, "/repos/{$config['repo']}/issues", $config, [
+        $data = $this->post($run, "/repos/{$this->repo($config)}/issues", $config, [
             'title' => $config['title'],
             'body' => $config['body'] ?? '',
             'labels' => $config['labels'] ?? [],

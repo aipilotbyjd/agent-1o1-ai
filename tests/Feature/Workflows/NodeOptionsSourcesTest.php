@@ -7,13 +7,19 @@ use App\Models\Workflows\Workflow;
 use App\Services\Workflows\NodeOptions\NodeOptionsQuery;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleCalendarOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleDocsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleDriveOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleFormsOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleSearchConsoleOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSheetsOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
+use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
@@ -79,6 +85,40 @@ dataset('provider sources', [
         'www.googleapis.com/drive/v3/files*' => ['files' => [['id' => 'f1', 'name' => 'Notes.pdf', 'mimeType' => 'application/pdf']]],
     ], ['value' => 'f1', 'label' => 'Notes.pdf', 'description' => 'Pdf'], null],
 
+    'drive folders' => [GoogleDriveOptions::class, 'google_drive.folders', [], [
+        'www.googleapis.com/drive/v3/files*' => ['files' => [['id' => 'dir1', 'name' => 'Invoices', 'mimeType' => 'application/vnd.google-apps.folder']]],
+    ], ['value' => 'dir1', 'label' => 'Invoices'], null],
+
+    'tasks lists' => [GoogleTasksOptions::class, 'google_tasks.lists', [], [
+        'tasks.googleapis.com/tasks/v1/users/@me/lists*' => ['items' => [['id' => 'l1', 'title' => 'Work']], 'nextPageToken' => 'n2'],
+    ], ['value' => 'l1', 'label' => 'Work'], 'n2'],
+
+    'tasks open tasks' => [GoogleTasksOptions::class, 'google_tasks.tasks', ['task_list_id' => 'l1'], [
+        'tasks.googleapis.com/tasks/v1/lists/l1/tasks*' => ['items' => [['id' => 't1', 'title' => 'Pay rent', 'due' => '2026-03-05T00:00:00.000Z']]],
+    ], ['value' => 't1', 'label' => 'Pay rent', 'description' => 'Due Mar 5, 2026'], null],
+
+    'forms' => [GoogleFormsOptions::class, 'google_forms.forms', [], [
+        'www.googleapis.com/drive/v3/files*' => ['files' => [['id' => 'f1', 'name' => 'Feedback']]],
+    ], ['value' => 'f1', 'label' => 'Feedback'], null],
+
+    'slides presentations' => [GoogleSlidesOptions::class, 'google_slides.presentations', [], [
+        'www.googleapis.com/drive/v3/files*' => ['files' => [['id' => 'p1', 'name' => 'Review']]],
+    ], ['value' => 'p1', 'label' => 'Review'], null],
+
+    'analytics properties' => [GoogleAnalyticsOptions::class, 'google_analytics.properties', [], [
+        'analyticsadmin.googleapis.com/v1beta/accountSummaries*' => ['accountSummaries' => [
+            ['displayName' => 'Acme', 'propertySummaries' => [['property' => 'properties/111', 'displayName' => 'Web']]],
+        ]],
+    ], ['value' => '111', 'label' => 'Web', 'description' => 'Acme'], null],
+
+    'search console sites' => [GoogleSearchConsoleOptions::class, 'google_search_console.sites', [], [
+        'www.googleapis.com/webmasters/v3/sites*' => ['siteEntry' => [['siteUrl' => 'sc-domain:example.com', 'permissionLevel' => 'siteOwner']]],
+    ], ['value' => 'sc-domain:example.com', 'label' => 'sc-domain:example.com', 'description' => 'Owner'], null],
+
+    'youtube playlists' => [YouTubeOptions::class, 'google_youtube.playlists', [], [
+        'www.googleapis.com/youtube/v3/playlists*' => ['items' => [['id' => 'PL1', 'snippet' => ['title' => 'Favourites'], 'contentDetails' => ['itemCount' => 12]]]],
+    ], ['value' => 'PL1', 'label' => 'Favourites', 'description' => '12 videos'], null],
+
     'docs documents' => [GoogleDocsOptions::class, 'google_docs.documents', [], [
         'www.googleapis.com/drive/v3/files*' => ['files' => [['id' => 'd1', 'name' => 'Spec']], 'nextPageToken' => 'n2'],
     ], ['value' => 'd1', 'label' => 'Spec'], 'n2'],
@@ -101,6 +141,10 @@ dataset('provider sources', [
             ['id' => 'm1', 'subject' => '', 'from' => ['emailAddress' => ['address' => 'a@example.com']]],
         ]],
     ], ['value' => 'm1', 'label' => '(no subject)', 'description' => 'a@example.com'], null],
+
+    'outlook calendars' => [OutlookOptions::class, 'outlook.calendars', [], [
+        'graph.microsoft.com/v1.0/me/calendars*' => ['value' => [['id' => 'AAMk_1=', 'name' => 'Calendar', 'isDefaultCalendar' => true]]],
+    ], ['value' => 'AAMk_1=', 'label' => 'Calendar', 'description' => 'Main calendar'], null],
 
     'outlook events' => [OutlookOptions::class, 'outlook.events', [], [
         'graph.microsoft.com/v1.0/me/calendarView*' => ['value' => [['id' => 'ev1', 'subject' => 'Review', 'start' => ['dateTime' => '2026-10-07T10:00:00']]]],
@@ -155,6 +199,18 @@ it('escapes quotes in a drive name search', function () {
         parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
 
         return str_contains($query['q'], "name contains 'Bob\\'s \\\\ notes'");
+    });
+});
+
+it('lists only folders for the folder picker', function () {
+    Http::fake(['www.googleapis.com/*' => Http::response(['files' => []])]);
+
+    app(GoogleDriveOptions::class)->load('google_drive.folders', optionsQuery());
+
+    Http::assertSent(function (Request $request): bool {
+        parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+        return str_contains($query['q'], "mimeType = 'application/vnd.google-apps.folder'");
     });
 });
 

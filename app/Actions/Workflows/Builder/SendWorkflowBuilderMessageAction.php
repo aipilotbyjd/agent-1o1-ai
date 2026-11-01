@@ -40,16 +40,17 @@ class SendWorkflowBuilderMessageAction
      * @param  array<int, UploadedFile>  $attachments  Files the member attached to this message.
      * @param  BuilderMessageMode  $mode  `Ask` answers without editing the draft.
      * @param  array{nodes?: list<string>, credentials?: list<string>}|null  $context  Steps and accounts the message referenced.
+     * @param  string|null  $modelCatalogId  The catalog model the member picked for this turn; null uses the assistant's default.
      * @return WorkflowBuilderMessage The pending assistant message the reply will be written to.
      *
      * @throws WorkflowBuilderConflictException
      */
-    public function execute(WorkflowBuilderSession $session, string $message, ?User $sender = null, array $attachments = [], BuilderMessageMode $mode = BuilderMessageMode::Build, ?array $context = null): WorkflowBuilderMessage
+    public function execute(WorkflowBuilderSession $session, string $message, ?User $sender = null, array $attachments = [], BuilderMessageMode $mode = BuilderMessageMode::Build, ?array $context = null, ?string $modelCatalogId = null): WorkflowBuilderMessage
     {
         $session->assertEditable();
         $this->creditGate->assertCanStartRun($session->workspace);
 
-        [$userMessage, $assistantMessage] = DB::transaction(function () use ($session, $message, $sender, $attachments, $mode, $context): array {
+        [$userMessage, $assistantMessage] = DB::transaction(function () use ($session, $message, $sender, $attachments, $mode, $context, $modelCatalogId): array {
             // Serializes concurrent sends on this session, so two requests
             // can't both see "no reply in flight" and start two turns.
             WorkflowBuilderSession::query()->whereKey($session->id)->lockForUpdate()->first();
@@ -64,6 +65,7 @@ class SendWorkflowBuilderMessageAction
                 'role' => 'user',
                 'mode' => $mode,
                 'context' => $context,
+                'model_catalog_id' => $modelCatalogId,
                 'user_id' => $sender?->id,
                 'content' => $message,
             ]);

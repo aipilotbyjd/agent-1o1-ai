@@ -4,7 +4,7 @@ namespace App\Actions\Referrals;
 
 use App\Enums\Referrals\ReferralRewardStatus;
 use App\Models\Referrals\ReferralReward;
-use App\Models\User;
+use App\Models\SuperAdmin\SuperAdmin;
 use App\Notifications\Referrals\ReferralRewardGrantedNotification;
 use App\Services\Notifications\NotificationDispatcher;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +19,7 @@ class GrantReferralRewardAction
 {
     public function __construct(private readonly NotificationDispatcher $notifications) {}
 
-    public function execute(ReferralReward $reward, ?User $grantedBy = null): bool
+    public function execute(ReferralReward $reward, ?SuperAdmin $grantedBy = null): bool
     {
         $granted = DB::transaction(function () use ($reward, $grantedBy): ?ReferralReward {
             $locked = ReferralReward::query()->whereKey($reward->getKey())->lockForUpdate()->first();

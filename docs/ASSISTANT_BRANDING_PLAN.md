@@ -50,7 +50,7 @@ Scope: **Level A** (config-based, rename = edit `.env` + `php artisan config:cac
     // Channels
     'email_local_part' => env('ASSISTANT_EMAIL', 'orb'),               // orb@<inbound domain>
     'email_aliases'    => array_filter(explode(',', env('ASSISTANT_EMAIL_ALIASES', ''))), // old names keep working
-    'inbound_domain'   => env('ASSISTANT_INBOUND_DOMAIN', 'agent1o1.ai'),
+    'inbound_domain'   => env('ASSISTANT_INBOUND_DOMAIN', 'agent1o1.com'),
     'sms_signature'    => env('ASSISTANT_SMS_SIGNATURE', '— :name'),
 ],
 ```
@@ -94,7 +94,7 @@ app/Services/Assistant/Branding/
   "icon_url": "https://…/brand/assistant/icon.svg",
   "avatar_url": "https://…/brand/assistant/avatar.png",
   "features": { "daily": "Orb Daily", "inbox": "Orb Inbox", "meeting_prep": "Orb Prep", "situations": "Situations" },
-  "email": "orb@agent1o1.ai"
+  "email": "orb@agent1o1.com"
 }
 ```
 `app-config` is cached (`Cache::rememberForever('assistant.brand')`, busted by `assistant:brand-refresh`) and served with a short `Cache-Control` so a rename shows up within minutes without a frontend deploy.

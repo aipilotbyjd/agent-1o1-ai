@@ -21,6 +21,61 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Free Credits, Trials and Abuse Checks
+    |--------------------------------------------------------------------------
+    |
+    | Who receives free and trial credits. Every key here can be overridden
+    | from Super Admin (`BillingSettings::POLICY_KEYS`) without a deploy.
+    |
+    | `free_credits.one_per_owner`: only the owner's first workspace
+    | (`users.free_workspace_id`) gets the free plan's monthly credits; any
+    | other free workspace starts at 0 and works on top-ups or a paid plan.
+    |
+    | `abuse.enforcement`: `enforce` applies the checks below; `shadow` runs
+    | them and records what they would have denied without denying it, so
+    | they can be tuned on real traffic first; `off` skips them.
+    |
+    */
+
+    'free_credits' => [
+        'one_per_owner' => (bool) env('BILLING_FREE_CREDITS_ONE_PER_OWNER', true),
+        'require_verified_email' => (bool) env('BILLING_FREE_CREDITS_REQUIRE_VERIFIED_EMAIL', true),
+    ],
+
+    'trials' => [
+        'one_per_user' => (bool) env('BILLING_TRIALS_ONE_PER_USER', true),
+        'one_per_card' => (bool) env('BILLING_TRIALS_ONE_PER_CARD', true),
+        'block_prepaid_cards' => (bool) env('BILLING_TRIALS_BLOCK_PREPAID_CARDS', true),
+    ],
+
+    'abuse' => [
+        'enforcement' => env('FREE_CREDIT_ENFORCEMENT', 'enforce'),
+        'max_free_claims_per_network_per_day' => (int) env('BILLING_MAX_FREE_CLAIMS_PER_NETWORK_PER_DAY', 3),
+        'block_disposable_email' => (bool) env('BILLING_BLOCK_DISPOSABLE_EMAIL', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | AI Cost Guardrails
+    |--------------------------------------------------------------------------
+    |
+    | Dollar limits on model cost paid on platform keys. Per-plan limits live
+    | on the plan (`limits.ai_cost_daily_usd`, `ai_cost_weekly_usd`,
+    | `max_run_credits`, `max_concurrent_runs`, `features.model_tiers`); this
+    | is the platform-wide breaker: once free and trial workspaces together
+    | pass `free_tier_daily_budget_usd` in a UTC day, their new runs pause
+    | until the next day. Paying workspaces are never paused by it. `null`
+    | turns the breaker off.
+    |
+    */
+
+    'guardrails' => [
+        'enabled' => (bool) env('BILLING_GUARDRAILS_ENABLED', true),
+        'free_tier_daily_budget_usd' => env('FREE_TIER_DAILY_BUDGET_USD') === null ? null : (float) env('FREE_TIER_DAILY_BUDGET_USD'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Trial Ending Warning
     |--------------------------------------------------------------------------
     |
@@ -169,6 +224,24 @@ return [
     'node_costs' => [
         'run_code' => (int) env('BILLING_NODE_COST_RUN_CODE', 3),
         'agent' => (int) env('BILLING_NODE_COST_AGENT', 3),
+        'ai_image' => (int) env('BILLING_NODE_COST_AI_IMAGE', 10),
+        'ai_speech' => (int) env('BILLING_NODE_COST_AI_SPEECH', 3),
+        'ai_transcribe' => (int) env('BILLING_NODE_COST_AI_TRANSCRIBE', 3),
+        'web_scrape' => (int) env('BILLING_NODE_COST_WEB_SCRAPE', 1),
+        'page_to_markdown' => (int) env('BILLING_NODE_COST_PAGE_TO_MARKDOWN', 1),
+        'brave_search_web' => (int) env('BILLING_NODE_COST_SEARCH', 1),
+        'brave_search_news' => (int) env('BILLING_NODE_COST_SEARCH', 1),
+        'tavily_search' => (int) env('BILLING_NODE_COST_SEARCH', 1),
+        'tavily_extract' => (int) env('BILLING_NODE_COST_SEARCH_EXTRACT', 2),
+        'hunter_domain_search' => (int) env('BILLING_NODE_COST_ENRICHMENT', 2),
+        'hunter_find_email' => (int) env('BILLING_NODE_COST_ENRICHMENT', 2),
+        'hunter_verify_email' => (int) env('BILLING_NODE_COST_ENRICHMENT', 2),
+        'hunter_find_company' => (int) env('BILLING_NODE_COST_ENRICHMENT', 2),
+        'apollo_enrich_person' => (int) env('BILLING_NODE_COST_ENRICHMENT', 2),
+        'apollo_enrich_company' => (int) env('BILLING_NODE_COST_ENRICHMENT', 2),
+        'google_maps_search_places' => (int) env('BILLING_NODE_COST_MAPS', 1),
+        'google_maps_get_place' => (int) env('BILLING_NODE_COST_MAPS', 1),
+        'google_maps_geocode' => (int) env('BILLING_NODE_COST_MAPS', 1),
     ],
 
     /*
@@ -205,6 +278,12 @@ return [
     | Model Prices
     |--------------------------------------------------------------------------
     |
+    | These prices are now maintained in the `model_prices` table (see
+    | `ModelPrices`, and the Super Admin API under /models/prices); a price
+    | there wins over the same key here. This map is the fallback for any
+    | model not in the table yet: `php artisan model-prices:import-config`
+    | copies it across, after which it can be emptied.
+    |
     | Real $ per 1M tokens, keyed by "{provider}:{model}": the same
     | provider/model strings `laravel/ai` reports back on a response's
     | `Meta` (and that match `model_routes.execution_provider`/
@@ -212,7 +291,7 @@ return [
     | its real cost (`credit_value_usd` above), the same way Gumloop's
     | "Model calls bill at cost" works.
     |
-    | This app's `ModelCatalogSeeder` lists a mostly fictional, future-dated
+    | This app's `ModelCatalogDataset` lists a mostly fictional, future-dated
     | model lineup (Claude Opus 5, GPT-5.6 *, Gemini 3.x, Grok 4.6, DeepSeek
     | V4, Kimi K3, GLM-5.2, MiniMax M3, Qwen3.6, Mistral Medium 3.5, ...):
     | none of those exist yet, so there's no real price to put here, and this
@@ -224,7 +303,7 @@ return [
     | The rates below are best-effort, not independently verified this
     | session against each vendor's current pricing page: treat them as a
     | starting point and confirm against the vendor before relying on them
-    | for real billing, the same way `ModelCatalogSeeder` flags its own
+    | for real billing, the same way `ModelCatalogDataset` flags its own
     | best-effort aggregator model ids. Add a row here once a model's price
     | is confirmed.
     |
@@ -245,7 +324,7 @@ return [
 
         // Anthropic: unverified, confirm against Anthropic's current
         // pricing. Keyed to Claude Haiku 4.5's primary route
-        // (`ModelCatalogSeeder`'s enabled anthropic route).
+        // (`ModelCatalogDataset`'s enabled anthropic route).
         'anthropic:claude-haiku-4-5-20251001' => ['input' => 1.00, 'output' => 5.00],
 
         // Fireworks: unverified, confirm against Fireworks' current
@@ -255,6 +334,28 @@ return [
         // priority-0 route: re-key this if a different route (e.g.
         // Together) becomes primary instead.
         'fireworks:accounts/fireworks/models/llama-v3p1-405b-instruct' => ['input' => 3.00, 'output' => 3.00],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stripe IDs for the starting plans
+    |--------------------------------------------------------------------------
+    |
+    | Read by the `plans` setup dataset when it first creates a plan. They live
+    | here because `env()` returns null once the config is cached.
+    */
+
+    'stripe_plan_ids' => [
+        'STRIPE_PLAN_PRO_LIFETIME_PRICE_ID' => env('STRIPE_PLAN_PRO_LIFETIME_PRICE_ID'),
+        'STRIPE_PLAN_PRO_MONTHLY_PRICE_ID' => env('STRIPE_PLAN_PRO_MONTHLY_PRICE_ID'),
+        'STRIPE_PLAN_PRO_PRODUCT_ID' => env('STRIPE_PLAN_PRO_PRODUCT_ID'),
+        'STRIPE_PLAN_PRO_QUARTERLY_PRICE_ID' => env('STRIPE_PLAN_PRO_QUARTERLY_PRICE_ID'),
+        'STRIPE_PLAN_PRO_YEARLY_PRICE_ID' => env('STRIPE_PLAN_PRO_YEARLY_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_LIFETIME_PRICE_ID' => env('STRIPE_PLAN_STARTER_LIFETIME_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_MONTHLY_PRICE_ID' => env('STRIPE_PLAN_STARTER_MONTHLY_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_PRODUCT_ID' => env('STRIPE_PLAN_STARTER_PRODUCT_ID'),
+        'STRIPE_PLAN_STARTER_QUARTERLY_PRICE_ID' => env('STRIPE_PLAN_STARTER_QUARTERLY_PRICE_ID'),
+        'STRIPE_PLAN_STARTER_YEARLY_PRICE_ID' => env('STRIPE_PLAN_STARTER_YEARLY_PRICE_ID'),
     ],
 
 ];

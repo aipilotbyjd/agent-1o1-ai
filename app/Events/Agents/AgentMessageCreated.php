@@ -2,6 +2,7 @@
 
 namespace App\Events\Agents;
 
+use App\Broadcasting\BroadcastsReliably;
 use App\Broadcasting\Channels;
 use App\Models\Agents\AgentMessage;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -23,7 +24,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class AgentMessageCreated implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use BroadcastsReliably, Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(public readonly AgentMessage $message) {}
 

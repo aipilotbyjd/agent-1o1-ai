@@ -20,7 +20,7 @@ See `docs/` for the full architecture and phased build plans (`PLAN.md`, `STRUCT
 
 ## Tech Stack
 
-- **PHP 8.4** / **Laravel 13**
+- **PHP 8.5** / **Laravel 13**
 - [Laravel AI](https://laravel.com/docs/ai) — LLM orchestration & agent tool-calling
 - [Laravel Cashier](https://laravel.com/docs/billing) — Stripe subscriptions & billing
 - [Laravel Horizon](https://laravel.com/docs/horizon) — queue monitoring (Redis-backed)
@@ -32,7 +32,7 @@ See `docs/` for the full architecture and phased build plans (`PLAN.md`, `STRUCT
 
 ## Getting Started
 
-Requires PHP 8.4, Composer, Node.js, and Redis. The app is served locally via [Laravel Herd](https://herd.laravel.com) at `https://agent-1o1-ai.test`.
+Requires PHP 8.5, Composer, Node.js, and Redis. The app is served locally via [Laravel Herd](https://herd.laravel.com) at `https://agent-1o1-ai.test`.
 
 ```bash
 composer install

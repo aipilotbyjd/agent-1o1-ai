@@ -2,39 +2,23 @@
 
 namespace App\Nodes\AiAutomation;
 
-use App\Ai\Agents\AdHocPromptAgent;
-use App\Contracts\DeclaresEffect;
 use App\Contracts\HasIcon;
-use App\Contracts\NodeContract;
-use App\Enums\Agents\ActionEffect;
-use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
-use App\Services\Ai\ByokProviderRegistrar;
-use App\Services\Ai\ModelCatalogResolver;
-use App\Services\Ai\WorkspaceModels;
+use RuntimeException;
 
 /**
  * Gumloop's "Ask AI" node: a provider-agnostic single-turn LLM call routed
  * through `laravel/ai`'s own provider abstraction (see docs/NODES_CATALOG.md's
- * "AI nodes" section).
+ * "AI nodes" section). The open-ended one: for a recurring job, the
+ * classify, extract, summarize, translate, rewrite, sentiment and score nodes
+ * are tuned for it and return structured fields.
  */
-class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
+class AskAiNode extends AbstractAiNode implements HasIcon
 {
-    public function __construct(
-        private readonly ModelCatalogResolver $modelCatalog,
-        private readonly ByokProviderRegistrar $byok,
-        private readonly WorkspaceModels $workspaceModels,
-    ) {}
-
     public function type(): string
     {
         return 'ask_ai';
-    }
-
-    public function category(): string
-    {
-        return NodeCategory::AiAutomation->value;
     }
 
     public function name(): string
@@ -52,52 +36,50 @@ class AskAiNode implements DeclaresEffect, HasIcon, NodeContract
         return 'Prompts an LLM with a single-turn, provider-agnostic call and returns the reply text.';
     }
 
-    public function effect(array $config): ActionEffect
-    {
-        return ActionEffect::Read;
-    }
-
     public function configSchema(): array
     {
         return [
             'type' => 'object',
             'required' => ['prompt'],
             'properties' => [
-                'model_catalog_slug' => Field::dynamic('Model', 'ai.models', 'Leave empty to use the workspace default model.', allowCustom: false),
+                'model_catalog_slug' => $this->modelFields()['model_catalog_slug'],
                 'instructions' => Field::advanced(Field::textarea('Instructions', 'How the AI should behave (system prompt).', 'You are a helpful assistant.')),
                 'prompt' => Field::textarea('Prompt', 'What to ask. Use {{templates}} to include data from earlier steps.'),
-                'provider' => Field::hidden('Legacy provider override; use Model instead.'),
-                'model' => Field::hidden('Legacy model override; use Model instead.'),
+                'response_format' => Field::advanced(Field::select('Reply as', ['text' => 'Text', 'json' => 'JSON object'], 'Pick JSON to get the reply as fields later steps can use, such as {{ nodes.ask.json.email }}. Describe the fields you want in the prompt.', 'text')),
+                'provider' => $this->modelFields()['provider'],
+                'model' => $this->modelFields()['model'],
+            ],
+        ];
+    }
+
+    public function outputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'text' => ['title' => 'Reply', 'description' => 'The AI’s reply as text.'],
+                'json' => ['title' => 'Reply as JSON', 'description' => 'The reply as fields. Only when “Reply as” is JSON object.'],
+                'usage' => self::usageSchema(),
             ],
         ];
     }
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $agent = new AdHocPromptAgent($config['instructions'] ?? 'You are a helpful assistant.');
+        $prompt = $this->requiredText($config, 'prompt', 'The prompt');
+        $instructions = $config['instructions'] ?? 'You are a helpful assistant.';
 
-        // No model picked and no legacy override: the workspace's default.
-        $slug = filled($config['model_catalog_slug'] ?? null)
-            ? $config['model_catalog_slug']
-            : (filled($config['provider'] ?? null) || filled($config['model'] ?? null) ? null : $this->workspaceModels->default($run->workspace_id)?->slug);
-
-        if ($slug !== null) {
-            $provider = $this->modelCatalog->providerChain($slug);
-            $model = null;
-        } else {
-            $provider = $config['provider'] ?? null;
-            $model = $config['model'] ?? null;
+        if (($config['response_format'] ?? 'text') !== 'json') {
+            return $this->ask($run, $config, $instructions, $prompt);
         }
 
-        [$provider, $model] = $this->byok->apply($provider, $model, $run->workspace_id, $run->triggered_by);
+        $reply = $this->ask($run, $config, $instructions."\n\nReply with a single JSON object and nothing else: no prose and no code fences.", $prompt);
+        $json = self::decodeJson($reply['text']);
 
-        $response = $agent->prompt($config['prompt'], provider: $provider, model: $model);
+        if ($json === null) {
+            throw new RuntimeException('The AI did not reply with a JSON object. Describe the fields you want more clearly in the prompt, or switch “Reply as” back to Text.');
+        }
 
-        return [
-            'text' => $response->text,
-            // `meta` carries the provider/model that actually served the
-            // call, so `CreditMeter` can price it at its real $ cost.
-            'usage' => [...$response->usage->toArray(), ...$response->meta->toArray()],
-        ];
+        return ['text' => $reply['text'], 'json' => $json, 'usage' => $reply['usage']];
     }
 }

@@ -10,8 +10,10 @@ use App\Models\Assistant\AssistantSession;
 use App\Models\Runs\Run;
 use App\Models\User;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
+use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowPage;
 use App\Models\Workspaces\Workspace;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Who may subscribe to what. Lives here rather than as closures inside
@@ -87,6 +89,29 @@ class WorkspaceChannelGate
         }
 
         return WorkflowPage::whereKey($pageId)->where('workspace_id', $workspaceId)->exists();
+    }
+
+    /**
+     * Joining a workflow's presence channel shows the person to everyone else
+     * who has it open, so it takes the same permission as opening the workflow.
+     *
+     * @return array{id: string, name: string, avatar: string|null}|false
+     */
+    public function workflowPresence(User $user, string $workspaceId, string $workflowId): array|false
+    {
+        if (! $this->allows($user, $workspaceId, Permission::WorkflowView)) {
+            return false;
+        }
+
+        if (! Workflow::whereKey($workflowId)->where('workspace_id', $workspaceId)->exists()) {
+            return false;
+        }
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'avatar' => $user->avatar ? Storage::disk('public')->url($user->avatar) : null,
+        ];
     }
 
     private function allows(User $user, string $workspaceId, Permission $permission): bool

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignUuid('agent_session_id')->constrained()->cascadeOnDelete();
             $table->string('role');
             $table->longText('content');
+            $table->foreignUuid('skill_id')->nullable()->constrained()->nullOnDelete();
             $table->json('tool_calls')->nullable();
             $table->string('tool_call_id')->nullable();
             $table->json('usage')->nullable();

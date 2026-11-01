@@ -3,7 +3,7 @@
 namespace App\Console\Commands\Referrals;
 
 use App\Console\Commands\Referrals\Concerns\ManagesReferralsFromConsole;
-use App\Http\Requests\Api\Internal\V1\Admin\Referrals\ReferralRewardRuleRequest;
+use App\Http\Requests\Api\SuperAdmin\V1\Referrals\ReferralRewardRuleRequest;
 use App\Models\Referrals\ReferralProgram;
 use App\Models\Referrals\ReferralRewardRule;
 use App\Services\Referrals\ReferralAdmin;

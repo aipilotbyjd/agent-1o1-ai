@@ -9,6 +9,7 @@ use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
+use App\Services\Workflows\ConditionEvaluator;
 use Illuminate\Support\Arr;
 
 /**
@@ -19,8 +20,6 @@ use Illuminate\Support\Arr;
  */
 class FilterNode implements DeclaresEffect, HasIcon, NodeContract
 {
-    private const array OPERATORS = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty'];
-
     public function type(): string
     {
         return 'filter';
@@ -58,8 +57,8 @@ class FilterNode implements DeclaresEffect, HasIcon, NodeContract
             'required' => ['path', 'operator'],
             'properties' => [
                 'path' => Field::text('Value to check', 'A path into the run, e.g. input.status or nodes.fetch.output.total.', 'input.status'),
-                'operator' => Field::select('Condition', self::OPERATORS, default: 'equals'),
-                'value' => ['title' => 'Compare to', 'description' => 'Not needed for Is Empty / Is Not Empty.', 'x-widget' => 'text'],
+                'operator' => Field::select('Condition', ConditionEvaluator::OPERATORS, default: 'equals'),
+                'value' => ['title' => 'Compare to', 'description' => 'Not needed for Is empty, Is not empty, Is true or Is false.', 'x-widget' => 'text'],
             ],
         ];
     }
@@ -67,21 +66,8 @@ class FilterNode implements DeclaresEffect, HasIcon, NodeContract
     public function execute(Run $run, array $config, array $context): array
     {
         $actual = Arr::get($context, $config['path'] ?? '');
-        $passed = $this->matches($actual, $config['operator'], $config['value'] ?? null);
+        $passed = ConditionEvaluator::matches($actual, (string) $config['operator'], $config['value'] ?? null);
 
         return ['result' => $passed ? 'passed' : 'failed', 'passed' => $passed];
-    }
-
-    private function matches(mixed $actual, string $operator, mixed $expected): bool
-    {
-        return match ($operator) {
-            'equals' => $actual == $expected,
-            'not_equals' => $actual != $expected,
-            'contains' => is_string($actual) && str_contains($actual, (string) $expected),
-            'greater_than' => is_numeric($actual) && $actual > $expected,
-            'less_than' => is_numeric($actual) && $actual < $expected,
-            'is_empty' => empty($actual),
-            'is_not_empty' => ! empty($actual),
-        };
     }
 }

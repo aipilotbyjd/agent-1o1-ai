@@ -2,7 +2,7 @@
 
 use App\Models\User;
 
-it('registers a user, creates their workspace, and issues tokens', function () {
+it('registers a user without a workspace and issues tokens', function () {
     $response = $this->postJson('/api/v1/auth/register', [
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
@@ -23,8 +23,8 @@ it('registers a user, creates their workspace, and issues tokens', function () {
 
     $user = User::query()->where('email', 'jane@example.com')->firstOrFail();
 
-    expect($user->ownedWorkspaces()->count())->toBe(1);
-    expect($user->workspaces()->count())->toBe(1);
+    expect($user->current_workspace_id)->toBeNull();
+    expect($user->workspaces()->count())->toBe(0);
 });
 
 it('rejects registration with a mismatched password confirmation', function () {

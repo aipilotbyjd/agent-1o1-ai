@@ -2,6 +2,7 @@
 
 namespace App\Events\Agents;
 
+use App\Broadcasting\BroadcastsReliably;
 use App\Broadcasting\Channels;
 use App\Models\Agents\AgentAction;
 use App\Models\Agents\AgentSession;
@@ -21,7 +22,7 @@ use Illuminate\Support\Collection;
  */
 class AgentActionsRequested implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use BroadcastsReliably, Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * @param  Collection<int, AgentAction>  $actions

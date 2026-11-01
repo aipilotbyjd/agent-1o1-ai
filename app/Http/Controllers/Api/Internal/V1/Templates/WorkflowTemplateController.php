@@ -29,6 +29,8 @@ class WorkflowTemplateController extends Controller
         $templates = WorkflowTemplate::query()
             ->visibleTo($workspace)
             ->when(request('category'), fn ($query, $category) => $query->where('category', $category))
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
             ->latest()
             ->get();
 

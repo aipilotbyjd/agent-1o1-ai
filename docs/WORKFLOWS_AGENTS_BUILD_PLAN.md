@@ -16,7 +16,7 @@ Rule for the whole build: **only create new files** (migrations, models, service
 - Migrations: `workflows`, `workflow_versions`, `workflow_nodes`, `workflow_edges`, `runs`, `node_runs`, `node_categories`, `custom_nodes`.
 - Models: `Models/Workflows/{Workflow,WorkflowVersion,WorkflowNode,WorkflowEdge}.php`, `Models/Runs/{Run,NodeRun}.php`, `Models/Nodes/{NodeCategory,CustomNode}.php`.
 - `Enums/PortType.php`, `Enums/NodeCategory.php`, `Enums/RunStatus.php`, `Enums/NodeRunStatus.php`, `Enums/Queue.php` (queue names only — full Horizon supervisor wiring can lag until Stage 4 jobs exist).
-- `database/seeders/NodeCategorySeeder.php` (core categories: `flow-logic`, `data-transform`, `ai-automation`, `custom`, `triggers-events`) — add its call to `DatabaseSeeder.php` (append, don't restructure the existing Trigger seeder call).
+- `database/seeders/NodeCategoriesDataset.php` (core categories: `flow-logic`, `data-transform`, `ai-automation`, `custom`, `triggers-events`) — add its call to `DatabaseSeeder.php` (append, don't restructure the existing Trigger seeder call).
 - `Contracts/NodeContract.php`, `Services/Workflows/NodeRegistry.php`, `Providers/NodeRegistryServiceProvider.php` (register in `bootstrap/providers.php`).
 - Minimal node set to prove the contract: `Nodes/DataTransform/{TransformNode,CallApiNode}.php`, `Nodes/FlowLogic/{RouterNode,FilterNode}.php`, `Nodes/AiAutomation/AskAiNode.php` (via `laravel/ai`), `Nodes/DataTransform/RunCodeNode.php`.
 - Factories: `WorkflowFactory`, `WorkflowVersionFactory`, `RunFactory`, `NodeRunFactory`.
@@ -148,8 +148,8 @@ database/factories/
   AgentSessionFactory.php                      # Stage 6
 
 database/seeders/
-  NodeCategorySeeder.php                       # Stage 1
-  DatabaseSeeder.php                           # append: call NodeCategorySeeder
+  NodeCategoriesDataset.php                       # Stage 1
+  DatabaseSeeder.php                           # append: call NodeCategoriesDataset
 
 app/Enums/
   PortType.php                                 # Stage 1

@@ -2,6 +2,7 @@
 
 namespace App\Events\Runs;
 
+use App\Broadcasting\BroadcastsReliably;
 use App\Broadcasting\Channels;
 use App\Models\Runs\Run;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -24,7 +25,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class RunStateChanged implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use BroadcastsReliably, Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * The state at the moment the transition happened.
@@ -50,6 +51,7 @@ class RunStateChanged implements ShouldBroadcast
             'error' => $run->error,
             'started_at' => $run->started_at?->toIso8601String(),
             'finished_at' => $run->finished_at?->toIso8601String(),
+            'emitted_at' => $this->emittedAt(),
         ];
     }
 

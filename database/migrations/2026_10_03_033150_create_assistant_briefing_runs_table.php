@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('assistant_briefing_runs', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('assistant_briefing_config_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('assistant_meeting_id')->nullable()->constrained()->nullOnDelete();
             $table->string('run_key');
             $table->string('status')->default('queued');
             $table->string('trigger')->default('schedule');

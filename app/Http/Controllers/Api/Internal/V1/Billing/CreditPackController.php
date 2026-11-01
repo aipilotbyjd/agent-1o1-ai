@@ -10,27 +10,29 @@ use App\Http\Requests\Api\Internal\V1\Billing\CheckoutCreditPackRequest;
 use App\Http\Resources\Api\Internal\V1\Billing\CreditPackResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PackCatalog;
 
 class CreditPackController extends Controller
 {
     /**
-     * Lists the purchasable packs from `config('billing.packs')`, each
+     * Lists the purchasable packs from `PackCatalog`, each
      * flagged `available` based on whether the workspace's current plan has
      * the `credit_packs` feature.
      */
-    public function index(Workspace $workspace)
+    public function index(Workspace $workspace, PackCatalog $catalog)
     {
         $this->requirePermission(Permission::BillingView);
 
         $plan = $workspace->currentPlan();
         $available = $plan?->hasFeature(Feature::CreditPacks) ?? false;
 
-        $packs = collect(config('billing.packs', []))
+        $packs = collect($catalog->sellable())
             ->map(fn (array $pack, string $key): array => [
                 'key' => $key,
                 'label' => $pack['label'],
                 'credits' => $pack['credits'],
                 'price_cents' => $pack['price_cents'],
+                'badge' => $pack['badge'],
                 'available' => $available,
             ])
             ->values();

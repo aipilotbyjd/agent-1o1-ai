@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Pages;
 
 use App\Enums\Workflows\PageAccess;
-use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\UsageBlockedException;
 use App\Exceptions\WorkflowValidationException;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
@@ -116,7 +116,7 @@ class PublicPageController extends Controller
                 hash_hmac('sha256', (string) $request->ip(), (string) config('app.key')),
                 variant: $this->insights->variantFor($page, $this->insights->visitor($page, $request)),
             );
-        } catch (InsufficientCreditsException|WorkflowValidationException) {
+        } catch (UsageBlockedException|WorkflowValidationException) {
             return ApiResponse::error("This page can't run right now. Please try again later.", 503);
         }
 

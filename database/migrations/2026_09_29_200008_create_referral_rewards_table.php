@@ -45,7 +45,8 @@ return new class extends Migration
             $table->string('stripe_balance_transaction_id')->nullable();
             $table->unsignedInteger('credits_clawed_back')->default(0);
             $table->string('payment_reference')->nullable()->index();
-            $table->foreignUuid('granted_by')->nullable()->constrained('users')->nullOnDelete();
+            // The super admin who granted it. No foreign key: this table is created before `super_admins`, and the audit log keeps the history.
+            $table->uuid('granted_by')->nullable()->index();
             $table->text('notes')->nullable();
             $table->string('idempotency_key')->unique();
             $table->timestamps();

@@ -5,11 +5,13 @@ namespace App\Actions\Billing;
 use App\Enums\Billing\CreditTransactionType;
 use App\Enums\Notifications\AlertSeverity;
 use App\Exceptions\InsufficientCreditsException;
+use App\Models\Billing\CreditGrant;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Billing\CreditsLowNotification;
 use App\Services\Billing\CreditOverage;
+use App\Services\Billing\CreditWallet;
 use App\Services\Notifications\AdminAlerts;
 use App\Services\Notifications\NotificationDispatcher;
 use Illuminate\Support\Facades\DB;
@@ -23,11 +25,11 @@ use Illuminate\Support\Facades\DB;
  * against the same workspace can't both pass a limit check that only one of
  * them should have.
  *
- * A charge draws on the period's plan allowance first, falls back to the
- * workspace's non-expiring `topup_credits` pool for the remainder, and only
- * then (where the workspace opted into credit overage) accrues the rest as
- * overage to be invoiced after the fact. Purchased credits are therefore
- * consumed before anything the workspace will be billed for again.
+ * A charge is paid from the workspace's `CreditWallet` (allowance grants
+ * before carry-over grants, paid top-ups last), then (where the workspace
+ * opted into credit overage) accrues the rest as overage to be invoiced
+ * after the fact, and finally, for work that already ran, records debt.
+ * Each ledger row lists the grants that paid for it.
  *
  * Idempotent per `(source_type, source_id)`: charging the same `NodeRun` or
  * `AgentMessage` twice returns the original ledger row untouched. The
@@ -49,6 +51,7 @@ class DeductCreditsAction
         private readonly AdminAlerts $adminAlerts,
         private readonly NotificationDispatcher $dispatcher,
         private readonly CreditOverage $overage,
+        private readonly CreditWallet $wallet,
     ) {}
 
     /**
@@ -88,28 +91,31 @@ class DeductCreditsAction
             $lockedPeriod = UsagePeriod::whereKey($period->id)->lockForUpdate()->firstOrFail();
             $lockedWorkspace = Workspace::whereKey($workspace->id)->lockForUpdate()->firstOrFail();
 
-            $split = $this->fundingSplit($lockedPeriod, $lockedWorkspace, $credits, $allowOverdraft);
+            $funding = $this->fund($lockedPeriod, $lockedWorkspace, $credits, $allowOverdraft);
 
             $transaction = $workspace->creditTransactions()->create([
                 'usage_period_id' => $lockedPeriod->id,
                 'source_type' => $sourceType,
                 'source_id' => $sourceId,
                 'credits' => $credits,
-                'topup_credits' => $split['topup'],
-                'overage_credits' => $split['overage'],
+                'topup_credits' => $funding['topup'],
+                'overage_credits' => $funding['overage'],
+                'debt_credits' => $funding['debt'],
                 'reason' => $reason,
             ]);
+
+            $this->wallet->recordAllocations($transaction, $funding['allocations']);
 
             $creditsBefore = $lockedPeriod->credits_used;
 
             $lockedPeriod->increment('credits_used', $credits);
 
-            if ($split['overage'] > 0) {
-                $lockedPeriod->increment('overage_credits_used', $split['overage']);
+            if ($funding['overage'] > 0) {
+                $lockedPeriod->increment('overage_credits_used', $funding['overage']);
             }
 
-            if ($split['topup'] > 0) {
-                $lockedWorkspace->decrement('topup_credits', $split['topup']);
+            if ($funding['debt'] > 0) {
+                $this->wallet->addDebt($lockedWorkspace, $funding['debt']);
             }
 
             return [
@@ -134,52 +140,52 @@ class DeductCreditsAction
     }
 
     /**
-     * Which pools fund `$credits`, in the order a workspace should want them
-     * spent: the period's plan allowance first (free, and it expires), then
-     * the non-expiring top-up pool it already paid for, then overage, which
-     * is the only one that produces a new charge.
+     * Pays for `$credits` from the wallet, then overage, then (for work that
+     * already ran) debt. The wallet spends its grants soonest-expiring first,
+     * so the period's allowance goes before credits that never expire, and
+     * paid top-ups go last. Overage is the only part that produces a new
+     * charge.
      *
-     * The returned portions are what gets *recorded*: the plan share is the
-     * remainder, so it is never stored. Anything past the overage cap is
-     * deliberately not counted as overage: the workspace agreed to be billed
-     * up to its cap and no further, so an overdrafting run's excess lands on
-     * `credits_used` unbilled, exactly as it did before overage existed.
+     * Anything past the overage cap is recorded as debt rather than written
+     * off: the workspace agreed to be billed up to its cap and no further, so
+     * the next grant it receives pays the debt first.
      *
-     * @return array{topup: int, overage: int}
+     * @return array{allocations: list<array{grant: CreditGrant, credits: int}>, topup: int, overage: int, debt: int}
      *
-     * @throws InsufficientCreditsException when the three pools together fall
-     *                                      short and overdraft is not allowed.
+     * @throws InsufficientCreditsException when the wallet and overage together
+     *                                      fall short and overdraft is not
+     *                                      allowed. The transaction rolls back,
+     *                                      so no grant is touched.
      */
-    private function fundingSplit(UsagePeriod $period, Workspace $workspace, int $credits, bool $allowOverdraft): array
+    private function fund(UsagePeriod $period, Workspace $workspace, int $credits, bool $allowOverdraft): array
     {
         if ($period->credits_limit === null) {
-            return ['topup' => 0, 'overage' => 0];
+            return ['allocations' => [], 'topup' => 0, 'overage' => 0, 'debt' => 0];
         }
 
-        $shortfall = $credits - $period->remainingPlanCredits();
+        $this->wallet->ensureAllowance($period);
+        $this->wallet->reconcileCarryOver($workspace);
 
-        if ($shortfall <= 0) {
-            return ['topup' => 0, 'overage' => 0];
-        }
-
-        $fromTopup = min($shortfall, $workspace->topup_credits);
-        $uncovered = $shortfall - $fromTopup;
+        $debtBefore = (int) $workspace->credit_debt;
+        $spent = $this->wallet->spend($workspace, $credits);
+        $uncovered = $spent['shortfall'];
 
         if ($uncovered === 0) {
-            return ['topup' => $fromTopup, 'overage' => 0];
+            return ['allocations' => $spent['allocations'], 'topup' => $spent['carry_over'], 'overage' => 0, 'debt' => 0];
         }
 
         $overageRemaining = $this->overage->remainingFor($workspace, $period);
         $fromOverage = $overageRemaining === null ? $uncovered : min($uncovered, $overageRemaining);
+        $debt = $uncovered - $fromOverage;
 
-        if ($fromOverage < $uncovered && ! $allowOverdraft) {
+        if ($debt > 0 && ! $allowOverdraft) {
             throw new InsufficientCreditsException(
                 $credits,
-                $period->remainingPlanCredits() + $workspace->topup_credits + $fromOverage,
+                max(0, $spent['allowance'] + $spent['carry_over'] + $fromOverage - $debtBefore),
             );
         }
 
-        return ['topup' => $fromTopup, 'overage' => $fromOverage];
+        return ['allocations' => $spent['allocations'], 'topup' => $spent['carry_over'], 'overage' => $fromOverage, 'debt' => $debt];
     }
 
     /**

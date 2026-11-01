@@ -26,6 +26,8 @@ return new class extends Migration
             // {instructions, provider, model, temperature, settings, tool_bindings: [...], workflow_ids: [...], skill_ids: [...]}
             $table->json('config');
             $table->string('visibility')->default('private');
+            $table->boolean('is_featured')->default(false);
+            $table->unsignedInteger('sort_order')->default(0);
             $table->unsignedInteger('usage_count')->default(0);
             $table->timestamps();
             $table->softDeletes();

@@ -88,6 +88,34 @@ it('ignores an event that fails a configured filter, without dispatching a job',
     Queue::assertNothingPushed();
 });
 
+it('holds back an event when a filter uses an operator it does not know', function () {
+    Queue::fake();
+
+    $trigger = makeTrigger([
+        'config' => ['filters' => [['path' => 'action', 'operator' => 'sounds_like', 'value' => 'opened']]],
+    ]);
+
+    $event = app(TriggerService::class)->receive($trigger, TriggerType::Webhook, ['action' => 'opened'], 'd-1');
+
+    expect($event->status)->toBe(TriggerEventStatus::Ignored);
+    Queue::assertNothingPushed();
+});
+
+it('lets an event through when it matches a pattern or list filter', function () {
+    Queue::fake();
+
+    $trigger = makeTrigger([
+        'config' => ['filters' => [
+            ['path' => 'ref', 'operator' => 'matches_regex', 'value' => '^refs/heads/(main|release-.+)$'],
+            ['path' => 'action', 'operator' => 'in_list', 'value' => 'opened, reopened'],
+        ]],
+    ]);
+
+    $event = app(TriggerService::class)->receive($trigger, TriggerType::Webhook, ['ref' => 'refs/heads/release-2', 'action' => 'reopened'], 'd-2');
+
+    expect($event->status)->not->toBe(TriggerEventStatus::Ignored);
+});
+
 it('skips an inactive trigger without creating a queued event', function () {
     $trigger = makeTrigger(['is_active' => false]);
 

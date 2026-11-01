@@ -6,6 +6,7 @@ use App\Enums\NodeRunStatus;
 use App\Enums\RunStatus;
 use App\Events\Runs\RunFailed;
 use App\Exceptions\InvalidNodeInputException;
+use App\Exceptions\RunBudgetExceededException;
 use App\Jobs\Workflows\DispatchNextNodesJob;
 use App\Jobs\Workflows\ExecuteNodeJob;
 use App\Models\Runs\NodeRun;
@@ -41,7 +42,7 @@ class StepFailureHandler
         // Only a node still `running` can fail or be retried: one cancelled
         // meanwhile stays cancelled, and neither retries nor a failed run
         // may resurrect it.
-        if ($nodeRun->attempt < $options->maxAttempts && ! $e instanceof InvalidNodeInputException) {
+        if ($nodeRun->attempt < $options->maxAttempts && ! $e instanceof InvalidNodeInputException && ! $e instanceof RunBudgetExceededException) {
             $this->retry($nodeRun, $options, $message);
 
             return;

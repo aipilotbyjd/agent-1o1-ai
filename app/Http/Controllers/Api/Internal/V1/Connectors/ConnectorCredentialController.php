@@ -56,6 +56,10 @@ class ConnectorCredentialController extends Controller
             throw new ConnectorException("Connector [{$connector->key}] is OAuth-only: use the OAuth connect flow instead of storing credential data directly.");
         }
 
+        if (($missing = $connector->missingFields((array) $request->validated('data'))) !== []) {
+            throw ConnectorException::missingFields($connector, $missing);
+        }
+
         $credential = $workspace->connectorCredentials()->create([
             ...collect($request->validated())->except('is_default')->all(),
             'created_by' => $request->user()->id,
@@ -73,6 +77,10 @@ class ConnectorCredentialController extends Controller
         $this->requirePermission(Permission::ConnectorManage);
         $this->ensureBelongsToWorkspace($workspace, $connectorCredential);
         $this->ensureVisible($request, $connectorCredential);
+
+        if ($request->has('data') && ($connector = $connectorCredential->connector) !== null && ($missing = $connector->missingFields((array) $request->validated('data'))) !== []) {
+            throw ConnectorException::missingFields($connector, $missing);
+        }
 
         $connectorCredential->update($request->validated());
 

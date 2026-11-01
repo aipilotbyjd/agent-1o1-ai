@@ -28,6 +28,15 @@ interface RunStarter
     public function isAlreadyRunning(Trigger $trigger): bool;
 
     /**
+     * How many of the target's runs are executing right now.
+     *
+     * Runs parked on a person or a callback (an approval, a Wait node) aren't
+     * counted: they use no capacity, and one left waiting for days would
+     * otherwise hold the trigger's concurrency slot the whole time.
+     */
+    public function activeRuns(Trigger $trigger): int;
+
+    /**
      * Start the target with an event's payload and return the new run's id.
      *
      * @param  array<string, mixed>  $payload

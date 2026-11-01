@@ -21,7 +21,7 @@ class ModelCatalogListCommand extends Command
         $catalog = ModelCatalog::query()->with('routes')->orderBy('sort_order')->get();
 
         if ($catalog->isEmpty()) {
-            $this->warn('No model catalog entries. Run `php artisan db:seed --class=ModelCatalogSeeder`.');
+            $this->warn('No model catalog entries. Run `php artisan setup:catalog:sync --only=model-catalog`.');
 
             return self::SUCCESS;
         }

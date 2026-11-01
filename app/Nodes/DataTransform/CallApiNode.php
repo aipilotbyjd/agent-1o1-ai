@@ -74,11 +74,13 @@ class CallApiNode implements DeclaresEffect, HasIcon, NodeContract
 
     public function execute(Run $run, array $config, array $context): array
     {
+        $method = strtoupper((string) ($config['method'] ?? 'GET'));
+
         $response = (new GuardedHttp($this->ssrfGuard))->send(
-            strtoupper($config['method'] ?? 'GET'),
+            $method,
             $config['url'],
             $config['headers'] ?? [],
-            $config['body'] ?? [],
+            $method === 'GET' ? null : ($config['body'] ?? []),
             timeoutSeconds: (int) ($config['timeout_seconds'] ?? 30),
         );
 

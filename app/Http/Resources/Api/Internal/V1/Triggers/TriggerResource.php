@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\Internal\V1\Triggers;
 
 use App\Models\Triggers\Trigger;
+use App\Services\Triggers\TriggerStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,6 +34,9 @@ class TriggerResource extends JsonResource
             'consecutive_failure_count' => $this->consecutive_failure_count,
             'last_run_at' => $this->last_run_at,
             'next_run_at' => $this->next_run_at,
+            'next_poll_at' => $this->next_poll_at,
+            // How events arrive and whether it is working: see TriggerStatus.
+            'status' => app(TriggerStatus::class)->for($this->resource),
             'consecutive_skip_count' => $this->consecutive_skip_count,
             'max_failures' => $this->maxFailures(),
             // Only on the list endpoint, which counts them in one query.

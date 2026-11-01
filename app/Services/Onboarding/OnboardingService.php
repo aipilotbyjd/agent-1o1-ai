@@ -31,6 +31,7 @@ class OnboardingService
             'label' => $step->label(),
             'description' => $step->description(),
             'completed' => $this->isStepCompleted($user, $step, $currentStep),
+            'skipped' => $this->isStepSkipped($user, $step),
         ]);
 
         $percent = (int) round($steps->where('completed', true)->count() / $steps->count() * 100);
@@ -91,8 +92,60 @@ class OnboardingService
         return $this->state($user->fresh());
     }
 
+    /**
+     * Saves that the user finished a step and pressed Continue, so signing in
+     * again resumes after it. Steps that exist to collect something must have
+     * it: a profile picture, a workspace.
+     */
+    public function continue(User $user, OnboardingStep $step): array
+    {
+        abort_if(
+            $step === OnboardingStep::ProfilePicture && $user->avatar === null,
+            422,
+            'Add a profile picture before continuing.',
+        );
+
+        abort_if(
+            $step === OnboardingStep::CreateWorkspace && $user->current_workspace_id === null,
+            422,
+            'Create a workspace before continuing.',
+        );
+
+        abort_if(
+            $step === OnboardingStep::ChoosePlan && ! $this->isStepCompleted($user, $step, $user->onboarding_current_step ?? OnboardingStep::ProfilePicture),
+            422,
+            'Choose a plan before continuing.',
+        );
+
+        $this->advancePast($user, $step);
+
+        return $this->state($user->fresh());
+    }
+
+    /**
+     * Postpones a step: the user moves on and is not sent back to it at the
+     * next sign-in, but it stays open (skipped, not completed) so it can be
+     * finished later.
+     */
+    public function skip(User $user, OnboardingStep $step): array
+    {
+        abort_unless($step->isSkippable(), 422, 'This step cannot be skipped.');
+
+        $skipped = $this->skippedSteps($user);
+
+        if (! in_array($step, $skipped, strict: true)) {
+            $user->update(['onboarding_skipped_steps' => $this->toValues([...$skipped, $step])]);
+        }
+
+        $this->advancePast($user, $step, keepSkipped: true);
+
+        return $this->state($user->fresh());
+    }
+
     public function complete(User $user): array
     {
+        $this->requireAccountSetup($user);
+
         $user->update(['onboarding_completed_at' => now()]);
 
         return $this->state($user->fresh());
@@ -100,7 +153,41 @@ class OnboardingService
 
     public function dismiss(User $user): void
     {
+        $this->requireAccountSetup($user);
+
         $user->update(['onboarding_dismissed_at' => now()]);
+    }
+
+    /**
+     * Signup creates no workspace and no plan, so onboarding is where every
+     * owner gets both. It cannot be closed, by finishing or by dismissing it,
+     * until they have.
+     */
+    private function requireAccountSetup(User $user): void
+    {
+        abort_if($user->current_workspace_id === null, 422, 'Create a workspace to finish onboarding.');
+
+        $current = $user->onboarding_current_step ?? OnboardingStep::ProfilePicture;
+
+        abort_unless($this->isStepCompleted($user, OnboardingStep::ChoosePlan, $current), 422, 'Choose a plan to finish onboarding.');
+    }
+
+    /**
+     * A plan is chosen by picking Free (which moves past the step), or by the
+     * workspace holding a subscription or plan grant. A member of someone
+     * else's workspace has nothing to choose: the owner pays for it.
+     */
+    private function hasPlan(User $user): bool
+    {
+        $workspace = $user->currentWorkspace()->first();
+
+        if ($workspace === null) {
+            return false;
+        }
+
+        return $workspace->owner_id !== $user->id
+            || $workspace->activeSubscription() !== null
+            || $workspace->activePlanGrant() !== null;
     }
 
     private function isStepCompleted(User $user, OnboardingStep $step, OnboardingStep $currentStep): bool
@@ -109,17 +196,53 @@ class OnboardingService
             return true;
         }
 
+        if ($this->isStepSkipped($user, $step)) {
+            return false;
+        }
+
         return match ($step) {
             OnboardingStep::ProfilePicture => $user->avatar !== null,
             OnboardingStep::CreateWorkspace => $user->current_workspace_id !== null,
             OnboardingStep::RoleSelection => $user->job_role !== null,
             OnboardingStep::DiscoverySurvey => $user->discovery_source !== null,
+            OnboardingStep::ChoosePlan => $this->ordinal($step) < $this->ordinal($currentStep) || $this->hasPlan($user),
             default => $this->ordinal($step) < $this->ordinal($currentStep),
         };
     }
 
-    private function advancePast(User $user, OnboardingStep $step): void
+    private function isStepSkipped(User $user, OnboardingStep $step): bool
     {
+        return in_array($step, $this->skippedSteps($user), strict: true);
+    }
+
+    /**
+     * @return array<int, OnboardingStep>
+     */
+    private function skippedSteps(User $user): array
+    {
+        return collect($user->onboarding_skipped_steps ?? [])
+            ->map(fn (string $value): ?OnboardingStep => OnboardingStep::tryFrom($value))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, OnboardingStep>  $steps
+     * @return array<int, string>
+     */
+    private function toValues(array $steps): array
+    {
+        return array_values(array_map(fn (OnboardingStep $step): string => $step->value, $steps));
+    }
+
+    private function advancePast(User $user, OnboardingStep $step, bool $keepSkipped = false): void
+    {
+        if (! $keepSkipped && $this->isStepSkipped($user, $step)) {
+            $remaining = array_filter($this->skippedSteps($user), fn (OnboardingStep $skipped): bool => $skipped !== $step);
+            $user->update(['onboarding_skipped_steps' => $this->toValues($remaining)]);
+        }
+
         $current = $user->onboarding_current_step ?? OnboardingStep::ProfilePicture;
 
         if ($this->ordinal($step) < $this->ordinal($current)) {

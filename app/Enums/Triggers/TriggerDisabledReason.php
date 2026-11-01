@@ -20,4 +20,12 @@ enum TriggerDisabledReason: string
      * or the last run was still going under the "skip" overlap policy.
      */
     case Skips = 'skips';
+
+    /**
+     * Far more events arrived in a minute than the trigger's storm limit
+     * (`config.storm_limit`, else `triggers.storm.max_events_per_minute`): a
+     * loop or a bulk import upstream, switched off before it floods the
+     * workspace with runs.
+     */
+    case Storm = 'storm';
 }

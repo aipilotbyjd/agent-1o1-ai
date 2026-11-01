@@ -5,7 +5,7 @@ namespace App\Services\Assistant\Tools;
 use App\Ai\Assistant\Tools\AssistantTool;
 use App\Enums\Assistant\AssistantActionStatus;
 use App\Enums\Assistant\AssistantToolRule;
-use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\UsageBlockedException;
 use App\Models\Assistant\AssistantAction;
 use App\Models\Assistant\AssistantToolRule as ToolRuleModel;
 use App\Models\Assistant\AssistantTurn;
@@ -118,7 +118,7 @@ class ToolGate
             $action?->forceFill(['status' => AssistantActionStatus::Executed, 'result' => $result])->save();
 
             return $result;
-        } catch (InsufficientCreditsException $e) {
+        } catch (UsageBlockedException $e) {
             throw $e;
         } catch (Throwable $e) {
             report($e);

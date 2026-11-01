@@ -10,7 +10,8 @@ use App\Models\Workspaces\Workspace;
  * (`config`, for dependent fields such as a spreadsheet's tabs), what the
  * member typed into the dropdown (`search`), and which page (`cursor`).
  * `token` is the connected account's access token, or null for sources that
- * read the workspace itself (agents, workflows, models).
+ * read the workspace itself (agents, workflows, models). `credentialData` is
+ * the account's stored fields, for apps that log in with more than a token.
  */
 final readonly class NodeOptionsQuery
 {
@@ -23,6 +24,7 @@ final readonly class NodeOptionsQuery
 
     /**
      * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $credentialData
      */
     public function __construct(
         public Workspace $workspace,
@@ -31,6 +33,7 @@ final readonly class NodeOptionsQuery
         public ?string $token = null,
         ?string $search = null,
         ?string $cursor = null,
+        public array $credentialData = [],
     ) {
         $search = $search !== null ? trim($search) : null;
         $this->search = $search !== '' ? $search : null;

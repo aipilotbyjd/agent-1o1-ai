@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:api')->group(function () {
     Route::get('node-categories', [NodeCategoryController::class, 'index'])->name('node-categories.index');
     Route::get('node-categories/{nodeCategory}', [NodeCategoryController::class, 'show'])->name('node-categories.show');
+    Route::patch('node-categories/{nodeCategory}/pin', [NodeCategoryController::class, 'pin'])->name('node-categories.pin');
 
     Route::get('nodes', [NodeController::class, 'globalCatalog'])->name('nodes.global-catalog');
 });

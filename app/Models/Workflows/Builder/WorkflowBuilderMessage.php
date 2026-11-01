@@ -4,6 +4,7 @@ namespace App\Models\Workflows\Builder;
 
 use App\Enums\Workflows\BuilderMessageMode;
 use App\Enums\Workflows\BuilderMessageStatus;
+use App\Models\Ai\ModelCatalog;
 use App\Models\Artifacts\Artifact;
 use App\Models\User;
 use Database\Factories\Workflows\Builder\WorkflowBuilderMessageFactory;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['session_id', 'user_id', 'draft_version_id', 'role', 'mode', 'context', 'content', 'actions', 'processing_status', 'error_message'])]
+#[Fillable(['session_id', 'user_id', 'draft_version_id', 'role', 'mode', 'context', 'model_catalog_id', 'content', 'actions', 'processing_status', 'error_message'])]
 class WorkflowBuilderMessage extends Model
 {
     /** @use HasFactory<WorkflowBuilderMessageFactory> */
@@ -52,6 +53,14 @@ class WorkflowBuilderMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The model the sender picked for this turn, if any.
+     */
+    public function modelCatalog(): BelongsTo
+    {
+        return $this->belongsTo(ModelCatalog::class, 'model_catalog_id');
     }
 
     public function draftVersion(): BelongsTo

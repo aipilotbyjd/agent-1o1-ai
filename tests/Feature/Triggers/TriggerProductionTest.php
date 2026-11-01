@@ -218,6 +218,11 @@ describe('breaker, credits and overlap', function () {
                 return true;
             }
 
+            public function activeRuns(Trigger $trigger): int
+            {
+                return 1;
+            }
+
             public function start(Trigger $trigger, array $payload): string
             {
                 return 'never';
@@ -313,6 +318,20 @@ describe('app triggers', function () {
         expect($queued)->toHaveCount(1)
             ->and($queued->first()->delivery_id)->toBe('2.0')
             ->and($queued->first()->payload)->toBe(['ts' => '2.0', 'text' => 'new']);
+    });
+
+    it('skips bot messages and thread replies in a Slack trigger unless told otherwise', function () {
+        $node = app(NodeRegistry::class)->resolve('slack_get_channel_history');
+        $output = ['messages' => [
+            ['ts' => '1.0', 'text' => 'human'],
+            ['ts' => '2.0', 'text' => 'bot', 'bot_id' => 'B1'],
+            ['ts' => '3.0', 'text' => 'reply', 'thread_ts' => '1.0'],
+            ['ts' => '4.0', 'text' => 'thread parent', 'thread_ts' => '4.0'],
+        ]];
+
+        expect(array_column($node->triggerItems($output, []), 'ts'))->toBe(['1.0', '3.0', '4.0'])
+            ->and(array_column($node->triggerItems($output, ['ignore_replies' => true]), 'ts'))->toBe(['1.0', '4.0'])
+            ->and(array_column($node->triggerItems($output, ['ignore_bot_messages' => false]), 'ts'))->toBe(['1.0', '2.0', '3.0', '4.0']);
     });
 
     it('outputs the item it fired for when it starts the run', function () {

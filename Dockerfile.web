@@ -1,6 +1,6 @@
 # Web: nginx + php-fpm on :8080
-# Tip: pin a versioned tag (e.g. 8.4-fpm-nginx-v3.x.y) once stable.
-FROM serversideup/php:8.4-fpm-nginx
+# Tip: pin a versioned tag (e.g. 8.5-fpm-nginx-v5.x.y) once stable.
+FROM serversideup/php:8.5-fpm-nginx
 
 USER root
 # pcntl required by Horizon, pdo_pgsql for Postgres. (predis is pure PHP, no ext-redis)

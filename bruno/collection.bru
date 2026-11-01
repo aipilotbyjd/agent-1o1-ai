@@ -82,8 +82,9 @@ docs {
   that chain apart from needing `workspaceId` — though attaching a workflow
   tool or pointing a trigger at a workflow needs `workflowId` too.
 
-  `Admin` needs a platform-admin token (see that folder's docs); it
-  manages the referral program without any web screen.
+  `SuperAdmin` is a separate API with its own accounts and token
+  (`superAdminToken`): see that folder's docs for how to sign in. It needs
+  `SUPER_ADMIN_ENABLED=true`.
 
   `Templates` needs an existing workflow or agent before its
   `Save From ...` requests do anything useful; its `Create` requests don't.

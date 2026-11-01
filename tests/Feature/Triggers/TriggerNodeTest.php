@@ -181,6 +181,19 @@ it('refuses to publish an invalid cron or timezone', function (array $config) {
     'bad timezone' => [['cron' => '0 9 * * *', 'timezone' => 'Mars/Olympus']],
 ]);
 
+it('refuses a trigger condition it could never evaluate', function (array $filters) {
+    [, $owner, $workflow] = triggerNodeWorkflow();
+
+    $workflow->replaceGraph(['nodes' => [['key' => 'hook', 'type' => 'webhook_trigger', 'config' => ['filters' => $filters]]], 'edges' => []]);
+
+    expect(fn () => $workflow->publishVersion(publisher: $owner))->toThrow(WorkflowValidationException::class);
+})->with([
+    'unknown operator' => [[['path' => 'action', 'operator' => 'sounds_like', 'value' => 'x']]],
+    'no path' => [[['operator' => 'equals', 'value' => 'x']]],
+    'broken pattern' => [[['path' => 'action', 'operator' => 'matches_regex', 'value' => '(']]],
+    'unknown source' => [[['path' => 'action', 'source' => 'cookie', 'value' => 'x']]],
+]);
+
 it('refuses a connection leading into a trigger', function () {
     [, , $workflow] = triggerNodeWorkflow();
 

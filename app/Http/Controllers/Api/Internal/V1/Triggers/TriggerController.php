@@ -6,6 +6,7 @@ use App\Enums\Triggers\TriggerEventStatus;
 use App\Enums\Triggers\TriggerTargetType;
 use App\Enums\Triggers\TriggerType;
 use App\Enums\Workspaces\Permission;
+use App\Exceptions\ConnectorException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\V1\Triggers\IndexTriggerEventsRequest;
 use App\Http\Requests\Api\Internal\V1\Triggers\IndexTriggersRequest;
@@ -15,9 +16,13 @@ use App\Http\Resources\Api\Internal\V1\Triggers\TriggerEventResource;
 use App\Http\Resources\Api\Internal\V1\Triggers\TriggerResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Triggers\Trigger;
+use App\Models\Triggers\TriggerEvent;
 use App\Models\Workspaces\Workspace;
+use App\Services\Triggers\TriggerSampler;
 use App\Services\Triggers\TriggerService;
 use Illuminate\Database\Eloquent\Builder;
+use InvalidArgumentException;
+use Throwable;
 
 class TriggerController extends Controller
 {
@@ -32,7 +37,8 @@ class TriggerController extends Controller
         $since = now()->subDay();
 
         $triggers = $workspace->triggers()
-            ->with('target')
+            ->with(['target', 'subscription', 'workspace'])
+            ->withMax('events as last_event_at', 'created_at')
             ->withCount([
                 'events as fired_24h_count' => fn (Builder $events) => $events->where('status', TriggerEventStatus::Fired)->where('created_at', '>=', $since),
                 'events as failed_24h_count' => fn (Builder $events) => $events->where('status', TriggerEventStatus::Failed)->where('created_at', '>=', $since),
@@ -130,5 +136,48 @@ class TriggerController extends Controller
             ->paginate((int) ($request->validated('per_page') ?? 25));
 
         return ApiResponse::paginated(TriggerEventResource::collection($events));
+    }
+
+    /**
+     * What the trigger sees right now, to map fields from before it has run.
+     */
+    public function sample(Workspace $workspace, Trigger $trigger, TriggerSampler $sampler)
+    {
+        $this->requirePermission(Permission::RunTrigger);
+        $this->ensureBelongsToWorkspace($workspace, $trigger);
+
+        try {
+            $items = $sampler->sample($trigger);
+        } catch (InvalidArgumentException|ConnectorException $exception) {
+            return ApiResponse::error($exception->getMessage(), 422);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return ApiResponse::error('Could not read from the app right now. Try again in a moment.', 422);
+        }
+
+        return ApiResponse::success(['items' => $items]);
+    }
+
+    /**
+     * Run a past event's payload again, as a new event.
+     */
+    public function replay(Workspace $workspace, Trigger $trigger, TriggerEvent $event)
+    {
+        $this->requirePermission(Permission::RunTrigger);
+        $this->ensureBelongsToWorkspace($workspace, $trigger);
+        abort_unless($event->trigger_id === $trigger->id, 404);
+
+        if ($event->payload === null) {
+            return ApiResponse::error('This event\'s payload was cleared, so it cannot be replayed.', 422);
+        }
+
+        if (! $this->triggers->canRun($trigger)) {
+            return ApiResponse::error('This trigger\'s target cannot be run right now.', 409);
+        }
+
+        $replayed = $this->triggers->receive($trigger, TriggerType::Manual, $event->payload);
+
+        return ApiResponse::success(['event' => TriggerEventResource::make($replayed)], 'Replay queued.', 202);
     }
 }

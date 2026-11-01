@@ -9,11 +9,12 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * Ported against Slack's classic `files.upload` endpoint (multipart, one
- * request) rather than the newer three-step external-upload flow, since no
- * file storage/`Artifact` abstraction exists yet to source a real file from
- * (docs/PLAN.md's `Artifact` entry is still a plan): `content` is raw text
- * passed straight through as the file body.
+ * Uploads a text file to channels through Slack's three-step external upload
+ * (`files.upload`, the one-request call, was shut down): ask Slack for an
+ * upload address, send the bytes to it, then complete the upload and share it.
+ *
+ * `content` is the file's text: no file storage exists yet to source a real
+ * binary file from.
  */
 class SlackUploadFileNode extends AbstractSlackNode
 {
@@ -55,22 +56,28 @@ class SlackUploadFileNode extends AbstractSlackNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $token = $this->resolveAccessToken($run, $config);
+        $content = (string) $config['content'];
+        $filename = trim((string) ($config['filename'] ?? '')) ?: 'upload.txt';
+        $title = trim((string) ($config['title'] ?? ''));
 
-        $response = Http::withToken($token)
-            ->attach('file', $config['content'], $config['filename'] ?? 'upload.txt')
-            ->post('https://slack.com/api/files.upload', array_filter([
-                'channels' => $config['channels'],
-                'title' => $config['title'] ?? null,
-                'initial_comment' => $config['initial_comment'] ?? null,
-            ], fn ($value) => $value !== null));
+        $slot = $this->get($run, 'files.getUploadURLExternal', $config, ['filename' => $filename, 'length' => strlen($content)]);
 
-        $body = $response->json() ?? [];
+        // The upload address takes the bytes as they are and needs no token.
+        $sent = Http::withBody($content, 'application/octet-stream')->timeout(60)->post((string) $slot['upload_url']);
 
-        if (($body['ok'] ?? false) !== true) {
-            throw new RuntimeException('Slack API error [files.upload]: '.($body['error'] ?? 'unknown_error'));
+        if ($sent->failed()) {
+            throw new RuntimeException('Slack API error [file upload]: the upload address answered '.$sent->status().'.');
         }
 
-        return $body;
+        $channels = array_values(array_filter(array_map('strval', (array) $config['channels'])));
+        $comment = trim((string) ($config['initial_comment'] ?? ''));
+
+        $completed = $this->post($run, 'files.completeUploadExternal', $config, array_filter([
+            'files' => [array_filter(['id' => $slot['file_id'], 'title' => $title !== '' ? $title : null])],
+            'channels' => implode(',', $channels),
+            'initial_comment' => $comment !== '' ? $comment : null,
+        ], fn ($value) => $value !== null && $value !== ''));
+
+        return ['ok' => true, 'file' => $completed['files'][0] ?? ['id' => $slot['file_id']], 'files' => $completed['files'] ?? []];
     }
 }

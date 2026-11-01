@@ -63,4 +63,24 @@ interface SupportsTriggerMode
      * for things that change rarely.
      */
     public function triggerPollMinutes(): int;
+
+    /**
+     * The config a poll reads with, given the node's own.
+     *
+     * A poll sees only what one read returns, so a node whose default page is
+     * small widens it here: anything past the page between two polls would
+     * never be seen.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    public function triggerReadConfig(array $config): array;
+
+    /**
+     * Whether the node lists the newest item first.
+     *
+     * A poll starts runs oldest first, so a burst of items is processed in the
+     * order it happened.
+     */
+    public function triggerListsNewestFirst(): bool;
 }

@@ -2,6 +2,7 @@
 
 namespace App\Events\Agents;
 
+use App\Broadcasting\BroadcastsReliably;
 use App\Broadcasting\Channels;
 use App\Models\Agents\AgentSession;
 use App\Models\Runs\Run;
@@ -18,7 +19,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class AgentActionsChanged implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use BroadcastsReliably, Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
         public readonly AgentSession $session,

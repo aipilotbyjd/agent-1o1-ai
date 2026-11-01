@@ -15,7 +15,6 @@ use App\Notifications\Referrals\ReferralPlanTimeEndingNotification;
 use App\Services\Notifications\AdminAlerts;
 use App\Services\Referrals\ReferralCodes;
 use App\Services\Referrals\ReferralTrialBonus;
-use Database\Seeders\ReferralProgramSeeder;
 use Illuminate\Support\Facades\Notification;
 
 it('reminds a workspace once before its referral plan time ends', function () {
@@ -80,14 +79,14 @@ it('grants and revokes goodwill rewards from the command line', function () {
 it('seeds a working default program without overwriting later edits', function () {
     Plan::factory()->create(['slug' => 'pro']);
 
-    $this->seed(ReferralProgramSeeder::class);
+    $this->syncSetup('referral-program');
 
     $program = ReferralProgram::query()->where('slug', 'default')->sole();
     expect($program->is_default)->toBeTrue()
         ->and($program->rules()->count())->toBe(7);
 
     $program->update(['default_hold_days' => 3]);
-    $this->seed(ReferralProgramSeeder::class);
+    $this->syncSetup('referral-program');
 
     expect($program->fresh()->default_hold_days)->toBe(3)
         ->and($program->rules()->count())->toBe(7);

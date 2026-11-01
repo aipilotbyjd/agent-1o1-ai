@@ -7,12 +7,13 @@ use App\Exceptions\FeatureNotAvailableException;
 use App\Models\Billing\CreditPack;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\PackCatalog;
 use InvalidArgumentException;
 use Laravel\Cashier\Checkout;
 
 /**
  * Builds a Stripe Checkout Session (mode=payment) for a one-time credit
- * top-up, priced straight from `config('billing.packs')` via Cashier's
+ * top-up, priced straight from `PackCatalog` (admin-defined packs, else `config('billing.packs')`) via Cashier's
  * `checkoutCharge()`: no pre-created Stripe Price object needed per pack.
  * The pack itself is recorded `Pending` and only flips to `Active` (crediting
  * the workspace's non-expiring `topup_credits` pool) once
@@ -35,13 +36,11 @@ class CheckoutCreditPackAction
             throw new FeatureNotAvailableException(Feature::CreditPacks);
         }
 
-        $packs = config('billing.packs', []);
+        $packConfig = app(PackCatalog::class)->find($packKey);
 
-        if (! isset($packs[$packKey])) {
+        if ($packConfig === null) {
             throw new InvalidArgumentException("Unknown credit pack key: {$packKey}");
         }
-
-        $packConfig = $packs[$packKey];
 
         $creditPack = $workspace->creditPacks()->create([
             'purchased_by' => $purchaser->id,

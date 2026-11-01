@@ -28,6 +28,23 @@ trait ResolvesConnectorCredential
     }
 
     /**
+     * Every stored field of the step's account, for apps whose login is more
+     * than a token.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    protected function resolveCredentialData(Run $run, array $config): array
+    {
+        return app(ConnectorCredentialResolver::class)->credentialData(
+            $this->category(),
+            $run->workspace_id,
+            $run->triggered_by,
+            $config,
+        );
+    }
+
+    /**
      * The account picker every integration node's `configSchema()` starts
      * with, plus the legacy raw `access_token` field (hidden from the
      * editor, still honoured at run time).

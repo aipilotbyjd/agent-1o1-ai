@@ -53,4 +53,20 @@ trait ActsAsTrigger
     {
         return 5;
     }
+
+    /**
+     * The node's own config.
+     */
+    public function triggerReadConfig(array $config): array
+    {
+        return $config;
+    }
+
+    /**
+     * Oldest first.
+     */
+    public function triggerListsNewestFirst(): bool
+    {
+        return false;
+    }
 }

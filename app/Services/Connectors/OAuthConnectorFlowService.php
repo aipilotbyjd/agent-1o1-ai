@@ -69,7 +69,9 @@ class OAuthConnectorFlowService
             ...($connector->oauth['authorize_params'] ?? []),
             'client_id' => $this->clientId($connector),
             'redirect_uri' => $redirectUri,
-            'scope' => implode(' ', $connector->oauth['scopes'] ?? []),
+            // Notion has no scopes (access is what the person picks on its page). Linear
+            // wants them comma-separated, the rest space-separated (`scope_separator`).
+            ...(($connector->oauth['scopes'] ?? []) === [] ? [] : ['scope' => implode($connector->oauth['scope_separator'] ?? ' ', $connector->oauth['scopes'])]),
             'state' => $state,
             'response_type' => 'code',
         ]);
@@ -89,8 +91,6 @@ class OAuthConnectorFlowService
         }
 
         $connector = $pending->connector;
-        $clientId = $this->clientId($connector);
-        $clientSecret = $this->clientSecret($connector);
 
         // Single use, claimed before any network call: the delete only
         // succeeds for one of two simultaneous callbacks carrying the same state.
@@ -98,9 +98,7 @@ class OAuthConnectorFlowService
             throw new ConnectorException('OAuth state is invalid or has expired.');
         }
 
-        $response = Http::acceptJson()->asForm()->timeout(30)->connectTimeout(10)->post($connector->oauth['token_url'], [
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
+        $response = $this->tokenRequest($connector, [
             'code' => $code,
             'redirect_uri' => $pending->redirect_uri,
             'grant_type' => 'authorization_code',
@@ -170,9 +168,7 @@ class OAuthConnectorFlowService
             throw new ConnectorException("Connector credential [{$credential->id}] has no refresh_token to refresh with.");
         }
 
-        $response = Http::acceptJson()->asForm()->timeout(30)->connectTimeout(10)->post($connector->oauth['token_url'], [
-            'client_id' => $this->clientId($connector),
-            'client_secret' => $this->clientSecret($connector),
+        $response = $this->tokenRequest($connector, [
             'refresh_token' => $refreshToken,
             'grant_type' => 'refresh_token',
         ]);
@@ -191,6 +187,39 @@ class OAuthConnectorFlowService
         ]);
 
         return $credential->fresh();
+    }
+
+    /**
+     * Calls the provider's token endpoint. Most take the client id and secret
+     * in a form body; a connector with `token_auth` = `basic` (Notion) takes
+     * them as HTTP Basic credentials and a JSON body, and one with `json`
+     * (Atlassian) takes them in a JSON body.
+     *
+     * @param  array<string, string>  $params
+     */
+    private function tokenRequest(Connector $connector, array $params): Response
+    {
+        $clientId = $this->clientId($connector);
+        $clientSecret = $this->clientSecret($connector);
+        $request = Http::acceptJson()->timeout(30)->connectTimeout(10);
+
+        if (($connector->oauth['token_auth'] ?? null) === 'basic') {
+            return $request->withBasicAuth($clientId, $clientSecret)->asJson()->post($connector->oauth['token_url'], $params);
+        }
+
+        if (($connector->oauth['token_auth'] ?? null) === 'json') {
+            return $request->asJson()->post($connector->oauth['token_url'], [
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+                ...$params,
+            ]);
+        }
+
+        return $request->asForm()->post($connector->oauth['token_url'], [
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            ...$params,
+        ]);
     }
 
     /**
@@ -253,6 +282,13 @@ class OAuthConnectorFlowService
             'refresh_token' => $body['refresh_token'] ?? null,
             'token_type' => $body['token_type'] ?? null,
             'scope' => $body['scope'] ?? null,
+            // Slack names the workspace it was installed in, which is what its
+            // Events API deliveries are matched on (instant triggers).
+            'team_id' => data_get($body, 'team.id'),
+            // Notion names the workspace the person shared pages from, which is
+            // what its webhook deliveries are matched on (instant triggers).
+            'workspace_id' => $body['workspace_id'] ?? null,
+            'workspace_name' => $body['workspace_name'] ?? null,
         ], fn ($value) => $value !== null);
     }
 

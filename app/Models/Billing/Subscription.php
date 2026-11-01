@@ -24,6 +24,8 @@ class Subscription extends CashierSubscription
             'dunning_started_at' => 'datetime',
             'dunning_attempts' => 'integer',
             'trial_ending_notified_at' => 'datetime',
+            'current_period_starts_at' => 'datetime',
+            'current_period_ends_at' => 'datetime',
         ];
     }
 

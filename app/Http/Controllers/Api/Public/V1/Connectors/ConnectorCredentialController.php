@@ -56,6 +56,10 @@ class ConnectorCredentialController extends Controller
             throw new ConnectorException("Connector [{$connector->key}] is OAuth-only: its credentials can only be created through the OAuth connect flow.");
         }
 
+        if (($missing = $connector->missingFields((array) $request->validated('data'))) !== []) {
+            throw ConnectorException::missingFields($connector, $missing);
+        }
+
         $credential = $this->apiKeyWorkspace($request)->connectorCredentials()->create($request->validated());
 
         return ApiResponse::created([

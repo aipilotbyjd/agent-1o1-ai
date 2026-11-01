@@ -21,6 +21,8 @@ class EnsureWorkspaceScope
 
         abort_unless($workspace instanceof Workspace, 404);
 
+        abort_if($workspace->isSuspended(), 403, 'This workspace has been suspended.');
+
         $role = WorkspaceContext::resolveRole($workspace, $request->user());
 
         abort_if($role === null, 403, 'You are not a member of this workspace.');

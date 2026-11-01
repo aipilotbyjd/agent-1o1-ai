@@ -19,7 +19,7 @@ class ListReferralProgramsCommand extends Command
         $programs = ReferralProgram::query()->with('rules.plan')->orderByDesc('is_default')->get();
 
         if ($programs->isEmpty()) {
-            $this->warn('No referral programs yet. Run `php artisan db:seed --class=ReferralProgramSeeder` to create the default one.');
+            $this->warn('No referral programs yet. Run `php artisan setup:catalog:sync --only=referral-program` to create the default one.');
 
             return self::SUCCESS;
         }

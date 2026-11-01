@@ -15,7 +15,7 @@ use Laravel\Passport\Passport;
  * RunBroadcastingTest. The `reverb` driver is the one that actually evaluates
  * channel callbacks; the default test driver does not.
  */
-function authorizeChannel($test, string $channel)
+function authorizeChannel($test, string $channel, string $type = 'private')
 {
     // Switched on per request, after test data exists: creating a run
     // broadcasts, and a real reverb driver would try to reach a server.
@@ -32,7 +32,7 @@ function authorizeChannel($test, string $channel)
     require base_path('routes/channels.php');
 
     return $test->postJson('/api/broadcasting/auth', [
-        'channel_name' => "private-{$channel}",
+        'channel_name' => "{$type}-{$channel}",
         'socket_id' => '1234.5678',
     ]);
 }
@@ -99,4 +99,32 @@ it('only lets a user subscribe to their own private channel', function () {
 
     authorizeChannel($this, "App.Models.User.{$alice->id}")->assertOk();
     authorizeChannel($this, "App.Models.User.{$bob->id}")->assertForbidden();
+});
+
+it('lets a member join a workflow presence channel as themselves and refuses outsiders', function () {
+    $owner = User::factory()->create(['name' => 'Ada Lovelace', 'avatar' => null]);
+    $stranger = User::factory()->create();
+    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $channel = "workspaces.{$workspace->id}.workflows.{$workflow->id}";
+
+    Passport::actingAs($owner);
+    $response = authorizeChannel($this, $channel, 'presence')->assertOk();
+
+    expect(json_decode($response->json('channel_data'), true)['user_info'])
+        ->toBe(['id' => $owner->id, 'name' => 'Ada Lovelace', 'avatar' => null]);
+
+    Passport::actingAs($stranger);
+    authorizeChannel($this, $channel, 'presence')->assertForbidden();
+});
+
+it('refuses presence in a workflow that belongs to another workspace', function () {
+    $owner = User::factory()->create();
+    $mine = app(WorkspaceService::class)->create($owner, ['name' => 'Mine']);
+    $other = app(WorkspaceService::class)->create(User::factory()->create(), ['name' => 'Theirs']);
+    $theirs = Workflow::factory()->forWorkspace($other)->create();
+
+    Passport::actingAs($owner);
+
+    authorizeChannel($this, "workspaces.{$mine->id}.workflows.{$theirs->id}", 'presence')->assertForbidden();
 });

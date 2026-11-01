@@ -312,7 +312,7 @@ it('creates nothing when a template collection would exceed the cap', function (
 
     foreach (range(1, 3) as $position) {
         $collection->items()->create([
-            'templatable_type' => WorkflowTemplate::class,
+            'templatable_type' => (new WorkflowTemplate)->getMorphClass(),
             'templatable_id' => WorkflowTemplate::factory()->forWorkspace($workspace)->create()->id,
             'position' => $position,
         ]);

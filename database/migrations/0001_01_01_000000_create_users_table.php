@@ -25,6 +25,7 @@ return new class extends Migration
             $table->text('two_factor_recovery_codes')->nullable();
             $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->string('onboarding_current_step')->nullable()->default('profile_picture');
+            $table->json('onboarding_skipped_steps')->nullable();
             $table->timestamp('onboarding_completed_at')->nullable();
             $table->timestamp('onboarding_dismissed_at')->nullable();
             $table->string('job_role')->nullable();
@@ -32,8 +33,11 @@ return new class extends Migration
             $table->string('avatar')->nullable();
             $table->string('pending_email')->nullable();
             $table->timestamp('pending_email_requested_at')->nullable();
-            $table->boolean('is_platform_admin')->default(false);
             $table->string('timezone', 64)->nullable();
+            $table->uuid('current_workspace_id')->nullable();
+            // Set by a super admin: blocks sign-in and ends every session.
+            $table->timestamp('suspended_at')->nullable();
+            $table->string('suspended_reason')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

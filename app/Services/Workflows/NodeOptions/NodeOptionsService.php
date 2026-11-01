@@ -7,15 +7,53 @@ use App\Models\Connectors\Connector;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Connectors\ConnectorCredentialResolver;
+use App\Services\Workflows\NodeOptions\Sources\ActiveCampaignOptions;
+use App\Services\Workflows\NodeOptions\Sources\AirtableOptions;
+use App\Services\Workflows\NodeOptions\Sources\AsanaOptions;
+use App\Services\Workflows\NodeOptions\Sources\BrevoOptions;
+use App\Services\Workflows\NodeOptions\Sources\ClickUpOptions;
+use App\Services\Workflows\NodeOptions\Sources\DiscordOptions;
 use App\Services\Workflows\NodeOptions\Sources\GitHubOptions;
 use App\Services\Workflows\NodeOptions\Sources\GmailOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleAnalyticsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleCalendarOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleDocsOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleDriveOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleFormsOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleSearchConsoleOptions;
 use App\Services\Workflows\NodeOptions\Sources\GoogleSheetsOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleSlidesOptions;
+use App\Services\Workflows\NodeOptions\Sources\GoogleTasksOptions;
+use App\Services\Workflows\NodeOptions\Sources\HubSpotOptions;
+use App\Services\Workflows\NodeOptions\Sources\JiraOptions;
+use App\Services\Workflows\NodeOptions\Sources\KitOptions;
+use App\Services\Workflows\NodeOptions\Sources\KlaviyoOptions;
+use App\Services\Workflows\NodeOptions\Sources\LinearOptions;
+use App\Services\Workflows\NodeOptions\Sources\MailchimpOptions;
+use App\Services\Workflows\NodeOptions\Sources\MailgunOptions;
+use App\Services\Workflows\NodeOptions\Sources\MondayOptions;
+use App\Services\Workflows\NodeOptions\Sources\NotionOptions;
 use App\Services\Workflows\NodeOptions\Sources\OutlookOptions;
+use App\Services\Workflows\NodeOptions\Sources\PipedriveOptions;
+use App\Services\Workflows\NodeOptions\Sources\PostmarkOptions;
+use App\Services\Workflows\NodeOptions\Sources\ResendOptions;
+use App\Services\Workflows\NodeOptions\Sources\SalesforceOptions;
+use App\Services\Workflows\NodeOptions\Sources\SendGridOptions;
+use App\Services\Workflows\NodeOptions\Sources\ShopifyOptions;
 use App\Services\Workflows\NodeOptions\Sources\SlackOptions;
+use App\Services\Workflows\NodeOptions\Sources\StripeOptions;
+use App\Services\Workflows\NodeOptions\Sources\TrelloOptions;
+use App\Services\Workflows\NodeOptions\Sources\TwilioOptions;
+use App\Services\Workflows\NodeOptions\Sources\TypeformOptions;
 use App\Services\Workflows\NodeOptions\Sources\WorkspaceOptions;
+use App\Services\Workflows\NodeOptions\Sources\YouTubeOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoBooksOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoCampaignsOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoCliqOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoDeskOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoMailOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoOptions;
+use App\Services\Workflows\NodeOptions\Sources\ZohoProjectsOptions;
 use App\Services\Workflows\NodeRegistry;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -45,13 +83,51 @@ class NodeOptionsService
      */
     public const array SOURCES = [
         SlackOptions::class,
+        DiscordOptions::class,
+        TwilioOptions::class,
+        TypeformOptions::class,
+        StripeOptions::class,
+        ShopifyOptions::class,
+        MailchimpOptions::class,
+        KitOptions::class,
+        ActiveCampaignOptions::class,
+        KlaviyoOptions::class,
+        BrevoOptions::class,
+        SendGridOptions::class,
+        ResendOptions::class,
+        PostmarkOptions::class,
+        MailgunOptions::class,
+        TrelloOptions::class,
+        AsanaOptions::class,
+        ClickUpOptions::class,
+        AirtableOptions::class,
+        MondayOptions::class,
+        HubSpotOptions::class,
+        PipedriveOptions::class,
+        SalesforceOptions::class,
+        ZohoOptions::class,
+        ZohoDeskOptions::class,
+        ZohoBooksOptions::class,
+        ZohoProjectsOptions::class,
+        ZohoCampaignsOptions::class,
+        ZohoMailOptions::class,
+        ZohoCliqOptions::class,
         GmailOptions::class,
         GitHubOptions::class,
         GoogleDriveOptions::class,
         GoogleSheetsOptions::class,
         GoogleDocsOptions::class,
         GoogleCalendarOptions::class,
+        GoogleTasksOptions::class,
+        GoogleFormsOptions::class,
+        GoogleSlidesOptions::class,
+        GoogleAnalyticsOptions::class,
+        GoogleSearchConsoleOptions::class,
+        YouTubeOptions::class,
         OutlookOptions::class,
+        NotionOptions::class,
+        LinearOptions::class,
+        JiraOptions::class,
         WorkspaceOptions::class,
     ];
 
@@ -94,13 +170,16 @@ class NodeOptionsService
         $source = $options['source'];
         $this->assertDependenciesUsable($properties, $options['depends_on'] ?? [], $config);
 
+        $token = $this->isInternal($source) ? null : $this->token($node['category'], $workspace, $user, $config);
+
         $query = new NodeOptionsQuery(
             workspace: $workspace,
             user: $user,
             config: $config,
-            token: $this->isInternal($source) ? null : $this->token($node['category'], $workspace, $user, $config),
+            token: $token,
             search: $search,
             cursor: $cursor,
+            credentialData: $token === null ? [] : $this->credentialData($node['category'], $workspace, $user, $config),
         );
 
         return app($this->classFor($source))->load($source, $query);
@@ -164,6 +243,28 @@ class NodeOptionsService
             $app = Connector::where('key', $connectorKey)->value('name') ?? Str::headline($connectorKey);
 
             throw new ConnectorException("Connect a {$app} account (or choose one in Account) to load this list.");
+        }
+    }
+
+    /**
+     * The account's stored fields (a Twilio account sid, a bot's application
+     * id), read only after `token()` has found the account.
+     *
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    private function credentialData(string $connectorKey, Workspace $workspace, User $user, array $config): array
+    {
+        $credentialId = $config['credential_id'] ?? null;
+
+        if (! is_string($credentialId) || str_contains($credentialId, '{{')) {
+            $config['credential_id'] = null;
+        }
+
+        try {
+            return $this->credentials->credentialData($connectorKey, $workspace->id, $user->id, $config, markUsed: false);
+        } catch (RuntimeException) {
+            return [];
         }
     }
 

@@ -14,6 +14,7 @@ use App\Enums\Billing\CreditTransactionType;
 use App\Enums\Queue;
 use App\Enums\Workflows\BuilderMessageStatus;
 use App\Events\Workflows\WorkflowBuilderActivity;
+use App\Models\Ai\ModelCatalog;
 use App\Models\Workflows\Builder\WorkflowBuilderMessage;
 use App\Models\Workflows\Builder\WorkflowBuilderSession;
 use App\Services\Ai\ByokProviderRegistrar;
@@ -96,7 +97,12 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
         $graphBefore = $session->currentGraph();
         $lockVersionBefore = $session->draft_lock_version;
 
-        $provider = $this->provider($modelCatalog, $byok, $session, $userMessage);
+        ['provider' => $provider, 'model' => $usedModel] = $this->provider($modelCatalog, $byok, $session, $userMessage);
+
+        // The model that answers is not always the one picked: a pick with no
+        // working route falls back to the assistant's own, so what ran is
+        // recorded on the reply, for the member to see.
+        $reply->update(['model_catalog_id' => $usedModel?->id]);
 
         try {
             $response = $this->streamTurn($session, $userMessage, $provider);
@@ -292,24 +298,39 @@ class ProcessWorkflowBuilderMessageJob implements ShouldQueue
     }
 
     /**
-     * Falls back to `laravel/ai`'s own default provider (`config('ai.default')`)
-     * when the `workflow-builder-assistant` catalog entry hasn't been seeded
-     * or has no enabled route, so a fresh install isn't broken by this.
-     * Runs on the workspace's own provider key where the member sending the
-     * message has one: see `ByokProviderRegistrar`.
+     * Runs on the model the member picked for this turn, else on the
+     * `workflow-builder-assistant` entry. Falls back to `laravel/ai`'s own
+     * default provider (`config('ai.default')`) when neither resolves (the
+     * entry hasn't been seeded or has no enabled route), so a fresh install
+     * isn't broken by this. Runs on the workspace's own provider key where
+     * the member sending the message has one: see `ByokProviderRegistrar`.
      *
-     * @return array<string, string>|null
+     * `model` is the catalog entry that was actually used, which is the one
+     * picked only when it resolved; it is null when the default provider
+     * answered with no catalog entry behind it.
+     *
+     * @return array{provider: array<string, string>|null, model: ModelCatalog|null}
      */
-    private function provider(ModelCatalogResolver $modelCatalog, ByokProviderRegistrar $byok, WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage): ?array
+    private function provider(ModelCatalogResolver $modelCatalog, ByokProviderRegistrar $byok, WorkflowBuilderSession $session, WorkflowBuilderMessage $userMessage): array
     {
-        try {
-            $chain = $modelCatalog->providerChain(self::MODEL_CATALOG_SLUG);
-        } catch (RuntimeException) {
-            return null;
+        $picked = $userMessage->modelCatalog;
+        $slugs = array_filter([$picked?->slug, self::MODEL_CATALOG_SLUG]);
+
+        foreach ($slugs as $slug) {
+            try {
+                $chain = $modelCatalog->providerChain($slug);
+            } catch (RuntimeException) {
+                continue;
+            }
+
+            [$provider] = $byok->apply($chain, null, $session->workspace_id, $userMessage->user_id);
+
+            return [
+                'provider' => $provider,
+                'model' => $picked?->slug === $slug ? $picked : ModelCatalog::query()->where('slug', $slug)->first(),
+            ];
         }
 
-        [$provider] = $byok->apply($chain, null, $session->workspace_id, $userMessage->user_id);
-
-        return $provider;
+        return ['provider' => null, 'model' => null];
     }
 }

@@ -9,6 +9,7 @@ use App\Enums\Agents\ActionEffect;
 use App\Enums\NodeCategory;
 use App\Models\Runs\Run;
 use App\Nodes\Support\Field;
+use App\Services\Workflows\ConditionEvaluator;
 use Illuminate\Support\Arr;
 
 /**
@@ -18,8 +19,6 @@ use Illuminate\Support\Arr;
  */
 class RouterNode implements DeclaresEffect, HasIcon, NodeContract
 {
-    private const array OPERATORS = ['equals', 'not_equals', 'contains', 'greater_than', 'less_than'];
-
     public function type(): string
     {
         return 'router';
@@ -63,11 +62,11 @@ class RouterNode implements DeclaresEffect, HasIcon, NodeContract
                     'x-widget' => 'list',
                     'items' => [
                         'type' => 'object',
-                        'required' => ['path', 'operator', 'value', 'result'],
+                        'required' => ['path', 'operator', 'result'],
                         'properties' => [
                             'path' => Field::text('Value to check', 'A path into the run, e.g. input.status or nodes.fetch.output.total.', 'input.status'),
-                            'operator' => Field::select('Condition', self::OPERATORS, default: 'equals'),
-                            'value' => ['title' => 'Compare to', 'x-widget' => 'text'],
+                            'operator' => Field::select('Condition', ConditionEvaluator::OPERATORS, default: 'equals'),
+                            'value' => ['title' => 'Compare to', 'description' => 'Not needed for Is empty, Is not empty, Is true or Is false.', 'x-widget' => 'text'],
                             'result' => Field::text('Branch', 'The branch label this route sends the run down.', 'approved'),
                         ],
                     ],
@@ -81,23 +80,11 @@ class RouterNode implements DeclaresEffect, HasIcon, NodeContract
         foreach ($config['conditions'] ?? [] as $condition) {
             $actual = Arr::get($context, $condition['path'] ?? '');
 
-            if ($this->matches($actual, $condition['operator'], $condition['value'])) {
+            if (ConditionEvaluator::matches($actual, (string) $condition['operator'], $condition['value'] ?? null)) {
                 return ['result' => $condition['result']];
             }
         }
 
         return ['result' => 'default'];
-    }
-
-    private function matches(mixed $actual, string $operator, mixed $expected): bool
-    {
-        return match ($operator) {
-            'equals' => $actual == $expected,
-            'not_equals' => $actual != $expected,
-            'contains' => is_string($actual) && str_contains($actual, (string) $expected),
-            'greater_than' => is_numeric($actual) && $actual > $expected,
-            'less_than' => is_numeric($actual) && $actual < $expected,
-            default => false,
-        };
     }
 }

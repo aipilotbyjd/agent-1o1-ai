@@ -40,8 +40,8 @@ by picking the more generous of the two.
 
 #### 2.1 Plan limits are never enforced — RESOLVED
 
-`PlanSeeder` defines per-plan caps — `['workflows' => 3, 'agents' => 1,
-'members' => 2]` on Free (`database/seeders/PlanSeeder.php:44`), 25/10/5 on
+`PlansDataset` defines per-plan caps — `['workflows' => 3, 'agents' => 1,
+'members' => 2]` on Free (`database/seeders/PlansDataset.php:44`), 25/10/5 on
 Starter (`:63`), unlimited on Pro (`:82`). The column is cast to an array on
 the model (`app/Models/Billing/Plan.php:25`) and echoed back to the client in
 `PlanResource` (`app/Http/Resources/Api/Internal/V1/Billing/PlanResource.php:30`).

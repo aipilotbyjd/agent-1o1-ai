@@ -6,11 +6,13 @@ use App\Contracts\SupportsTriggerMode;
 use App\Enums\Agents\ActionEffect;
 use App\Models\Runs\Run;
 use App\Nodes\Integrations\Concerns\ActsAsTrigger;
+use App\Nodes\Integrations\GoogleSheets\Concerns\ReadsRowsAsTriggerItems;
 use App\Nodes\Support\Field;
 
 class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode implements SupportsTriggerMode
 {
     use ActsAsTrigger;
+    use ReadsRowsAsTriggerItems;
 
     public function type(): string
     {
@@ -92,24 +94,7 @@ class GoogleSheetsGetValuesNode extends AbstractGoogleSheetsNode implements Supp
      */
     public function triggerItems(array $output, array $config): array
     {
-        $values = array_values((array) ($output['values'] ?? []));
-        $header = array_map('strval', (array) array_shift($values));
-        $firstRow = preg_match('/![A-Z]+(\d+)/', (string) ($output['range'] ?? ''), $match) ? (int) $match[1] : 1;
-
-        $rows = [];
-
-        foreach ($values as $index => $row) {
-            $row = (array) $row;
-            $item = ['_row' => $firstRow + $index + 1];
-
-            foreach ($header as $column => $name) {
-                $item[$name !== '' ? $name : 'column_'.($column + 1)] = $row[$column] ?? null;
-            }
-
-            $rows[] = $item;
-        }
-
-        return $rows;
+        return $this->rowItems($output);
     }
 
     /**

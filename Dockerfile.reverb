@@ -1,5 +1,5 @@
 # Reverb WebSocket server on :8000
-FROM serversideup/php:8.4-fpm-nginx
+FROM serversideup/php:8.5-fpm-nginx
 
 USER root
 RUN install-php-extensions pcntl intl bcmath exif pdo_pgsql

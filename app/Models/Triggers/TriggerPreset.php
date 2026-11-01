@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A ready-made trigger setup: a provider's webhook (GitHub push, Stripe
  * event...) with its signature scheme and dedupe rules, or a common schedule.
  *
- * Seeded by TriggerPresetSeeder and listed by the trigger-presets catalog.
+ * Seeded by TriggerPresetsDataset and listed by the trigger-presets catalog.
  * Used by triggers made through the API; trigger nodes on the canvas choose
  * their authentication on the node instead.
  */

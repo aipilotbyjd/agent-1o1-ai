@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Workspaces\WorkspaceService;
-use Database\Seeders\AgentTemplateSeeder;
 use Laravel\Passport\Passport;
 
 /**
@@ -135,15 +134,15 @@ it('carries a template\'s look and the chosen model onto the new agent', functio
 });
 
 it('seeds global starter templates every workspace can see', function () {
-    $this->seed(AgentTemplateSeeder::class);
-    $this->seed(AgentTemplateSeeder::class);
+    $this->syncSetup('agent-templates');
+    $this->syncSetup('agent-templates');
 
     [$workspace, $owner] = ownerWorkspaceForAgentTemplate();
     Passport::actingAs($owner);
 
     $templates = $this->getJson("/api/v1/workspaces/{$workspace->id}/agent-templates")->assertOk()->json('data.agent_templates');
 
-    expect($templates)->toHaveCount(6);
+    expect($templates)->toHaveCount(count(require database_path('setup/agent-templates.php')));
     expect(collect($templates)->every(fn (array $template): bool => in_array($template['icon'], Agent::ICONS, true)
         && in_array($template['color'], Agent::COLORS, true)
         && filled($template['config']['instructions'])))->toBeTrue();

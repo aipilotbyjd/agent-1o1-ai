@@ -41,8 +41,29 @@ final class FlowControlNodes
             FlowControlNodeType::JoinPaths => self::make(
                 $type,
                 icon: 'git-merge',
-                name: 'Join Paths',
-                description: 'Waits for every incoming branch to reach it before continuing.',
+                name: 'Merge Results',
+                description: 'Waits for every incoming branch to settle, then hands on what the branches that ran produced, so the next step can use them together.',
+                configSchema: [
+                    'type' => 'object',
+                    'properties' => [
+                        'combine' => Field::select('Hand on', [
+                            'by_step' => 'Each branch’s result, by step name',
+                            'list' => 'The results as a list',
+                            'none' => 'Nothing: just wait',
+                        ], 'By step name gives {{ nodes.merge.results.fetch_a.field }}; a list gives {{ nodes.merge.results }} in the order the branches are connected.', 'by_step'),
+                    ],
+                ],
+                outputSchema: [
+                    'type' => 'object',
+                    'properties' => [
+                        'results' => ['title' => 'Results', 'description' => 'What the branches that ran produced: an object keyed by step name, or a list.'],
+                        'count' => ['title' => 'Count', 'description' => 'How many branches ran and completed.'],
+                        'arrived' => ['title' => 'Arrived', 'description' => 'The steps whose branch ran and completed.'],
+                        'skipped' => ['title' => 'Skipped', 'description' => 'The steps whose branch was not taken.'],
+                        'failed' => ['title' => 'Failed', 'description' => 'The steps that failed while the run carried on.'],
+                        'omitted' => ['title' => 'Left out', 'description' => 'Steps whose result was too large to include. Read them from the step itself.'],
+                    ],
+                ],
             ),
             FlowControlNodeType::Wait => self::make(
                 $type,
@@ -61,7 +82,23 @@ final class FlowControlNodes
                 $type,
                 icon: 'user-check-01',
                 name: 'Human Approval',
-                description: 'Pauses the run until a workspace member approves or rejects it.',
+                description: 'Pauses the run until a workspace member approves or rejects it. Add questions to collect a reason, a budget or a choice along with the decision.',
+                configSchema: [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => Field::text('What needs approving', 'Shown to the person deciding. Use {{templates}} to include details from earlier steps.', 'Refund of {{ nodes.order.total }} for {{ nodes.order.customer }}'),
+                        'instructions' => Field::textarea('Instructions', 'What to check before deciding, and what each answer will do.'),
+                        'fields' => array_diff_key(Field::json('Questions', 'Optional. A list of questions the person answers when approving, e.g. [{"key": "budget", "label": "Approved budget", "type": "number", "required": true}]. Types: text, textarea, number, boolean, select (give "options"), email, date. Answers are available as {{ nodes.approval.inputs.budget }}.', 'array'), ['type' => true]),
+                    ],
+                ],
+                outputSchema: [
+                    'type' => 'object',
+                    'properties' => [
+                        'approved' => ['title' => 'Approved', 'description' => 'True when the person approved.'],
+                        'inputs' => ['title' => 'Answers', 'description' => 'What they answered, by question name. Only when the step has questions.'],
+                        'message' => ['title' => 'Note', 'description' => 'The note they left with their decision, if any.'],
+                    ],
+                ],
             ),
             FlowControlNodeType::SubWorkflow => self::make(
                 $type,
@@ -92,6 +129,7 @@ final class FlowControlNodes
         string $name,
         string $description,
         array $configSchema = ['type' => 'object', 'properties' => []],
+        ?array $outputSchema = null,
     ): NodeDescriptor {
         return new NodeDescriptor(
             type: $type->value,
@@ -99,6 +137,7 @@ final class FlowControlNodes
             name: $name,
             description: $description,
             configSchema: $configSchema,
+            outputSchema: $outputSchema,
             icon: $icon,
         );
     }

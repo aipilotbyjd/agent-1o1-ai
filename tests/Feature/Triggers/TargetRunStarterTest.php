@@ -90,7 +90,7 @@ it('refuses a soft-deleted target', function () {
 
     $workflow->delete();
 
-    expect(app(TriggerService::class)->canRun($trigger->fresh()))->toBeFalse();
+    expect(app(TriggerService::class)->canRun($trigger))->toBeFalse();
 });
 
 it('reports a workflow with an in-flight run as already running', function () {

@@ -7,6 +7,7 @@ use App\Enums\Referrals\ReferralRewardStatus;
 use App\Enums\Referrals\ReferralRewardType;
 use App\Enums\Referrals\ReferralTrigger;
 use App\Models\Referrals\ReferralReward;
+use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\User;
 use App\Models\Workspaces\Workspace;
 use App\Services\Referrals\ReferralRecipientWorkspace;
@@ -27,7 +28,7 @@ class GrantManualReferralRewardAction
     /**
      * @param  array{reward_type: ReferralRewardType, credits?: ?int, plan_id?: ?string, duration_days?: ?int, amount_cents?: ?int, trial_days?: ?int}  $values
      */
-    public function execute(User $recipient, ?Workspace $workspace, array $values, ?User $admin, ?string $notes = null): ReferralReward
+    public function execute(User $recipient, ?Workspace $workspace, array $values, ?SuperAdmin $admin, ?string $notes = null): ReferralReward
     {
         $workspace ??= $this->workspaces->forReferrer($recipient);
 

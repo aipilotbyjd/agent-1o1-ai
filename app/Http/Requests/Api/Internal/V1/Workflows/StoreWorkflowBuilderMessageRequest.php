@@ -6,6 +6,7 @@ use App\Enums\Connectors\ConnectorCredentialScope;
 use App\Enums\Workflows\BuilderMessageMode;
 use App\Http\Requests\Concerns\ValidatesMessageAttachments;
 use App\Models\Workspaces\Workspace;
+use App\Rules\AllowedModel;
 use App\Services\Workflows\NodeRegistry;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,6 +30,8 @@ class StoreWorkflowBuilderMessageRequest extends FormRequest
             'message' => ['required', 'string', 'max:10000'],
             // `ask` answers without editing the draft. Defaults to `build`.
             'mode' => ['nullable', Rule::enum(BuilderMessageMode::class)],
+            // The model to run this turn on, from the public catalog. Left out, the assistant runs on its own default.
+            'model_catalog_id' => ['nullable', 'uuid', Rule::exists('model_catalog', 'id')->where('is_active', 1)->where('is_internal', 0), new AllowedModel($this->workspace())],
             // Sent as multipart `attachments[]`. Each file is stored as an
             // artifact on the new message and handed to the model with it.
             // No PDFs: the builder's model routes only take images.

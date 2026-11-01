@@ -12,6 +12,21 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
 {
     use ActsAsTrigger;
 
+    /**
+     * Message subtypes Slack posts about the channel itself or about a
+     * change to an earlier message (someone joined, the topic changed, a message
+     * was edited or deleted). They are never a message a person wrote, so a
+     * trigger never starts on them.
+     *
+     * @var list<string>
+     */
+    private const array CHANNEL_EVENT_SUBTYPES = [
+        'channel_join', 'channel_leave', 'channel_topic', 'channel_purpose', 'channel_name',
+        'channel_archive', 'channel_unarchive', 'group_join', 'group_leave', 'group_topic',
+        'group_purpose', 'group_name', 'group_archive', 'group_unarchive', 'pinned_item', 'unpinned_item',
+        'message_changed', 'message_deleted', 'message_replied',
+    ];
+
     public function type(): string
     {
         return 'slack_get_channel_history';
@@ -43,6 +58,8 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
                 'limit' => Field::integer('Limit', 'Maximum messages to return.', 100, 1, 1000),
                 'oldest' => Field::advanced(Field::text('Oldest', 'Only messages after this Unix timestamp.', '1700000000')),
                 'latest' => Field::advanced(Field::text('Latest', 'Only messages before this Unix timestamp.', '1700000000')),
+                'ignore_bot_messages' => Field::boolean('Ignore bot messages', 'When used as a trigger, skip messages from bots and integrations. Turn this on if the workflow posts back to the same channel, or it can trigger itself.', true),
+                'ignore_replies' => Field::boolean('Ignore replies', 'When used as a trigger, skip replies inside threads and only start on new top-level messages.'),
             ],
         ];
     }
@@ -66,6 +83,25 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
     }
 
     /**
+     * The messages a trigger poll may start runs for, minus channel events
+     * (joins, topic changes...), and minus bot messages and thread replies when
+     * those are switched off.
+     */
+    public function triggerItems(array $output, array $config): array
+    {
+        $ignoreBots = ($config['ignore_bot_messages'] ?? true) !== false;
+        $ignoreReplies = ($config['ignore_replies'] ?? false) === true;
+
+        return array_values(array_filter(
+            (array) data_get($output, 'messages', []),
+            fn (mixed $message): bool => is_array($message)
+                && ! in_array($message['subtype'] ?? null, self::CHANNEL_EVENT_SUBTYPES, true)
+                && ! ($ignoreBots && (isset($message['bot_id']) || ($message['subtype'] ?? null) === 'bot_message'))
+                && ! ($ignoreReplies && isset($message['thread_ts']) && $message['thread_ts'] !== ($message['ts'] ?? null)),
+        ));
+    }
+
+    /**
      * The name shown in Triggers & Events.
      */
     public function triggerName(): string
@@ -79,6 +115,23 @@ class SlackGetChannelHistoryNode extends AbstractSlackNode implements SupportsTr
     public function triggerDescription(): string
     {
         return 'Starts the flow when a new message is posted in the channel.';
+    }
+
+    /**
+     * Read a wider page than the node's default, so a burst between two polls
+     * isn't cut off.
+     */
+    public function triggerReadConfig(array $config): array
+    {
+        return [...$config, 'limit' => max((int) ($config['limit'] ?? 0), 200)];
+    }
+
+    /**
+     * Newest first.
+     */
+    public function triggerListsNewestFirst(): bool
+    {
+        return true;
     }
 
     /**

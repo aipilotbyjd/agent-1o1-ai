@@ -5,21 +5,22 @@ namespace App\Actions\Billing;
 use App\Models\Billing\Plan;
 use App\Models\Billing\UsagePeriod;
 use App\Models\Workspaces\Workspace;
-use Illuminate\Support\Facades\DB;
+use App\Services\Billing\UsagePeriods;
 
 /**
- * Attaches a plan/subscription to the workspace's current usage period (or
- * opens one, if none exists yet): called when a subscription is created,
- * so `UsagePeriod::credits_limit` reflects the plan the workspace just paid
- * for. Updates the existing period in place rather than replacing it, so
- * `credits_used` already recorded this month before subscribing survives.
+ * Brings the workspace's current usage period in line with a subscription
+ * Stripe just reported (created, renewed, changed plan, trialing, past
+ * due). A new billing cycle closes the old period and opens a new one with
+ * a fresh allowance; a plan change within the cycle resizes the allowance in
+ * place, so credits already used this cycle still count. See `UsagePeriods`.
  *
- * Resetting `credits_limit` here is safe for purchased credits: packs top up
- * the workspace's own `topup_credits` pool, not the period, so a redelivered
- * `customer.subscription.updated` can no longer wipe them.
+ * Purchased credits are never touched: they live in the workspace's wallet
+ * as carry-over grants, not in the period.
  */
 class OpenUsagePeriodForSubscriptionAction
 {
+    public function __construct(private readonly UsagePeriods $periods) {}
+
     public function execute(Workspace $workspace, ?Plan $plan, ?string $stripeSubscriptionId): UsagePeriod
     {
         // An unrecognised Stripe price leaves `$plan` null; falling back to
@@ -27,36 +28,10 @@ class OpenUsagePeriodForSubscriptionAction
         // workspace an unlimited `credits_limit`.
         $plan ??= Plan::default();
 
-        return DB::transaction(function () use ($workspace, $plan, $stripeSubscriptionId): UsagePeriod {
-            $subscription = $stripeSubscriptionId !== null
-                ? $workspace->subscriptions()->where('stripe_id', $stripeSubscriptionId)->first()
-                : null;
+        $subscription = $stripeSubscriptionId !== null
+            ? $workspace->subscriptions()->where('stripe_id', $stripeSubscriptionId)->first()
+            : null;
 
-            $current = $workspace->usagePeriods()
-                ->where('starts_at', '<=', now())
-                ->where('ends_at', '>', now())
-                ->lockForUpdate()
-                ->first();
-
-            if ($current !== null) {
-                $current->update([
-                    'plan_id' => $plan?->id,
-                    'subscription_id' => $subscription?->id,
-                    'credits_limit' => $plan?->creditsMonthly(),
-                ]);
-
-                return $current;
-            }
-
-            $startsAt = now()->startOfMonth();
-
-            return $workspace->usagePeriods()->create([
-                'starts_at' => $startsAt,
-                'ends_at' => $startsAt->clone()->endOfMonth()->addSecond(),
-                'plan_id' => $plan?->id,
-                'subscription_id' => $subscription?->id,
-                'credits_limit' => $plan?->creditsMonthly(),
-            ]);
-        });
+        return $this->periods->syncSubscription($workspace, $plan, $subscription);
     }
 }

@@ -38,6 +38,14 @@ enum OnboardingStep: string
         };
     }
 
+    /**
+     * Profile picture, workspace and plan set the account up and cannot be postponed.
+     */
+    public function isSkippable(): bool
+    {
+        return ! in_array($this, [self::ProfilePicture, self::CreateWorkspace, self::ChoosePlan], strict: true);
+    }
+
     public function next(): ?self
     {
         $cases = self::cases();

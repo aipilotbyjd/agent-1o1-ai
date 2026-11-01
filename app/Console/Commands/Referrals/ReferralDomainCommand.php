@@ -3,7 +3,7 @@
 namespace App\Console\Commands\Referrals;
 
 use App\Console\Commands\Referrals\Concerns\ManagesReferralsFromConsole;
-use App\Http\Requests\Api\Internal\V1\Admin\Referrals\StoreReferralBlockedDomainRequest;
+use App\Http\Requests\Api\SuperAdmin\V1\Referrals\StoreReferralBlockedDomainRequest;
 use App\Models\Referrals\ReferralBlockedDomain;
 use App\Services\Referrals\ReferralAdmin;
 use Illuminate\Console\Command;

@@ -2,6 +2,7 @@
 
 namespace App\Events\Runs;
 
+use App\Broadcasting\BroadcastsReliably;
 use App\Broadcasting\Channels;
 use App\Models\Runs\NodeRun;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -22,7 +23,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class NodeRunStateChanged implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use BroadcastsReliably, Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * Snapshotted at construction for the same reason as
@@ -46,6 +47,7 @@ class NodeRunStateChanged implements ShouldBroadcast
             'error' => $nodeRun->error,
             'started_at' => $nodeRun->started_at?->toIso8601String(),
             'finished_at' => $nodeRun->finished_at?->toIso8601String(),
+            'emitted_at' => $this->emittedAt(),
         ];
     }
 

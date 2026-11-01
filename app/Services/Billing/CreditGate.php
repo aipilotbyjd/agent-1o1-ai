@@ -3,7 +3,9 @@
 namespace App\Services\Billing;
 
 use App\Enums\Notifications\AlertSeverity;
+use App\Exceptions\CostLimitReachedException;
 use App\Exceptions\InsufficientCreditsException;
+use App\Exceptions\WorkspaceSuspendedException;
 use App\Models\Workspaces\Workspace;
 use App\Notifications\Billing\CreditsExhaustedNotification;
 use App\Notifications\Billing\OverageCapReachedNotification;
@@ -51,26 +53,43 @@ class CreditGate
         private readonly AdminAlerts $adminAlerts,
         private readonly NotificationDispatcher $dispatcher,
         private readonly CreditOverage $overage,
+        private readonly CostGuard $costGuard,
     ) {}
 
     /**
      * @throws InsufficientCreditsException
+     * @throws CostLimitReachedException when an AI cost guardrail is reached
+     *                                   (see `CostGuard`)
      */
     public function assertCanStartRun(Workspace $workspace): void
     {
+        if ($workspace->isSuspended()) {
+            throw new WorkspaceSuspendedException;
+        }
+
         $available = $workspace->availableCredits();
 
-        if ($available === null || $available >= self::MINIMUM_CREDITS_TO_START) {
-            return;
+        if ($available !== null
+            && $available < self::MINIMUM_CREDITS_TO_START
+            && ! $this->overage->canAbsorb($workspace, self::MINIMUM_CREDITS_TO_START)) {
+            $this->alertCreditsExhausted($workspace, $available);
+
+            throw new InsufficientCreditsException(self::MINIMUM_CREDITS_TO_START, $available);
         }
 
-        if ($this->overage->canAbsorb($workspace, self::MINIMUM_CREDITS_TO_START)) {
-            return;
-        }
+        $this->costGuard->assertCanStart($workspace);
+    }
 
-        $this->alertCreditsExhausted($workspace, $available);
-
-        throw new InsufficientCreditsException(self::MINIMUM_CREDITS_TO_START, $available);
+    /**
+     * `assertCanStartRun()` plus the plan's limit on workflow runs in flight.
+     *
+     * @throws InsufficientCreditsException
+     * @throws CostLimitReachedException
+     */
+    public function assertCanStartWorkflowRun(Workspace $workspace): void
+    {
+        $this->assertCanStartRun($workspace);
+        $this->costGuard->assertCanStartWorkflowRun($workspace);
     }
 
     /**

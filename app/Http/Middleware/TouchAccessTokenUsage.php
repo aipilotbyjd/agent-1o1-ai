@@ -69,6 +69,13 @@ class TouchAccessTokenUsage
             return null;
         }
 
+        // Super Admin tokens are opaque strings of their own, not Passport
+        // JWTs: asking the Passport guard to parse one would only fail (and
+        // log) on every request.
+        if ($request->routeIs('super-admin.*')) {
+            return null;
+        }
+
         $token = $request->user('api')?->token();
 
         if ($token === null || $token->transient()) {

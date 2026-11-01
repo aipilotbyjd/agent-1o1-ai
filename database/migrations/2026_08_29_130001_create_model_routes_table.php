@@ -27,6 +27,11 @@ return new class extends Migration
             $table->json('options')->nullable();
             $table->unsignedInteger('failure_count')->default(0);
             $table->timestamp('last_failed_at')->nullable();
+            // The latest probe a super admin ran against this route (a tiny real prompt).
+            $table->timestamp('last_checked_at')->nullable();
+            $table->boolean('last_check_ok')->nullable();
+            $table->unsignedInteger('last_check_latency_ms')->nullable();
+            $table->string('last_check_message', 500)->nullable();
             $table->timestamps();
 
             $table->unique(['model_catalog_id', 'execution_provider', 'execution_model_id'], 'model_routes_unique_route');

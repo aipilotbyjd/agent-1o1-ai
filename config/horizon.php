@@ -97,6 +97,8 @@ return [
     */
 
     'waits' => [
+        // A live screen is waiting on these: a backlog is noticed within seconds.
+        'redis:broadcasts' => 5,
         'redis:default' => 60,
         // Webhook-fired, latency-sensitive: alert fast if it backs up.
         'redis:triggers-event' => 10,
@@ -205,6 +207,8 @@ return [
     */
 
     'defaults' => [
+        // Drains `broadcasts` first: the Reverb deliveries of `BroadcastsReliably`
+        // events, so a live screen never waits behind mail or housekeeping.
         // Also drains `system-notification` and `system-maintenance`: every
         // notification in the app (`WorkspaceEventNotification` for tenants,
         // `AdminAlertNotification` for operators) and the housekeeping jobs
@@ -213,7 +217,7 @@ return [
         // unprocessed forever.
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['default', 'system-notification', 'system-maintenance'],
+            'queue' => ['broadcasts', 'default', 'system-notification', 'system-maintenance'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
@@ -379,6 +383,21 @@ return [
             'timeout' => 60,
             'nice' => (int) env('HORIZON_BILLING_NICE', 0),
         ],
+        // Super Admin email campaigns: bulk and rate-limited, so they get their
+        // own supervisor and can never queue ahead of notifications or billing.
+        'supervisor-broadcasts' => [
+            'connection' => 'redis',
+            'queue' => ['system-broadcast'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 1,
+            'timeout' => 120,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -431,6 +450,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-broadcasts' => [
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
         ],
 
         'local' => [
@@ -462,6 +486,9 @@ return [
                 'maxProcesses' => 1,
             ],
             'supervisor-billing' => [
+                'maxProcesses' => 1,
+            ],
+            'supervisor-broadcasts' => [
                 'maxProcesses' => 1,
             ],
         ],

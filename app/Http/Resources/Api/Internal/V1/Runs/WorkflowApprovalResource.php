@@ -25,6 +25,12 @@ class WorkflowApprovalResource extends JsonResource
             'decided_by' => $this->decided_by,
             'decision' => $this->decision,
             'message' => $this->message,
+            // What the person deciding is asked, fixed when the run paused;
+            // and what they answered once they have approved.
+            'title' => $this->nodeRun->output['approval_form']['title'] ?? null,
+            'instructions' => $this->nodeRun->output['approval_form']['instructions'] ?? null,
+            'fields' => $this->nodeRun->output['approval_form']['fields'] ?? [],
+            'inputs' => $this->nodeRun->output['inputs'] ?? null,
         ];
     }
 }

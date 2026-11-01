@@ -2,14 +2,18 @@
 
 namespace App\Actions\Billing;
 
+use App\Enums\Billing\CreditGrantSource;
 use App\Enums\Billing\CreditPackStatus;
 use App\Models\Billing\CreditPack;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\CreditWallet;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Credits a workspace for a paid-for pack by adding to its non-expiring
- * `topup_credits` pool. Packs deliberately don't touch the current usage
+ * Credits a workspace for a paid-for pack with a never-expiring `topup`
+ * grant in its `CreditWallet`, spent after every other kind of credit.
+ * The grant references the pack, so a refund or dispute of the payment can
+ * find and revoke it. Packs deliberately don't touch the current usage
  * period: raising `usage_periods.credits_limit` (as this used to) meant
  * purchased credits were thrown away at month rollover, were wiped outright
  * the next time `OpenUsagePeriodForSubscriptionAction` reset the limit from
@@ -25,6 +29,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ActivateCreditPackAction
 {
+    public function __construct(private readonly CreditWallet $wallet) {}
+
     public function execute(CreditPack $pack): void
     {
         if ($pack->status === CreditPackStatus::Active) {
@@ -34,7 +40,13 @@ class ActivateCreditPackAction
         DB::transaction(function () use ($pack): void {
             $workspace = Workspace::whereKey($pack->workspace_id)->lockForUpdate()->firstOrFail();
 
-            $workspace->increment('topup_credits', $pack->credits_amount);
+            $this->wallet->grant($workspace, CreditGrantSource::Topup, $pack->credits_amount, [
+                'idempotency_key' => 'pack:'.$pack->id,
+                'reference' => $pack,
+                'stripe_reference' => $pack->stripe_payment_intent_id,
+                'granted_by' => $pack->purchased_by,
+                'reason' => 'Credit pack: '.$pack->pack_key,
+            ]);
 
             $pack->update([
                 'status' => CreditPackStatus::Active,

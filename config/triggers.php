@@ -54,6 +54,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Storm detector
+    |--------------------------------------------------------------------------
+    |
+    | A trigger that takes in more than `max_events_per_minute` events in one
+    | minute is switched off and its owners told (Trigger::recordStorm()): a
+    | loop or bulk import upstream would otherwise start thousands of runs
+    | and spend the workspace's credits before anyone looks. A trigger can set
+    | its own limit with `config.storm_limit`. Triggers that group events or
+    | wait for quiet are exempt, since collapsing a burst is what they are for.
+    | "Run now" is never counted.
+    */
+
+    'storm' => [
+        'enabled' => (bool) env('TRIGGERS_STORM_ENABLED', true),
+        'max_events_per_minute' => (int) env('TRIGGERS_STORM_MAX_EVENTS_PER_MINUTE', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Waiting for quiet (debounce)
+    |--------------------------------------------------------------------------
+    |
+    | A trigger with `config.debounce_seconds` holds its events and runs once
+    | when none has arrived for that long, with all of them. A source that
+    | never goes quiet would hold forever, so the oldest held event also
+    | forces a run after `max_wait_seconds`. Checked by triggers:flush-batches,
+    | which runs every minute, so a wait is accurate to about a minute.
+    */
+
+    'debounce' => [
+        'max_wait_seconds' => (int) env('TRIGGERS_DEBOUNCE_MAX_WAIT_SECONDS', 3600),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Webhooks
     |--------------------------------------------------------------------------
     |
@@ -75,7 +110,16 @@ return [
 
     'payload_snippet_chars' => (int) env('TRIGGERS_PAYLOAD_SNIPPET_CHARS', 5000),
 
+    /*
+    | The longest a webhook set to "Respond with the result" holds the request
+    | open waiting for its run to finish. The wait ties up a web worker, so
+    | keep it well under the proxy's request timeout.
+    */
+
+    'max_sync_wait_seconds' => (int) env('TRIGGERS_MAX_SYNC_WAIT_SECONDS', 25),
+
     'allowed_headers' => [
+        'X-Notion-Signature',
         'X-GitHub-Delivery',
         'X-GitHub-Event',
         'X-Hub-Signature-256',
@@ -122,7 +166,48 @@ return [
 
     'poll_max_items' => (int) env('TRIGGERS_POLL_MAX_ITEMS', 100),
 
+    /*
+    | "Deleted" triggers (a row removed, an item deleted) have no feed to read:
+    | they keep the ids that were there and report the ones that went missing
+    | (PresenceTracker). `max_tracked` is how many ids one trigger may keep; a
+    | longer list is refused with a message to narrow it, rather than watched
+    | halfway.
+    */
+
+    'removal' => [
+        'max_tracked' => (int) env('TRIGGERS_REMOVAL_MAX_TRACKED', 2000),
+    ],
+
+    /*
+    | A trigger whose push subscription is working only polls this often, to
+    | catch anything push missed. Without push it polls at its own interval.
+    */
+
+    'push_reconcile_poll_minutes' => (int) env('TRIGGERS_PUSH_RECONCILE_POLL_MINUTES', 15),
+
     'poll_lock_seconds' => (int) env('TRIGGERS_POLL_LOCK_SECONDS', 600),
+
+    /*
+    | Polling that backs off. A trigger without working push that finds nothing
+    | new waits one more interval for every `after_empty_polls` empty polls in
+    | a row, up to `max_multiplier` intervals; anything new starts it over.
+    | Most polls of a quiet trigger find nothing, so this is where polling
+    | cost goes. Off, every trigger polls at its own interval.
+    */
+
+    'adaptive_poll' => [
+        'enabled' => (bool) env('TRIGGERS_ADAPTIVE_POLL', true),
+        'after_empty_polls' => (int) env('TRIGGERS_ADAPTIVE_POLL_AFTER', 6),
+        'max_multiplier' => (int) env('TRIGGERS_ADAPTIVE_POLL_MAX', 4),
+    ],
+
+    /*
+    | A poll that fails with a temporary error (a rate limit, a 5xx, a dropped
+    | connection) only counts toward the circuit breaker after this many in a
+    | row. Any other error counts at once.
+    */
+
+    'poll_transient_failures_before_count' => (int) env('TRIGGERS_POLL_TRANSIENT_FAILURES_BEFORE_COUNT', 30),
 
     /*
     |--------------------------------------------------------------------------
@@ -157,6 +242,17 @@ return [
     'agent_fire_timeout_seconds' => (int) env('TRIGGERS_AGENT_FIRE_TIMEOUT_SECONDS', 320),
 
     'fire_max_exceptions' => (int) env('TRIGGERS_FIRE_MAX_EXCEPTIONS', 5),
+
+    /*
+    | Runs one workspace may have executing at once through its triggers (0 is
+    | no limit). Events over the cap wait in the queue, `concurrency_release_
+    | seconds` at a time, and are not dropped. A trigger can also set its own
+    | cap with `config.max_concurrent_runs`.
+    */
+
+    'max_concurrent_runs_per_workspace' => (int) env('TRIGGERS_MAX_CONCURRENT_RUNS_PER_WORKSPACE', 25),
+
+    'concurrency_release_seconds' => (int) env('TRIGGERS_CONCURRENCY_RELEASE_SECONDS', 15),
 
     'fire_backoff_seconds' => [10, 30, 90, 300, 900],
 
@@ -193,10 +289,127 @@ return [
     | firing again.
     */
 
+    'provider_events_retention_days' => (int) env('TRIGGERS_PROVIDER_EVENTS_RETENTION_DAYS', 7),
+
     'events_retention_days' => (int) env('TRIGGERS_EVENTS_RETENTION_DAYS', 30),
 
     'prune_chunk' => (int) env('TRIGGERS_PRUNE_CHUNK', 1000),
 
     'prune_at' => env('TRIGGERS_PRUNE_AT', '03:30'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Instant (push) triggers
+    |--------------------------------------------------------------------------
+    |
+    | Per provider switch. Off, a trigger just polls as before.
+    |
+    | Every watched provider (Gmail, Outlook, Drive, Calendar, GitHub) needs the
+    | callback URL /api/hooks/apps/{provider} to be reachable from the internet
+    | over HTTPS (APP_URL must be that address).
+    |
+    | Slack: the signing secret is that of the Slack app people connect through
+    | Apps (the one behind the `slack` connector), not the assistant's app. In
+    | that app, set the Events API request URL to /api/hooks/apps/slack and
+    | subscribe to the bot events message.channels and message.groups, plus
+    | message.im (direct messages), reaction_added, reaction_removed, pin_added,
+    | and the others the Slack triggers use (app_mention, member_joined_channel,
+    | channel_created, team_join, file_shared).
+    */
+
+    'push' => [
+        // Telegram, Discord and Twilio are connected with the member's own bot or
+        // account, so there is no platform app to set up: they are on unless switched off.
+        // Each registers its webhook through the connected account (a public https APP_URL is needed).
+        'telegram' => ['enabled' => (bool) env('TRIGGERS_PUSH_TELEGRAM_ENABLED', true)],
+        'discord' => ['enabled' => (bool) env('TRIGGERS_PUSH_DISCORD_ENABLED', true), 'max_age_seconds' => 300],
+        'twilio' => ['enabled' => (bool) env('TRIGGERS_PUSH_TWILIO_ENABLED', true)],
+        // The marketing apps are connected with the member's own key too: each registers its webhook through it.
+        'typeform' => ['enabled' => (bool) env('TRIGGERS_PUSH_TYPEFORM_ENABLED', true)],
+        'mailchimp' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILCHIMP_ENABLED', true)],
+        'kit' => ['enabled' => (bool) env('TRIGGERS_PUSH_KIT_ENABLED', true)],
+        'activecampaign' => ['enabled' => (bool) env('TRIGGERS_PUSH_ACTIVECAMPAIGN_ENABLED', true)],
+        'resend' => ['enabled' => (bool) env('TRIGGERS_PUSH_RESEND_ENABLED', true)],
+        'postmark' => ['enabled' => (bool) env('TRIGGERS_PUSH_POSTMARK_ENABLED', true)],
+        'mailgun' => ['enabled' => (bool) env('TRIGGERS_PUSH_MAILGUN_ENABLED', true)],
+        // Payments: registers a webhook endpoint through the connected account.
+        'stripe' => ['enabled' => (bool) env('TRIGGERS_PUSH_STRIPE_ENABLED', true)],
+        // Shopify: a webhook per topic, registered through the store's own access token.
+        'shopify' => ['enabled' => (bool) env('TRIGGERS_PUSH_SHOPIFY_ENABLED', true)],
+        // Project tools: each registers its webhook through the connected account.
+        'trello' => ['enabled' => (bool) env('TRIGGERS_PUSH_TRELLO_ENABLED', true)],
+        'asana' => ['enabled' => (bool) env('TRIGGERS_PUSH_ASANA_ENABLED', true)],
+        'clickup' => ['enabled' => (bool) env('TRIGGERS_PUSH_CLICKUP_ENABLED', true)],
+        'monday' => ['enabled' => (bool) env('TRIGGERS_PUSH_MONDAY_ENABLED', true)],
+        'airtable' => ['enabled' => (bool) env('TRIGGERS_PUSH_AIRTABLE_ENABLED', true)],
+        'pipedrive' => ['enabled' => (bool) env('TRIGGERS_PUSH_PIPEDRIVE_ENABLED', true)],
+        'zoho' => ['enabled' => (bool) env('TRIGGERS_PUSH_ZOHO_ENABLED', true)],
+        'zoho_desk' => ['enabled' => (bool) env('TRIGGERS_PUSH_ZOHO_DESK_ENABLED', true)],
+
+        'slack' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_SLACK_ENABLED', false),
+            'signing_secret' => env('TRIGGERS_SLACK_SIGNING_SECRET', env('SLACK_SIGNING_SECRET')),
+            'max_age_seconds' => 300,
+        ],
+
+        // Gmail: a Pub/Sub topic Gmail may publish to, and a push subscription
+        // on it calling /api/hooks/apps/gmail?token={verification_token}.
+        'gmail' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_GMAIL_ENABLED', false),
+            'topic' => env('TRIGGERS_GMAIL_PUBSUB_TOPIC'),
+            'verification_token' => env('TRIGGERS_GMAIL_PUSH_TOKEN'),
+        ],
+
+        // Outlook (Microsoft Graph), Drive, Calendar and GitHub register their
+        // own watches through the connected account, so a switch is all they need.
+        'outlook' => ['enabled' => (bool) env('TRIGGERS_PUSH_OUTLOOK_ENABLED', false)],
+        'google_drive' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_DRIVE_ENABLED', false)],
+        'google_calendar' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_CALENDAR_ENABLED', false)],
+        'github' => ['enabled' => (bool) env('TRIGGERS_PUSH_GITHUB_ENABLED', false)],
+
+        // Sheets and Docs watch the file through Drive's push channels, so like
+        // Drive and Calendar they need only the switch (and the connected
+        // account's Drive access).
+        'google_sheets' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_SHEETS_ENABLED', false)],
+        'google_docs' => ['enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_DOCS_ENABLED', false)],
+
+        // Forms tells a Pub/Sub topic about new responses: the topic must let
+        // forms-notifications@system.gserviceaccount.com publish, and a push
+        // subscription on it must call /api/hooks/apps/google_forms?token={verification_token}.
+        'google_forms' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_FORMS_ENABLED', false),
+            'topic' => env('TRIGGERS_GOOGLE_FORMS_PUBSUB_TOPIC'),
+            'verification_token' => env('TRIGGERS_GOOGLE_FORMS_PUSH_TOKEN'),
+        ],
+
+        // YouTube announces new uploads of a channel through Google's WebSub hub
+        // (no Google Cloud setup): the hub calls /api/hooks/apps/google_youtube.
+        'google_youtube' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_GOOGLE_YOUTUBE_ENABLED', false),
+            'hub_url' => env('TRIGGERS_YOUTUBE_WEBSUB_HUB', 'https://pubsubhubbub.appspot.com/subscribe'),
+            'lease_seconds' => 432000,
+        ],
+
+        // Notion sends one webhook URL per integration: in the integration's
+        // Webhooks tab, set it to /api/hooks/apps/notion. Notion first posts a
+        // verification_token (logged here once); paste it back in Notion and
+        // set it as the verification token.
+        'notion' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_NOTION_ENABLED', false),
+            'verification_token' => env('TRIGGERS_NOTION_VERIFICATION_TOKEN'),
+        ],
+
+        // Linear and Jira register a webhook per trigger through the connected
+        // account, so a switch is all they need. Linear signs each webhook with its
+        // own secret; `max_age_seconds` is how old a delivery may be. Registering a
+        // webhook needs an account connected with Linear's `admin` scope and Jira's
+        // `manage:jira-webhook` scope, which the connectors ask for only while their
+        // switch is on (an account connected earlier must reconnect).
+        'linear' => [
+            'enabled' => (bool) env('TRIGGERS_PUSH_LINEAR_ENABLED', false),
+            'max_age_seconds' => 300,
+        ],
+        'jira' => ['enabled' => (bool) env('TRIGGERS_PUSH_JIRA_ENABLED', false)],
+    ],
 
 ];
