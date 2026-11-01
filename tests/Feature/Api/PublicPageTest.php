@@ -144,7 +144,7 @@ it('stops a page at its daily limit', function () {
 });
 
 it('tells a visitor only that the page cannot run when the workspace is out of credits', function () {
-    $this->mock(CreditGate::class, fn ($mock) => $mock->shouldReceive('assertCanStartRun')->andThrow(new InsufficientCreditsException(1, 0)));
+    $this->mock(CreditGate::class, fn ($mock) => $mock->shouldReceive('assertCanStartWorkflowRun')->andThrow(new InsufficientCreditsException(1, 0)));
 
     $this->postJson("{$this->url}/submissions", ['input' => ['topic' => 'rain']])
         ->assertStatus(503)
