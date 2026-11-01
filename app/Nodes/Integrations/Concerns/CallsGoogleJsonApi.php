@@ -46,6 +46,27 @@ trait CallsGoogleJsonApi
     }
 
     /**
+     * A response that is not JSON (a caption track, say), as text.
+     *
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $query  null values are left out
+     *
+     * @throws RuntimeException when Google answers with an error status
+     */
+    protected function getText(Run $run, string $endpoint, array $config, array $query = []): string
+    {
+        $response = $this->request($run, $config)->get($this->baseUrl().$endpoint, array_filter($query, fn (mixed $value): bool => $value !== null && $value !== ''));
+
+        if ($response->failed()) {
+            $message = $response->json('error.message') ?? $response->body();
+
+            throw new RuntimeException("{$this->appName()} API error [{$endpoint}]: {$message}");
+        }
+
+        return $response->body();
+    }
+
+    /**
      * @param  array<string, mixed>  $config
      * @param  array<string, mixed>  $body
      * @return array<string, mixed>

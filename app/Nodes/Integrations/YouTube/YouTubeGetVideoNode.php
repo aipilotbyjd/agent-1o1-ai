@@ -43,7 +43,7 @@ class YouTubeGetVideoNode extends AbstractYouTubeNode
 
     public function execute(Run $run, array $config, array $context): array
     {
-        $id = $this->idFromLink((string) $config['video_id']);
+        $id = $this->videoIdFromLink((string) $config['video_id']);
 
         $response = $this->get($run, '/videos', $config, ['part' => 'snippet,contentDetails,statistics', 'id' => $id]);
         $video = $response['items'][0] ?? null;
@@ -53,19 +53,5 @@ class YouTubeGetVideoNode extends AbstractYouTubeNode
         }
 
         return $this->video($video);
-    }
-
-    /**
-     * The video ID from a watch, share or embed link, or the ID itself.
-     */
-    private function idFromLink(string $value): string
-    {
-        $value = trim($value);
-
-        if (preg_match('~(?:v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_-]{11})~', $value, $match) === 1) {
-            return $match[1];
-        }
-
-        return $value;
     }
 }

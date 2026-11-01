@@ -215,7 +215,7 @@ return [
     [
         'key' => 'google_youtube',
         'name' => 'YouTube',
-        'description' => 'Search videos, read channels and playlists, and watch for new videos and comments.',
+        'description' => 'Search and upload videos, manage playlists, comments and subscriptions, and watch for new videos, comments and subscribers.',
         'icon' => 'youtube',
         'color' => '#FF0000',
         'category' => ConnectorCategory::Marketing,
@@ -226,7 +226,7 @@ return [
             'authorize_url' => ConnectorsDataset::GOOGLE_AUTHORIZE_URL,
             'token_url' => ConnectorsDataset::GOOGLE_TOKEN_URL,
             'authorize_params' => ConnectorsDataset::GOOGLE_AUTHORIZE_PARAMS,
-            'scopes' => ['https://www.googleapis.com/auth/youtube.readonly'],
+            'scopes' => ['https://www.googleapis.com/auth/youtube.force-ssl', 'https://www.googleapis.com/auth/youtube.upload'],
         ],
         'sort_order' => 13,
     ],

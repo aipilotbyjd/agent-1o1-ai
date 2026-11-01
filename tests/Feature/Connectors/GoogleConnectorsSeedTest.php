@@ -43,7 +43,7 @@ it('asks each new google app only for the scopes it needs', function () {
 
     expect($scopes('google_tasks'))->toBe(['https://www.googleapis.com/auth/tasks'])
         ->and($scopes('google_contacts'))->toBe(['https://www.googleapis.com/auth/contacts'])
-        ->and($scopes('google_youtube'))->toBe(['https://www.googleapis.com/auth/youtube.readonly'])
+        ->and($scopes('google_youtube'))->toBe(['https://www.googleapis.com/auth/youtube.force-ssl', 'https://www.googleapis.com/auth/youtube.upload'])
         ->and($scopes('google_analytics'))->toBe(['https://www.googleapis.com/auth/analytics.readonly'])
         ->and($scopes('google_search_console'))->toBe(['https://www.googleapis.com/auth/webmasters.readonly'])
         ->and($scopes('google_forms'))->toContain('https://www.googleapis.com/auth/forms.responses.readonly')
@@ -87,6 +87,7 @@ it('offers every Google trigger in the Triggers & Events catalog', function () {
         'Google Tasks: Task completed',
         'Google Tasks: Task due soon',
         'YouTube: New comment',
+        'YouTube: New subscriber',
         'YouTube: New video',
     ]);
 });

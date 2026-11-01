@@ -1048,11 +1048,29 @@ use App\Nodes\Integrations\Typeform\TypeformListWebhooksNode;
 use App\Nodes\Integrations\Typeform\TypeformListWorkspacesNode;
 use App\Nodes\Integrations\Typeform\TypeformRenameWorkspaceNode;
 use App\Nodes\Integrations\Typeform\TypeformUpdateFormNode;
+use App\Nodes\Integrations\YouTube\YouTubeAddVideoToPlaylistNode;
+use App\Nodes\Integrations\YouTube\YouTubeCreatePlaylistNode;
+use App\Nodes\Integrations\YouTube\YouTubeDeleteCommentNode;
+use App\Nodes\Integrations\YouTube\YouTubeDeletePlaylistNode;
+use App\Nodes\Integrations\YouTube\YouTubeDeleteVideoNode;
+use App\Nodes\Integrations\YouTube\YouTubeGetCaptionsNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetChannelNode;
 use App\Nodes\Integrations\YouTube\YouTubeGetVideoNode;
 use App\Nodes\Integrations\YouTube\YouTubeListCommentsNode;
+use App\Nodes\Integrations\YouTube\YouTubeListPlaylistsNode;
 use App\Nodes\Integrations\YouTube\YouTubeListPlaylistVideosNode;
+use App\Nodes\Integrations\YouTube\YouTubeListSubscribersNode;
+use App\Nodes\Integrations\YouTube\YouTubeListSubscriptionsNode;
+use App\Nodes\Integrations\YouTube\YouTubePostCommentNode;
+use App\Nodes\Integrations\YouTube\YouTubeRateVideoNode;
+use App\Nodes\Integrations\YouTube\YouTubeRemoveVideoFromPlaylistNode;
+use App\Nodes\Integrations\YouTube\YouTubeReplyToCommentNode;
 use App\Nodes\Integrations\YouTube\YouTubeSearchVideosNode;
+use App\Nodes\Integrations\YouTube\YouTubeSubscribeToChannelNode;
+use App\Nodes\Integrations\YouTube\YouTubeUnsubscribeFromChannelNode;
+use App\Nodes\Integrations\YouTube\YouTubeUpdatePlaylistNode;
+use App\Nodes\Integrations\YouTube\YouTubeUpdateVideoNode;
+use App\Nodes\Integrations\YouTube\YouTubeUploadVideoNode;
 use App\Nodes\Integrations\Zoho\ZohoAddNoteNode;
 use App\Nodes\Integrations\Zoho\ZohoCreateAccountNode;
 use App\Nodes\Integrations\Zoho\ZohoCreateContactNode;
@@ -1483,6 +1501,24 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'google_youtube_get_channel' => YouTubeGetChannelNode::class,
             'google_youtube_list_playlist_videos' => YouTubeListPlaylistVideosNode::class,
             'google_youtube_list_comments' => YouTubeListCommentsNode::class,
+            'google_youtube_upload_video' => YouTubeUploadVideoNode::class,
+            'google_youtube_get_captions' => YouTubeGetCaptionsNode::class,
+            'google_youtube_add_video_to_playlist' => YouTubeAddVideoToPlaylistNode::class,
+            'google_youtube_create_playlist' => YouTubeCreatePlaylistNode::class,
+            'google_youtube_delete_comment' => YouTubeDeleteCommentNode::class,
+            'google_youtube_delete_playlist' => YouTubeDeletePlaylistNode::class,
+            'google_youtube_delete_video' => YouTubeDeleteVideoNode::class,
+            'google_youtube_list_playlists' => YouTubeListPlaylistsNode::class,
+            'google_youtube_list_subscribers' => YouTubeListSubscribersNode::class,
+            'google_youtube_list_subscriptions' => YouTubeListSubscriptionsNode::class,
+            'google_youtube_post_comment' => YouTubePostCommentNode::class,
+            'google_youtube_rate_video' => YouTubeRateVideoNode::class,
+            'google_youtube_remove_video_from_playlist' => YouTubeRemoveVideoFromPlaylistNode::class,
+            'google_youtube_reply_to_comment' => YouTubeReplyToCommentNode::class,
+            'google_youtube_subscribe_to_channel' => YouTubeSubscribeToChannelNode::class,
+            'google_youtube_unsubscribe_from_channel' => YouTubeUnsubscribeFromChannelNode::class,
+            'google_youtube_update_playlist' => YouTubeUpdatePlaylistNode::class,
+            'google_youtube_update_video' => YouTubeUpdateVideoNode::class,
             'google_analytics_run_report' => GoogleAnalyticsRunReportNode::class,
             'google_analytics_run_realtime_report' => GoogleAnalyticsRunRealtimeReportNode::class,
             'google_analytics_list_properties' => GoogleAnalyticsListPropertiesNode::class,
