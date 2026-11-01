@@ -1,37 +1,23 @@
 <?php
 
-use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Ai\Agents\AdHocPromptAgent;
 use App\Enums\NodeRunStatus;
 use App\Models\Runs\NodeRun;
-use App\Models\User;
-use App\Models\Workflows\Workflow;
 use App\Nodes\AiAutomation\AbstractAiNode;
 use App\Services\Workflows\NodeRegistry;
-use App\Services\Workspaces\WorkspaceService;
 use Laravel\Ai\Prompts\AgentPrompt;
 
 /**
  * Runs one AI step in a real workflow against a faked model reply.
  *
  * @param  array<string, mixed>  $config
+ * @param  array<string, mixed>  $input
  */
 function runAiNode(string $type, array $config, string $reply, array $input = []): NodeRun
 {
     AdHocPromptAgent::fake([$reply]);
 
-    $owner = User::factory()->create();
-    $workspace = app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
-    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
-    $workflow->replaceGraph([
-        'nodes' => [['key' => 'step', 'type' => $type, 'config' => ['provider' => 'openai', 'model' => 'gpt-4o', ...$config]]],
-        'edges' => [],
-    ]);
-    $workflow->publishVersion(publisher: $owner);
-
-    $run = app(StartWorkflowRunAction::class)->execute($workflow->fresh(), $input)->fresh(['nodeRuns']);
-
-    return $run->nodeRuns->firstWhere('key', 'step');
+    return runNodeStep($type, ['provider' => 'openai', 'model' => 'gpt-4o', ...$config], $input);
 }
 
 it('registers every AI node', function () {
@@ -164,11 +150,11 @@ it('scores on the scale and thresholds the user sets', function () {
 });
 
 it('refuses empty or oversized text instead of calling the model', function () {
-    $empty = runAiNode('ai_summarize', ['text' => '{{ input.body }}'], 'x', ['body' => "   \n"]);
-    $huge = runAiNode('ai_summarize', ['text' => '{{ input.body }}'], 'x', ['body' => str_repeat('a', 100001)]);
+    AdHocPromptAgent::fake(['unused']);
 
-    expect($empty->status)->toBe(NodeRunStatus::Failed)
-        ->and($huge->status)->toBe(NodeRunStatus::Failed);
+    expect(fn () => executeNode('ai_summarize', ['text' => "   \n"]))->toThrow(InvalidArgumentException::class, 'is empty')
+        ->and(fn () => executeNode('ai_summarize', ['text' => str_repeat('a', 100001)]))->toThrow(InvalidArgumentException::class, 'too long')
+        ->and(fn () => executeNode('ask_ai', ['prompt' => ' ']))->toThrow(InvalidArgumentException::class, 'is empty');
 
     AdHocPromptAgent::assertNeverPrompted();
 });

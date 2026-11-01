@@ -1,22 +1,28 @@
 <?php
 
 use App\Actions\Referrals\AttributeReferralAction;
+use App\Actions\Workflows\StartWorkflowRunAction;
 use App\Enums\Billing\BillingInterval;
 use App\Enums\SuperAdmin\SuperAdminRole;
 use App\Models\Billing\Plan;
 use App\Models\Billing\Subscription;
 use App\Models\Referrals\Referral;
 use App\Models\Referrals\ReferralProgram;
+use App\Models\Runs\NodeRun;
+use App\Models\Runs\Run;
 use App\Models\SuperAdmin\SuperAdmin;
 use App\Models\SuperAdmin\SuperAdminToken;
 use App\Models\User;
+use App\Models\Workflows\Workflow;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\StripeCustomerBalance;
 use App\Services\Referrals\ReferralCodes;
 use App\Services\SuperAdmin\Auth\SuperAdminTokenService;
 use App\Services\SuperAdmin\Pricing\PricingStripe;
+use App\Services\Workflows\NodeRegistry;
 use App\Services\Workspaces\WorkspaceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Laravel\Passport\Client;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
@@ -181,6 +187,44 @@ function referralInvoicePaidPayload(string $eventId, string $customerId, int $am
 function unwrapUntrusted(string $wrapped): string
 {
     return preg_replace('#^<untrusted_content[^>]*>\n|\n</untrusted_content>$#', '', $wrapped);
+}
+
+/**
+ * Runs one node as the only step of a real, published workflow and returns
+ * its run: the closest a test gets to what a user's run does, without
+ * reaching an outside service (fake those first).
+ *
+ * @param  array<string, mixed>  $config
+ * @param  array<string, mixed>  $input  the run input, read with {{ input.x }}
+ */
+function runNodeStep(string $type, array $config, array $input = [], ?Workspace $workspace = null): NodeRun
+{
+    $owner = $workspace?->owner ?? User::factory()->create();
+    $workspace ??= app(WorkspaceService::class)->create($owner, ['name' => 'Acme']);
+
+    $workflow = Workflow::factory()->forWorkspace($workspace)->create();
+    $workflow->replaceGraph(['nodes' => [['key' => 'step', 'type' => $type, 'config' => $config]], 'edges' => []]);
+    $workflow->publishVersion(publisher: $owner);
+
+    $run = app(StartWorkflowRunAction::class)->execute($workflow->fresh(), $input)->fresh(['nodeRuns']);
+
+    return $run->nodeRuns->firstWhere('key', 'step');
+}
+
+/**
+ * Calls a node's `execute()` directly, skipping the engine. The engine checks
+ * a step's settings before it runs (a blank required value never reaches the
+ * node, and a list setting is coerced), so a node's own guards can only be
+ * tested this way. Throws whatever the node throws.
+ *
+ * @param  array<string, mixed>  $config
+ * @return array<string, mixed>
+ */
+function executeNode(string $type, array $config, ?Workspace $workspace = null): array
+{
+    $run = (new Run)->forceFill(['id' => (string) Str::uuid(), 'workspace_id' => $workspace?->id ?? (string) Str::uuid()]);
+
+    return app(NodeRegistry::class)->resolve($type)->execute($run, $config, []);
 }
 
 /*

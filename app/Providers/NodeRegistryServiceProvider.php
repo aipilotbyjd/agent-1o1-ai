@@ -4,23 +4,44 @@ namespace App\Providers;
 
 use App\Contracts\NodeContract;
 use App\Nodes\AiAutomation\AgentNode;
+use App\Nodes\AiAutomation\AiAnswerNode;
 use App\Nodes\AiAutomation\AiClassifyNode;
+use App\Nodes\AiAutomation\AiCompareNode;
 use App\Nodes\AiAutomation\AiExtractNode;
+use App\Nodes\AiAutomation\AiImageNode;
+use App\Nodes\AiAutomation\AiModerateNode;
+use App\Nodes\AiAutomation\AiReadFileNode;
 use App\Nodes\AiAutomation\AiRewriteNode;
+use App\Nodes\AiAutomation\AiRouteToAgentNode;
 use App\Nodes\AiAutomation\AiScoreNode;
 use App\Nodes\AiAutomation\AiSentimentNode;
+use App\Nodes\AiAutomation\AiSpeechNode;
 use App\Nodes\AiAutomation\AiSummarizeNode;
+use App\Nodes\AiAutomation\AiTranscribeNode;
 use App\Nodes\AiAutomation\AiTranslateNode;
 use App\Nodes\AiAutomation\AskAiNode;
+use App\Nodes\AiAutomation\KnowledgeSaveNode;
+use App\Nodes\AiAutomation\KnowledgeSearchNode;
 use App\Nodes\DataTransform\ArrayNode;
 use App\Nodes\DataTransform\CallApiNode;
+use App\Nodes\DataTransform\CsvParseNode;
+use App\Nodes\DataTransform\DataStoreNode;
 use App\Nodes\DataTransform\DateTimeNode;
+use App\Nodes\DataTransform\HtmlToTextNode;
 use App\Nodes\DataTransform\JsonNode;
+use App\Nodes\DataTransform\LookupNode;
 use App\Nodes\DataTransform\MathNode;
+use App\Nodes\DataTransform\PageToMarkdownNode;
+use App\Nodes\DataTransform\PdfCreateNode;
+use App\Nodes\DataTransform\PiiRedactNode;
+use App\Nodes\DataTransform\RssReadNode;
 use App\Nodes\DataTransform\RunCodeNode;
 use App\Nodes\DataTransform\SetVariableNode;
 use App\Nodes\DataTransform\StringNode;
+use App\Nodes\DataTransform\TableFormatNode;
+use App\Nodes\DataTransform\TableNode;
 use App\Nodes\DataTransform\TransformNode;
+use App\Nodes\DataTransform\WebScrapeNode;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Nodes\FlowLogic\FilterNode;
 use App\Nodes\FlowLogic\RouterNode;
@@ -70,6 +91,8 @@ use App\Nodes\Integrations\Airtable\AirtableListTablesNode;
 use App\Nodes\Integrations\Airtable\AirtableListUpdatedRecordsNode;
 use App\Nodes\Integrations\Airtable\AirtableUpdateRecordNode;
 use App\Nodes\Integrations\Airtable\AirtableUpsertRecordNode;
+use App\Nodes\Integrations\Apollo\ApolloEnrichCompanyNode;
+use App\Nodes\Integrations\Apollo\ApolloEnrichPersonNode;
 use App\Nodes\Integrations\Asana\AsanaAddCommentNode;
 use App\Nodes\Integrations\Asana\AsanaAddTagNode;
 use App\Nodes\Integrations\Asana\AsanaAddTaskToProjectNode;
@@ -100,6 +123,8 @@ use App\Nodes\Integrations\Asana\AsanaRemoveTaskFromProjectNode;
 use App\Nodes\Integrations\Asana\AsanaSearchTasksNode;
 use App\Nodes\Integrations\Asana\AsanaUpdateProjectNode;
 use App\Nodes\Integrations\Asana\AsanaUpdateTaskNode;
+use App\Nodes\Integrations\BraveSearch\BraveSearchNewsNode;
+use App\Nodes\Integrations\BraveSearch\BraveSearchWebNode;
 use App\Nodes\Integrations\Brevo\BrevoAddContactsToListNode;
 use App\Nodes\Integrations\Brevo\BrevoCreateListNode;
 use App\Nodes\Integrations\Brevo\BrevoCreateOrUpdateContactNode;
@@ -327,6 +352,9 @@ use App\Nodes\Integrations\GoogleForms\GoogleFormsGetFormNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsGetResponseNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsListResponsesNode;
 use App\Nodes\Integrations\GoogleForms\GoogleFormsUpdateFormInfoNode;
+use App\Nodes\Integrations\GoogleMaps\GoogleMapsGeocodeNode;
+use App\Nodes\Integrations\GoogleMaps\GoogleMapsGetPlaceNode;
+use App\Nodes\Integrations\GoogleMaps\GoogleMapsSearchPlacesNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleInspectUrlNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitemapsNode;
 use App\Nodes\Integrations\GoogleSearchConsole\GoogleSearchConsoleListSitesNode;
@@ -392,6 +420,10 @@ use App\Nodes\Integrations\HubSpot\HubSpotUpdateContactNode;
 use App\Nodes\Integrations\HubSpot\HubSpotUpdateDealNode;
 use App\Nodes\Integrations\HubSpot\HubSpotUpdateTicketNode;
 use App\Nodes\Integrations\HubSpot\HubSpotUpsertContactNode;
+use App\Nodes\Integrations\Hunter\HunterDomainSearchNode;
+use App\Nodes\Integrations\Hunter\HunterFindCompanyNode;
+use App\Nodes\Integrations\Hunter\HunterFindEmailNode;
+use App\Nodes\Integrations\Hunter\HunterVerifyEmailNode;
 use App\Nodes\Integrations\Jira\JiraAddAttachmentNode;
 use App\Nodes\Integrations\Jira\JiraAddCommentNode;
 use App\Nodes\Integrations\Jira\JiraAddUserToGroupNode;
@@ -931,6 +963,8 @@ use App\Nodes\Integrations\Stripe\StripeSendInvoiceNode;
 use App\Nodes\Integrations\Stripe\StripeUpdateCustomerNode;
 use App\Nodes\Integrations\Stripe\StripeUpdateDisputeNode;
 use App\Nodes\Integrations\Stripe\StripeVoidInvoiceNode;
+use App\Nodes\Integrations\Tavily\TavilyExtractNode;
+use App\Nodes\Integrations\Tavily\TavilySearchNode;
 use App\Nodes\Integrations\Telegram\TelegramAnswerCallbackQueryNode;
 use App\Nodes\Integrations\Telegram\TelegramApproveChatJoinRequestNode;
 use App\Nodes\Integrations\Telegram\TelegramBanChatMemberNode;
@@ -1263,6 +1297,17 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'array' => ArrayNode::class,
             'math' => MathNode::class,
             'date_time' => DateTimeNode::class,
+            'csv_parse' => CsvParseNode::class,
+            'data_store' => DataStoreNode::class,
+            'html_to_text' => HtmlToTextNode::class,
+            'lookup' => LookupNode::class,
+            'page_to_markdown' => PageToMarkdownNode::class,
+            'rss_read' => RssReadNode::class,
+            'web_scrape' => WebScrapeNode::class,
+            'pdf_create' => PdfCreateNode::class,
+            'pii_redact' => PiiRedactNode::class,
+            'table' => TableNode::class,
+            'table_format' => TableFormatNode::class,
             'router' => RouterNode::class,
             'filter' => FilterNode::class,
             'ask_ai' => AskAiNode::class,
@@ -1273,6 +1318,29 @@ class NodeRegistryServiceProvider extends ServiceProvider
             'ai_sentiment' => AiSentimentNode::class,
             'ai_rewrite' => AiRewriteNode::class,
             'ai_score' => AiScoreNode::class,
+            'apollo_enrich_company' => ApolloEnrichCompanyNode::class,
+            'apollo_enrich_person' => ApolloEnrichPersonNode::class,
+            'brave_search_news' => BraveSearchNewsNode::class,
+            'brave_search_web' => BraveSearchWebNode::class,
+            'google_maps_geocode' => GoogleMapsGeocodeNode::class,
+            'google_maps_get_place' => GoogleMapsGetPlaceNode::class,
+            'google_maps_search_places' => GoogleMapsSearchPlacesNode::class,
+            'hunter_domain_search' => HunterDomainSearchNode::class,
+            'hunter_find_company' => HunterFindCompanyNode::class,
+            'hunter_find_email' => HunterFindEmailNode::class,
+            'hunter_verify_email' => HunterVerifyEmailNode::class,
+            'tavily_extract' => TavilyExtractNode::class,
+            'tavily_search' => TavilySearchNode::class,
+            'ai_answer' => AiAnswerNode::class,
+            'ai_compare' => AiCompareNode::class,
+            'ai_image' => AiImageNode::class,
+            'ai_moderate' => AiModerateNode::class,
+            'ai_read_file' => AiReadFileNode::class,
+            'ai_route_to_agent' => AiRouteToAgentNode::class,
+            'ai_speech' => AiSpeechNode::class,
+            'ai_transcribe' => AiTranscribeNode::class,
+            'knowledge_save' => KnowledgeSaveNode::class,
+            'knowledge_search' => KnowledgeSearchNode::class,
             'delay' => DelayNode::class,
             'agent' => AgentNode::class,
             'notion_append_blocks' => NotionAppendBlocksNode::class,

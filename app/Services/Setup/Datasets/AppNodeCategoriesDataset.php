@@ -101,6 +101,11 @@ class AppNodeCategoriesDataset extends AbstractSetupDataset
         'zoho_cliq' => ['zoho', ['messaging']],
         'stripe' => [null, ['finance-payments', 'commerce']],
         'shopify' => [null, ['commerce', 'finance-payments']],
+        'brave_search' => [null, ['analytics', 'marketing']],
+        'tavily' => [null, ['developer', 'analytics']],
+        'hunter' => [null, ['crm-sales', 'marketing']],
+        'apollo' => [null, ['crm-sales', 'marketing']],
+        'maps_platform' => [null, ['developer', 'productivity']],
     ];
 
     public function apply(): void

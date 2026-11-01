@@ -11,6 +11,7 @@ use App\Services\Setup\Datasets\NodeCategoriesDataset;
 use App\Services\Setup\Datasets\PageTemplatesDataset;
 use App\Services\Setup\Datasets\PlansDataset;
 use App\Services\Setup\Datasets\ReferralProgramDataset;
+use App\Services\Setup\Datasets\TemplateCollectionsDataset;
 use App\Services\Setup\Datasets\TriggerPresetsDataset;
 use App\Services\Setup\Datasets\WorkflowTemplatesDataset;
 use InvalidArgumentException;
@@ -36,6 +37,7 @@ class SetupRegistry
         AgentTemplatesDataset::class,
         WorkflowTemplatesDataset::class,
         PageTemplatesDataset::class,
+        TemplateCollectionsDataset::class,
     ];
 
     /**

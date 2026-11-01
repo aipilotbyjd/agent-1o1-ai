@@ -67,9 +67,10 @@ abstract class AbstractAiNode implements DeclaresEffect, DeclaresOutputSchema, N
      * One model call.
      *
      * @param  array<string, mixed>  $config
+     * @param  array<int, mixed>  $attachments  files the model reads with the prompt
      * @return array{text: string, usage: array<string, mixed>}
      */
-    protected function ask(Run $run, array $config, string $instructions, string $prompt): array
+    protected function ask(Run $run, array $config, string $instructions, string $prompt, array $attachments = []): array
     {
         $agent = new AdHocPromptAgent($instructions);
 
@@ -88,7 +89,7 @@ abstract class AbstractAiNode implements DeclaresEffect, DeclaresOutputSchema, N
 
         [$provider, $model] = $this->byok->apply($provider, $model, $run->workspace_id, $run->triggered_by);
 
-        $response = $agent->prompt($prompt, provider: $provider, model: $model);
+        $response = $agent->prompt($prompt, attachments: $attachments, provider: $provider, model: $model);
 
         return [
             'text' => $response->text,
@@ -102,11 +103,12 @@ abstract class AbstractAiNode implements DeclaresEffect, DeclaresOutputSchema, N
      * One model call whose reply is a JSON object.
      *
      * @param  array<string, mixed>  $config
+     * @param  array<int, mixed>  $attachments
      * @return array{data: array<string, mixed>, usage: array<string, mixed>}
      */
-    protected function askJson(Run $run, array $config, string $instructions, string $prompt): array
+    protected function askJson(Run $run, array $config, string $instructions, string $prompt, array $attachments = []): array
     {
-        $reply = $this->ask($run, $config, $instructions."\n\nReply with a single JSON object and nothing else: no prose before or after it and no code fences.", $prompt);
+        $reply = $this->ask($run, $config, $instructions."\n\nReply with a single JSON object and nothing else: no prose before or after it and no code fences.", $prompt, $attachments);
         $data = self::decodeJson($reply['text']);
 
         if ($data === null) {

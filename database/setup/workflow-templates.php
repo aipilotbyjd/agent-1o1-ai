@@ -92,7 +92,7 @@ $templates = [];
 
 $templates['lead-intake-and-scoring'] = [
     'name' => 'Lead intake, scoring and routing',
-    'description' => 'Saves a new lead to HubSpot, has AI score the fit, alerts the team in Slack for hot leads and drafts a nurture email for the rest.',
+    'description' => 'Saves a new lead to HubSpot, has AI rate it hot, warm or cold against your ideal customer, alerts Slack for hot leads and drafts a nurture email for the rest.',
     'category' => 'Sales & Outreach',
     'icon' => 'target',
     'color' => 'blue',
@@ -105,16 +105,19 @@ $templates['lead-intake-and-scoring'] = [
         $input('message', 'What they asked for', 'text', false),
         $input('ideal_customer', 'Ideal customer profile', 'text', true, 'Who you sell to: company size, industries, roles and budget.'),
         $step('save_contact', 'hubspot_create_contact', ['email' => $v('email'), 'first_name' => $v('first_name'), 'last_name' => $v('last_name')]),
-        $ai('score', "You qualify inbound sales leads against an ideal customer profile. Reply with exactly one word: hot, warm or cold. {$ONLY_FACTS}", "Ideal customer profile:\n".$v('ideal_customer')."\n\nLead: ".$v('first_name').' '.$v('last_name').', company '.$v('company').".\nMessage: ".$v('message')),
-        $step('route', 'router', ['conditions' => [$route('nodes.score.text', 'contains', 'hot', 'hot')]]),
-        $step('alert_team', 'slack_post_message', ['channel' => '#sales', 'text' => 'Hot lead: '.$v('first_name').' '.$v('last_name').' ('.$v('company').') - '.$v('email')."\n".$v('message')]),
+        $step('score', 'ai_classify', [
+            'text' => 'Lead: '.$v('first_name').' '.$v('last_name').', company '.$v('company').".\nMessage: ".$v('message'),
+            'categories' => ['hot', 'warm', 'cold'],
+            'guidance' => "Ideal customer profile:\n".$v('ideal_customer')."\n\nhot: matches the profile and shows buying intent (asks for a demo, pricing or a call). warm: matches the profile but shows no clear intent yet. cold: does not match the profile or gives too little to tell.",
+        ]),
+        $step('alert_team', 'slack_post_message', ['channel' => '#sales', 'text' => 'Hot lead: '.$v('first_name').' '.$v('last_name').' ('.$v('company').') - '.$v('email')."\n".'{{ nodes.score.reason }}'."\n".$v('message')]),
         $ai('nurture_email', "You write short, warm, specific follow-up emails for sales. Under 110 words, one clear next step, no buzzwords. {$ONLY_FACTS}", 'Write a follow-up to '.$v('first_name').' at '.$v('company').' who wrote: '.$v('message')),
         $step('draft_nurture', 'gmail_create_draft', ['to' => $v('email'), 'subject' => 'Following up on your enquiry', 'body' => $t('nurture_email')]),
-        $output('result', 'lead_rating', $t('score')),
+        $output('result', 'lead_rating', '{{ nodes.score.label }}'),
     ], $edges(
         ['first_name', 'save_contact'], ['last_name', 'save_contact'], ['email', 'save_contact'], ['company', 'save_contact'], ['message', 'save_contact'], ['ideal_customer', 'save_contact'],
-        ['save_contact', 'score'], ['score', 'route'],
-        ['route', 'alert_team', 'hot'], ['route', 'nurture_email', 'default'],
+        ['save_contact', 'score'],
+        ['score', 'alert_team', 'hot'], ['score', 'nurture_email', 'warm'], ['score', 'nurture_email', 'cold'],
         ['nurture_email', 'draft_nurture'], ['alert_team', 'result'], ['draft_nurture', 'result'],
     )),
 ];
@@ -251,15 +254,18 @@ $templates['support-email-triage-and-reply'] = [
         $input('subject', 'Subject'),
         $input('message', 'Message', 'text'),
         $input('help_content', 'Help-center content and policies', 'text', false, 'Paste the articles or policies the reply may rely on.'),
-        $ai('urgency', "Classify a support request. Reply with exactly one word: urgent (outage, data loss, security, payment failure) or normal. {$ONLY_FACTS}", $v('subject')."\n".$v('message')),
-        $step('route', 'router', ['conditions' => [$route('nodes.urgency.text', 'contains', 'urgent', 'urgent')]]),
-        $step('alert', 'slack_post_message', ['channel' => '#support-urgent', 'text' => 'Urgent request from '.$v('customer_email').': '.$v('subject')."\n".$v('message')]),
+        $step('urgency', 'ai_classify', [
+            'text' => $v('subject')."\n".$v('message'),
+            'categories' => ['urgent', 'normal'],
+            'guidance' => 'urgent: an outage, data loss, a security concern or a payment failure. normal: everything else.',
+        ]),
+        $step('alert', 'slack_post_message', ['channel' => '#support-urgent', 'text' => 'Urgent request from '.$v('customer_email').': '.$v('subject')."\n".'{{ nodes.urgency.reason }}'."\n".$v('message')]),
         $ai('draft', "You draft support replies for a human to approve. Acknowledge the problem in one sentence, give numbered steps using only the supplied help content (if it does not cover it, say what you are checking), say what happens next. Never promise refunds, dates or features the policy does not state. {$ONLY_FACTS}", "Help content:\n".$v('help_content')."\n\nCustomer message:\n".$v('subject')."\n".$v('message')),
         $step('approve', 'human_approval'),
         $step('send', 'gmail_send_email', ['to' => $v('customer_email'), 'subject' => 'Re: '.$v('subject'), 'body' => $t('draft')]),
     ], $edges(
         ['customer_email', 'urgency'], ['subject', 'urgency'], ['message', 'urgency'], ['help_content', 'urgency'],
-        ['urgency', 'route'], ['route', 'alert', 'urgent'], ['route', 'draft', 'default'], ['alert', 'draft'],
+        ['urgency', 'alert', 'urgent'], ['urgency', 'draft', 'normal'], ['alert', 'draft'],
         ['draft', 'approve'], ['approve', 'send'],
     )),
 ];
@@ -289,10 +295,28 @@ $templates['ticket-to-github-issue'] = [
     'graph' => $graph([
         $input('repo', 'Repository (owner/name)'),
         $input('report', 'Customer bug report', 'text'),
-        $ai('title', 'Write a GitHub issue title under 80 characters that states the problem. Reply with the title only.', $v('report')),
-        $ai('body', "You turn customer bug reports into engineering issues. Write: Summary, Steps to reproduce, Expected behaviour, Actual behaviour, Environment (if given), and Suggested severity (low, medium, high) with a reason. Mark anything not in the report as 'unknown'. {$ONLY_FACTS}", $v('report')),
-        $step('create', 'github_create_issue', ['repo' => $v('repo'), 'title' => $t('title'), 'body' => $t('body'), 'labels' => ['bug', 'from-support']]),
-    ], $edges(['repo', 'title'], ['report', 'title'], ['title', 'body'], ['body', 'create'])),
+        $step('bug', 'ai_extract', [
+            'text' => $v('report'),
+            'fields' => [
+                'title' => 'a GitHub issue title under 80 characters that states the problem',
+                'steps' => 'the steps to reproduce, as a numbered list',
+                'expected' => 'what the customer expected to happen',
+                'actual' => 'what actually happened, quoting any error message exactly',
+                'environment' => 'browser, device, operating system or version if mentioned',
+            ],
+        ]),
+        $step('severity', 'ai_classify', [
+            'text' => $v('report'),
+            'categories' => ['low', 'medium', 'high'],
+            'guidance' => 'high: data loss, a security problem, a payment problem or something that blocks many people. medium: a feature is broken but there is a workaround. low: cosmetic or rare.',
+        ]),
+        $step('create', 'github_create_issue', [
+            'repo' => $v('repo'),
+            'title' => '{{ nodes.bug.title }}',
+            'body' => "## Steps to reproduce\n{{ nodes.bug.steps }}\n\n## Expected\n{{ nodes.bug.expected }}\n\n## Actual\n{{ nodes.bug.actual }}\n\n## Environment\n{{ nodes.bug.environment }}\n\nSeverity: {{ nodes.severity.label }} - {{ nodes.severity.reason }}",
+            'labels' => ['bug', 'from-support'],
+        ]),
+    ], $edges(['repo', 'bug'], ['report', 'bug'], ['report', 'severity'], ['bug', 'create'], ['severity', 'create'])),
 ];
 
 $templates['negative-review-alert-and-reply'] = [
@@ -316,7 +340,7 @@ $templates['negative-review-alert-and-reply'] = [
 
 $templates['resume-screening-with-shortlist'] = [
     'name' => 'Resume screening and shortlist',
-    'description' => 'Scores a resume against the job requirements with evidence, then drafts an interview invitation for strong candidates for you to review.',
+    'description' => 'Scores a resume against the job’s requirements with the evidence for and against, and drafts an interview invitation only for strong matches.',
     'category' => 'HR & Recruiting',
     'icon' => 'users',
     'color' => 'blue',
@@ -325,14 +349,17 @@ $templates['resume-screening-with-shortlist'] = [
         $input('job_description', 'Job description and must-haves', 'text'),
         $input('resume', 'Resume text', 'text'),
         $input('candidate_email', 'Candidate email'),
-        $ai('screen', "You screen resumes against a job description. Score 1 to 10 on the must-have requirements, cite resume evidence for each (or 'not found'), list gaps to verify, and end with a line 'Recommendation: advance, hold or decline'. Judge only on skills and experience relevant to the role; never consider or infer age, gender, ethnicity, name origin, family status or other protected characteristics. Your output supports a human decision. {$ONLY_FACTS}", "Job:\n".$v('job_description')."\n\nResume:\n".$v('resume')),
-        $step('route', 'router', ['conditions' => [$route('nodes.screen.text', 'contains', 'Recommendation: advance', 'advance')]]),
+        $step('screen', 'ai_score', [
+            'text' => $v('resume'),
+            'criteria' => "Score this resume against the role below. Judge only on skills, experience and role-relevant facts; never consider or infer age, gender, ethnicity, name origin, family status or other protected characteristics. A must-have with no evidence in the resume counts against the score.\n\n".$v('job_description'),
+        ]),
         $ai('invite', 'Write a short, friendly email inviting the candidate to a first interview, asking for their availability this week. Under 90 words.', 'Role summary:'."\n".$v('job_description')),
         $step('draft_invite', 'gmail_create_draft', ['to' => $v('candidate_email'), 'subject' => 'Interview invitation', 'body' => $t('invite')]),
-        $output('result', 'screening', $t('screen')),
+        $output('result', 'screening', "Score {{ nodes.screen.score }}/{{ nodes.screen.max_score }} ({{ nodes.screen.verdict }}).\nStrengths: {{ nodes.screen.strengths }}\nGaps to verify: {{ nodes.screen.gaps }}\nThis supports a human decision; it does not make one."),
     ], $edges(
-        ['job_description', 'screen'], ['resume', 'screen'], ['candidate_email', 'screen'], ['screen', 'route'],
-        ['route', 'invite', 'advance'], ['route', 'result', 'default'], ['invite', 'draft_invite'], ['draft_invite', 'result'],
+        ['job_description', 'screen'], ['resume', 'screen'], ['candidate_email', 'screen'],
+        ['screen', 'invite', 'strong'], ['screen', 'result', 'moderate'], ['screen', 'result', 'weak'],
+        ['invite', 'draft_invite'], ['draft_invite', 'result'],
     )),
 ];
 
@@ -374,7 +401,7 @@ $templates['interview-notes-to-scorecard'] = [
 
 $templates['invoice-capture-and-approval'] = [
     'name' => 'Invoice capture and approval',
-    'description' => 'Extracts the details from an invoice, checks the arithmetic, asks a person to approve it and then logs it in your accounts sheet.',
+    'description' => 'Reads the details off an invoice, asks a person to approve it, then adds a row to your accounts sheet with the vendor, dates and total.',
     'category' => 'Finance & Accounting',
     'icon' => 'receipt',
     'color' => 'blue',
@@ -382,11 +409,29 @@ $templates['invoice-capture-and-approval'] = [
     'graph' => $graph([
         $input('invoice_text', 'Invoice text', 'text'),
         $input('spreadsheet_id', 'Accounts payable Sheet ID'),
-        $ai('extract', "You extract invoice data. Return vendor, invoice number, invoice date, due date, currency, line items (description, quantity, unit price, amount), subtotal, tax and total as a short list. Recalculate the arithmetic and add a line 'Check: OK' or 'Check: MISMATCH' explaining any difference. Use null for anything absent. {$ONLY_FACTS}", $v('invoice_text')),
+        $step('invoice', 'ai_extract', [
+            'text' => $v('invoice_text'),
+            'fields' => [
+                'vendor' => 'the vendor or supplier name',
+                'invoice_number' => 'the invoice number',
+                'invoice_date' => 'the invoice date',
+                'due_date' => 'the payment due date',
+                'currency' => 'the three-letter currency code',
+                'subtotal' => 'the subtotal as a number',
+                'tax' => 'the tax amount as a number',
+                'total' => 'the total amount due as a number',
+                'totals_match' => 'true if the line items add up to the subtotal and the subtotal plus tax equals the total, false if they do not, null if you cannot tell',
+            ],
+        ]),
         $step('approve', 'human_approval'),
-        $step('log', 'google_sheets_append_values', ['spreadsheet_id' => $v('spreadsheet_id'), 'range' => 'Invoices!A:A', 'values' => ['{{ nodes.extract.text }}']]),
-        $output('result', 'invoice_details', $t('extract')),
-    ], $edges(['invoice_text', 'extract'], ['spreadsheet_id', 'extract'], ['extract', 'approve'], ['approve', 'log'], ['log', 'result'])),
+        $step('log', 'google_sheets_append_values', [
+            'spreadsheet_id' => $v('spreadsheet_id'),
+            'range' => 'Invoices!A:H',
+            'values' => ['{{ nodes.invoice.vendor }}', '{{ nodes.invoice.invoice_number }}', '{{ nodes.invoice.invoice_date }}', '{{ nodes.invoice.due_date }}', '{{ nodes.invoice.currency }}', '{{ nodes.invoice.subtotal }}', '{{ nodes.invoice.tax }}', '{{ nodes.invoice.total }}'],
+        ]),
+        $output('result', 'invoice_details', '{{ nodes.invoice.data }}'),
+        $output('missing', 'missing_fields', '{{ nodes.invoice.missing }}'),
+    ], $edges(['invoice_text', 'invoice'], ['spreadsheet_id', 'invoice'], ['invoice', 'approve'], ['approve', 'log'], ['log', 'result'], ['log', 'missing'])),
 ];
 
 $templates['overdue-invoice-reminder'] = [
@@ -523,7 +568,7 @@ $templates['incident-postmortem-to-doc'] = [
 
 $templates['it-request-to-jira'] = [
     'name' => 'IT request to Jira ticket',
-    'description' => 'Turns an employee’s free-text IT request into a clear Jira ticket with a summary and priority, and flags security issues to the security channel.',
+    'description' => 'Turns an employee’s free-text IT request into a clear Jira ticket, and flags suspected security issues to the security channel first.',
     'category' => 'Engineering & IT',
     'icon' => 'wrench',
     'color' => 'teal',
@@ -531,12 +576,21 @@ $templates['it-request-to-jira'] = [
         $input('project', 'Jira project key'),
         $input('requester', 'Requester email'),
         $input('request', 'What is the problem?', 'text'),
-        $ai('summary', 'Write a Jira summary under 90 characters for this IT request. Reply with the summary only.', $v('request')),
-        $ai('details', "Rewrite this IT request as a ticket description: what the user needs, device and operating system if given, error messages quoted exactly, and what has been tried. End with a line 'Priority: low, medium or high' and, if it suggests phishing, malware, a lost device or exposed credentials, a line 'SECURITY: yes'. {$ONLY_FACTS}", 'Requester: '.$v('requester')."\n".$v('request')),
-        $step('route', 'router', ['conditions' => [$route('nodes.details.text', 'contains', 'SECURITY: yes', 'security')]]),
-        $step('alert', 'slack_post_message', ['channel' => '#security', 'text' => 'Possible security issue reported by '.$v('requester').":\n".$t('details')]),
-        $step('ticket', 'jira_create_issue', ['project' => $v('project'), 'issue_type' => 'Task', 'summary' => $t('summary'), 'description' => $t('details')]),
-    ], $edges(['project', 'summary'], ['requester', 'summary'], ['request', 'summary'], ['summary', 'details'], ['details', 'route'], ['route', 'alert', 'security'], ['route', 'ticket', 'default'], ['alert', 'ticket'])),
+        $step('ticket_text', 'ai_extract', [
+            'text' => 'Requester: '.$v('requester')."\n".$v('request'),
+            'fields' => [
+                'summary' => 'a Jira summary under 90 characters',
+                'description' => 'the request as a clear ticket description: what the user needs, device and operating system if given, error messages quoted exactly, and what has been tried',
+            ],
+        ]),
+        $step('kind', 'ai_classify', [
+            'text' => $v('request'),
+            'categories' => ['security', 'other'],
+            'guidance' => 'security: suspected phishing, malware, a lost or stolen device, or exposed credentials. other: everything else.',
+        ]),
+        $step('alert', 'slack_post_message', ['channel' => '#security', 'text' => 'Possible security issue reported by '.$v('requester').":\n{{ nodes.ticket_text.description }}\n{{ nodes.kind.reason }}"]),
+        $step('ticket', 'jira_create_issue', ['project' => $v('project'), 'issue_type' => 'Task', 'summary' => '{{ nodes.ticket_text.summary }}', 'description' => '{{ nodes.ticket_text.description }}']),
+    ], $edges(['project', 'ticket_text'], ['requester', 'ticket_text'], ['request', 'ticket_text'], ['request', 'kind'], ['ticket_text', 'ticket'], ['kind', 'alert', 'security'], ['kind', 'ticket', 'other'], ['alert', 'ticket'])),
 ];
 
 /* ---------------------------------------------------- Legal & Compliance */
@@ -691,7 +745,7 @@ $templates['intake-form-front-desk-checklist'] = [
 
 $templates['meeting-notes-to-actions'] = [
     'name' => 'Meeting notes to summary and actions',
-    'description' => 'Turns a transcript into a summary, decisions and an owner-assigned action list, and posts it to Slack and saves it in Notion.',
+    'description' => 'Turns a transcript into decisions and an owner-assigned action list, posts it to Slack and saves it in Notion.',
     'category' => 'Productivity & Ops',
     'icon' => 'file-text',
     'color' => 'blue',
@@ -700,9 +754,9 @@ $templates['meeting-notes-to-actions'] = [
         $input('title', 'Meeting title'),
         $input('transcript', 'Transcript or notes', 'text'),
         $input('notion_parent_page', 'Notion page to save under'),
-        $ai('notes', "You summarise meetings: a three-sentence summary, decisions made (one line each), an action table with owner, task and due date (use 'unassigned' or 'no date' rather than guessing), and open questions. Be faithful to what was said; do not add commitments nobody made. {$ONLY_FACTS}", $v('title')."\n\n".$v('transcript')),
-        $step('post', 'slack_post_message', ['channel' => '#team', 'text' => '*'.$v('title')."*\n".$t('notes')]),
-        $step('save', 'notion_create_page', ['parent_page' => $v('notion_parent_page'), 'title' => $v('title'), 'content' => $t('notes')]),
+        $step('notes', 'ai_summarize', ['text' => $v('title')."\n\n".$v('transcript'), 'style' => 'actions', 'length' => 'medium', 'focus' => 'decisions, owners and due dates; mark a missing owner or date as unassigned or no date rather than guessing']),
+        $step('post', 'slack_post_message', ['channel' => '#team', 'text' => '*'.$v('title')."*\n{{ nodes.notes.summary }}"]),
+        $step('save', 'notion_create_page', ['parent_page' => $v('notion_parent_page'), 'title' => $v('title'), 'content' => '{{ nodes.notes.summary }}']),
     ], $edges(['title', 'notes'], ['transcript', 'notes'], ['notion_parent_page', 'notes'], ['notes', 'post'], ['notes', 'save'])),
 ];
 
@@ -735,58 +789,161 @@ $templates['sop-from-process-description'] = [
     ], $edges(['process_name', 'sop'], ['description', 'sop'], ['sop', 'doc'], ['doc', 'result'])),
 ];
 
+/* ------------------------------------------------- Built on the AI nodes */
+
+$templates['ticket-classify-and-route'] = [
+    'name' => 'Ticket classify and route',
+    'description' => 'Sorts each incoming request into billing, bug, how-to, feature request or account access, and posts it to the channel of the team that owns it.',
+    'category' => 'Support & Success',
+    'icon' => 'headphones',
+    'color' => 'teal',
+    'is_featured' => true,
+    'graph' => $graph([
+        $input('customer', 'Customer'),
+        $input('subject', 'Subject'),
+        $input('message', 'Message', 'text'),
+        $step('kind', 'ai_classify', [
+            'text' => $v('subject')."\n".$v('message'),
+            'categories' => ['billing', 'bug', 'how-to', 'feature request', 'account access'],
+            'guidance' => 'billing: charges, invoices, refunds, plans. bug: something is broken or erroring. how-to: asking how to do something. feature request: asking for something that does not exist. account access: sign-in, password, permissions.',
+            'allow_other' => true,
+        ]),
+        $step('billing', 'slack_post_message', ['channel' => '#support-billing', 'text' => 'Billing request from '.$v('customer').': '.$v('subject')."\n".$v('message')]),
+        $step('bug', 'slack_post_message', ['channel' => '#support-bugs', 'text' => 'Possible bug from '.$v('customer').': '.$v('subject')."\n".$v('message')]),
+        $step('howto', 'slack_post_message', ['channel' => '#support-help', 'text' => 'Question from '.$v('customer').': '.$v('subject')."\n".$v('message')]),
+        $step('feature', 'slack_post_message', ['channel' => '#product-feedback', 'text' => 'Feature request from '.$v('customer').': '.$v('subject')."\n".$v('message')]),
+        $step('access', 'slack_post_message', ['channel' => '#support-access', 'text' => 'Access issue from '.$v('customer').': '.$v('subject')."\n".$v('message')]),
+        $step('other', 'slack_post_message', ['channel' => '#support', 'text' => 'Unsorted request from '.$v('customer').': '.$v('subject')."\n".$v('message')]),
+        $output('routed', 'category', '{{ nodes.kind.label }} ({{ nodes.kind.confidence }})'),
+    ], $edges(
+        ['customer', 'kind'], ['subject', 'kind'], ['message', 'kind'],
+        ['kind', 'billing', 'billing'], ['kind', 'bug', 'bug'], ['kind', 'howto', 'how-to'], ['kind', 'feature', 'feature request'], ['kind', 'access', 'account access'], ['kind', 'other', 'other'],
+        ['billing', 'routed'], ['bug', 'routed'], ['howto', 'routed'], ['feature', 'routed'], ['access', 'routed'], ['other', 'routed'],
+    )),
+];
+
+$templates['review-sentiment-response'] = [
+    'name' => 'Review sentiment and response',
+    'description' => 'Reads the feeling in a customer review, alerts the team to negative ones with a draft apology, and drafts a thank-you for positive ones.',
+    'category' => 'Support & Success',
+    'icon' => 'star',
+    'color' => 'purple',
+    'graph' => $graph([
+        $input('review', 'Review text', 'text'),
+        $input('reviewer', 'Reviewer first name', 'string', false),
+        $step('feeling', 'ai_sentiment', ['text' => $v('review'), 'about' => 'our product or service']),
+        $ai('apology', "You reply to unhappy customers in under 80 words: apologise for the specific problem, say what you will do, give an offline way to reach support. Never defensive, never offer discounts or refunds, never reveal personal data. {$ONLY_FACTS}", 'Reviewer: '.$v('reviewer')."\nReview: ".$v('review')),
+        $step('alert', 'slack_post_message', ['channel' => '#support', 'text' => "Negative review ({{ nodes.feeling.score }}) needs a person.\nFeeling: {{ nodes.feeling.emotions }}\nReview: ".$v('review')."\nDraft reply: ".$t('apology')]),
+        $ai('thanks', "You reply to happy customers in under 60 words: thank them for something specific they said. Warm, genuine, no upsell. {$ONLY_FACTS}", 'Reviewer: '.$v('reviewer')."\nReview: ".$v('review')),
+        $step('post_thanks', 'slack_post_message', ['channel' => '#reviews', 'text' => "Draft thank-you for a {{ nodes.feeling.sentiment }} review:\n".$t('thanks')]),
+    ], $edges(
+        ['review', 'feeling'], ['reviewer', 'feeling'],
+        ['feeling', 'apology', 'negative'], ['feeling', 'apology', 'mixed'], ['feeling', 'thanks', 'positive'], ['feeling', 'thanks', 'neutral'],
+        ['apology', 'alert'], ['thanks', 'post_thanks'],
+    )),
+];
+
+$templates['multilingual-support-reply'] = [
+    'name' => 'Multilingual support reply',
+    'description' => 'Translates a customer’s message into your language, drafts the reply, and translates it back to theirs for a person to approve and send.',
+    'category' => 'Support & Success',
+    'icon' => 'mail',
+    'color' => 'green',
+    'graph' => $graph([
+        $input('customer_email', 'Customer email'),
+        $input('customer_language', 'Customer’s language'),
+        $input('team_language', 'Your team’s language', 'string', true, 'e.g. English'),
+        $input('message', 'Customer’s message', 'text'),
+        $input('help_content', 'Help-center content and policies', 'text', false),
+        $step('inbound', 'ai_translate', ['text' => $v('message'), 'target_language' => $v('team_language'), 'source_language' => $v('customer_language')]),
+        $ai('draft', "You draft support replies for a human to approve. Acknowledge the problem, give numbered steps using only the supplied help content (if it does not cover it, say what you are checking), say what happens next. Never promise refunds, dates or features the policy does not state. {$ONLY_FACTS}", "Help content:\n".$v('help_content')."\n\nCustomer message:\n{{ nodes.inbound.translation }}"),
+        $step('outbound', 'ai_translate', ['text' => $t('draft'), 'target_language' => $v('customer_language'), 'source_language' => $v('team_language'), 'tone' => 'friendly']),
+        $step('approve', 'human_approval'),
+        $step('send', 'gmail_send_email', ['to' => $v('customer_email'), 'subject' => 'Re: your message', 'body' => '{{ nodes.outbound.translation }}']),
+    ], $edges(['customer_email', 'inbound'], ['customer_language', 'inbound'], ['team_language', 'inbound'], ['message', 'inbound'], ['help_content', 'inbound'], ['inbound', 'draft'], ['draft', 'outbound'], ['outbound', 'approve'], ['approve', 'send'])),
+];
+
+$templates['inbound-email-to-crm-contact'] = [
+    'name' => 'Inbound email to CRM contact',
+    'description' => 'Reads the sender’s details out of an email, creates the HubSpot contact and posts a one-line summary of the request to Slack.',
+    'category' => 'Sales & Outreach',
+    'icon' => 'mail',
+    'color' => 'orange',
+    'graph' => $graph([
+        $input('email_text', 'Email, including the signature', 'text'),
+        $step('sender', 'ai_extract', [
+            'text' => $v('email_text'),
+            'fields' => ['email' => 'the sender’s email address', 'first_name' => 'first name', 'last_name' => 'last name', 'company' => 'company name', 'phone' => 'phone number', 'job_title' => 'job title', 'request' => 'what they want, in one sentence'],
+        ]),
+        $step('contact', 'hubspot_create_contact', ['email' => '{{ nodes.sender.email }}', 'first_name' => '{{ nodes.sender.first_name }}', 'last_name' => '{{ nodes.sender.last_name }}']),
+        $step('post', 'slack_post_message', ['channel' => '#new-leads', 'text' => 'New contact: {{ nodes.sender.first_name }} {{ nodes.sender.last_name }}, {{ nodes.sender.job_title }} at {{ nodes.sender.company }}'."\n".'{{ nodes.sender.request }}'."\nNot found in the email: {{ nodes.sender.missing }}"]),
+    ], $edges(['email_text', 'sender'], ['sender', 'contact'], ['contact', 'post'])),
+];
+
 /* ----------------------------------------- Automatic: webhooks and schedules */
 
 $templates['webhook-lead-capture-and-routing'] = [
     'name' => 'Website form lead capture and routing',
-    'description' => 'Starts when your website form posts to a private URL, saves the lead to HubSpot, and tells Slack how urgent it is and why.',
+    'description' => 'Starts when your website form posts to a private URL, reads out the lead’s details, saves them to HubSpot and tells Slack how urgent it is and why.',
     'category' => 'Sales & Outreach',
     'icon' => 'target',
     'color' => 'blue',
     'is_featured' => true,
     'graph' => $graph([
         $step('hook', 'webhook_trigger', ['authentication' => 'header_token', 'header_name' => 'X-Webhook-Token']),
-        $ai('read', "You read website form submissions. Extract the person's email, first name, last name, company and request, then rate urgency as hot (ready to buy or asks for a demo or pricing), warm or cold. Reply on exactly four lines: 'Email: ...', 'Name: ...', 'Company: ...', 'Urgency: hot|warm|cold - reason'. Use 'unknown' for anything absent. {$ONLY_FACTS}", "Form submission:\n{{ nodes.hook.payload }}"),
-        $ai('email', 'Reply with only the email address from the submission, or the word none.', "Form submission:\n{{ nodes.hook.payload }}"),
-        $step('save', 'hubspot_create_contact', ['email' => $t('email')]),
-        $step('notify', 'slack_post_message', ['channel' => '#new-leads', 'text' => "New website lead\n".$t('read')]),
-    ], $edges(['hook', 'read'], ['hook', 'email'], ['email', 'save'], ['read', 'notify'], ['save', 'notify'])),
+        $step('lead', 'ai_extract', [
+            'text' => "Form submission:\n{{ nodes.hook.payload }}",
+            'fields' => ['email' => 'the sender’s email address', 'first_name' => 'first name', 'last_name' => 'last name', 'company' => 'company name', 'request' => 'what they are asking for, in one sentence'],
+        ]),
+        $step('urgency', 'ai_classify', [
+            'text' => "Form submission:\n{{ nodes.hook.payload }}",
+            'categories' => ['hot', 'warm', 'cold'],
+            'guidance' => 'hot: asks for a demo, pricing, a quote or a call, or states a deadline. warm: interested but exploring. cold: a vague or unrelated message.',
+        ]),
+        $step('save', 'hubspot_create_contact', ['email' => '{{ nodes.lead.email }}', 'first_name' => '{{ nodes.lead.first_name }}', 'last_name' => '{{ nodes.lead.last_name }}']),
+        $step('notify', 'slack_post_message', ['channel' => '#new-leads', 'text' => "New website lead ({{ nodes.urgency.label }})\n{{ nodes.lead.first_name }} {{ nodes.lead.last_name }}, {{ nodes.lead.company }} - {{ nodes.lead.email }}\n{{ nodes.lead.request }}\nWhy: {{ nodes.urgency.reason }}"]),
+    ], $edges(['hook', 'lead'], ['hook', 'urgency'], ['lead', 'save'], ['save', 'notify'], ['urgency', 'notify'])),
 ];
 
 $templates['failed-payment-recovery'] = [
     'name' => 'Failed payment recovery',
-    'description' => 'When a payment fails, drafts a helpful, non-accusatory email with the way to update the card, and sends it once a person approves.',
+    'description' => 'When a payment fails, reads out who and why, drafts a helpful, non-accusatory email, and sends it once a person approves.',
     'category' => 'Finance & Accounting',
     'icon' => 'receipt',
     'color' => 'red',
     'is_featured' => true,
     'graph' => $graph([
         $step('hook', 'webhook_trigger', ['authentication' => 'signature']),
-        $ai('details', 'From this payment-failed event, reply on three lines only: Email: <customer email>, Amount: <amount and currency>, Reason: <failure reason in plain words>. Use unknown for anything absent.', "Event:\n{{ nodes.hook.payload }}"),
-        $ai('email_only', 'Reply with only the customer email address from the event, or the word none.', "Event:\n{{ nodes.hook.payload }}"),
-        $ai('message', "You write payment-failure emails under 110 words: tell the customer a payment did not go through, why if known, how to update their card (say 'use the secure link below' and leave the placeholder [UPDATE LINK]), and that the service stays active for a few days. Warm, never accusatory, no threats or late fees. {$ONLY_FACTS}", $t('details')),
+        $step('payment', 'ai_extract', [
+            'text' => "Payment-failed event:\n{{ nodes.hook.payload }}",
+            'fields' => ['email' => 'the customer’s email address', 'amount' => 'the amount with its currency', 'reason' => 'why the payment failed, in plain words'],
+        ]),
+        $ai('message', "You write payment-failure emails under 110 words: tell the customer a payment did not go through, why if known, how to update their card (say 'use the secure link below' and leave the placeholder [UPDATE LINK]), and that the service stays active for a few days. Warm, never accusatory, no threats or late fees. {$ONLY_FACTS}", "Amount: {{ nodes.payment.amount }}\nReason: {{ nodes.payment.reason }}"),
         $step('approve', 'human_approval'),
-        $step('send', 'gmail_send_email', ['to' => $t('email_only'), 'subject' => 'Your payment didn’t go through', 'body' => $t('message')]),
-    ], $edges(['hook', 'details'], ['hook', 'email_only'], ['details', 'message'], ['message', 'approve'], ['email_only', 'approve'], ['approve', 'send'])),
+        $step('send', 'gmail_send_email', ['to' => '{{ nodes.payment.email }}', 'subject' => 'Your payment didn’t go through', 'body' => $t('message')]),
+    ], $edges(['hook', 'payment'], ['payment', 'message'], ['message', 'approve'], ['approve', 'send'])),
 ];
 
 $templates['shopify-order-risk-check'] = [
     'name' => 'New order risk check',
-    'description' => 'Reviews each new Shopify order for fraud signals as it arrives and alerts the team in Slack only when something looks off.',
+    'description' => 'Reviews each new Shopify order for fraud signals as it arrives and alerts the team in Slack, with the reasons, only when something looks off.',
     'category' => 'E-commerce',
     'icon' => 'shield-check',
     'color' => 'orange',
     'graph' => $graph([
         $step('hook', 'webhook_trigger', ['authentication' => 'signature']),
-        $ai('risk', "You review e-commerce orders for fraud signals: mismatched billing and shipping countries, very high value for a first order, many high-value items, free-email plus rush shipping, repeated failed attempts, or an address that looks malformed. Reply with 'RISK: low' or 'RISK: review' on the first line, then up to three bullet reasons drawn from the data. Never accuse; flag for a person. {$ONLY_FACTS}", "Order:\n{{ nodes.hook.payload }}"),
-        $step('route', 'router', ['conditions' => [$route('nodes.risk.text', 'contains', 'RISK: review', 'review')]]),
-        $step('alert', 'slack_post_message', ['channel' => '#order-review', 'text' => "Order needs a look\n".$t('risk')]),
-    ], $edges(['hook', 'risk'], ['risk', 'route'], ['route', 'alert', 'review'])),
+        $step('risk', 'ai_classify', [
+            'text' => "Order:\n{{ nodes.hook.payload }}",
+            'categories' => ['low', 'review'],
+            'guidance' => 'review: mismatched billing and shipping countries, a very high value for a first order, many high-value items, a free email address with rush shipping, repeated failed attempts, or an address that looks malformed. Otherwise low. Never accuse anyone; this only flags an order for a person to look at.',
+        ]),
+        $step('alert', 'slack_post_message', ['channel' => '#order-review', 'text' => "Order needs a look ({{ nodes.risk.confidence }} confidence)\nWhy: {{ nodes.risk.reason }}"]),
+    ], $edges(['hook', 'risk'], ['risk', 'alert', 'review'])),
 ];
 
 $templates['refund-request-with-approval'] = [
     'name' => 'Refund request with approval',
-    'description' => 'Checks a refund request against your policy, asks a person to approve it, then issues the Stripe refund and confirms to the customer.',
+    'description' => 'Checks a refund request against your policy, and only when it qualifies asks a person to approve it, issues the Stripe refund and confirms to the customer.',
     'category' => 'Finance & Accounting',
     'icon' => 'receipt',
     'color' => 'green',
@@ -795,12 +952,21 @@ $templates['refund-request-with-approval'] = [
         $input('customer_email', 'Customer email'),
         $input('reason', 'Customer’s reason', 'text'),
         $input('policy', 'Refund policy', 'text'),
-        $ai('assessment', "You assess refund requests against the policy supplied. Reply with 'Decision: approve' or 'Decision: decline' or 'Decision: needs more info' on the first line, then two sentences citing the policy clause relied on. Never approve what the policy does not allow. {$ONLY_FACTS}", "Policy:\n".$v('policy')."\n\nRequest:\n".$v('reason')),
+        $step('assessment', 'ai_classify', [
+            'text' => $v('reason'),
+            'categories' => ['approve', 'decline', 'needs more info'],
+            'guidance' => "Decide using only this refund policy, and never approve what it does not allow:\n".$v('policy'),
+        ]),
         $step('approve', 'human_approval'),
         $step('refund', 'stripe_create_refund', ['payment_intent_id' => $v('payment_intent_id'), 'reason' => 'requested_by_customer']),
         $ai('confirm', 'Write a short, warm email confirming the refund has been issued and that it can take 5 to 10 business days to appear. Under 70 words.', 'Reason for refund: '.$v('reason')),
         $step('send', 'gmail_send_email', ['to' => $v('customer_email'), 'subject' => 'Your refund has been issued', 'body' => $t('confirm')]),
-    ], $edges(['payment_intent_id', 'assessment'], ['customer_email', 'assessment'], ['reason', 'assessment'], ['policy', 'assessment'], ['assessment', 'approve'], ['approve', 'refund'], ['refund', 'confirm'], ['confirm', 'send'])),
+        $output('declined', 'outcome', '{{ nodes.assessment.label }}: {{ nodes.assessment.reason }}'),
+    ], $edges(
+        ['payment_intent_id', 'assessment'], ['customer_email', 'assessment'], ['reason', 'assessment'], ['policy', 'assessment'],
+        ['assessment', 'approve', 'approve'], ['assessment', 'declined', 'decline'], ['assessment', 'declined', 'needs more info'],
+        ['approve', 'refund'], ['refund', 'confirm'], ['confirm', 'send'],
+    )),
 ];
 
 $templates['daily-inbox-priorities'] = [

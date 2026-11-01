@@ -278,7 +278,7 @@ it('catches a connector with no app category and a duplicate key', function () {
 });
 
 it('keeps all setup data in database/setup, not in the dataset classes', function () {
-    foreach (['plans', 'node-categories', 'app-node-categories', 'trigger-presets', 'connectors', 'model-catalog', 'agent-templates', 'workflow-templates', 'page-templates'] as $name) {
+    foreach (['plans', 'node-categories', 'app-node-categories', 'trigger-presets', 'connectors', 'model-catalog', 'agent-templates', 'workflow-templates', 'page-templates', 'template-collections'] as $name) {
         expect(is_file(database_path("setup/{$name}.php")))->toBeTrue("database/setup/{$name}.php is missing");
     }
 });
