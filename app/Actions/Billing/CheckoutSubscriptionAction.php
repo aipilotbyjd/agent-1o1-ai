@@ -5,7 +5,9 @@ namespace App\Actions\Billing;
 use App\Enums\Billing\BillingInterval;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PricingCoupon;
+use App\Models\User;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\Policies\TrialCreditPolicy;
 use App\Services\Referrals\ReferralTrialBonus;
 use Laravel\Cashier\Checkout;
 
@@ -13,7 +15,10 @@ class CheckoutSubscriptionAction
 {
     private const SUBSCRIPTION_TYPE = 'default';
 
-    public function __construct(private readonly ReferralTrialBonus $referralTrialBonus) {}
+    public function __construct(
+        private readonly ReferralTrialBonus $referralTrialBonus,
+        private readonly TrialCreditPolicy $trials,
+    ) {}
 
     /**
      * Returns a Stripe Checkout URL for a workspace with no subscription yet,
@@ -24,7 +29,7 @@ class CheckoutSubscriptionAction
      * `CheckoutLifetimePlanAction`: guarded here rather than left to fail
      * deeper in Cashier with an unrecurring price.
      */
-    public function execute(Workspace $workspace, Plan $plan, BillingInterval $interval): ?string
+    public function execute(Workspace $workspace, Plan $plan, BillingInterval $interval, ?User $buyer = null): ?string
     {
         abort_if(
             ! $interval->isRecurring(),
@@ -73,7 +78,11 @@ class CheckoutSubscriptionAction
 
         // Referral `trial_extension` rewards lengthen the plan's own trial,
         // or grant one on a plan that has none.
-        $trialDays = $plan->trial_days + $this->referralTrialBonus->daysFor($workspace);
+        // One trial per workspace, person and mailbox: a repeat checkout pays
+        // from day one. The card is checked once Stripe reports it.
+        $trialDays = $this->trials->trialDeniedReason($workspace, $buyer) === null
+            ? $plan->trial_days + $this->referralTrialBonus->daysFor($workspace)
+            : 0;
 
         if ($trialDays > 0) {
             $sessionOptions['subscription_data'] = ['trial_period_days' => $trialDays];

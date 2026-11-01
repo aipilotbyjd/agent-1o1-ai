@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One append-only ledger row, never updated after creation. Written only
@@ -18,8 +19,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `credits` is the whole charge; `topup_credits` and `overage_credits` say
  * how much of it came out of the non-expiring top-up pool and out of overage
  * respectively, so the remainder is what the plan allowance covered.
+ * `debt_credits` is the part no grant could pay for (an overdraft), and
+ * `allocations` say exactly which wallet grants paid for the rest.
  */
-#[Fillable(['workspace_id', 'usage_period_id', 'source_type', 'source_id', 'credits', 'topup_credits', 'overage_credits', 'reason'])]
+#[Fillable(['workspace_id', 'usage_period_id', 'source_type', 'source_id', 'credits', 'topup_credits', 'overage_credits', 'debt_credits', 'reason'])]
 class CreditTransaction extends Model
 {
     use HasUuids;
@@ -34,6 +37,7 @@ class CreditTransaction extends Model
             'credits' => 'integer',
             'topup_credits' => 'integer',
             'overage_credits' => 'integer',
+            'debt_credits' => 'integer',
         ];
     }
 
@@ -48,5 +52,13 @@ class CreditTransaction extends Model
     public function usagePeriod(): BelongsTo
     {
         return $this->belongsTo(UsagePeriod::class);
+    }
+
+    /**
+     * @return HasMany<CreditGrantAllocation, $this>
+     */
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(CreditGrantAllocation::class);
     }
 }

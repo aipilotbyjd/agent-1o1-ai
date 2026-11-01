@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\SuperAdmin\V1\Pricing;
 use App\Enums\Billing\BillingInterval;
 use App\Enums\Billing\Feature;
 use App\Enums\Billing\PlanLimit;
+use App\Models\Billing\Plan;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +26,7 @@ abstract class PlanPayloadRequest extends FormRequest
      */
     protected function sharedRules(string $presence): array
     {
-        $limitKeys = [...array_map(fn (PlanLimit $limit): string => $limit->value, PlanLimit::cases()), 'min_poll_interval_minutes'];
+        $limitKeys = [...array_map(fn (PlanLimit $limit): string => $limit->value, PlanLimit::cases()), 'min_poll_interval_minutes', ...Plan::USAGE_LIMIT_KEYS];
         $featureKeys = array_map(fn (Feature $feature): string => $feature->value, Feature::cases());
 
         return [
@@ -33,7 +34,10 @@ abstract class PlanPayloadRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:1000'],
             'credits_monthly' => [$presence, 'integer', 'min:0', 'max:100000000'],
             'limits' => ['sometimes', 'array:'.implode(',', $limitKeys)],
-            'limits.*' => ['integer', 'min:-1', 'max:100000000'],
+            'limits.*' => ['numeric', 'min:-1', 'max:100000000'],
+            ...collect($limitKeys)->diff(Plan::DOLLAR_LIMIT_KEYS)->mapWithKeys(fn (string $key): array => ["limits.{$key}" => ['integer']])->all(),
+            ...collect(Plan::DOLLAR_LIMIT_KEYS)->mapWithKeys(fn (string $key): array => ["limits.{$key}" => ['numeric', 'min:-1', 'max:1000000']])->all(),
+            'limits.credit_rollover_percent' => ['integer', 'min:0', 'max:100'],
             'features' => ['sometimes', 'array:'.implode(',', $featureKeys)],
             'features.*' => ['boolean'],
             'trial_days' => ['sometimes', 'integer', 'min:0', 'max:90'],

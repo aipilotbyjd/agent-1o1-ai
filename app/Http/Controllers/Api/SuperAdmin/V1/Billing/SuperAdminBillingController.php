@@ -73,6 +73,7 @@ class SuperAdminBillingController extends Controller
             $workspace,
             $request->integer('credits'),
             $request->validated('reason'),
+            $request->filled('expires_at') ? $request->date('expires_at') : null,
         );
 
         return ApiResponse::success(['topup_credits' => (int) $workspace->topup_credits], 'Credits added.');

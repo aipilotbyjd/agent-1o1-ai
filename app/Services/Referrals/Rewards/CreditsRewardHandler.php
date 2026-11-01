@@ -2,30 +2,45 @@
 
 namespace App\Services\Referrals\Rewards;
 
+use App\Enums\Billing\CreditGrantSource;
+use App\Models\Billing\CreditGrant;
 use App\Models\Referrals\ReferralReward;
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\CreditWallet;
 
 /**
- * Adds to the workspace's non-expiring `topup_credits` pool: the same pool
- * credit packs land in, spent after the plan allowance.
+ * Pays a referral reward as a `referral` grant in the workspace's
+ * `CreditWallet`: it carries over between periods and is spent after the
+ * period's allowance. The grant references the reward, so a clawback takes
+ * back exactly what is left of it.
  */
 class CreditsRewardHandler implements RewardHandler
 {
+    public function __construct(private readonly CreditWallet $wallet) {}
+
     public function grant(ReferralReward $reward): void
     {
         if ($reward->workspace_id === null || ($reward->credits ?? 0) <= 0) {
             return;
         }
 
-        $workspace = Workspace::query()->whereKey($reward->workspace_id)->lockForUpdate()->first();
+        $workspace = Workspace::query()->find($reward->workspace_id);
 
-        $workspace?->increment('topup_credits', $reward->credits);
+        if ($workspace === null) {
+            return;
+        }
+
+        $this->wallet->grant($workspace, CreditGrantSource::Referral, (int) $reward->credits, [
+            'idempotency_key' => 'referral:'.$reward->id,
+            'reference' => $reward,
+            'reason' => 'Referral reward',
+        ]);
     }
 
     /**
-     * Takes back what is still there. `topup_credits` is unsigned and may
-     * already be spent, so the clawback stops at zero and records how much
-     * it actually recovered.
+     * Takes back what is still unspent of the reward's grant. Credits already
+     * spent stay spent, and `credits_clawed_back` records how much was
+     * actually recovered.
      */
     public function revoke(ReferralReward $reward): void
     {
@@ -33,18 +48,13 @@ class CreditsRewardHandler implements RewardHandler
             return;
         }
 
-        $workspace = Workspace::query()->whereKey($reward->workspace_id)->lockForUpdate()->first();
+        $grant = CreditGrant::query()
+            ->where('reference_type', $reward->getMorphClass())
+            ->where('reference_id', $reward->getKey())
+            ->first();
 
-        if ($workspace === null) {
-            return;
-        }
-
-        $recovered = min($reward->credits, (int) $workspace->topup_credits);
-
-        if ($recovered > 0) {
-            $workspace->decrement('topup_credits', $recovered);
-        }
-
-        $reward->credits_clawed_back = $recovered;
+        $reward->credits_clawed_back = $grant !== null
+            ? $this->wallet->revoke($grant, 'Referral reward revoked')
+            : 0;
     }
 }

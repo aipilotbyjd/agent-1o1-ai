@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\Billing\CreditGrantSource;
 use App\Enums\Billing\PlanGrantSource;
 use App\Enums\Billing\PlanGrantStatus;
 use App\Enums\SuperAdmin\SuperAdminRole;
+use App\Models\Billing\CreditGrant;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\Plan;
 use App\Models\Billing\PlanGrant;
@@ -57,9 +59,11 @@ it('grants top-up credits with a reason and a fresh code, recording before and a
 
     $log = SuperAdminAuditLog::query()->where('action', 'billing.credits.granted')->firstOrFail();
 
+    $grant = CreditGrant::query()->where('workspace_id', $this->workspace->id)->sole();
     expect($this->workspace->fresh()->topup_credits)->toBe(500)
+        ->and($grant->source)->toBe(CreditGrantSource::Admin)
         ->and($log->before)->toBe(['topup_credits' => 0])
-        ->and($log->after)->toBe(['topup_credits' => 500])
+        ->and($log->after)->toBe(['topup_credits' => 500, 'credit_grant_id' => $grant->id, 'expires_at' => null])
         ->and($log->reason)->toBe('Verified request from the account owner');
 });
 
@@ -219,4 +223,14 @@ it('validates a refund and keeps it to finance and owners', function () {
 
     $operator = superAdmin(SuperAdminRole::Operator);
     $this->withHeaders(superAdminHeaders($operator))->postJson($url, stepUp($operator, ['payment_intent' => 'pi_1']))->assertForbidden();
+});
+
+it('grants admin credits that expire on the given date', function () {
+    $expiresAt = now()->addMonth()->startOfSecond();
+
+    $this->withHeaders($this->headers)
+        ->postJson(saUrl("billing/workspaces/{$this->workspace->id}/credits/grant"), stepUp($this->finance, ['credits' => 300, 'expires_at' => $expiresAt->toIso8601String()]))
+        ->assertOk();
+
+    expect(CreditGrant::query()->where('workspace_id', $this->workspace->id)->sole()->expires_at->equalTo($expiresAt))->toBeTrue();
 });

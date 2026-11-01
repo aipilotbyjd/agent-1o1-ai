@@ -3,6 +3,7 @@
 namespace App\Models\Billing;
 
 use App\Models\Workspaces\Workspace;
+use App\Services\Billing\CreditWallet;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -65,10 +66,10 @@ class UsagePeriod extends Model
     }
 
     /**
-     * How much of this period's plan allowance is left, ignoring any
-     * non-expiring top-up credits the workspace holds. `0` once the
-     * allowance is spent; meaningless (and not called) on an unlimited
-     * period, where `credits_limit` is `null`.
+     * How much of this period's allowance grant is left, ignoring any
+     * carry-over credits the workspace holds. `0` once the allowance is
+     * spent or the period has ended; meaningless (and not called) on an
+     * unlimited period, where `credits_limit` is `null`.
      */
     public function remainingPlanCredits(): int
     {
@@ -76,7 +77,9 @@ class UsagePeriod extends Model
             return 0;
         }
 
-        return max(0, $this->credits_limit - $this->credits_used);
+        $grant = app(CreditWallet::class)->ensureAllowance($this);
+
+        return $grant !== null && $grant->isSpendable() ? $grant->remaining : 0;
     }
 
     /**

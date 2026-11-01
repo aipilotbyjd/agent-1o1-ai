@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Internal\V1\Billing;
 use App\Enums\Billing\PlanLimit;
 use App\Enums\Workspaces\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\Internal\V1\Billing\CreditGrantResource;
 use App\Http\Resources\Api\Internal\V1\Billing\PlanGrantResource;
 use App\Http\Resources\Api\Internal\V1\Billing\PlanResource;
 use App\Http\Resources\Api\Internal\V1\Billing\SubscriptionResource;
@@ -13,7 +14,9 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Billing\Plan;
 use App\Models\Workspaces\Workspace;
 use App\Services\Billing\CreditOverage;
+use App\Services\Billing\CreditWallet;
 use App\Services\Billing\PlanLimitGate;
+use App\Services\Billing\Policies\FreeCreditPolicy;
 
 class BillingController extends Controller
 {
@@ -32,6 +35,17 @@ class BillingController extends Controller
      * period's remaining plan allowance plus the non-expiring `topup_credits`
      * bought via credit packs. `null` means unlimited.
      *
+     * `credit_grants` breaks `credits_available` down by where the credits
+     * came from (plan, free, trial, top-up, promo, referral, admin) and when
+     * each expires, in the order they will be spent. `credit_debt` is usage
+     * nothing could pay for yet; the next credits the workspace receives pay
+     * it first.
+     *
+     * `free_credits` is non-null only for a workspace on the free plan: it
+     * says whether this workspace receives the free monthly credits and, if
+     * not, why (only the owner's first workspace does, the owner's email is
+     * unverified, or the allowance was already used by another account).
+     *
      * `limits` reports what `PlanLimitGate` will actually enforce on the next
      * create: render the "2 of 3 workflows" counter from this rather than
      * from `current_plan.limits`, which carries the raw cap with no usage
@@ -49,7 +63,7 @@ class BillingController extends Controller
      * is the only thing on the response that can explain why. Render it as a
      * banner pointing at `POST /billing/portal`.
      */
-    public function overview(Workspace $workspace, PlanLimitGate $limits, CreditOverage $overage)
+    public function overview(Workspace $workspace, PlanLimitGate $limits, CreditOverage $overage, CreditWallet $wallet, FreeCreditPolicy $freeCredits)
     {
         $this->requirePermission(Permission::BillingView);
 
@@ -64,10 +78,27 @@ class BillingController extends Controller
             'usage_period' => UsagePeriodResource::make($workspace->currentUsagePeriod()),
             'topup_credits' => $workspace->topup_credits,
             'credits_available' => $workspace->availableCredits(),
+            'credit_grants' => CreditGrantResource::collection($wallet->spendableGrants($workspace)),
+            'credit_debt' => (int) $workspace->fresh()?->credit_debt,
+            'free_credits' => $this->freeCredits($workspace, $freeCredits),
             'limits' => $this->limitUsage($workspace, $currentPlan, $limits),
             'overage' => $this->overage($workspace, $overage),
             'dunning' => $this->dunning($workspace),
         ]);
+    }
+
+    /**
+     * @return array{eligible: bool, reason: string|null}|null
+     */
+    private function freeCredits(Workspace $workspace, FreeCreditPolicy $policy): ?array
+    {
+        if ($workspace->activeSubscription() !== null || $workspace->activePlanGrant() !== null) {
+            return null;
+        }
+
+        $reason = $policy->reasonDenied($workspace);
+
+        return ['eligible' => $reason === null, 'reason' => $reason];
     }
 
     /**

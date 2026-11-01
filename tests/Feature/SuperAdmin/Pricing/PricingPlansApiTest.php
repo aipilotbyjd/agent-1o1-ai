@@ -273,3 +273,20 @@ it('lets every role read pricing but only finance and owners change it', functio
 it('requires authentication', function () {
     $this->getJson(saUrl('pricing/plans'))->assertUnauthorized();
 });
+
+it('sets a plan\'s AI cost caps in dollars and its usage limits in whole numbers', function () {
+    $this->withHeaders($this->headers)->patchJson(saUrl("pricing/plans/{$this->pro->id}"), [
+        'reason' => 'Capping AI spend per workspace',
+        'limits' => ['ai_cost_daily_usd' => 2.5, 'max_concurrent_runs' => 3, 'trial_credits' => 1000],
+    ])->assertOk();
+
+    $plan = $this->pro->fresh();
+    expect($plan->aiCostDailyUsd())->toBe(2.5)
+        ->and($plan->maxConcurrentRuns())->toBe(3)
+        ->and($plan->trialCredits())->toBe(1000);
+
+    $this->withHeaders($this->headers)->patchJson(saUrl("pricing/plans/{$this->pro->id}"), [
+        'reason' => 'Fractional run count',
+        'limits' => ['max_concurrent_runs' => 1.5],
+    ])->assertUnprocessable()->assertJsonValidationErrors('limits.max_concurrent_runs');
+});

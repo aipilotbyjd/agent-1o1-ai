@@ -4,8 +4,8 @@ namespace App\Jobs\Agents;
 
 use App\Enums\Agents\EvalRunTrigger;
 use App\Enums\Queue;
-use App\Exceptions\InsufficientCreditsException;
 use App\Exceptions\PlanLimitExceededException;
+use App\Exceptions\UsageBlockedException;
 use App\Models\Agents\Agent;
 use App\Models\Agents\AgentEvalSuite;
 use App\Services\Agents\EvalRunner;
@@ -62,7 +62,7 @@ class RunEvalsOnAgentChangeJob implements ShouldBeUnique, ShouldQueue
                     $runner->start($suite, trigger: EvalRunTrigger::AgentChange);
 
                     return true;
-                } catch (InsufficientCreditsException|PlanLimitExceededException) {
+                } catch (UsageBlockedException|PlanLimitExceededException) {
                     return false;
                 }
             });

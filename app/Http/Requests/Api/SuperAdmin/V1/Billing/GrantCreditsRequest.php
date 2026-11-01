@@ -17,6 +17,7 @@ class GrantCreditsRequest extends StepUpRequest
         return [
             ...parent::rules(),
             'credits' => ['required', 'integer', 'min:1', 'max:'.config('super_admin_security.limits.credit_grant_max')],
+            'expires_at' => ['sometimes', 'nullable', 'date', 'after:now'],
         ];
     }
 }

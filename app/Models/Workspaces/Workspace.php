@@ -13,6 +13,7 @@ use App\Models\Ai\AiProviderCredential;
 use App\Models\Ai\WorkspaceAiKeyPolicy;
 use App\Models\Artifacts\Artifact;
 use App\Models\Auth\ApiKey;
+use App\Models\Billing\CreditGrant;
 use App\Models\Billing\CreditPack;
 use App\Models\Billing\CreditTransaction;
 use App\Models\Billing\Plan;
@@ -38,6 +39,8 @@ use App\Models\Workflows\PageSection;
 use App\Models\Workflows\Tag;
 use App\Models\Workflows\Workflow;
 use App\Models\Workflows\WorkflowPage;
+use App\Services\Billing\CreditWallet;
+use App\Services\Billing\UsagePeriods;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -59,6 +62,7 @@ class Workspace extends Model
      */
     protected $attributes = [
         'topup_credits' => 0,
+        'credit_debt' => 0,
         'timezone' => 'UTC',
         'credit_overage_enabled' => false,
         'out_of_credits_notification_enabled' => true,
@@ -72,6 +76,7 @@ class Workspace extends Model
     {
         return [
             'topup_credits' => 'integer',
+            'credit_debt' => 'integer',
             'timezone' => Timezone::class,
             'credit_overage_enabled' => 'boolean',
             'credit_overage_limit' => 'integer',
@@ -228,6 +233,14 @@ class Workspace extends Model
         return $this->hasMany(CreditTransaction::class);
     }
 
+    /**
+     * @return HasMany<CreditGrant, $this>
+     */
+    public function creditGrants(): HasMany
+    {
+        return $this->hasMany(CreditGrant::class);
+    }
+
     public function creditPacks(): HasMany
     {
         return $this->hasMany(CreditPack::class);
@@ -348,32 +361,22 @@ class Workspace extends Model
     }
 
     /**
-     * Finds (or creates) the `UsagePeriod` covering right now: a plain
-     * calendar month until Stripe billing-cycle-aligned periods are wired.
-     * `credits_limit` is sized off `currentPlan()`, so an unsubscribed
-     * workspace lands on the Free plan's allowance instead of an unlimited
-     * one. Stays `null` (unlimited) only when no default plan is seeded.
+     * The `UsagePeriod` covering right now, opening one if none does. A
+     * subscribed workspace's periods follow its Stripe billing cycle; any
+     * other uses the calendar month. The allowance (`credits_limit`) comes
+     * from `CreditAllowancePolicy`: plan, trial or free credits. Stays `null`
+     * (unlimited) only when no default plan is seeded. See `UsagePeriods`.
      */
     public function currentUsagePeriod(): UsagePeriod
     {
-        $startsAt = now()->startOfMonth();
-        $subscription = $this->activeSubscription();
-        $plan = $this->currentPlan();
-
-        return $this->usagePeriods()->firstOrCreate(
-            ['starts_at' => $startsAt],
-            [
-                'ends_at' => $startsAt->clone()->endOfMonth()->addSecond(),
-                'plan_id' => $plan?->id,
-                'subscription_id' => $subscription?->id,
-                'credits_limit' => $plan?->creditsMonthly(),
-            ],
-        );
+        return app(UsagePeriods::class)->current($this);
     }
 
     /**
-     * Plan allowance left this period plus the non-expiring `topup_credits`
-     * pool bought via credit packs. `null` means unlimited.
+     * Credits spendable right now: what is left of this period's allowance
+     * plus every carry-over grant (top-ups, promo, referral, admin), minus
+     * any debt, floored at zero (`credit_debt` holds the rest). `null` means
+     * unlimited. See `CreditWallet`.
      */
     public function availableCredits(): ?int
     {
@@ -383,7 +386,7 @@ class Workspace extends Model
             return null;
         }
 
-        return $period->remainingPlanCredits() + $this->topup_credits;
+        return max(0, app(CreditWallet::class)->balance($this));
     }
 
     /**

@@ -19,7 +19,7 @@ class CreditController extends Controller
         $this->requirePermission(Permission::BillingView);
 
         return ApiResponse::paginated(
-            CreditTransactionResource::collection($workspace->creditTransactions()->latest()->paginate(25)),
+            CreditTransactionResource::collection($workspace->creditTransactions()->with('allocations.grant')->latest()->paginate(25)),
         );
     }
 }

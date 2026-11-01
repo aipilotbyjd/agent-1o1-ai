@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\SuperAdmin\V1\Pricing\PricingCouponController;
+use App\Http\Controllers\Api\SuperAdmin\V1\Pricing\PricingCreditPolicyController;
 use App\Http\Controllers\Api\SuperAdmin\V1\Pricing\PricingIntervalController;
 use App\Http\Controllers\Api\SuperAdmin\V1\Pricing\PricingOverviewController;
 use App\Http\Controllers\Api\SuperAdmin\V1\Pricing\PricingPackController;
@@ -26,6 +27,7 @@ Route::prefix('pricing')->as('pricing.')->group(function () use ($base) {
 
         Route::get('packs', [PricingPackController::class, 'index'])->name('packs.index');
         Route::get('intervals', [PricingIntervalController::class, 'index'])->name('intervals.index');
+        Route::get('credit-policies', [PricingCreditPolicyController::class, 'index'])->name('credit-policies.index');
 
         Route::get('coupons', [PricingCouponController::class, 'index'])->name('coupons.index');
         Route::get('coupons/{coupon}', [PricingCouponController::class, 'show'])->whereUuid('coupon')->name('coupons.show');
@@ -61,6 +63,7 @@ Route::prefix('pricing')->as('pricing.')->group(function () use ($base) {
         Route::delete('packs/{pack}', [PricingPackController::class, 'destroy'])->whereUuid('pack')->name('packs.destroy');
 
         Route::put('intervals', [PricingIntervalController::class, 'update'])->name('intervals.update');
+        Route::put('credit-policies', [PricingCreditPolicyController::class, 'update'])->name('credit-policies.update');
 
         Route::post('coupons', [PricingCouponController::class, 'store'])->name('coupons.store');
         Route::post('coupons/{coupon}/activate', [PricingCouponController::class, 'activate'])->whereUuid('coupon')->name('coupons.activate');

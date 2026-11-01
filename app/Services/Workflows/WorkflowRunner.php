@@ -19,6 +19,7 @@ use App\Models\Workflows\WorkflowApproval;
 use App\Nodes\FlowLogic\DelayNode;
 use App\Notifications\Workspace\RunApprovalRequestedNotification;
 use App\Services\Agents\AgentRunner;
+use App\Services\Billing\CostGuard;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Secrets\ResolvedSecrets;
 use App\Services\Secrets\SecretRedactor;
@@ -57,6 +58,7 @@ class WorkflowRunner
         private readonly SecretResolver $secretResolver,
         private readonly SecretRedactor $secretRedactor,
         private readonly RunCanceller $canceller,
+        private readonly CostGuard $costGuard,
     ) {}
 
     public function executeStep(NodeRun $nodeRun): void
@@ -179,6 +181,7 @@ class WorkflowRunner
 
         try {
             $secrets->assertComplete();
+            $this->costGuard->assertRunWithinBudget($run);
             $node = $this->registry->resolve($nodeRun->type);
             $config = $this->resolvedConfigCaster->cast(
                 $node->configSchema(),
